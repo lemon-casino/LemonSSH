@@ -73,6 +73,8 @@ experiments/*
 !experiments/wails-shell-probe/**
 !experiments/terminal-data-plane/
 !experiments/terminal-data-plane/**
+!experiments/profile-secret-migration/
+!experiments/profile-secret-migration/**
 !infrastructure/
 !infrastructure/**
 !lib/

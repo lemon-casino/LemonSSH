@@ -470,6 +470,12 @@ Exit：选定一个满足 Gate 3 的数据面；否则停止全面迁移。
 
 ### P0-04 Electron secret 解封与 Go 转封探针
 
+执行状态：`needs-verification`。Windows DPAPI live 互操作（31 secret fixtures +
+3 metadata）、三种 interrupt 注入的 fail-closed 行为、泄漏扫描与 Go 契约套件已通过；
+macOS/Linux live keyring 证据缺失。收尾期间修正了陈旧的 Go KDF/AAD golden 向量，
+并补齐了 Electron 驱动缺失的 metadata 帧阶段。见 `probes/secret-migration.md` 与
+ledger `WV3-L011`。
+
 关联：FND-03
 
 Files:
@@ -1832,10 +1838,9 @@ qualification；P9-01/P9-02 在 rollback observation closure 后完成 REL-03.2�
 
 ## 18. 首个安全执行切片
 
-当前下一项可独立推进的 non-AI disposable probe 为 `P0-04 Electron secret 解封与
-Go 转封探针`；P0-02/P0-03 同时保留三平台和 formal evidence 补齐路线。
-`P0-01`、P0-02、P0-03 保持 `needs-verification`，`P0-01A` 保持
-`pause-for-user`；这些 probe 不声称关闭彼此的证据/决策缺口，也不创建 production
+当前下一项可独立推进的 non-AI 工作为 P0-01A 发布目标决策关闭与 P0-01/P0-02/P0-03/
+P0-05 的三平台/formal 证据补齐；`P0-04` 已取得 Windows DPAPI C 级证据并保持
+`needs-verification`。这些 probe 不声称关闭彼此的证据/决策缺口，也不创建 production
 Go owner。
 
 在 P0-01、P0-01A、P0-01B 完成前不得：

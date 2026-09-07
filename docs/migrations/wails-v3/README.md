@@ -70,14 +70,15 @@ plan or other documents is a navigation hint only and cannot override them.
 - Target release shell: Wails v3.
 - Current runtime languages: Node.js/CommonJS plus React/TypeScript.
 - Target runtime languages: Go plus React/TypeScript frontend assets.
-- Wails/Go production scaffold: not present; disposable P0-02 shell and P0-03
-  terminal data-plane probes have Windows C-grade evidence.
+- Wails/Go production scaffold: not present; disposable P0-02 shell, P0-03
+  terminal data-plane, and P0-04 secret-migration probes have Windows
+  C-grade evidence.
 - Active migration phase: Phase 0, baseline and feasibility probes.
-- Next non-AI action: finish the P0-02/P0-03 three-platform and formal benchmark
-  matrices; P0-04 may proceed independently as a disposable probe.
+- Next non-AI action: close the P0-01A release-target decisions and finish the
+  P0-01/P0-02/P0-03/P0-05 three-platform and formal evidence matrices.
 - Open Phase 0 boundaries: `P0-01` remains `needs-verification` and `P0-01A`
-  remains `pause-for-user`; P0-02/P0-03 remain `needs-verification`, and P0-04
-  has not started. No production Go owner may start until the Phase 0 exit gate
+  remains `pause-for-user`; P0-02/P0-03/P0-04 remain `needs-verification`. No
+  production Go owner may start until the Phase 0 exit gate
   closes.
 - AI boundary: `P0-05` remains a read-only `needs-verification` audit and
   `AI-04` remains `not-started`. Production AI work is blocked until the

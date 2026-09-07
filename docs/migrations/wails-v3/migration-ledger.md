@@ -372,3 +372,46 @@ capability row, source paths, verification output or CI run.
 - Next safe slice: finish P0-03 platform/formal evidence; P0-04 may proceed independently while
   P0-01/P0-01A evidence and decisions remain open
 - Drift decision: `needs-verification`
+
+## WV3-L011 - 2026-09-08 - P0-04 Windows secret unseal and Go re-seal probe
+
+- Capability rows: `FND-03`
+- Plan task: `P0-04`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 验证 Electron safeStorage 解封的合成 secret 能经 authenticated ephemeral channel
+  无损进入 Go 侧 DPAPI user-range 转封，并以 fail-closed 方式处理损坏源、不可用
+  keyring 与进程中断。
+- Go canonical owner: none; `experiments/profile-secret-migration/` is disposable evidence
+- Frontend adapter: Electron-side CJS corpus/channel/runner under the probe; production React
+  and bridges are unchanged
+- Electron owner affected: none; `safeStorage` and credential/vault backup bridges remain the
+  release baseline
+- Preserved invariants: X25519 + HKDF-SHA256 transcript-bound channel key、双向 HMAC
+  confirmation、AES-256-GCM direction-separated nonce 与 canonical AAD 绑定
+  direction/sequence/ID/format/purpose、strict JSON 帧边界、空 stderr、no-plaintext-leak
+- Data/schema impact: synthetic corpus only (24 `enc:v1`, 3 `safeStorage-raw`, 4 edge, 3
+  metadata); no real profile or credential data touched
+- Security impact: purpose-bound DPAPI entropy、seal 后 in-process round-trip 校验、negative
+  source rejection、31-canary leak scan over stdout/stderr/argv/env/isolated root、interrupt
+  injection 不得产出 passing receipt
+- Verification: `go -C experiments/profile-secret-migration test ./...` and `go vet`; Node
+  `crypto.hkdfSync` 独立复算 KDF golden; live Windows runner 2026-09-08 passed/cleanup/leakScan
+  all true for 31 fixtures plus 3 metadata; three `--interrupt` modes each reported
+  passed false with cleanup and leakScan true
+- Platforms covered: Windows 10 22H2 x64 build 19045 only; macOS/Linux live keyrings and leak
+  scans absent; non-Windows providers are fail-closed stubs
+- Evidence grade: `C`
+- Decision references: `WV3-002`, `WV3-004`, `WV3-007`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P2-04/P2-05/P2-06 production owners replace the probe;
+  the probe is deleted or reduced to a harness once they land
+- Documentation updated: README, capability matrix, implementation plan, secret-migration probe
+  report and ledger
+- Residual risks: macOS Keychain/Linux Secret Service live evidence、three-platform leak scans
+  and the Phase 0 exit gate remain open; the Electron driver metadata phase was added during
+  close-out and still needs cross-platform runs
+- Next safe slice: close P0-01A release-target decisions and complete P0-01/P0-02/P0-03
+  platform evidence; production Go owners stay forbidden until the Phase 0 exit gate closes
+- Drift decision: `needs-verification`

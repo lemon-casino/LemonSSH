@@ -10,9 +10,10 @@ export default [
   // electron/ — that main-process tree is historically unlinted. The bridges
   // get a focused rule set in the dedicated block at the end of this config;
   // every other electron/ file matches no config and stays unlinted as before.
-  { ...js.configs.recommended, ignores: ["electron/**"] },
+  // Disposable experiments/ probes follow the same boundary.
+  { ...js.configs.recommended, ignores: ["electron/**", "experiments/**"] },
   {
-    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**"],
+    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**"],
   },
   {
     files: ["**/*.{ts,tsx}"],
