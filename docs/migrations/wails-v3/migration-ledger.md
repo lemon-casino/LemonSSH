@@ -535,3 +535,40 @@ capability row, source paths, verification output or CI run.
   平台执行；479 个端口方法仍未迁移；三平台 launch 证据缺失
 - Next safe slice: P1-03 base contracts with Go-to-TS codegen and drift check
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L015 - 2026-09-08 - P1-03 base contracts with Go-to-TS codegen
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P1-03`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 建立所有后续 service contract 复用的统一基础类型：opaque 身份、稳定
+  错误码、request/subscription envelope 与 JSON 边界策略，并以 Go 为单一
+  source of truth 生成 TS 声明。
+- Go canonical owner: `internal/app/contracts/`（纯契约，无 shell 依赖）；
+  `tools/contracts-codegen` 为 codegen owner
+- Frontend adapter: `infrastructure/runtime/contracts/` 消费生成的声明并提供
+  `toServiceError` 错误/取消映射
+- Electron owner affected: none; the base contracts add no bridge methods
+- Preserved invariants: 错误码永不改名/复用（AST 提取保证 union 同步）；IDs
+  前缀+长度封闭可验证；JSON 边界在唯一入口 Encode/Decode 强制；未知字段
+  fail-closed
+- Data/schema impact: golden fixtures under testdata/migration/contracts only
+- Security impact: safe-integer/size/depth/unknown-field policy 缩小后续
+  service 面；错误 envelope 不泄漏 internals（unknown → netcatty.internal）
+- Verification: `go test ./internal/app/contracts/`（IDs、错误映射、JSON
+  策略、golden 写入/漂移检测）；`go run ./tools/contracts-codegen --check`
+  字节级 drift gate；TS 跨语言测试消费同一 fixtures（base64 payload、ID
+  形状、code union、错误映射语义）；`npm run lint`、全应用 tsc 过滤无新错误
+- Platforms covered: platform-independent contract layer
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-002`, `WV3-008`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: base contracts only; existing owners unchanged
+- Documentation updated: README, implementation plan and ledger
+- Residual risks: terminal byte frame 与 plugin public contract 刻意不在本层；
+  Electron fixtures 的错误/取消映射在 P2-05/P2-06 迁移 broker 时做端到端验证
+- Next safe slice: Phase 2 Batch B, P2-01 persistence key and Electron-main
+  data inventory
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

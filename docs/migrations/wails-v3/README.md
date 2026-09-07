@@ -73,11 +73,12 @@ plan or other documents is a navigation hint only and cannot override them.
 - Wails/Go production scaffold: present (`cmd/netcatty`, `internal/app`);
   `FND-01` is `implemented` with fail-closed ports; renderer launch smoke and
   three-platform launch evidence pending.
-- Active migration phase: Phase 0 evidence collection plus the Phase 1
-  shell-neutral contract layer (P1-01 done; P1-02 next).
+- Active migration phase: Phase 1 complete (shell-neutral ports P1-01,
+  Wails skeleton P1-02, base contracts P1-03); Phase 0 evidence collection
+  continues in CI.
 - Next non-AI action: run the migration-evidence workflow on three platforms to
-  close P0-01/P0-02/P0-03/P0-05 evidence, then build the production Wails
-  skeleton (P1-02).
+  close P0-01/P0-02/P0-03/P0-05 evidence, then start Phase 2 Batch B at
+  P2-01 (persistence key and Electron-main data inventory).
 - Open Phase 0 boundaries: `P0-01` and P0-02/P0-03/P0-04/P0-05 remain
   `needs-verification`; `P0-01A` closed on 2026-09-08 with frozen release
   targets (`WV3-011`, `WV3-012`, `WV3-013`). The migration-evidence CI

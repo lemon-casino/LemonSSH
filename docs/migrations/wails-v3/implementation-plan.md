@@ -636,6 +636,17 @@ Exit：同一 React bundle 可在 Electron/Wails 测试壳启动，业务 owner 
 
 ### P1-03 建立 Go 错误、事件、身份与取消基础契约
 
+执行状态：完成。`internal/app/contracts/` 提供 opaque IDs（inst_/win_/ses_/req_
+前缀 + 24 hex）、稳定错误码与结构化 envelope（`AsError` 统一映射
+deadline/cancel/policy 错误）、request/subscription envelope，以及 JSON 边界
+策略（1 MiB、深度 32、±2^53-1 safe integer、unknown-field 拒绝）。
+`tools/contracts-codegen` 反射生成 TS 声明（ErrorCode union 直接从 errors.go
+AST 提取），`--check` 字节级 drift gate 并入 `check:contracts`；Go golden
+fixtures（testdata/migration/contracts/）由 TS 侧跨语言测试消费；前端
+`errorMapping.ts` 按 Go `AsError` 语义映射 BridgeUnavailableError/Abort/
+Timeout。不在此任务定义 terminal byte frame 或 plugin public contract。见
+ledger `WV3-L015`。
+
 关联：FND-01、FND-04
 
 Files:

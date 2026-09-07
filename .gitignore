@@ -83,6 +83,8 @@ experiments/*
 !cmd/**
 !internal/
 !internal/**
+!tools/
+!tools/**
 !infrastructure/
 !infrastructure/**
 !lib/
@@ -111,6 +113,8 @@ experiments/*
 /testdata/migration/*
 !/testdata/migration/electron/
 !/testdata/migration/electron/**
+!/testdata/migration/contracts/
+!/testdata/migration/contracts/**
 
 # --- Layer 3: classical denylist (applies inside allowlisted trees) ---
 
