@@ -319,9 +319,11 @@ Exit：所有后续 parity task 都能引用一个稳定 fixture/metric，而不
 
 ### P0-01A 冻结三平台 release target matrix
 
-执行状态：`pause-for-user`。当前 architecture/artifact 事实已写入
-`release-target-matrix.md`，但 Windows/macOS 最低版本和 Linux GTK 4.14+ 与现有
-glibc/RHEL 8 兼容目标的冲突需要产品决策。见 ledger `WV3-L002`。
+执行状态：完成。required floor 已于 2026-09-08 由产品决策冻结：Windows 10 22H2
+x64 + WebView2 Evergreen（`WV3-011`）、macOS 12+ x64/arm64（`WV3-012`）、
+Linux GTK 4.14+/WebKitGTK（`WV3-013`，退休 RHEL 8 glibc 2.28 兼容目标）；
+Linux 四种包格式保持 required（继承 `WV3-008`）；Windows ARM64 确认
+unsupported。见 `release-target-matrix.md` 与 ledger `WV3-L012`。
 
 关联：REL-01、REL-02、REL-03、FND-01、FND-04
 

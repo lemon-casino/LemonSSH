@@ -190,12 +190,12 @@ function nonAiRequiredCapabilityIds(root) {
 }
 
 function addNonAiFixtureDecisions(root) {
-  addAcceptedDecision(root, "WV3-011", "Fixture release targets", [
+  addAcceptedDecision(root, "WV3-901", "Fixture release targets", [
     "release-target:windows",
     "release-target:macos",
     "release-target:linux",
   ]);
-  addAcceptedDecision(root, "WV3-012", "Fixture Agent dispositions", [
+  addAcceptedDecision(root, "WV3-902", "Fixture Agent dispositions", [
     "agent-runtime:cursor-bun",
     "agent-runtime:opencode-bun",
     "agent-disposition:copilot",
@@ -211,14 +211,14 @@ function gateEntry(id = ledgerId()) {
     task: "P6-05",
     transition: "not-started -> not-started",
     grade: "A",
-    decisions: "`WV3-011`, `WV3-012`",
+    decisions: "`WV3-901`, `WV3-902`",
     gate: "NONAI-COMPLETE",
     retirement: "none: Wails disconnected; Electron frozen release carrier until approved cutover/rollback triggers",
-    verification: "nonAiRows=verified; releaseTargets=WV3-011; agentDecisions=WV3-012; qualification=P6-02,P6-03,P6-04; authority=fixture gate authority",
+    verification: "nonAiRows=verified; releaseTargets=WV3-901; agentDecisions=WV3-902; qualification=P6-02,P6-03,P6-04; authority=fixture gate authority",
   });
 }
 
-function gateMarker(id = ledgerId(), decisionIds = ["WV3-011", "WV3-012"]) {
+function gateMarker(id = ledgerId(), decisionIds = ["WV3-901", "WV3-902"]) {
   return {
     formatVersion: 1,
     gate: "NONAI-COMPLETE",
@@ -229,7 +229,7 @@ function gateMarker(id = ledgerId(), decisionIds = ["WV3-011", "WV3-012"]) {
   };
 }
 
-function gateAuthority(id = ledgerId(), decisionIds = ["WV3-011", "WV3-012"]) {
+function gateAuthority(id = ledgerId(), decisionIds = ["WV3-901", "WV3-902"]) {
   return { ledgerId: id, decisionIds };
 }
 
@@ -243,7 +243,7 @@ function injectedAiBoundary(priorMarker, priorGate) {
   };
 }
 
-function writeGateMarker(root, id = ledgerId(), decisionIds = ["WV3-011", "WV3-012"]) {
+function writeGateMarker(root, id = ledgerId(), decisionIds = ["WV3-901", "WV3-902"]) {
   const markerPath = path.join(root, "docs/migrations/wails-v3/gates/nonai-complete.json");
   const marker = gateMarker(id, decisionIds);
   fs.mkdirSync(path.dirname(markerPath), { recursive: true });
@@ -305,7 +305,7 @@ function appendCompleteNonAiGate(root, startOffset = 1) {
 }
 
 function addReleaseLifecycleFixture(root, startOffset) {
-  addAcceptedDecision(root, "WV3-013", "Fixture rollback window closure", ["rollback-window-closure"]);
+  addAcceptedDecision(root, "WV3-903", "Fixture rollback window closure", ["rollback-window-closure"]);
   mutate(root, "capability-matrix.md", (source) => source.replace(
     /(^\| AI-04 \|.*$)/m,
     "$1\n| AI-04.1 | Fixture external Agent child | required | fixture | fixture | fixture | fixture | not-started |",
@@ -365,7 +365,7 @@ function addReleaseLifecycleFixture(root, startOffset) {
     task: "P8-03",
     transition: "not-started -> not-started",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     gate: "ROLLBACK-CLOSED",
     closureEvidence: "thresholds=fixture thresholds; sample=fixture sample; blockers=none; authority=fixture closure authority",
     retirement: "none: rollback closure gate evidence only",
@@ -374,14 +374,14 @@ function addReleaseLifecycleFixture(root, startOffset) {
     capability: "REL-03.2",
     task: "P9-01",
     transition: "not-started -> probe",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "rollback-trigger: fixture rollback window closed",
   })}${ledgerEntry({
     id: ledgerId(startOffset + 9),
     capability: "REL-03.2",
     task: "P9-01",
     transition: "probe -> implemented",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "deleted: fixture Electron runtime",
   })}${ledgerEntry({
     id: ledgerId(startOffset + 10),
@@ -389,7 +389,7 @@ function addReleaseLifecycleFixture(root, startOffset) {
     task: "P9-02",
     transition: "implemented -> verified",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "deleted: fixture Electron runtime and repository paths",
   })}`);
 }
@@ -612,6 +612,7 @@ test("checker rejects AI advancement before the non-AI gate", () => withFixture(
 }));
 
 test("checker rejects a premature non-AI completion gate", () => withFixture((root) => {
+  mutate(root, "release-target-matrix.md", (source) => `${source}\n| RT-FIXTURE | Fixture unresolved target | fixture | fixture | fixture | fixture | fixture | decision-required |`);
   mutate(root, "migration-ledger.md", (source) => `${source}${gateEntry()}`);
   const errors = checkMigrationDocs(root);
   assert.ok(errors.some((error) => error.includes(
@@ -621,14 +622,14 @@ test("checker rejects a premature non-AI completion gate", () => withFixture((ro
 }));
 
 test("checker rejects REL-03.2 advancement before the release gates", () => withFixture((root) => {
-  addAcceptedDecision(root, "WV3-011", "Rollback window closure fixture", ["rollback-window-closure"]);
+  addAcceptedDecision(root, "WV3-901", "Rollback window closure fixture", ["rollback-window-closure"]);
   mutate(root, "capability-matrix.md", (source) => setMatrixStatus(source, "REL-03.2", "probe"));
   mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
     id: ledgerId(),
     capability: "REL-03.2",
     task: "P9-01",
     transition: "not-started -> probe",
-    decisions: "`WV3-011`",
+    decisions: "`WV3-901`",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => (
     error.includes(`${ledgerId()} advances REL-03.2 before Gate WAILS-CUTOVER`)
@@ -850,7 +851,7 @@ test("checker rejects loose prose and self-asserted NONAI decision evidence", ()
   withFixture((root) => {
     appendCompleteNonAiGate(root);
     mutate(root, "migration-ledger.md", (source) => source.replace(
-      "nonAiRows=verified; releaseTargets=WV3-011; agentDecisions=WV3-012; qualification=P6-02,P6-03,P6-04; authority=fixture gate authority",
+      "nonAiRows=verified; releaseTargets=WV3-901; agentDecisions=WV3-902; qualification=P6-02,P6-03,P6-04; authority=fixture gate authority",
       "required rows verified; release decisions and Agent decisions resolved",
     ));
     assert.ok(checkMigrationDocs(root).some((error) => (
@@ -861,8 +862,8 @@ test("checker rejects loose prose and self-asserted NONAI decision evidence", ()
   withFixture((root) => {
     appendCompleteNonAiGate(root);
     mutate(root, "migration-ledger.md", (source) => source
-      .replace("releaseTargets=WV3-011", "releaseTargets=WV3-009")
-      .replace("`WV3-011`, `WV3-012`", "`WV3-009`, `WV3-011`, `WV3-012`"));
+      .replace("releaseTargets=WV3-901", "releaseTargets=WV3-009")
+      .replace("`WV3-901`, `WV3-902`", "`WV3-009`, `WV3-901`, `WV3-902`"));
     assert.ok(checkMigrationDocs(root).some((error) => (
       error.includes("Verification releaseTargets contains an irrelevant decision: WV3-009")
     )));
@@ -885,13 +886,13 @@ test("checker requires every exact NONAI decision category", () => withFixture((
 }));
 
 test("checker rejects accepted decisions without canonical Categories metadata", () => withFixture((root) => {
-  addAcceptedDecision(root, "WV3-011", "Fixture malformed decision", ["fixture:category"]);
+  addAcceptedDecision(root, "WV3-901", "Fixture malformed decision", ["fixture:category"]);
   mutate(root, "decisions.md", (source) => source.replace(
     "- Categories: fixture:category\n",
     "",
   ));
   assert.ok(checkMigrationDocs(root).some((error) => error.includes(
-    "WV3-011 must contain exactly one Categories field",
+    "WV3-901 must contain exactly one Categories field",
   )));
 }));
 
@@ -923,7 +924,7 @@ test("checker rejects gate-only metadata on the wrong records", () => {
 });
 
 test("checker rejects an irrelevant decision for a same-entry scope removal", () => withFixture((root) => {
-  addAcceptedDecision(root, "WV3-011", "Irrelevant scope fixture", ["fixture:irrelevant"]);
+  addAcceptedDecision(root, "WV3-901", "Irrelevant scope fixture", ["fixture:irrelevant"]);
   mutate(root, "capability-matrix.md", (source) => setMatrixScopeAndStatus(
     source,
     "FND-01",
@@ -935,7 +936,7 @@ test("checker rejects an irrelevant decision for a same-entry scope removal", ()
     transition: "not-started -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-011`",
+    decisions: "`WV3-901`",
     retirement: "removed: fixture owner",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => (
@@ -946,7 +947,7 @@ test("checker rejects an irrelevant decision for a same-entry scope removal", ()
 test("checker does not let a post-gate scope removal retroactively satisfy NONAI", () => withFixture((root) => {
   const capabilityIds = setupNonAiFixture(root);
   const verifiedIds = capabilityIds.filter((id) => id !== "FND-01");
-  addAcceptedDecision(root, "WV3-013", "Fixture FND removal", ["scope-removal:FND-01"]);
+  addAcceptedDecision(root, "WV3-903", "Fixture FND removal", ["scope-removal:FND-01"]);
   mutate(root, "capability-matrix.md", (source) => {
     source = verifiedIds.reduce(
       (current, capability) => setMatrixStatus(current, capability, "verified"),
@@ -976,7 +977,7 @@ test("checker does not let a post-gate scope removal retroactively satisfy NONAI
     transition: "not-started -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "removed: fixture owner",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => (
@@ -987,7 +988,7 @@ test("checker does not let a post-gate scope removal retroactively satisfy NONAI
 test("checker accepts an approved pre-gate scope removal", () => withFixture((root) => {
   const capabilityIds = setupNonAiFixture(root);
   const verifiedIds = capabilityIds.filter((id) => id !== "FND-01");
-  addAcceptedDecision(root, "WV3-013", "Fixture FND removal", ["scope-removal:FND-01"]);
+  addAcceptedDecision(root, "WV3-903", "Fixture FND removal", ["scope-removal:FND-01"]);
   mutate(root, "capability-matrix.md", (source) => {
     source = setMatrixScopeAndStatus(source, "FND-01", "removed", "retired");
     return verifiedIds.reduce(
@@ -1001,7 +1002,7 @@ test("checker accepts an approved pre-gate scope removal", () => withFixture((ro
     transition: "not-started -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "removed: fixture owner",
   })}${ledgerEntry({
     id: ledgerId(2),
@@ -1025,7 +1026,7 @@ test("checker accepts an approved pre-gate scope removal", () => withFixture((ro
 }));
 
 test("checker rejects a second chronological removal of the same scope", () => withFixture((root) => {
-  addAcceptedDecision(root, "WV3-011", "Fixture FND removal", ["scope-removal:FND-01"]);
+  addAcceptedDecision(root, "WV3-901", "Fixture FND removal", ["scope-removal:FND-01"]);
   mutate(root, "capability-matrix.md", (source) => setMatrixScopeAndStatus(
     source,
     "FND-01",
@@ -1037,7 +1038,7 @@ test("checker rejects a second chronological removal of the same scope", () => w
     transition: "not-started -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-011`",
+    decisions: "`WV3-901`",
     retirement: "removed: fixture owner",
   })}${ledgerEntry({
     id: ledgerId(2),
@@ -1045,7 +1046,7 @@ test("checker rejects a second chronological removal of the same scope", () => w
     transition: "retired -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-011`",
+    decisions: "`WV3-901`",
     retirement: "removed: duplicate fixture removal",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => error.includes(
@@ -1133,7 +1134,7 @@ test("checker keeps NONAI valid when a required row advances to migrated", () =>
 
 test("checker invalidates NONAI after an approved post-gate scope removal", () => withFixture((root) => {
   const { nextOffset } = appendCompleteNonAiGate(root);
-  addAcceptedDecision(root, "WV3-013", "Fixture FND removal", ["scope-removal:FND-01"]);
+  addAcceptedDecision(root, "WV3-903", "Fixture FND removal", ["scope-removal:FND-01"]);
   mutate(root, "capability-matrix.md", (source) => {
     source = setMatrixScopeAndStatus(source, "FND-01", "removed", "retired");
     return setMatrixStatus(source, "AI-01", "probe");
@@ -1144,7 +1145,7 @@ test("checker invalidates NONAI after an approved post-gate scope removal", () =
     transition: "verified -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "removed: fixture owner",
   })}${ledgerEntry({
     id: ledgerId(nextOffset + 1),
@@ -1159,7 +1160,7 @@ test("checker invalidates NONAI after an approved post-gate scope removal", () =
 
 test("checker accepts a new NONAI gate after an approved post-gate scope removal", () => withFixture((root) => {
   const { nextOffset } = appendCompleteNonAiGate(root);
-  addAcceptedDecision(root, "WV3-013", "Fixture FND removal", ["scope-removal:FND-01"]);
+  addAcceptedDecision(root, "WV3-903", "Fixture FND removal", ["scope-removal:FND-01"]);
   mutate(root, "capability-matrix.md", (source) => {
     source = setMatrixScopeAndStatus(source, "FND-01", "removed", "retired");
     return setMatrixStatus(source, "AI-01", "probe");
@@ -1170,7 +1171,7 @@ test("checker accepts a new NONAI gate after an approved post-gate scope removal
     transition: "verified -> retired",
     scopeChange: "FND-01: required -> removed",
     grade: "A",
-    decisions: "`WV3-013`",
+    decisions: "`WV3-903`",
     retirement: "removed: fixture owner",
   })}${gateEntry(ledgerId(nextOffset + 1))}${ledgerEntry({
     id: ledgerId(nextOffset + 2),
@@ -1193,10 +1194,10 @@ test("checker treats an invalid repeated NONAI record as the latest gate", () =>
     task: "P6-05",
     transition: "not-started -> not-started",
     grade: "A",
-    decisions: "`WV3-011`, `WV3-012`",
+    decisions: "`WV3-901`, `WV3-902`",
     gate: "NONAI-COMPLETE",
     retirement: "none: invalid fixture gate",
-    verification: "nonAiRows=verified; releaseTargets=WV3-011; agentDecisions=WV3-012; qualification=P6-02,P6-03; authority=fixture gate authority",
+    verification: "nonAiRows=verified; releaseTargets=WV3-901; agentDecisions=WV3-902; qualification=P6-02,P6-03; authority=fixture gate authority",
   })}${ledgerEntry({
     id: ledgerId(nextOffset + 1),
     capability: "AI-01",
@@ -1292,13 +1293,13 @@ test("checker rejects wrong-task and unstructured ROLLBACK-CLOSED gate records",
 });
 
 test("checker rejects ROLLBACK-CLOSED before WAILS-CUTOVER", () => withFixture((root) => {
-  addAcceptedDecision(root, "WV3-011", "Fixture rollback closure", ["rollback-window-closure"]);
+  addAcceptedDecision(root, "WV3-901", "Fixture rollback closure", ["rollback-window-closure"]);
   mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
     capability: "REL-03.2",
     task: "P8-03",
     transition: "not-started -> not-started",
     grade: "A",
-    decisions: "`WV3-011`",
+    decisions: "`WV3-901`",
     gate: "ROLLBACK-CLOSED",
     closureEvidence: "thresholds=fixture thresholds; sample=fixture sample; blockers=none; authority=fixture closure authority",
     retirement: "none: rollback closure gate evidence only",

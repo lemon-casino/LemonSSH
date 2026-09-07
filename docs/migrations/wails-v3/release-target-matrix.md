@@ -1,8 +1,8 @@
 # Wails v3 发布目标矩阵
 
-状态：P0-01A 部分完成，`pause-for-user`
+状态：完成。required floor 由 `WV3-011`、`WV3-012`、`WV3-013` 于 2026-09-08 冻结。
 
-记录日期：2026-08-23
+记录日期：2026-08-23；决策关闭日期：2026-09-08
 
 ## 1. 目的与权威顺序
 
@@ -67,11 +67,11 @@ Linux ABI/GTK 冲突仍为显式 decision gates。
 
 | ID | Platform/arch | Required artifact classes | Required runtime paths | OS/WebView floor | Classification |
 | --- | --- | --- | --- | --- | --- |
-| RT-WIN-X64 | Windows x64 | installer、portable、ZIP、signed update metadata | WebView2、ConPTY、DPAPI/Hello、tray、deep links、Explorer context menu、Mosh/ET | Windows 10+ is current README claim；exact Windows 10 build and WebView2 floor require P0-02 evidence | decision-required |
-| RT-MAC-X64 | macOS x64 | DMG、ZIP、signed/notarized update metadata | WKWebView、Unix PTY、Keychain/Touch ID、tray/dock、URL/file events、Mosh/ET | current repo has no explicit minimum macOS version | decision-required |
-| RT-MAC-ARM64 | macOS arm64 | DMG、ZIP、signed/notarized update metadata | same as RT-MAC-X64 plus native arm64 helpers | current repo has no explicit minimum macOS version | decision-required |
-| RT-LINUX-X64 | Linux x64 | AppImage、deb、rpm、pacman、update metadata | WebKitGTK/GTK、Unix PTY、Secret Service、tray、desktop handlers、Mosh/ET | current ABI goal glibc 2.28 conflicts with Wails v3 GTK 4.14+ baseline | decision-required, release blocker |
-| RT-LINUX-ARM64 | Linux arm64 | AppImage、deb、rpm、pacman、update metadata | same as RT-LINUX-X64 | current build uses glibc 2.31；GTK/WebKit floor unresolved | decision-required, release blocker |
+| RT-WIN-X64 | Windows x64 | installer、portable、ZIP、signed update metadata | WebView2、ConPTY、DPAPI/Hello、tray、deep links、Explorer context menu、Mosh/ET | Windows 10 22H2 (build 19045) x64 + WebView2 Evergreen，`WV3-011` | required |
+| RT-MAC-X64 | macOS x64 | DMG、ZIP、signed/notarized update metadata | WKWebView、Unix PTY、Keychain/Touch ID、tray/dock、URL/file events、Mosh/ET | macOS 12 Monterey+，`WV3-012` | required |
+| RT-MAC-ARM64 | macOS arm64 | DMG、ZIP、signed/notarized update metadata | same as RT-MAC-X64 plus native arm64 helpers | macOS 12 Monterey+，`WV3-012` | required |
+| RT-LINUX-X64 | Linux x64 | AppImage、deb、rpm、pacman、update metadata | WebKitGTK/GTK、Unix PTY、Secret Service、tray、desktop handlers、Mosh/ET | GTK 4.14+ / WebKitGTK（跟随 Wails v3 基线），`WV3-013` | required |
+| RT-LINUX-ARM64 | Linux arm64 | AppImage、deb、rpm、pacman、update metadata | same as RT-LINUX-X64 | GTK 4.14+ / WebKitGTK（跟随 Wails v3 基线），`WV3-013` | required |
 
 三平台同时切换的含义是：以上 5 个 required architecture rows 都获得明确 OS/
 WebView floor decision，并对每个 required artifact class 通过 Gate 13/14。只在
@@ -84,9 +84,11 @@ non-AI + AI source set 构建的签名 RC 可以完成完整 Gate 1-14 qualifica
 
 ## 5. Required Linux certification profiles
 
-在 Linux support decision 获批后，至少要为每个 architecture 冻结以下 profile：
+依据 `WV3-013`（GTK 4.14+ / WebKitGTK floor），每个 architecture 至少要为以下
+profile 冻结证据：
 
-1. 最低受支持 glibc/GTK/WebKitGTK 组合；
+1. 最低受支持 glibc/GTK/WebKitGTK 组合（GTK 4.14+ 基线，候选发行版为
+   Ubuntu 22.04+ / Debian 12+ / Fedora 38+ 同代）；
 2. 一个当前 Ubuntu/Debian 桌面；
 3. 一个 RPM 系桌面；
 4. X11 session；
@@ -96,17 +98,20 @@ non-AI + AI source set 构建的签名 RC 可以完成完整 Gate 1-14 qualifica
 8. AppImage、deb、rpm、pacman 安装/升级/卸载；
 9. Nix x86_64/aarch64 AppImage wrapper smoke。
 
-当前证据只证明 Electron native modules 的 glibc build floor，不证明 Wails v3 的
-GTK/WebKit runtime 能在这些旧系统上启动。
+旧 glibc 2.28/2.31 build floor 只证明了 Electron native modules 的历史事实，
+不构成 Wails required target；RHEL 8/UOS/Deepin 旧版按 `WV3-013` 为 unsupported。
 
 ## 6. Best-effort 与 Unsupported
 
 | Target | Classification | Reason / promotion requirement |
 | --- | --- | --- |
-| Windows ARM64 | unsupported | official Electron release 已明确 x64-only；提升为 required 需 Mosh/ET、PTY、Hello、installer、updater 和 clean-machine ARM64 evidence 及新 decision |
+| Windows ARM64 | unsupported | `WV3-011` 于 2026-09-08 确认维持 unsupported；提升为 required 需 Mosh/ET、PTY、Hello、installer、updater 和 clean-machine ARM64 evidence 及新 decision |
+| Windows 10 builds older than 22H2 | unsupported | `WV3-011` required floor 为 22H2 (build 19045) |
 | Windows 32-bit | unsupported | 当前产品/CI 无发布路径 |
 | macOS universal single binary | best-effort | 当前是每 arch artifacts；是否合并 universal 不是用户行为要求 |
+| macOS older than 12 | unsupported | `WV3-012` required floor 为 macOS 12 Monterey |
 | Linux Snap/Flatpak | unsupported | 当前 official release pipeline 不产出；新增格式需 distribution/updater decision |
+| Linux distros without GTK 4.14+/WebKitGTK（含 RHEL 8、UOS、Deepin 旧版） | unsupported | `WV3-013` 退休旧 glibc 2.28 兼容目标，跟随 Wails v3 基线 |
 | Linux without secure Secret Service | unsupported for lossless profile migration | `WV3-007` fail-closed boundary |
 | FreeBSD/其他 Unix | unsupported | 当前产品声明与 release pipeline 不覆盖 |
 | Web browser/server-only build | unsupported as desktop release | 不满足 PTY/OS integration product scope |
@@ -144,18 +149,22 @@ Electron release/rollback carrier 的 repository deletion 对应 `REL-03.2`，�
 5. Wails/Go 升级后重新检查平台 floor、streams、window lifecycle 和 packaging。
 6. README、CI、packaging 和本矩阵冲突时，必须记录 drift 并修复，不得选择性引用。
 
-## 9. 未决用户决策
+## 9. 未决用户决策（已于 2026-09-08 关闭）
 
-P0-01A 不能在没有产品授权时静默提高最低版本。需要批准：
+原 5 项决策已全部由产品所有者批准并记录为 accepted decisions：
 
-1. Windows：是否将 required floor 固定为 Windows 10 22H2 x64，并把更旧
-   Windows 10 builds 排除；
-2. macOS：x64/arm64 的最低 supported macOS 版本；
-3. Linux：是否允许 Wails 迁移提高当前 RHEL 8/UOS/Deepin 兼容 floor，以满足
-   GTK 4.14+/WebKitGTK；若不允许，则必须验证自带 runtime、GTK3 path 或其他
-   Wails-supported 方案，不能直接进入 P1 production skeleton；
-4. Linux package formats：AppImage/deb/rpm/pacman 是否全部继续作为 required；
-5. Windows ARM64：确认保持 unsupported，还是将其升级为迁移 release blocker。
+1. Windows：required floor 固定为 Windows 10 22H2 (build 19045) x64 +
+   WebView2 Evergreen；更旧 Windows 10 builds unsupported → `WV3-011`；
+2. macOS：x64/arm64 最低 supported 版本为 macOS 12 Monterey → `WV3-012`；
+3. Linux：跟随 Wails v3 基线（GTK 4.14+/WebKitGTK），RHEL 8/UOS/Deepin 旧版
+   降为 unsupported → `WV3-013`；
+4. Linux package formats：AppImage/deb/rpm/pacman 全部保持 required（继承
+   `WV3-008`，无需新 decision）；
+5. Windows ARM64：确认保持 unsupported（`WV3-011` 重申，`WV3-008` exclusion
+   不变）。
 
-停止状态：`pause-for-user`。在以上支持边界获批前，P0-01A 不能完成，Gate 13 的
-A 级目标集合尚未闭合。
+已知的 README Windows ARM64 文档漂移（`README.md` 声称支持 ARM64）由独立的
+文档修复任务处理，不属于本矩阵范围。
+
+停止状态解除：`pause-for-user` 已于 2026-09-08 关闭；Gate 13 的 A 级目标集合
+已闭合为上表 5 个 required rows。

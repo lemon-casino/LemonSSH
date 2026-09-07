@@ -76,10 +76,10 @@ plan or other documents is a navigation hint only and cannot override them.
 - Active migration phase: Phase 0, baseline and feasibility probes.
 - Next non-AI action: close the P0-01A release-target decisions and finish the
   P0-01/P0-02/P0-03/P0-05 three-platform and formal evidence matrices.
-- Open Phase 0 boundaries: `P0-01` remains `needs-verification` and `P0-01A`
-  remains `pause-for-user`; P0-02/P0-03/P0-04 remain `needs-verification`. No
-  production Go owner may start until the Phase 0 exit gate
-  closes.
+- Open Phase 0 boundaries: `P0-01` and P0-02/P0-03/P0-04 remain
+  `needs-verification`; `P0-01A` closed on 2026-09-08 with frozen release
+  targets (`WV3-011`, `WV3-012`, `WV3-013`). No production Go owner may start
+  until the Phase 0 exit gate closes.
 - AI boundary: `P0-05` remains a read-only `needs-verification` audit and
   `AI-04` remains `not-started`. Production AI work is blocked until the
   P6-05 `NONAI-COMPLETE` ledger gate before Phase 7.

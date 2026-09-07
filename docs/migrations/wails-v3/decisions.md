@@ -97,6 +97,40 @@ the old ID and explains the changed evidence.
   profile, filesystem, credential and network operations; neither policy owner
   imports or authorizes the other.
 
+### WV3-011 - Windows release target floor
+
+- Categories: release-target:windows
+- Decision: the required Windows target is Windows 10 22H2 (build 19045) x64
+  with the Evergreen WebView2 runtime. Installer, portable and ZIP artifact
+  classes stay required. Windows 10 builds older than 22H2 are unsupported.
+  Windows ARM64 and 32-bit remain unsupported, consistent with `WV3-008`.
+- Recorded: 2026-09-08, product owner approval closing the `P0-01A`
+  `pause-for-user` state.
+
+### WV3-012 - macOS release target floor
+
+- Categories: release-target:macos
+- Decision: the required macOS targets are macOS 12 Monterey or newer on x64
+  and arm64 with WKWebView. DMG and ZIP artifact classes stay required with
+  signing/notarization when credentials are available.
+- Recorded: 2026-09-08, product owner approval closing the `P0-01A`
+  `pause-for-user` state.
+
+### WV3-013 - Linux release target floor
+
+- Categories: release-target:linux
+- Decision: the required Linux targets follow the Wails v3 platform baseline:
+  GTK 4.14+ / WebKitGTK with a matching glibc floor on x64 and arm64. The
+  previous RHEL 8 / UOS / Deepin-era glibc 2.28 compatibility goal is retired;
+  distros that cannot ship GTK 4.14+ are unsupported. AppImage, deb, rpm and
+  pacman artifact classes stay required per `WV3-008`. Lossless migration and
+  persisted credentials still require a working, unlocked Secret Service per
+  `WV3-007`; X11 and Wayland sessions remain required desktop profiles.
+- Boundary: exact minimum distro versions are certified in Phase 6 per
+  `release-target-matrix.md` section 5 before any grade A claim.
+- Recorded: 2026-09-08, product owner approval closing the `P0-01A`
+  `pause-for-user` state.
+
 ## Required Future Decisions
 
 P6-05 `NONAI-COMPLETE` requires accepted decisions that collectively carry every

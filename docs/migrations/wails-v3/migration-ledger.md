@@ -415,3 +415,37 @@ capability row, source paths, verification output or CI run.
 - Next safe slice: close P0-01A release-target decisions and complete P0-01/P0-02/P0-03
   platform evidence; production Go owners stay forbidden until the Phase 0 exit gate closes
 - Drift decision: `needs-verification`
+
+## WV3-L012 - 2026-09-08 - P0-01A release target matrix closed
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P0-01A`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 以产品决策冻结三平台 required 发布目标与最低支持版本，解除 P0-01A 的
+  `pause-for-user` 停止状态并闭合 Gate 13 的 A 级目标集合。
+- Go canonical owner: none; release governance task only
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: 三平台同时切换（`WV3-003`）、Linux Secret Service fail-closed
+  （`WV3-007`）、当前 architecture/artifact classes 继承（`WV3-008`）、矩阵变更须新
+  decision 的规则
+- Data/schema impact: none
+- Security impact: 旧 glibc 2.28 兼容目标退休后，无法升级到 GTK 4.14+/WebKitGTK 的
+  发行版明确退出支持边界；Secret Service fail-closed 边界不变
+- Verification: 产品所有者 2026-09-08 批准三项决策；`release-target-matrix.md` 的
+  5 个 required rows 全部携带决策引用；`npm run check:migration-docs` 通过
+- Platforms covered: release governance only; no new platform evidence claimed
+- Evidence grade: `C`
+- Decision references: `WV3-003`, `WV3-007`, `WV3-008`, `WV3-011`, `WV3-012`, `WV3-013`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: release governance task only
+- Documentation updated: decisions, release target matrix, verification gates,
+  implementation plan, README and ledger
+- Residual risks: 新 floor 需要在 Phase 6/P8 按 section 5 认证 profiles 取得 grade A
+  证据；README 的 Windows ARM64 声明漂移仍待独立文档修复；P0-01/P0-02/P0-03/P0-05
+  的三平台证据仍开放
+- Next safe slice: complete P0-01/P0-02/P0-03/P0-05 three-platform and formal evidence,
+  then close the Phase 0 exit gate before P1-01
+- Drift decision: `accepted-docs-only`

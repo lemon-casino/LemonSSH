@@ -259,8 +259,10 @@ termination and containment-failure quarantine.
 
 The exact supported OS versions, CPU architectures, WebView/runtime versions,
 Linux distributions/desktops and package formats are owned by
-`release-target-matrix.md` and must be frozen by `P0-01A` before production
-implementation begins. Required release target classes include:
+`release-target-matrix.md` and were frozen by `P0-01A` on 2026-09-08 through
+`WV3-011` (Windows 10 22H2 x64 + WebView2 Evergreen), `WV3-012` (macOS 12+
+x64/arm64 + WKWebView) and `WV3-013` (Linux GTK 4.14+/WebKitGTK x64/arm64).
+Required release target classes include:
 
 - Windows: supported architectures, WebView2, ConPTY, DPAPI/Hello, tray,
   protocols/context menu, installed and portable behavior;
