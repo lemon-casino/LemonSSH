@@ -572,3 +572,38 @@ capability row, source paths, verification output or CI run.
 - Next safe slice: Phase 2 Batch B, P2-01 persistence key and Electron-main
   data inventory
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L016 - 2026-09-08 - P2-01 persistence data inventory
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P2-01`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 冻结 storageKeys.ts 全部 178 个唯一 key 与 Electron-main 持久文件的
+  四分类清单（canonical-migrated / device-local / transient-cache / retired），
+  使 Gate 6 的"无未分类数据"成为机器强制。
+- Go canonical owner: none; inventory task only
+- Frontend adapter: none
+- Electron owner affected: none; current owners remain unchanged
+- Preserved invariants: 分类即迁移真值；retired/transient/device-local 永不进
+  sync payload；secret-bearing keys 显式枚举并须由 P2-04 provider 转封
+- Data/schema impact: `data-inventory.md` + `testdata/migration/electron/data-inventory.json`
+  generated from the frozen P0-01 fixture (110/57/9/2 classification split)
+- Security impact: 11 个 secret-bearing keys（hosts/keys/identities/proxy
+  profiles/group configs/default passphrases/http proxy/AI providers/AI agents/
+  AI web search/legacy records）成为 P2-04/P2-05 的输入；session logs 与 CLI
+  discovery file 的敏感性已标注
+- Verification: `node --test scripts/migration/data-inventory.test.mjs`
+  （4 tests：全量覆盖、分类合法性、非 canonical 永不同步、secret 清单锚点）；
+  `npm run check:data-inventory`（生成漂移 gate）接入 test.yml CI
+- Platforms covered: platform-independent inventory
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`, `WV3-008`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: inventory task only
+- Documentation updated: data-inventory.md (new), implementation plan, ledger
+- Residual risks: sync-payload 精确组成由 P2-07 验证；classification 边界
+  （如 sftp 偏好键）可随 P2-07 差分测试修订，修订须重生成清单并回写本 ledger
+- Next safe slice: P2-01A plugin v1 user-data retention contract
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

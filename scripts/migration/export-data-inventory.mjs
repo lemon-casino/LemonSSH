@@ -1,0 +1,190 @@
+// Generates the P2-01 data inventory from the frozen storage-key fixture and
+// the classification rules below. Outputs:
+//   - testdata/migration/electron/data-inventory.json  (machine inventory)
+//   - docs/migrations/wails-v3/data-inventory.md       (human document)
+//
+// Run with --check to fail when either output is stale. The drift test
+// (scripts/migration/data-inventory.test.mjs) enforces that every storage key
+// in storageKeys.ts is classified here.
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const fixturePath = path.join(repoRoot, "testdata", "migration", "electron", "storage-key-candidates.json");
+const inventoryJsonPath = path.join(repoRoot, "testdata", "migration", "electron", "data-inventory.json");
+const inventoryDocPath = path.join(repoRoot, "docs", "migrations", "wails-v3", "data-inventory.md");
+
+const CLASSIFICATIONS = ["canonical-migrated", "device-local", "transient-cache", "retired"];
+
+// Ordered classification rules: first matching rule wins. Value match is a
+// substring match on the storage key value. Everything unmatched defaults to
+// canonical-migrated (vault/profile data the Go store must carry losslessly).
+const RULES = [
+  { classification: "retired", match: ["netcatty_sftp_folder_prescan_v1", "netcatty_sftp_transfer_pool_idle_ttl_ms_v1"], why: "deprecated; values are ignored so old payloads do not resurrect settings" },
+  {
+    classification: "transient-cache",
+    match: [
+      "netcatty_connection_log_terminal_data_v1",
+      "netcatty_vault_restore_in_progress_until_v1",
+      "netcatty_vault_apply_in_progress_v1",
+      "netcatty_plugin_import_transaction_v1",
+      "__netcatty_pf_cancel_reconnect",
+      "debug.hotkeys",
+      "debug.updateDemo",
+      "netcatty.aiDebug.hide",
+      "netcatty.aiDebug.profile",
+    ],
+    why: "coordination sentinels, crash journals, broadcast flags and developer toggles",
+  },
+  {
+    classification: "device-local",
+    match: [
+      "_view_mode", "_view_modes", "_sort_mode", "_tree_expanded", "_collapsed",
+      "_width", "_height", "_font_size", "_code_font_size", "_font_family",
+      "_toolbar_layout", "_tab_layout", "_tab_order", "_auto_open", "_auto_open_tab",
+      "compose_bar_open", "_search_open", "_pinned_snippets", "_ymodem_send_dir",
+      "_suggest_handled", "_last_check", "_dismissed_version", "_latest_release",
+      "explorer_context_menu", "convergent_sync_config", "workspace_focus_style",
+      "_panel_width", "_tree_width", "_sidebar_width", "_child_name_width",
+      "_visible_columns", "_directories_first", "_default_view_mode", "side_panel_width",
+      "hotkey_recording", "default_view_mode", "notes_selected_group", "_show_terminal_selection_action",
+    ],
+    why: "per-device UI/layout state; may be dropped or best-effort carried",
+  },
+];
+
+// Storage values whose payload contains (or may contain) secrets that P2-04
+// providers must re-seal during migration.
+const SECRET_BEARING = new Set([
+  "netcatty_hosts_v1",
+  "netcatty_keys_v1",
+  "netcatty_identities_v1",
+  "netcatty_proxy_profiles_v1",
+  "netcatty_group_configs_v1",
+  "netcatty_default_key_passphrases_v1",
+  "netcatty_http_network_proxy_v1",
+  "netcatty_ai_providers_v1",
+  "netcatty_ai_external_agents_v1",
+  "netcatty_ai_web_search_v1",
+  "netcatty_legacy_keys_v1",
+]);
+
+function classify(value) {
+  for (const rule of RULES) {
+    if (rule.match.some((needle) => value.includes(needle))) {
+      return rule.classification;
+    }
+  }
+  return "canonical-migrated";
+}
+
+function buildInventory() {
+  const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+  const byValue = new Map();
+  for (const candidate of fixture) {
+    if (!candidate.value) continue;
+    const entry = byValue.get(candidate.value) ?? { value: candidate.value, names: [] };
+    if (!entry.names.includes(candidate.name)) entry.names.push(candidate.name);
+    byValue.set(candidate.value, entry);
+  }
+  const entries = [...byValue.values()].sort((a, b) => a.value.localeCompare(b.value));
+  for (const entry of entries) {
+    entry.classification = classify(entry.value);
+    entry.secretBearing = SECRET_BEARING.has(entry.value);
+    entry.syncRelation = entry.classification === "canonical-migrated"
+      ? "sync-payload candidate (P2-07 verifies exact payload composition)"
+      : "never synced";
+  }
+  return entries;
+}
+
+function renderDoc(entries) {
+  const counts = {};
+  for (const entry of entries) counts[entry.classification] = (counts[entry.classification] ?? 0) + 1;
+  const rows = entries.map((entry) => [
+    `\`${entry.value}\``,
+    entry.classification,
+    entry.secretBearing ? "yes" : "",
+    entry.syncRelation,
+  ]);
+  const lines = [
+    "# P2-01 Persistence Key and Electron-Main Data Inventory",
+    "",
+    "Status: inventory frozen; classifications are the migration truth for",
+    "Gate 6 (no unclassified data). Generated by",
+    "`scripts/migration/export-data-inventory.mjs`; run with `--check` to detect",
+    "drift. New storage keys fail the drift test until they are classified here.",
+    "",
+    `Generated: 2026-09-08 from infrastructure/config/storageKeys.ts (${entries.length} unique values, 179 constants including aliases).`,
+    "",
+    "## Classification",
+    "",
+    "| Classification | Meaning | Count |",
+    "| --- | --- | --- |",
+    "| canonical-migrated | Lossless profile data the Go transactional store must carry (P2-02/P2-07) | " + (counts["canonical-migrated"] ?? 0) + " |",
+    "| device-local | Per-device UI/layout state; may be dropped or best-effort carried | " + (counts["device-local"] ?? 0) + " |",
+    "| transient-cache | Coordination sentinels, journals, caches and developer toggles | " + (counts["transient-cache"] ?? 0) + " |",
+    "| retired | Deprecated keys whose values are ignored | " + (counts["retired"] ?? 0) + " |",
+    "",
+    "## Storage key inventory",
+    "",
+    "| Storage key | Classification | Secret-bearing | Sync relation |",
+    "| --- | --- | --- | --- |",
+    ...rows.map((row) => `| ${row[0]} | ${row[1]} | ${row[2]} | ${row[3]} |`),
+    "",
+    "## Electron-main persisted files",
+    "",
+    "| Path (under userData unless noted) | Owner | Classification |",
+    "| --- | --- | --- |",
+    "| `plugins.sqlite` (+ SQLite sidecars) | `electron/plugins/` package store and plugin runtime (dev preview) | covered by the P2-01A plugin v1 data retention contract |",
+    "| `netcatty-vault.json` backup payloads in the vault backup dir | `vaultBackupBridge.cjs` | canonical-migrated (protective backups) |",
+    "| session logs dir (user-configurable) | `sessionLogBridge.cjs` | device-local (may contain sensitive terminal output) |",
+    "| `crash-logs/crash-YYYY-MM-DD.log` | `crashLogBridge.cjs` | transient-cache |",
+    "| `window-state.json` | `windowManager.cjs` | device-local |",
+    "| `app.log`, `netcatty-agent.log`, `netcatty-ssh.log`, `ssh-debug.log` | main process / diagnostics | transient-cache |",
+    "| Netcatty dedicated temp dir (`tempDirBridge.getTempDir()`) | `tempDirBridge.cjs` | transient-cache, wiped by Settings > System |",
+    "| CLI discovery file (`NETCATTY_TOOL_CLI_DISCOVERY_FILE`) | internal Netcatty integration surface | transient-cache, out of migration scope per AGENTS review boundaries |",
+    "",
+    "## Special stores called out by P2-01",
+    "",
+    "- **Plugin SQLite**: `plugins.sqlite` under userData; v1 code never runs in",
+    "  the target runtime, but user-owned plugin state is preserved opaquely per",
+    "  the P2-01A retention contract.",
+    "- **Vault backups**: protective backup payloads owned by `vaultBackupBridge`",
+    "  stay readable by the Go store (P2-02 backup manifest).",
+    "- **App Lock config**: app-lock settings live in the storage keys above; the",
+    "  verifier is a classified metadata record re-sealed during migration",
+    "  (P0-04 corpus `metadata.app-lock-verifier`).",
+    "- **Cloud sync password**: sealed through Electron `safeStorage` and",
+    "  re-sealed by the P2-05 broker; it never appears in the key inventory",
+    "  because it is not stored as a plain localStorage value.",
+    "- **Portable profile**: portable builds keep the profile next to the",
+    "  executable; the writer-lease path (P2-03) must locate both layouts.",
+    "",
+  ];
+  return lines.join("\n");
+}
+
+function main() {
+  const checkOnly = process.argv.includes("--check");
+  const entries = buildInventory();
+  const json = `${JSON.stringify({ generated: "2026-09-08", source: "infrastructure/config/storageKeys.ts", entries }, null, 2)}\n`;
+  const doc = renderDoc(entries);
+  if (checkOnly) {
+    const existingJson = fs.existsSync(inventoryJsonPath) ? fs.readFileSync(inventoryJsonPath, "utf8") : "";
+    const existingDoc = fs.existsSync(inventoryDocPath) ? fs.readFileSync(inventoryDocPath, "utf8") : "";
+    if (existingJson !== json || existingDoc !== doc) {
+      console.error("data inventory is stale; run: npm run generate:data-inventory");
+      process.exit(1);
+    }
+    console.log(`data inventory up to date (${entries.length} keys)`);
+    return;
+  }
+  fs.writeFileSync(inventoryJsonPath, json, "utf8");
+  fs.writeFileSync(inventoryDocPath, doc, "utf8");
+  console.log(`Wrote data inventory (${entries.length} keys)`);
+}
+
+main();

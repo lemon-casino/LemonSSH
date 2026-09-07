@@ -51,6 +51,8 @@
     "generate:runtime-ports": "node scripts/migration/generate-runtime-ports.mjs",
     "generate:contracts": "go run ./tools/contracts-codegen",
     "check:contracts": "go test ./internal/app/contracts/ && go run ./tools/contracts-codegen --check",
+    "generate:data-inventory": "node scripts/migration/export-data-inventory.mjs",
+    "check:data-inventory": "node scripts/migration/export-data-inventory.mjs --check && node --test scripts/migration/data-inventory.test.mjs",
     "wails:prepare-frontend": "node scripts/wails-prepare-frontend.mjs",
     "wails:build": "npm run build && node scripts/wails-prepare-frontend.mjs && go build -o bin/netcatty-wails.exe ./cmd/netcatty",
     "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",

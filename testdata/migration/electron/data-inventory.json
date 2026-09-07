@@ -1,0 +1,1609 @@
+{
+  "generated": "2026-09-08",
+  "source": "infrastructure/config/storageKeys.ts",
+  "entries": [
+    {
+      "value": "__netcatty_pf_cancel_reconnect",
+      "names": [
+        "STORAGE_KEY_PF_RECONNECT_CANCEL"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "debug.hotkeys",
+      "names": [
+        "STORAGE_KEY_DEBUG_HOTKEYS"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "debug.updateDemo",
+      "names": [
+        "STORAGE_KEY_DEBUG_UPDATE_DEMO"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_accent_mode_v1",
+      "names": [
+        "STORAGE_KEY_ACCENT_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_active_model_v1",
+      "names": [
+        "STORAGE_KEY_AI_ACTIVE_MODEL"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_active_provider_v1",
+      "names": [
+        "STORAGE_KEY_AI_ACTIVE_PROVIDER"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_active_session_map_v1",
+      "names": [
+        "STORAGE_KEY_AI_ACTIVE_SESSION_MAP"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_agent_model_map_v1",
+      "names": [
+        "STORAGE_KEY_AI_AGENT_MODEL_MAP"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_agent_provider_map_v1",
+      "names": [
+        "STORAGE_KEY_AI_AGENT_PROVIDER_MAP"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_agent_thinking_map_v1",
+      "names": [
+        "STORAGE_KEY_AI_AGENT_THINKING_MAP"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_command_blocklist_v1",
+      "names": [
+        "STORAGE_KEY_AI_COMMAND_BLOCKLIST"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_command_timeout_v1",
+      "names": [
+        "STORAGE_KEY_AI_COMMAND_TIMEOUT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_composer_model_prefs_v1",
+      "names": [
+        "STORAGE_KEY_AI_COMPOSER_MODEL_PREFS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_default_agent_v1",
+      "names": [
+        "STORAGE_KEY_AI_DEFAULT_AGENT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_agents_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_AGENTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_mcp_enabled_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_MCP_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_mcp_focus_on_host_open_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_MCP_FOCUS_ON_HOST_OPEN"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_mcp_idle_timeout_minutes_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_MCP_IDLE_TIMEOUT_MINUTES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_mcp_mode_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_MCP_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_external_mcp_silent_sessions_v1",
+      "names": [
+        "STORAGE_KEY_AI_EXTERNAL_MCP_SILENT_SESSIONS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_host_permissions_v1",
+      "names": [
+        "STORAGE_KEY_AI_HOST_PERMISSIONS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_max_iterations_v1",
+      "names": [
+        "STORAGE_KEY_AI_MAX_ITERATIONS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_permission_grants_v1",
+      "names": [
+        "STORAGE_KEY_AI_PERMISSION_GRANTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_permission_mode_v1",
+      "names": [
+        "STORAGE_KEY_AI_PERMISSION_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_providers_v1",
+      "names": [
+        "STORAGE_KEY_AI_PROVIDERS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_quick_messages_v1",
+      "names": [
+        "STORAGE_KEY_AI_QUICK_MESSAGES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_response_idle_timeout_v1",
+      "names": [
+        "STORAGE_KEY_AI_RESPONSE_IDLE_TIMEOUT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_session_idle_timeout_minutes_v1",
+      "names": [
+        "STORAGE_KEY_AI_SESSION_IDLE_TIMEOUT_MINUTES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_sessions_v1",
+      "names": [
+        "STORAGE_KEY_AI_SESSIONS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_show_terminal_selection_action_v1",
+      "names": [
+        "STORAGE_KEY_AI_SHOW_TERMINAL_SELECTION_ACTION"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_ai_tool_integration_mode_v1",
+      "names": [
+        "STORAGE_KEY_AI_TOOL_INTEGRATION_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ai_web_search_v1",
+      "names": [
+        "STORAGE_KEY_AI_WEB_SEARCH"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_app_icon_variant_v1",
+      "names": [
+        "STORAGE_KEY_APP_ICON_VARIANT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_auto_import_system_known_hosts_v1",
+      "names": [
+        "STORAGE_KEY_AUTO_IMPORT_SYSTEM_KNOWN_HOSTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_auto_update_enabled_v1",
+      "names": [
+        "STORAGE_KEY_AUTO_UPDATE_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_available_plugin_sync_providers_v1",
+      "names": [
+        "STORAGE_KEY_AVAILABLE_PLUGIN_SYNC_PROVIDERS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_close_to_tray_v1",
+      "names": [
+        "STORAGE_KEY_CLOSE_TO_TRAY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_color_v1",
+      "names": [
+        "STORAGE_KEY_COLOR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_compose_bar_height_v1",
+      "names": [
+        "STORAGE_KEY_COMPOSE_BAR_HEIGHT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_compose_bar_pinned_snippets_v1",
+      "names": [
+        "STORAGE_KEY_COMPOSE_BAR_PINNED_SNIPPETS"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_connection_log_terminal_data_v1",
+      "names": [
+        "STORAGE_KEY_CONNECTION_LOG_TERMINAL_DATA"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_connection_logs_v1",
+      "names": [
+        "STORAGE_KEY_CONNECTION_LOGS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_convergent_sync_config_v2",
+      "names": [
+        "STORAGE_KEY_CONVERGENT_SYNC_CONFIG"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_custom_css_v1",
+      "names": [
+        "STORAGE_KEY_CUSTOM_CSS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_custom_key_bindings_v1",
+      "names": [
+        "STORAGE_KEY_CUSTOM_KEY_BINDINGS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_custom_themes_v1",
+      "names": [
+        "STORAGE_KEY_CUSTOM_THEMES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_default_key_passphrases_v1",
+      "names": [
+        "STORAGE_KEY_DEFAULT_KEY_PASSPHRASES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_disable_terminal_font_zoom_v1",
+      "names": [
+        "STORAGE_KEY_DISABLE_TERMINAL_FONT_ZOOM"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_editor_word_wrap_v1",
+      "names": [
+        "STORAGE_KEY_EDITOR_WORD_WRAP"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_explorer_context_menu_enabled_v1",
+      "names": [
+        "STORAGE_KEY_EXPLORER_CONTEXT_MENU_ENABLED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_global_hotkey_enabled_v1",
+      "names": [
+        "STORAGE_KEY_GLOBAL_HOTKEY_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_group_configs_v1",
+      "names": [
+        "STORAGE_KEY_GROUP_CONFIGS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_groups_v1",
+      "names": [
+        "STORAGE_KEY_CUSTOM_GROUPS",
+        "STORAGE_KEY_GROUPS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_host_click_behavior_v1",
+      "names": [
+        "STORAGE_KEY_HOST_CLICK_BEHAVIOR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_hosts_v1",
+      "names": [
+        "STORAGE_KEY_HOSTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_hotkey_recording_v1",
+      "names": [
+        "STORAGE_KEY_HOTKEY_RECORDING"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_hotkey_scheme_v1",
+      "names": [
+        "STORAGE_KEY_HOTKEY_SCHEME"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_http_network_proxy_v1",
+      "names": [
+        "STORAGE_KEY_HTTP_NETWORK_PROXY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_identities_v1",
+      "names": [
+        "STORAGE_KEY_IDENTITIES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_jms_deep_link_enabled_v1",
+      "names": [
+        "STORAGE_KEY_JMS_DEEP_LINK_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_keys_v1",
+      "names": [
+        "STORAGE_KEY_KEYS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_known_hosts_v1",
+      "names": [
+        "STORAGE_KEY_KNOWN_HOSTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_legacy_keys_v1",
+      "names": [
+        "STORAGE_KEY_LEGACY_KEYS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_local_vault_backup_last_app_version_v1",
+      "names": [
+        "STORAGE_KEY_LOCAL_VAULT_BACKUP_LAST_APP_VERSION"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_local_vault_backup_max_count_v1",
+      "names": [
+        "STORAGE_KEY_LOCAL_VAULT_BACKUP_MAX_COUNT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_managed_sources_v1",
+      "names": [
+        "STORAGE_KEY_MANAGED_SOURCES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_network_device_suggest_handled_v1",
+      "names": [
+        "STORAGE_KEY_NETWORK_DEVICE_SUGGEST_HANDLED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_note_groups_v1",
+      "names": [
+        "STORAGE_KEY_NOTE_GROUPS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_notes_v1",
+      "names": [
+        "STORAGE_KEY_NOTES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_pf_prefer_form_mode_v1",
+      "names": [
+        "STORAGE_KEY_PF_PREFER_FORM_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_pf_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_PF_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_plugin_import_transaction_v1",
+      "names": [
+        "STORAGE_KEY_PLUGIN_IMPORT_TRANSACTION"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_plugin_sidecars_last_known_v1",
+      "names": [
+        "STORAGE_KEY_PLUGIN_SIDECARS_LAST_KNOWN"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_plugin_sidecars_pending_remote_v1",
+      "names": [
+        "STORAGE_KEY_PLUGIN_SIDECARS_PENDING_REMOTE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_port_forwarding_panel_width_v1",
+      "names": [
+        "STORAGE_KEY_PORT_FORWARDING_PANEL_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_port_forwarding_v1",
+      "names": [
+        "STORAGE_KEY_PORT_FORWARDING"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_proxy_profiles_v1",
+      "names": [
+        "STORAGE_KEY_PROXY_PROFILES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_restore_previous_session_v1",
+      "names": [
+        "STORAGE_KEY_RESTORE_PREVIOUS_SESSION"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_restore_terminal_cwd_v1",
+      "names": [
+        "STORAGE_KEY_RESTORE_TERMINAL_CWD"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_script_editor_height_v1",
+      "names": [
+        "STORAGE_KEY_SCRIPT_EDITOR_HEIGHT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_session_logs_dir_v1",
+      "names": [
+        "STORAGE_KEY_SESSION_LOGS_DIR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_session_logs_enabled_v1",
+      "names": [
+        "STORAGE_KEY_SESSION_LOGS_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_session_logs_format_v1",
+      "names": [
+        "STORAGE_KEY_SESSION_LOGS_FORMAT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_session_logs_timestamps_enabled_v1",
+      "names": [
+        "STORAGE_KEY_SESSION_LOGS_TIMESTAMPS_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_session_restore_v1",
+      "names": [
+        "STORAGE_KEY_SESSION_RESTORE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_auto_open_sidebar_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_AUTO_OPEN_SIDEBAR"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_auto_sync_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_AUTO_SYNC"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_default_opener_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_DEFAULT_OPENER"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_default_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_DEFAULT_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_directories_first_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_DIRECTORIES_FIRST"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_double_click_behavior_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_DOUBLE_CLICK_BEHAVIOR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_file_associations_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_FILE_ASSOCIATIONS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_folder_prescan_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_FOLDER_PRESCAN"
+      ],
+      "classification": "retired",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_follow_terminal_cwd_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_FOLLOW_TERMINAL_CWD"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_global_bookmarks_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_GLOBAL_BOOKMARKS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_host_view_modes_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_HOST_VIEW_MODES"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_local_bookmarks_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_LOCAL_BOOKMARKS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_show_hidden_files_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_SHOW_HIDDEN_FILES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_skip_unchanged_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_SKIP_UNCHANGED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_toolbar_layout_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TOOLBAR_LAYOUT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_transfer_center_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TRANSFER_CENTER"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_transfer_child_name_width_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TRANSFER_CHILD_NAME_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_transfer_concurrency_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_transfer_panel_height_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TRANSFER_PANEL_HEIGHT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_transfer_pool_idle_ttl_ms_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_TRANSFER_POOL_IDLE_TTL_MS"
+      ],
+      "classification": "retired",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_sftp_use_compressed_upload_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_USE_COMPRESSED_UPLOAD"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sftp_visible_columns_v1",
+      "names": [
+        "STORAGE_KEY_SFTP_VISIBLE_COLUMNS"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_shell_history_v1",
+      "names": [
+        "STORAGE_KEY_SHELL_HISTORY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_shell_only_tab_number_shortcuts_v1",
+      "names": [
+        "STORAGE_KEY_SHELL_ONLY_TAB_NUMBER_SHORTCUTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_show_host_tree_sidebar_v1",
+      "names": [
+        "STORAGE_KEY_SHOW_HOST_TREE_SIDEBAR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_show_only_ungrouped_hosts_in_root_v1",
+      "names": [
+        "STORAGE_KEY_SHOW_ONLY_UNGROUPED_HOSTS_IN_ROOT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_show_recent_hosts_v1",
+      "names": [
+        "STORAGE_KEY_SHOW_RECENT_HOSTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_show_sftp_tab_v1",
+      "names": [
+        "STORAGE_KEY_SHOW_SFTP_TAB"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_show_tab_number_badges_v1",
+      "names": [
+        "STORAGE_KEY_SHOW_TAB_NUMBER_BADGES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_side_panel_width",
+      "names": [
+        "STORAGE_KEY_SIDE_PANEL_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_snippet_packages_v1",
+      "names": [
+        "STORAGE_KEY_SNIPPET_PACKAGES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_snippet_script_editor_height_v1",
+      "names": [
+        "STORAGE_KEY_SNIPPET_SCRIPT_EDITOR_HEIGHT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_snippet_var_values_v1",
+      "names": [
+        "STORAGE_KEY_SNIPPET_VAR_VALUES"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_snippets_panel_width_v1",
+      "names": [
+        "STORAGE_KEY_SNIPPETS_PANEL_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_snippets_v1",
+      "names": [
+        "STORAGE_KEY_SNIPPETS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ssh_debug_logs_enabled_v1",
+      "names": [
+        "STORAGE_KEY_SSH_DEBUG_LOGS_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ssh_deep_link_enabled_v1",
+      "names": [
+        "STORAGE_KEY_SSH_DEEP_LINK_ENABLED"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ssh_transport_idle_ttl_ms_v1",
+      "names": [
+        "STORAGE_KEY_SSH_TRANSPORT_IDLE_TTL_MS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_startup_landing_v1",
+      "names": [
+        "STORAGE_KEY_STARTUP_LANDING"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sync_v1",
+      "names": [
+        "STORAGE_KEY_SYNC"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_system_manager_tab_layout_v1",
+      "names": [
+        "STORAGE_KEY_SYSTEM_MANAGER_TAB_LAYOUT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_term_follow_app_theme_v1",
+      "names": [
+        "STORAGE_KEY_TERM_FOLLOW_APP_THEME"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_term_font_family_v1",
+      "names": [
+        "STORAGE_KEY_TERM_FONT_FAMILY"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_term_font_size_v1",
+      "names": [
+        "STORAGE_KEY_TERM_FONT_SIZE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_term_settings_v1",
+      "names": [
+        "STORAGE_KEY_TERM_SETTINGS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_term_theme_dark_v1",
+      "names": [
+        "STORAGE_KEY_TERM_THEME_DARK"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_term_theme_light_v1",
+      "names": [
+        "STORAGE_KEY_TERM_THEME_LIGHT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_term_theme_v1",
+      "names": [
+        "STORAGE_KEY_TERM_THEME"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_terminal_compose_bar_open_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_COMPOSE_BAR_OPEN"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_encoding_by_host_v1:",
+      "names": [
+        "STORAGE_KEY_TERMINAL_ENCODING_BY_HOST_PREFIX"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_terminal_host_tree_collapsed_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_HOST_TREE_COLLAPSED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_host_tree_toolbar_layout_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_HOST_TREE_TOOLBAR_LAYOUT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_host_tree_width_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_HOST_TREE_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_search_open_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_SEARCH_OPEN"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_side_panel_auto_open_tab_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_SIDE_PANEL_AUTO_OPEN_TAB"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_side_panel_auto_open_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_SIDE_PANEL_AUTO_OPEN"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_side_panel_tab_layout_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_SIDE_PANEL_TAB_LAYOUT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_side_panel_tab_order_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_SIDE_PANEL_TAB_ORDER"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_toolbar_layout_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_TOOLBAR_LAYOUT"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_terminal_ymodem_send_dir_v1",
+      "names": [
+        "STORAGE_KEY_TERMINAL_YMODEM_SEND_DIR"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_theme_v1",
+      "names": [
+        "STORAGE_KEY_THEME"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_toggle_window_hotkey_v1",
+      "names": [
+        "STORAGE_KEY_TOGGLE_WINDOW_HOTKEY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ui_font_family_v1",
+      "names": [
+        "STORAGE_KEY_UI_FONT_FAMILY"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_ui_language_v1",
+      "names": [
+        "STORAGE_KEY_UI_LANGUAGE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ui_theme_dark_v1",
+      "names": [
+        "STORAGE_KEY_UI_THEME_DARK"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_ui_theme_light_v1",
+      "names": [
+        "STORAGE_KEY_UI_THEME_LIGHT"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_update_dismissed_version_v1",
+      "names": [
+        "STORAGE_KEY_UPDATE_DISMISSED_VERSION"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_update_last_check_v1",
+      "names": [
+        "STORAGE_KEY_UPDATE_LAST_CHECK"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_update_latest_release_v1",
+      "names": [
+        "STORAGE_KEY_UPDATE_LATEST_RELEASE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_apply_in_progress_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_APPLY_IN_PROGRESS"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_host_panel_width_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_HOST_PANEL_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_hosts_sort_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_HOSTS_SORT_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_hosts_tree_expanded_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_HOSTS_TREE_EXPANDED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_hosts_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_HOSTS_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_keys_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_KEYS_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_known_hosts_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_KNOWN_HOSTS_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_code_font_size_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_CODE_FONT_SIZE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_editor_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_EDITOR_MODE"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_vault_notes_font_family_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_FONT_FAMILY"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_font_size_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_FONT_SIZE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_selected_group_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_SELECTED_GROUP"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_tree_width_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_TREE_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_notes_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_NOTES_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_proxy_profiles_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_PROXY_PROFILES_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_restore_in_progress_until_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_RESTORE_IN_PROGRESS_UNTIL"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_sidebar_collapsed_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_SIDEBAR_COLLAPSED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_sidebar_width_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_SIDEBAR_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_vault_snippets_view_mode_v1",
+      "names": [
+        "STORAGE_KEY_VAULT_SNIPPETS_VIEW_MODE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_window_opacity_v1",
+      "names": [
+        "STORAGE_KEY_WINDOW_OPACITY"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_workspace_focus_sidebar_width",
+      "names": [
+        "STORAGE_KEY_WORKSPACE_FOCUS_SIDEBAR_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_workspace_focus_style_v1",
+      "names": [
+        "STORAGE_KEY_WORKSPACE_FOCUS_STYLE"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty.aiDebug.hide",
+      "names": [
+        "STORAGE_KEY_AI_PANEL_DIAGNOSTIC_HIDE"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty.aiDebug.profile",
+      "names": [
+        "STORAGE_KEY_AI_PANEL_DIAGNOSTIC_PROFILE"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    }
+  ]
+}

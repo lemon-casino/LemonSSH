@@ -64,6 +64,11 @@ jobs:
       - name: Verify Electron migration baseline and runtime ports
         run: npm run check:migration-electron-baseline
 
+      - name: Verify base contracts and data inventory
+        run: |
+          npm run check:contracts
+          npm run check:data-inventory
+
       - name: Verify Wails shell probe
         run: npm run check:wails-shell-probe
 

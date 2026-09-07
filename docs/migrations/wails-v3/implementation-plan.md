@@ -686,6 +686,15 @@ Exit：所有后续 service contract 复用统一基础类型。
 
 ### P2-01 完成持久化 key 与 Electron-main 文件清单
 
+执行状态：完成。`scripts/migration/export-data-inventory.mjs` 从 P0-01 fixture
+生成 `data-inventory.md`（178 个唯一 key：110 canonical-migrated / 57
+device-local / 9 transient-cache / 2 retired，11 个显式 secret-bearing）与机器
+清单 JSON；drift test 独立解析 storageKeys.ts，未分类新 key 使 CI 失败
+（`check:data-inventory`）；Electron-main 文件（plugins.sqlite、vault 备份、
+session/crash/agent/ssh 日志、window-state、专用 temp 目录、CLI discovery
+file）与五类特殊存储已在文档中定位。sync-payload 精确组成由 P2-07 验证。见
+ledger `WV3-L016`。
+
 关联：FND-02、FND-03、SYNC-01、SYNC-02
 
 Files:
