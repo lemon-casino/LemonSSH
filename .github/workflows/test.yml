@@ -37,6 +37,7 @@ jobs:
           cache-dependency-path: |
             experiments/wails-shell-probe/go.sum
             experiments/terminal-data-plane/go.sum
+            go.sum
             experiments/profile-secret-migration/go.sum
 
       - name: Install shell test dependencies
@@ -69,6 +70,9 @@ jobs:
           npm run check:contracts
           npm run check:data-inventory
           npm run check:plugin-retention
+
+      - name: Verify transactional profile store
+        run: npm run check:profile-store
 
       - name: Verify Wails shell probe
         run: npm run check:wails-shell-probe

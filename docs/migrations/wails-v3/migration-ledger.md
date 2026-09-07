@@ -646,3 +646,43 @@ capability row, source paths, verification output or CI run.
   schema v3 之后新增表须先过本 check
 - Next safe slice: P2-02 Go transactional profile store
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L018 - 2026-09-08 - P2-02 Go transactional profile store
+
+- Capability rows: `FND-02`
+- Plan task: `P2-02`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 host 拥有的事务性 profile store：raw value 兼容、revision/CAS、
+  原子事务、崩溃恢复、staging/备份/回执，作为后续所有持久化迁移的 canonical
+  owner 根基。
+- Go canonical owner: `internal/profile/store`（bbolt v1.4.3，纯 Go，无 cgo）
+  暴露为 `cmd/netcatty` ProfileService（6 方法，绑定已再生成）
+- Frontend adapter: `infrastructure/runtime/profile/profileClient.ts`（base64
+  线协议、文本/JSON 助手、absent-key → undefined 契约）
+- Electron owner affected: none; renderer persistence stays on localStorage
+  until P2-07
+- Preserved invariants: 每次变更单事务原子提交；revision 单调且 CAS 冲突
+  fail-closed；封闭域与 key/值边界（1 MiB 内核级 4 MiB 值上限）；promote 前
+  崩溃 target 不变、不完整 staging 拒晋升、备份 manifest + receipt 落盘
+- Data/schema impact: 新 store 文件格式（schema version 1）；不触碰现有用户数据
+- Security impact: store 文件 0600、目录 0700；无 secret 语义（secrets 在
+  P2-04 provider 层）
+- Verification: `go test -count=1 ./internal/profile/...`（12 tests：round
+  trip、bounds、CAS、原子性、通知、reopen、并发串行化、staging/promote、
+  崩溃矩阵）；`go test -race -count=1`；`go vet`；TS profileClient 测试 3 项；
+  全部接入 `check:profile-store` 与 test.yml
+- Platforms covered: Windows 10 22H2 x64 本地；三平台 CI 构建在
+  migration-evidence workflow
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`, `WV3-008`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer localStorage 退役发生在
+  P2-07；store 层无直接 retirement
+- Documentation updated: capability matrix, implementation plan, ledger (FND-02 held at probe by the transition state machine; P2-03 advances it)
+- Residual risks: 跨平台 crash-consistency 声明目前只有 Windows 本机 + race
+  测试；P2-03 writer lease 与 P2-07 差分测试未落地；bbolt 版本升级需重跑
+  crash matrix
+- Next safe slice: P2-03 cross-shell profile writer lease and coordination
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

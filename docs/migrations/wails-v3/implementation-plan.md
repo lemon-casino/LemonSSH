@@ -759,6 +759,17 @@ Exit：Phase 2 可证明插件代码不兼容但用户数据未丢失。
 
 ### P2-02 实现 Go transactional profile store
 
+执行状态：完成（store 层）。`internal/profile/store` 基于bbolt v1.4.3（纯 Go
+ACID、单写者、崩溃恢复）：raw value 兼容（opaque bytes，4 MiB 上限）、封闭域
+（settings/vault/sessions/logs/plugin-v1/device）、单调 revision + CAS、原子
+多键事务、提交后通知；`StageProfile`/`PromoteProfile` 实现 staging 补全标记、
+保护性备份 + manifest、原子改名提升与 migration receipt，崩溃矩阵测试覆盖
+（promote 前崩溃不动 target、不完整 staging 拒绝晋升）。`cmd/netcatty`
+ProfileService facade 暴露 6 方法，绑定已重新生成；TS `ProfileClient`
+（infrastructure/runtime/profile/）以 base64 线协议 + 文本助手对接。
+`check:profile-store`（test + race + vet）接入 CI。renderer 持久化接线在
+P2-07，writer lease 在 P2-03。见 ledger `WV3-L018`。
+
 关联：FND-02
 
 Files:

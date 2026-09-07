@@ -10,7 +10,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -21,9 +21,7 @@ import * as app$0 from "../../internal/app/models.js";
  * @returns {$CancellablePromise<app$0.HealthStatus>}
  */
 export function Health() {
-    return $Call.ByID(2498077617).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
-    }));
+    return $Call.ByID(2498077617);
 }
 
 /**
@@ -32,9 +30,7 @@ export function Health() {
  * @returns {$CancellablePromise<app$0.WindowRoleInfo>}
  */
 export function ResolveWindowRole(role) {
-    return $Call.ByID(2381199965, role).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
-    }));
+    return $Call.ByID(2381199965, role);
 }
 
 /**
@@ -42,12 +38,5 @@ export function ResolveWindowRole(role) {
  * @returns {$CancellablePromise<app$0.VersionInfo>}
  */
 export function Version() {
-    return $Call.ByID(2850139721).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
-    }));
+    return $Call.ByID(2850139721);
 }
-
-// Private type creation functions
-const $$createType0 = app$0.HealthStatus.createFrom;
-const $$createType1 = app$0.WindowRoleInfo.createFrom;
-const $$createType2 = app$0.VersionInfo.createFrom;

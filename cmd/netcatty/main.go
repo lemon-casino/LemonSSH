@@ -52,11 +52,19 @@ func main() {
 	core := app.New("Netcatty", version)
 	service := newNetcattyService(core)
 
+	profileStore, err := openProfileStore()
+	if err != nil {
+		log.Fatalf("open profile store: %v", err)
+	}
+	defer profileStore.Close()
+	profileService := newProfileService(profileStore)
+
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
 		Description: "Netcatty Wails shell",
 		Services: []application.Service{
 			application.NewService(service),
+			application.NewService(profileService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

@@ -54,6 +54,7 @@
     "generate:data-inventory": "node scripts/migration/export-data-inventory.mjs",
     "check:data-inventory": "node scripts/migration/export-data-inventory.mjs --check && node --test scripts/migration/data-inventory.test.mjs",
     "check:plugin-retention": "node --test scripts/migration/plugin-retention.test.mjs",
+    "check:profile-store": "go test -count=1 ./internal/profile/... && go test -race -count=1 ./internal/profile/... && go vet ./internal/profile/...",
     "wails:prepare-frontend": "node scripts/wails-prepare-frontend.mjs",
     "wails:build": "npm run build && node scripts/wails-prepare-frontend.mjs && go build -o bin/netcatty-wails.exe ./cmd/netcatty",
     "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",
