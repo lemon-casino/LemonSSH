@@ -550,6 +550,13 @@ Exit：每个 Agent 有明确 Go 适配路径或退役决策触发器。
 
 ### P1-01 定义 shell-neutral RuntimeClient
 
+执行状态：完成（代码与契约层）。`infrastructure/runtime/` 提供由
+`generate:runtime-ports` 从 P0-01 契约 fixtures 生成的 9 个域端口（482 个方法，
+覆盖性与不重叠由 `--check` 强制），Electron adapter 是唯一 `window.netcatty`
+访问点（ESLint 强制），`netcattyBridge` 变为 transition facade 并保持精确语义；
+`@wailsio/runtime` 仅允许 Wails adapter 导入。消费方迁移按域逐切片进行。
+Wails adapter 在 P1-02 落地。见 ledger `WV3-L013`。
+
 关联：FND-01
 
 Files:

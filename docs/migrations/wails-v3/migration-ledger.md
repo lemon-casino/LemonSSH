@@ -449,3 +449,46 @@ capability row, source paths, verification output or CI run.
 - Next safe slice: complete P0-01/P0-02/P0-03/P0-05 three-platform and formal evidence,
   then close the Phase 0 exit gate before P1-01
 - Drift decision: `accepted-docs-only`
+
+## WV3-L013 - 2026-09-08 - P1-01 shell-neutral RuntimeClient
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P1-01`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 将 NetcattyBridge 表面拆分为 shell-neutral 域端口，使 application/UI 与
+  shell 解耦，且 Wails adapter 可以实现同一契约而不改变任何 Electron 行为。
+- Go canonical owner: none; this slice is frontend TypeScript only
+- Frontend adapter: `infrastructure/runtime/` ports generated from the P0-01
+  contract fixtures (9 ports, 482 methods, coverage and disjointness enforced by
+  `generate:runtime-ports --check`); `infrastructure/runtime/electron/` is the
+  single window.netcatty access point; `netcattyBridge` becomes a transition
+  facade with exact prior semantics
+- Electron owner affected: none; all current owners remain unchanged
+- Preserved invariants: every bridge method stays reachable with identical
+  signatures; facade get/require semantics unchanged; ESLint forbids
+  window.netcatty outside the Electron adapter and `@wailsio/runtime` outside
+  the future Wails adapter
+- Data/schema impact: none
+- Security impact: no new bridge surface; boundary rules reduce future shell
+  coupling
+- Verification: `node --test --import tsx infrastructure/runtime/runtimeClient.test.ts`
+  (5 tests); `npm run check:migration-electron-baseline` extended with the
+  runtime-ports drift check and wired into CI; `npm run lint` passes with the
+  new boundary rules; application-wide `tsc --noEmit` shows no errors in the
+  new modules
+- Platforms covered: platform-independent TypeScript contract layer
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-002`, `WV3-008`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: the facade and transitionBridge are
+  deleted with the Electron path once port-by-port consumer migration completes
+- Documentation updated: README, implementation plan and ledger
+- Residual risks: P0-01/P0-02/P0-03/P0-05 three-platform evidence is still
+  pending; the Phase 0 exit gate has not closed. Phase 1 contract work proceeds
+  under the user-approved full-implementation directive with the
+  migration-evidence CI workflow collecting the outstanding evidence; the Wails
+  RuntimeClient adapter and production Go skeleton start at P1-02
+- Next safe slice: P1-02 production Go module and Wails skeleton
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

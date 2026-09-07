@@ -16,6 +16,19 @@ export default [
     ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**"],
   },
   {
+    // Shell-neutral runtime boundary (P1-01): only the Wails adapter may
+    // import the Wails runtime; window.netcatty access is already restricted
+    // globally with an explicit Electron adapter allowlist below. Disposable
+    // experiments/ probes are exempt.
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["experiments/**"],
+    rules: {
+      "no-restricted-imports": ["error",
+        { paths: [{ name: "@wailsio/runtime", message: "Only the Wails RuntimeClient adapter may import the Wails runtime." }] },
+      ],
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
@@ -141,7 +154,7 @@ export default [
     },
   },
   {
-    files: ["infrastructure/services/netcattyBridge.ts"],
+    files: ["infrastructure/services/netcattyBridge.ts", "infrastructure/runtime/electron/electronRuntimeClient.ts"],
     rules: {
       "no-restricted-properties": "off",
     },

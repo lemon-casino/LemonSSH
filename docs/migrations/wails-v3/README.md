@@ -73,13 +73,18 @@ plan or other documents is a navigation hint only and cannot override them.
 - Wails/Go production scaffold: not present; disposable P0-02 shell, P0-03
   terminal data-plane, and P0-04 secret-migration probes have Windows
   C-grade evidence.
-- Active migration phase: Phase 0, baseline and feasibility probes.
-- Next non-AI action: close the P0-01A release-target decisions and finish the
-  P0-01/P0-02/P0-03/P0-05 three-platform and formal evidence matrices.
-- Open Phase 0 boundaries: `P0-01` and P0-02/P0-03/P0-04 remain
+- Active migration phase: Phase 0 evidence collection plus the Phase 1
+  shell-neutral contract layer (P1-01 done; P1-02 next).
+- Next non-AI action: run the migration-evidence workflow on three platforms to
+  close P0-01/P0-02/P0-03/P0-05 evidence, then build the production Wails
+  skeleton (P1-02).
+- Open Phase 0 boundaries: `P0-01` and P0-02/P0-03/P0-04/P0-05 remain
   `needs-verification`; `P0-01A` closed on 2026-09-08 with frozen release
-  targets (`WV3-011`, `WV3-012`, `WV3-013`). No production Go owner may start
-  until the Phase 0 exit gate closes.
+  targets (`WV3-011`, `WV3-012`, `WV3-013`). The migration-evidence CI
+  workflow collects the missing three-platform evidence; capability statuses
+  stay `needs-verification`/`probe` until it lands. Phase 1 shell-neutral
+  contract work proceeds under the approved full-implementation directive
+  (ledger `WV3-L013`).
 - AI boundary: `P0-05` remains a read-only `needs-verification` audit and
   `AI-04` remains `not-started`. Production AI work is blocked until the
   P6-05 `NONAI-COMPLETE` ledger gate before Phase 7.

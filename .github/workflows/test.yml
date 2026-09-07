@@ -61,6 +61,9 @@ jobs:
       - name: Verify Wails migration documentation
         run: npm run check:migration-docs
 
+      - name: Verify Electron migration baseline and runtime ports
+        run: npm run check:migration-electron-baseline
+
       - name: Verify Wails shell probe
         run: npm run check:wails-shell-probe
 
