@@ -165,6 +165,64 @@ jobs:
           NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
         run: ./terminal-data-plane-probe${{ runner.os == 'Windows' && '.exe' || '' }}
 
+  netcatty-skeleton-build:
+    name: Netcatty Wails skeleton build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Go test and vet
+        shell: bash
+        run: |
+          go test ./internal/... ./cmd/...
+          go vet ./internal/... ./cmd/...
+
+      - name: Build skeleton with placeholder assets
+        shell: bash
+        run: go build -o /tmp/netcatty-skeleton ./cmd/netcatty
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build frontend and embed real bundle
+        shell: bash
+        run: |
+          npm run build
+          node scripts/wails-prepare-frontend.mjs
+          go build -o netcatty-wails-shell ./cmd/netcatty
+
+      - name: Upload skeleton artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: netcatty-wails-skeleton-${{ matrix.os }}
+          path: netcatty-wails-shell*
+          if-no-files-found: error
+          retention-days: 7
+
   secret-migration-interop:
     name: Secret migration live interop (windows)
     runs-on: windows-latest

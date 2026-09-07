@@ -13,6 +13,12 @@ import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import App from './App';
 import { AppLockGate } from './components/AppLockGate';
+import { installRuntimeClient } from './infrastructure/runtime/bootstrap';
+
+// Shell-neutral runtime selection (P1-02): install the Wails RuntimeClient
+// under the Wails shell and the Electron adapter otherwise, before any
+// consumer resolves the bridge.
+installRuntimeClient();
 
 const LazySettingsPage = lazy(() => import('./components/SettingsPage'));
 const LazyTrayPanel = lazy(() => import('./components/TrayPanel'));

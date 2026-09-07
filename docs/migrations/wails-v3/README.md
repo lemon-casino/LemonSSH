@@ -70,9 +70,9 @@ plan or other documents is a navigation hint only and cannot override them.
 - Target release shell: Wails v3.
 - Current runtime languages: Node.js/CommonJS plus React/TypeScript.
 - Target runtime languages: Go plus React/TypeScript frontend assets.
-- Wails/Go production scaffold: not present; disposable P0-02 shell, P0-03
-  terminal data-plane, and P0-04 secret-migration probes have Windows
-  C-grade evidence.
+- Wails/Go production scaffold: present (`cmd/netcatty`, `internal/app`);
+  `FND-01` is `implemented` with fail-closed ports; renderer launch smoke and
+  three-platform launch evidence pending.
 - Active migration phase: Phase 0 evidence collection plus the Phase 1
   shell-neutral contract layer (P1-01 done; P1-02 next).
 - Next non-AI action: run the migration-evidence workflow on three platforms to

@@ -588,6 +588,15 @@ Exit：现有 Electron 行为不变，Wails adapter 可以实现相同 contract�
 
 ### P1-02 创建正式 Go module 与 Wails 应用骨架
 
+执行状态：完成（代码与构建）。根 `go.mod` 固定 Wails `v3.0.0-beta.12`/Go 1.25；
+`cmd/netcatty` 是唯一 import Wails 的生产包（health/version/window-role 三个
+use case 委托给无 Wails 依赖的 `internal/app`）；`npm run wails:build` 构建真实
+Vite bundle 并嵌入骨架（`scripts/wails-prepare-frontend.mjs`）；生成的
+typed bindings 驱动 fail-closed 的 `infrastructure/runtime/wails/` adapter，
+bootstrap 按 shell 自动选择 runtime；Electron 仍是默认 dev/release。渲染进程
+launch smoke 与 CI 三平台骨架 job 落在 migration-evidence workflow。见 ledger
+`WV3-L014`。
+
 关联：FND-01、REL-01
 
 Files:

@@ -492,3 +492,46 @@ capability row, source paths, verification output or CI run.
   RuntimeClient adapter and production Go skeleton start at P1-02
 - Next safe slice: P1-02 production Go module and Wails skeleton
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L014 - 2026-09-08 - P1-02 production Go module and Wails skeleton
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: 建立生产 Go owner 根目录与可测试的 Wails facade：health/version/
+  window-role 三个 shell-neutral use case，加载现有 Vite build，不复制 React
+  源码；Electron 仍是默认 dev/release。
+- Go canonical owner: `internal/app`（shell-neutral use cases，禁止 import
+  Wails）+ `cmd/netcatty`（唯一 Wails facade）+ `internal/platform`
+- Frontend adapter: `infrastructure/runtime/wails/` fail-closed adapter 使用
+  生成的 typed bindings（`@wailsio/runtime` 3.0.0-beta.12）；bootstrap 按
+  shell 自动选择 runtime；未迁移端口在调用时显式拒绝
+- Electron owner affected: none; Electron remains the default release carrier
+  and the facade semantics are unchanged
+- Preserved invariants: internal/app 不 import Wails；单一 runtime 选择
+  bootstrap；Electron adapter 行为不变（node 下保持 refuse-to-install）；
+  transition bridge 在 Wails 下 fail-closed
+- Data/schema impact: none; skeleton owns no user data
+- Security impact: 未迁移能力调用时 fail-closed，不静默 fallback；绑定仅暴露
+  3 个方法
+- Verification: `go test ./internal/...`、`go vet ./cmd/... ./internal/...`、
+  `go build ./cmd/netcatty`（占位资产）本地通过；`npm run wails:build` 链路
+  （vite build -> prepare-frontend -> go build）在 CI 三平台 job 执行；
+  `node --test --import tsx infrastructure/runtime/*.test.ts` 9 项通过；
+  ESLint 边界（仅 Wails adapter 可 import @wailsio/runtime）通过
+- Platforms covered: Windows 10 22H2 x64 build 19045 local build; three-platform
+  build/launch smoke delegated to migration-evidence CI (renderer launch smoke
+  still pending everywhere)
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-002`, `WV3-003`, `WV3-011`, `WV3-012`, `WV3-013`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron remains the default until
+  P8-02; `FND-01` retirement begins only after three-platform launch evidence
+  and P8-01 RC
+- Documentation updated: README, capability matrix, implementation plan and ledger
+- Residual risks: renderer launch smoke（真实 bundle 在 Wails 壳中启动）未在任何
+  平台执行；479 个端口方法仍未迁移；三平台 launch 证据缺失
+- Next safe slice: P1-03 base contracts with Go-to-TS codegen and drift check
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
