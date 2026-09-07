@@ -1,0 +1,248 @@
+name: migration-evidence
+
+# Collects the three-platform Phase 0 evidence required by
+# docs/migrations/wails-v3/: probe contract suites on every OS, production
+# builds of the disposable Wails shell probe, terminal data-plane autorun runs,
+# the Windows DPAPI secret-migration live interop, and best-effort paired
+# Electron terminal baselines. This workflow is evidence collection only; it is
+# not a merge gate. Failures are recorded as honest evidence gaps in the
+# migration ledger, never silently retried or masked.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "experiments/**"
+      - "scripts/migration/**"
+      - "testdata/migration/**"
+      - "docs/migrations/**"
+      - ".github/workflows/migration-evidence.yml"
+
+concurrency:
+  group: migration-evidence-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  WAILS3: go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12
+
+jobs:
+  probe-contracts:
+    name: Probe contracts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: |
+            experiments/wails-shell-probe/go.sum
+            experiments/terminal-data-plane/go.sum
+            experiments/profile-secret-migration/go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux probe dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Secret migration probe contracts
+        run: npm run check:secret-migration-probe
+
+      - name: Wails shell probe contracts
+        run: npm run check:wails-shell-probe
+
+      - name: Terminal data-plane probe contracts with race detector
+        if: runner.os == 'Linux'
+        run: npm run check:terminal-data-plane-probe
+
+      - name: Terminal data-plane probe contracts
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          npm --prefix experiments/terminal-data-plane/frontend ci
+          npm --prefix experiments/terminal-data-plane/frontend run test:protocol
+          npm --prefix experiments/terminal-data-plane/frontend run build
+          go -C experiments/terminal-data-plane test ./...
+          go -C experiments/terminal-data-plane vet ./...
+
+  wails-shell-build:
+    name: Wails shell probe build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: experiments/wails-shell-probe/go.sum
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Build shell probe with pinned wails3
+        working-directory: experiments/wails-shell-probe
+        shell: bash
+        run: ${{ env.WAILS3 }} task build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: wails-shell-probe-${{ matrix.os }}
+          path: experiments/wails-shell-probe/bin/
+          if-no-files-found: error
+          retention-days: 7
+
+  terminal-data-plane-autorun:
+    name: Terminal data-plane autorun (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: experiments/terminal-data-plane/go.sum
+
+      - name: Install Linux autorun dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Build data-plane probe
+        working-directory: experiments/terminal-data-plane
+        shell: bash
+        run: go build -o terminal-data-plane-probe .
+
+      - name: Run autorun (Linux under xvfb)
+        if: runner.os == 'Linux'
+        working-directory: experiments/terminal-data-plane
+        env:
+          NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
+        run: xvfb-run -a ./terminal-data-plane-probe
+
+      - name: Run autorun
+        if: runner.os != 'Linux'
+        working-directory: experiments/terminal-data-plane
+        shell: bash
+        env:
+          NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
+        run: ./terminal-data-plane-probe${{ runner.os == 'Windows' && '.exe' || '' }}
+
+  secret-migration-interop:
+    name: Secret migration live interop (windows)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: experiments/profile-secret-migration/go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build migration probe binary
+        working-directory: experiments/profile-secret-migration
+        shell: bash
+        run: go build -o bin/profile-secret-migration-probe.exe ./cmd/profile-secret-migration-probe
+
+      - name: Run live interop with leak scan
+        shell: bash
+        run: ./node_modules/.bin/electron experiments/profile-secret-migration/electron/runner.cjs "$(cygpath -m "$PWD")/experiments/profile-secret-migration/bin/profile-secret-migration-probe.exe"
+
+      - name: Run interrupt fail-closed matrix
+        shell: bash
+        run: |
+          for mode in after-spawn after-handshake after-first-secret; do
+            ./node_modules/.bin/electron experiments/profile-secret-migration/electron/runner.cjs "$(cygpath -m "$PWD")/experiments/profile-secret-migration/bin/profile-secret-migration-probe.exe" --interrupt=$mode || exit 1
+          done
+
+  electron-terminal-baseline:
+    name: Electron terminal baseline, best-effort (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux baseline dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run sustained-output throughput baseline (Linux under xvfb)
+        if: runner.os == 'Linux'
+        env:
+          NETCATTY_TERMINAL_PERF_ROUNDS: '1'
+        run: xvfb-run -a ./node_modules/.bin/electron --no-sandbox scripts/xterm-keyword-highlight-throughput.live.test.cjs
+
+      - name: Run sustained-output throughput baseline
+        if: runner.os != 'Linux'
+        env:
+          NETCATTY_TERMINAL_PERF_ROUNDS: '1'
+        shell: bash
+        run: ./node_modules/.bin/electron scripts/xterm-keyword-highlight-throughput.live.test.cjs
