@@ -1,0 +1,22 @@
+{
+  "name": "netcatty-wails-shell-probe-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vite build --minify false --mode development",
+    "build": "vite build --mode production",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@wailsio/runtime": "3.0.0-beta.12",
+    "@xterm/addon-webgl": "0.20.0-beta.291",
+    "@xterm/xterm": "6.1.0-beta.292",
+    "monaco-editor": "0.55.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.3.2"
+  }
+}

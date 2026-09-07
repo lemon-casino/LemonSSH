@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/style.css" />
+  <title>Netcatty Wails Shell Probe</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="toolbar">
+      <div>
+        <h1>Netcatty shell probe</h1>
+        <p id="identity">Connecting to Wails runtime...</p>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+
+    <section class="window-grid" aria-label="Window controls">
+      <div class="window-list" id="window-list"></div>
+      <div class="event-log">
+        <h2>Runtime events</h2>
+        <ol id="events"></ol>
+      </div>
+    </section>
+
+    <section class="capabilities" aria-label="WebView capabilities">
+      <h2>WebView checks</h2>
+      <div class="checks" id="checks"></div>
+      <div class="manual-row">
+        <label for="ime-input">IME input</label>
+        <input id="ime-input" autocomplete="off" placeholder="Type composed text" />
+        <button id="clipboard" type="button">Clipboard round-trip</button>
+      </div>
+      <div class="surface-grid">
+        <div class="surface"><h3>xterm.js + WebGL</h3><div id="terminal"></div></div>
+        <div class="surface"><h3>Monaco</h3><div id="editor"></div></div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

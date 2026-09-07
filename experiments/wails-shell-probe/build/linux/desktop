@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=My Product
+Comment=A wails-shell-probe application
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/wails-shell-probe.exe %u
+Terminal=false
+Type=Application
+Icon=wails-shell-probe.exe
+Categories=Utility;
+StartupWMClass=wails-shell-probe.exe
+
+ 
