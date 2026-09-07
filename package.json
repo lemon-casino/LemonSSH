@@ -50,6 +50,7 @@
     "check:migration-electron-baseline": "node scripts/migration/export-electron-contract-fixtures.mjs --check && node --test --import tsx scripts/migration/export-electron-contract-fixtures.test.mjs && tsc -p tsconfig.migration-electron-baseline.json",
     "check:migration-docs": "node scripts/migration/check-wails-migration-docs.mjs && node --test scripts/migration/check-wails-migration-docs.test.mjs",
     "check:wails-shell-probe": "npm --prefix experiments/wails-shell-probe/frontend ci && npm --prefix experiments/wails-shell-probe/frontend run build && go -C experiments/wails-shell-probe test ./...",
+    "check:terminal-data-plane-probe": "npm --prefix experiments/terminal-data-plane/frontend ci && npm --prefix experiments/terminal-data-plane/frontend run test:protocol && npm --prefix experiments/terminal-data-plane/frontend run build && go -C experiments/terminal-data-plane test ./... && go -C experiments/terminal-data-plane test -race ./... && go -C experiments/terminal-data-plane vet ./...",
     "generate:codex-app-server-schema": "node scripts/generate-codex-app-server-schema.cjs",
     "check:codex-app-server-schema": "node scripts/generate-codex-app-server-schema.cjs --check",
     "check:codebuddy-sdk-contract": "tsc -p tsconfig.codebuddy-sdk-contract.json",

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terminal Data Plane Probe</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="probe-shell">
+      <header class="toolbar">
+        <div class="title-block">
+          <h1>Terminal data plane</h1>
+          <span id="listener">Starting loopback listener</span>
+        </div>
+        <label>Workload<select id="workload"></select></label>
+        <label>Round<select id="phase"><option value="measured">Measured</option><option value="warmup">Warmup</option></select></label>
+        <fieldset>
+          <legend>Sessions</legend>
+          <label><input type="radio" name="sessions" value="1" checked />1</label>
+          <label><input type="radio" name="sessions" value="4" />4</label>
+          <label><input type="radio" name="sessions" value="8" />8</label>
+        </fieldset>
+        <div class="commands">
+          <button id="run" type="button">Run</button>
+          <button id="stop" type="button" disabled>Stop</button>
+          <button id="rebind" type="button" disabled>Rebind</button>
+          <button id="reload" type="button" disabled>Reload</button>
+          <button id="stall" type="button" disabled>Stall credit</button>
+          <button id="move" type="button" disabled>Move</button>
+          <button id="interrupt" type="button" disabled aria-label="Send Ctrl-C" title="Send Ctrl-C">^C</button>
+          <button id="export" type="button" aria-label="Export bounded JSON report" title="Export bounded JSON report">Export</button>
+        </div>
+      </header>
+      <section class="status-strip" aria-live="polite">
+        <strong id="status">Idle</strong>
+        <span id="summary">No active sessions</span>
+      </section>
+      <section id="terminals" class="terminal-grid"></section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+bin/
+frontend/.protocol-test/
+frontend/dist/
+frontend/node_modules/

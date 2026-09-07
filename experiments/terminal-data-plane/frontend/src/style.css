@@ -1,0 +1,135 @@
+@import "@xterm/xterm/css/xterm.css";
+
+:root {
+  color: #e8ecef;
+  background: #121417;
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; overflow: hidden; }
+button, select, input { font: inherit; }
+
+.probe-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.toolbar {
+  min-height: 68px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-bottom: 1px solid #34393f;
+  background: #1b1e22;
+}
+
+.title-block { min-width: 210px; margin-right: auto; }
+h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: 0; }
+.title-block span { display: block; margin-top: 3px; color: #98a2ad; font: 11px/1.3 ui-monospace, monospace; }
+.toolbar > label { color: #aeb6bf; font-size: 11px; }
+select {
+  display: block;
+  width: 190px;
+  height: 32px;
+  margin-top: 3px;
+  padding: 0 8px;
+  color: #f1f3f5;
+  background: #111316;
+  border: 1px solid #464d55;
+  border-radius: 4px;
+}
+#phase { width: 104px; }
+
+fieldset { height: 48px; margin: 0; padding: 4px 8px 6px; border: 1px solid #41474e; border-radius: 4px; }
+legend { padding: 0 4px; color: #aeb6bf; font-size: 10px; }
+fieldset label { margin: 0 5px; font-size: 12px; }
+fieldset input { margin: 0 3px 0 0; vertical-align: -1px; }
+.commands { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 520px; }
+button {
+  height: 32px;
+  min-width: 58px;
+  padding: 0 10px;
+  color: #edf1f4;
+  background: #292e34;
+  border: 1px solid #4a525b;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: #343b43; border-color: #687481; }
+button:disabled { color: #737b84; cursor: default; }
+#run { color: #07120d; background: #69d69b; border-color: #69d69b; font-weight: 650; }
+#interrupt { color: #ffd1d1; border-color: #8a4a4a; font-family: ui-monospace, monospace; }
+
+.status-strip {
+  min-height: 38px;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid #30353b;
+  color: #aeb6bf;
+  background: #16191c;
+  font: 12px/1.4 ui-monospace, monospace;
+}
+.status-strip strong { color: #f3f5f6; }
+.status-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.terminal-grid {
+  min-height: 0;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(190px, 1fr);
+  gap: 8px;
+  overflow: auto;
+}
+.terminal-panel {
+  min-width: 0;
+  min-height: 190px;
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid #363d44;
+  border-radius: 4px;
+  background: #0d0f11;
+}
+.terminal-panel header {
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #cbd1d6;
+  background: #20242a;
+  font: 11px/1 ui-monospace, monospace;
+}
+.terminal-panel header span:last-child { color: #8f9aa5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-host { min-width: 0; min-height: 0; padding: 6px; overflow: hidden; contain: strict; }
+.terminal-host .xterm { height: 100%; }
+
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .probe-shell { min-height: 100vh; height: auto; grid-template-rows: auto auto auto; }
+  .toolbar { align-items: flex-end; flex-wrap: wrap; }
+  .title-block { width: 100%; }
+  .toolbar > label { flex: 1 1 180px; }
+  select { width: 100%; }
+  .commands { flex: 1 1 auto; justify-content: flex-end; }
+  .terminal-grid { grid-template-columns: 1fr; grid-auto-rows: 270px; overflow: visible; }
+}
+
+@media (max-width: 480px) {
+  .toolbar { gap: 9px; padding: 9px; }
+  fieldset { flex: 1 1 100%; }
+  .commands { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: none; }
+  button { min-width: 0; padding: 0 6px; }
+  .status-strip { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .status-strip span { max-width: 100%; }
+  .terminal-grid { padding: 7px; }
+}

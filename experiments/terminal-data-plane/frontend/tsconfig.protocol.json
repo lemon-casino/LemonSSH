@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": ".protocol-test"
+  },
+  "include": [
+    "src/protocol.ts",
+    "src/creditController.ts",
+    "src/clientMetrics.ts",
+    "src/reportStore.ts",
+    "src/cleanupController.ts",
+    "src/routeOperationController.ts",
+    "src/autorun.ts",
+    "test/protocol.test.ts",
+    "test/controller.test.ts"
+  ]
+}
