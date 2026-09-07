@@ -42,6 +42,7 @@
 !package-lock.json
 !package.json
 !tsconfig.json
+!tsconfig.migration-electron-baseline.json
 !types.ts
 !vite.config.ts
 
@@ -66,6 +67,12 @@
 !electron/**
 !examples/
 !examples/**
+!experiments/
+experiments/*
+!experiments/wails-shell-probe/
+!experiments/wails-shell-probe/**
+!experiments/terminal-data-plane/
+!experiments/terminal-data-plane/**
 !infrastructure/
 !infrastructure/**
 !lib/
@@ -86,6 +93,14 @@
 !skills/**
 !types/
 !types/**
+
+# Generated Electron migration baseline only; keep other testdata ignored.
+!/testdata/
+/testdata/*
+!/testdata/migration/
+/testdata/migration/*
+!/testdata/migration/electron/
+!/testdata/migration/electron/**
 
 # --- Layer 3: classical denylist (applies inside allowlisted trees) ---
 

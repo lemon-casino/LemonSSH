@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "noEmit": true
+  },
+  "include": [
+    "testdata/migration/electron/runtime-contract-fixtures.typecheck.ts"
+  ]
+}
