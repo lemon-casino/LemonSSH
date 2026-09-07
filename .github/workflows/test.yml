@@ -68,6 +68,7 @@ jobs:
         run: |
           npm run check:contracts
           npm run check:data-inventory
+          npm run check:plugin-retention
 
       - name: Verify Wails shell probe
         run: npm run check:wails-shell-probe

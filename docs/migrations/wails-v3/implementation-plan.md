@@ -718,6 +718,15 @@ Exit：Gate 6 无未分类数据。
 
 ### P2-01A 冻结旧插件用户数据保留合同
 
+执行状态：完成。`plugin-v1-data-retention.md` 冻结 schema v3 全部 12 张表的
+处置（preserve-metadata ×2、preserve-opaque ×5、invalidate-grants ×2、
+re-seal-secrets ×1、drop-runtime-state ×2）；`check:plugin-retention` 直接解析
+database.cjs 的 CREATE TABLE，新表未分类即 CI 失败；v1 入口（main.browser/
+main.node）拒绝执行、grants 不继承、secret 仅经 P2-05→P2-04 broker 通道、
+v2 认领需用户批准——四项属性在 fixture 中断言。已并入 P2-05/P2-06 bundle 与
+equality 检查要求（namespace `plugin-v1/<id>/<table>/` + semantic hash）。见
+ledger `WV3-L017`。
+
 关联：PLUG-01、SYNC-01、SYNC-02、FND-03
 
 Files:

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 3,
+  "contract": "docs/migrations/wails-v3/plugin-v1-data-retention.md",
+  "databaseSource": "electron/plugins/database.cjs",
+  "dispositions": [
+    "preserve-metadata",
+    "preserve-opaque",
+    "invalidate-grants",
+    "re-seal-secrets",
+    "drop-runtime-state"
+  ],
+  "tables": {
+    "plugins": "preserve-metadata",
+    "plugin_versions": "preserve-metadata",
+    "plugin_runtime_state": "drop-runtime-state",
+    "plugin_crashes": "drop-runtime-state",
+    "plugin_kv": "preserve-opaque",
+    "plugin_settings": "preserve-opaque",
+    "plugin_view_state": "preserve-opaque",
+    "plugin_permission_grants": "invalidate-grants",
+    "plugin_secrets": "re-seal-secrets",
+    "plugin_security_audit": "preserve-opaque",
+    "plugin_sync_sidecars": "preserve-opaque",
+    "plugin_sync_provider_bindings": "invalidate-grants"
+  },
+  "v1EntryPoints": ["main.browser", "main.node"],
+  "v1Execution": "rejected",
+  "preservationNamespacePrefix": "plugin-v1/",
+  "grantsInherited": false,
+  "secretPath": ["electron-safeStorage-unseal (P2-05)", "go-keyring-reseal (P2-04)", "v2-claim-on-user-approval (P5-06)"]
+}

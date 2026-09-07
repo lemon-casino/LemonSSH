@@ -607,3 +607,42 @@ capability row, source paths, verification output or CI run.
   （如 sftp 偏好键）可随 P2-07 差分测试修订，修订须重生成清单并回写本 ledger
 - Next safe slice: P2-01A plugin v1 user-data retention contract
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L017 - 2026-09-08 - P2-01A plugin v1 user-data retention contract
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P2-01A`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 在 Phase 2 profile cutover 前冻结插件 v1 全部用户数据的保留方式，
+  使 v2 runtime 断代（WV3-005）不丢失任何用户数据。
+- Go canonical owner: none; contract task only (future owner: P2-05/P2-06
+  bundle, P5-02 store)
+- Frontend adapter: none
+- Electron owner affected: none; `electron/plugins/` continues to own the v1
+  database today
+- Preserved invariants: schema v3 全部 12 张表逐表处置；`preserve-opaque`
+  行进 plugin-v1 命名空间 envelope（plugin_id 与表名构成路径，含 row_count 与
+  semantic hash，Phase 2 不解释 v2 语义）；v1 代码永不执行；grants/provider
+  bindings 默认失效；secrets 只走 P2-05 解封加 P2-04 转封；v2 认领需逐
+  plugin 用户批准
+- Data/schema impact: `plugin-v1-data-retention.md` + fixture
+  `testdata/migration/electron/plugin-v1-data-retention.json`
+- Security impact: no grant inheritance, no shim for main.browser/main.node,
+  re-sealed secrets unusable by v1 and unclaimed v2 code
+- Verification: `npm run check:plugin-retention`（4 tests：CREATE TABLE 全覆盖、
+  SCHEMA_VERSION 锚点、fail-closed 属性断言、secrets/grants 处置断言）接入
+  test.yml CI
+- Platforms covered: platform-independent contract
+- Evidence grade: `C`
+- Decision references: `WV3-004`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: contract task only; P9-01 deletes the v1 runtime
+  after cutover
+- Documentation updated: plugin-v1-data-retention.md (new), implementation
+  plan, ledger
+- Residual risks: P2-05/P2-06 必须按本合同实现 bundle 与 equality 检查；
+  schema v3 之后新增表须先过本 check
+- Next safe slice: P2-02 Go transactional profile store
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
