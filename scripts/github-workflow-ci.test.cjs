@@ -73,7 +73,7 @@ test("PR validation runs once per commit and includes a production build", () =>
   assert.match(testWorkflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
   assert.doesNotMatch(testWorkflow, /branches:\s*\n\s*- "\*\*"/);
   assert.match(testWorkflow, /name: lint-and-test\s*\n\s*runs-on: ubuntu-latest\s*\n\s*timeout-minutes: 20/);
-  assert.match(testWorkflow, /sudo apt-get install -y fish xvfb/);
+  assert.match(testWorkflow, /sudo apt-get install -y fish xvfb libgtk-4-dev libwebkitgtk-6\.0-dev/);
   assert.match(
     testWorkflow,
     /- name: Test terminal keyword highlight performance\s*\n\s*env:\s*\n\s*NETCATTY_TERMINAL_PERF_SHOW_WINDOW: "1"\s*\n\s*# GitHub-hosted runners do not configure Electron's SUID sandbox helper\.\s*\n\s*run: xvfb-run -a \.\/node_modules\/\.bin\/electron --no-sandbox scripts\/xterm-keyword-highlight-performance\.live\.test\.cjs/,
@@ -83,6 +83,23 @@ test("PR validation runs once per commit and includes a production build", () =>
     /- name: Test macOS Option column selection\s*\n\s*if: matrix\.name == 'macos'\s*\n\s*run: npm run test:xterm-macos-selection/,
   );
   assert.match(testWorkflow, /- name: Build\s*\n\s*run: npm run build/);
+  assert.match(
+    testWorkflow,
+    /- name: Verify Wails migration documentation\s*\n\s*run: npm run check:migration-docs/,
+  );
+  assert.match(testWorkflow, /uses: actions\/setup-go@v6/);
+  assert.match(
+    testWorkflow,
+    /- name: Verify Wails shell probe\s*\n\s*run: npm run check:wails-shell-probe/,
+  );
+  assert.match(
+    testWorkflow,
+    /cache-dependency-path: \|\s*\n\s*experiments\/wails-shell-probe\/go\.sum\s*\n\s*experiments\/terminal-data-plane\/go\.sum/,
+  );
+  assert.match(
+    testWorkflow,
+    /- name: Verify terminal data-plane probe\s*\n\s*run: npm run check:terminal-data-plane-probe/,
+  );
   assert.doesNotMatch(testWorkflow, /\n  mosh-windows-conpty:/);
 });
 
