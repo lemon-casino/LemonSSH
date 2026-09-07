@@ -1,0 +1,128 @@
+[
+  {
+    "area": "app-shell",
+    "owners": [
+      "electron/main.cjs",
+      "electron/bridges/windowManager.cjs",
+      "electron/preload.cjs"
+    ],
+    "tests": [
+      "electron/appWindowLifecycle.test.cjs",
+      "electron/preloadAiSdkAgent.test.cjs"
+    ]
+  },
+  {
+    "area": "terminal-data-plane",
+    "owners": [
+      "electron/bridges/terminalOutputChannel.cjs",
+      "electron/preload/terminalOutputPorts.cjs",
+      "electron/bridges/terminalWorkerManager.cjs"
+    ],
+    "tests": [
+      "electron/preloadTerminalOutputPorts.test.cjs",
+      "electron/terminalWorker/runtime.test.cjs",
+      "scripts/terminal-output-stall.live.test.cjs"
+    ]
+  },
+  {
+    "area": "terminal-runtime",
+    "owners": [
+      "electron/bridges/terminalBridge.cjs",
+      "electron/terminalWorker/process.cjs"
+    ],
+    "tests": [
+      "electron/terminalWorker/process.test.cjs",
+      "electron/terminalWorker/runtime.test.cjs"
+    ]
+  },
+  {
+    "area": "ssh",
+    "owners": [
+      "electron/bridges/sshBridge.cjs",
+      "electron/bridges/sshConnectionPool.cjs"
+    ],
+    "tests": [
+      "electron/bridges/sshBridge.hostKeyChain.test.cjs",
+      "electron/bridges/sshBridge.connectionReuse.test.cjs",
+      "electron/bridges/sshConnectionPool.test.cjs"
+    ]
+  },
+  {
+    "area": "sftp-transfer",
+    "owners": [
+      "electron/bridges/sftpBridge.cjs",
+      "electron/bridges/transferBridge.cjs",
+      "application/state/sftp/transferRuntime.ts"
+    ],
+    "tests": [
+      "electron/bridges/sftpBridge.hostKeyVerification.test.cjs",
+      "electron/bridges/sftpBridge.sessionBackedUpload.test.cjs",
+      "electron/bridges/transferBridge.test.cjs",
+      "application/state/sftp/transferRuntime.test.ts"
+    ]
+  },
+  {
+    "area": "profile-persistence",
+    "owners": [
+      "infrastructure/persistence/localStorageAdapter.ts",
+      "application/state/useVaultState.ts",
+      "application/state/useSessionState.ts"
+    ],
+    "tests": [
+      "infrastructure/persistence/localStorageAdapter.test.ts",
+      "application/state/sessionRestoreStorage.test.ts",
+      "application/state/useVaultState.snippetsDelete.test.ts"
+    ]
+  },
+  {
+    "area": "capabilities-mcp-cli",
+    "owners": [
+      "electron/capabilities/catalog/index.cjs",
+      "electron/bridges/mcpServerBridge.cjs",
+      "electron/cli/netcatty-tool-cli.cjs"
+    ],
+    "tests": [
+      "electron/capabilities/catalog/integrity.test.cjs",
+      "electron/capabilities/codegen/toolSurfaces.test.cjs",
+      "electron/capabilities/adapters/cliAdapter.test.cjs"
+    ]
+  },
+  {
+    "area": "agent-runtime",
+    "owners": [
+      "infrastructure/ai/harness/agentRuntime.ts",
+      "infrastructure/ai/harness/contextManager.ts",
+      "electron/bridges/aiBridge.cjs"
+    ],
+    "tests": [
+      "infrastructure/ai/harness/agentRuntime.test.ts",
+      "infrastructure/ai/harness/contextManager.test.ts",
+      "application/state/useAIChatStreaming.architecture.test.ts"
+    ]
+  },
+  {
+    "area": "plugin-runtime",
+    "owners": [
+      "packages/plugin-contract/schema/plugin-contract.schema.json",
+      "electron/plugins/runtimeSupervisor.cjs",
+      "electron/plugins/permissionEngine.cjs"
+    ],
+    "tests": [
+      "electron/plugins/runtimeSupervisor.test.cjs",
+      "electron/plugins/permissionEngine.test.cjs",
+      "electron/plugins/packageStore.test.cjs"
+    ]
+  },
+  {
+    "area": "cloud-sync",
+    "owners": [
+      "infrastructure/services/CloudSyncManager.ts",
+      "domain/convergentSync",
+      "electron/bridges/cloudSyncBridge.cjs"
+    ],
+    "tests": [
+      "application/convergentSyncMigration.test.ts",
+      "infrastructure/services/EncryptionService.convergentSync.test.ts"
+    ]
+  }
+]

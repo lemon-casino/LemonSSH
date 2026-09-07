@@ -15,6 +15,7 @@ if (!process.versions.electron) {
   const electron = require("electron");
   const esbuild = require("esbuild");
   const tempDirBridge = require("../electron/bridges/tempDirBridge.cjs");
+  const workloadPath = require.resolve("./terminal-sustained-output-workload.cjs");
 
   const appRoot = path.resolve(__dirname, "..");
   const mainRef = process.env.NETCATTY_TERMINAL_PERF_MAIN_REF ?? "origin/main";
@@ -139,6 +140,7 @@ if (!process.versions.electron) {
     const result = await window.webContents.executeJavaScript(`(async () => {
       const { Terminal } = require(${JSON.stringify(xtermPath)});
       const { WebglAddon } = require(${JSON.stringify(webglPath)});
+      const { makeTerminalSustainedOutputChunks } = require(${JSON.stringify(workloadPath)});
       const loadBundle = source => {
         const loaded = { exports: {} };
         ((module, exports) => { eval(source); })(loaded, loaded.exports);
@@ -152,16 +154,7 @@ if (!process.versions.electron) {
         { id: "error", label: "Error", patterns: ["ERROR", "failed"], color: "#F87171", enabled: true },
         { id: "ip", label: "IP", patterns: ["10\\\\.2\\\\.\\\\d+\\\\.\\\\d+"], color: "#4ADE80", enabled: true },
       ];
-      const makeChunk = index => {
-        let chunk = "";
-        for (let line = 0; line < 64; line += 1) {
-          chunk += "2026-08-13 INFO worker=" + (line % 32) + " WARN ERROR failed from 10.2."
-            + ((index + line) % 255) + "." + ((index * 7 + line) % 255) + " payload="
-            + "x".repeat(24) + "\\r\\n";
-        }
-        return chunk;
-      };
-      const chunks = Array.from({ length: ${chunkCount} }, (_, index) => makeChunk(index));
+      const chunks = makeTerminalSustainedOutputChunks(${chunkCount});
       const totalChars = chunks.reduce((total, chunk) => total + chunk.length, 0);
       const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 

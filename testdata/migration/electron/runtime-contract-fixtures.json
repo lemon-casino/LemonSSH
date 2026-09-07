@@ -1,0 +1,84 @@
+{
+  "agentEvents": [
+    {
+      "backend": "catty",
+      "backendLabel": "catty",
+      "chatSessionId": "chat-session-fixture-1",
+      "id": "event-1",
+      "sessionId": "chat-session-fixture-1",
+      "timestamp": 1724361600000,
+      "turnId": "turn-fixture-1",
+      "type": "turn_start"
+    },
+    {
+      "args": {},
+      "backend": "catty",
+      "chatSessionId": "chat-session-fixture-1",
+      "id": "event-2",
+      "sessionId": "chat-session-fixture-1",
+      "timestamp": 1724361600000,
+      "toolCallId": "tool-call-fixture-1",
+      "toolName": "session_environment",
+      "turnId": "turn-fixture-1",
+      "type": "tool_call"
+    },
+    {
+      "backend": "catty",
+      "chatSessionId": "chat-session-fixture-1",
+      "id": "event-3",
+      "result": "{\"ok\":true,\"platform\":\"fixture\"}",
+      "sessionId": "chat-session-fixture-1",
+      "timestamp": 1724361600000,
+      "toolCallId": "tool-call-fixture-1",
+      "toolName": "session_environment",
+      "turnId": "turn-fixture-1",
+      "type": "tool_result"
+    },
+    {
+      "backend": "catty",
+      "chatSessionId": "chat-session-fixture-1",
+      "completionTokens": 30,
+      "estimated": false,
+      "id": "event-4",
+      "promptTokens": 120,
+      "sessionId": "chat-session-fixture-1",
+      "timestamp": 1724361600000,
+      "totalTokens": 150,
+      "turnId": "turn-fixture-1",
+      "type": "usage"
+    },
+    {
+      "backend": "catty",
+      "chatSessionId": "chat-session-fixture-1",
+      "id": "event-5",
+      "reason": "completed",
+      "sessionId": "chat-session-fixture-1",
+      "timestamp": 1724361600000,
+      "turnId": "turn-fixture-1",
+      "type": "turn_end"
+    }
+  ],
+  "sessionRestore": {
+    "activeTabId": "session-fixture-1",
+    "savedAt": 1724361600000,
+    "sessions": [
+      {
+        "hostId": "host-fixture-1",
+        "hostLabel": "Synthetic Host",
+        "hostname": "example.invalid",
+        "id": "session-fixture-1",
+        "port": 22,
+        "protocol": "ssh",
+        "restoreState": "restored-disconnected",
+        "shellType": "posix",
+        "status": "disconnected",
+        "username": "fixture-user"
+      }
+    ],
+    "tabOrder": [
+      "session-fixture-1"
+    ],
+    "version": 1,
+    "workspaces": []
+  }
+}

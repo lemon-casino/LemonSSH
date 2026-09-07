@@ -1,0 +1,55 @@
+{
+  "invalidManifestTraversal": {
+    "engines": {
+      "api": ">=0.1.0-internal <0.2.0",
+      "netcatty": ">=0.0.0"
+    },
+    "id": "com.netcatty.fixture",
+    "main": {
+      "browser": "../escape.js"
+    },
+    "manifestVersion": 1,
+    "name": "migration-fixture",
+    "publisher": "netcatty-fixture",
+    "version": "0.1.0"
+  },
+  "rejectedPackagePaths": [
+    "../escape.js",
+    "/absolute.js",
+    "C:/drive.js",
+    "dist\\backslash.js",
+    "CON.txt",
+    "dist/trailing. "
+  ],
+  "rpcRequest": {
+    "cancellationId": "cancel-fixture-1",
+    "deadlineMs": 30000,
+    "id": "rpc-fixture-1",
+    "jsonrpc": "2.0",
+    "method": "plugin.storage.get",
+    "params": {
+      "key": "fixture-key"
+    }
+  },
+  "rpcSuccess": {
+    "id": "rpc-fixture-1",
+    "jsonrpc": "2.0",
+    "result": {
+      "value": "fixture-value"
+    }
+  },
+  "validManifest": {
+    "engines": {
+      "api": ">=0.1.0-internal <0.2.0",
+      "netcatty": ">=0.0.0"
+    },
+    "id": "com.netcatty.fixture",
+    "main": {
+      "browser": "dist/browser.js"
+    },
+    "manifestVersion": 1,
+    "name": "migration-fixture",
+    "publisher": "netcatty-fixture",
+    "version": "0.1.0"
+  }
+}

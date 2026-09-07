@@ -1,0 +1,502 @@
+{
+  "formatVersion": 1,
+  "summary": {
+    "chunkCount": 1600,
+    "chunkSizeDistribution": [
+      {
+        "bytes": 5976,
+        "count": 7
+      },
+      {
+        "bytes": 5984,
+        "count": 13
+      },
+      {
+        "bytes": 5988,
+        "count": 7
+      },
+      {
+        "bytes": 5989,
+        "count": 14
+      },
+      {
+        "bytes": 5990,
+        "count": 7
+      },
+      {
+        "bytes": 5991,
+        "count": 14
+      },
+      {
+        "bytes": 5992,
+        "count": 6
+      },
+      {
+        "bytes": 5996,
+        "count": 7
+      },
+      {
+        "bytes": 5998,
+        "count": 14
+      },
+      {
+        "bytes": 5999,
+        "count": 7
+      },
+      {
+        "bytes": 6000,
+        "count": 13
+      },
+      {
+        "bytes": 6001,
+        "count": 7
+      },
+      {
+        "bytes": 6003,
+        "count": 7
+      },
+      {
+        "bytes": 6005,
+        "count": 7
+      },
+      {
+        "bytes": 6006,
+        "count": 7
+      },
+      {
+        "bytes": 6008,
+        "count": 6
+      },
+      {
+        "bytes": 6010,
+        "count": 7
+      },
+      {
+        "bytes": 6013,
+        "count": 7
+      },
+      {
+        "bytes": 6014,
+        "count": 7
+      },
+      {
+        "bytes": 6015,
+        "count": 6
+      },
+      {
+        "bytes": 6016,
+        "count": 6
+      },
+      {
+        "bytes": 6017,
+        "count": 13
+      },
+      {
+        "bytes": 6018,
+        "count": 6
+      },
+      {
+        "bytes": 6019,
+        "count": 12
+      },
+      {
+        "bytes": 6020,
+        "count": 6
+      },
+      {
+        "bytes": 6021,
+        "count": 13
+      },
+      {
+        "bytes": 6022,
+        "count": 7
+      },
+      {
+        "bytes": 6024,
+        "count": 19
+      },
+      {
+        "bytes": 6025,
+        "count": 12
+      },
+      {
+        "bytes": 6028,
+        "count": 6
+      },
+      {
+        "bytes": 6029,
+        "count": 7
+      },
+      {
+        "bytes": 6030,
+        "count": 7
+      },
+      {
+        "bytes": 6031,
+        "count": 13
+      },
+      {
+        "bytes": 6032,
+        "count": 12
+      },
+      {
+        "bytes": 6033,
+        "count": 6
+      },
+      {
+        "bytes": 6034,
+        "count": 6
+      },
+      {
+        "bytes": 6035,
+        "count": 6
+      },
+      {
+        "bytes": 6036,
+        "count": 6
+      },
+      {
+        "bytes": 6037,
+        "count": 26
+      },
+      {
+        "bytes": 6038,
+        "count": 13
+      },
+      {
+        "bytes": 6040,
+        "count": 6
+      },
+      {
+        "bytes": 6041,
+        "count": 6
+      },
+      {
+        "bytes": 6042,
+        "count": 6
+      },
+      {
+        "bytes": 6043,
+        "count": 6
+      },
+      {
+        "bytes": 6044,
+        "count": 7
+      },
+      {
+        "bytes": 6045,
+        "count": 7
+      },
+      {
+        "bytes": 6046,
+        "count": 13
+      },
+      {
+        "bytes": 6049,
+        "count": 12
+      },
+      {
+        "bytes": 6050,
+        "count": 7
+      },
+      {
+        "bytes": 6051,
+        "count": 13
+      },
+      {
+        "bytes": 6052,
+        "count": 19
+      },
+      {
+        "bytes": 6053,
+        "count": 7
+      },
+      {
+        "bytes": 6054,
+        "count": 6
+      },
+      {
+        "bytes": 6055,
+        "count": 18
+      },
+      {
+        "bytes": 6056,
+        "count": 6
+      },
+      {
+        "bytes": 6057,
+        "count": 12
+      },
+      {
+        "bytes": 6058,
+        "count": 20
+      },
+      {
+        "bytes": 6059,
+        "count": 12
+      },
+      {
+        "bytes": 6060,
+        "count": 163
+      },
+      {
+        "bytes": 6061,
+        "count": 25
+      },
+      {
+        "bytes": 6062,
+        "count": 18
+      },
+      {
+        "bytes": 6063,
+        "count": 6
+      },
+      {
+        "bytes": 6064,
+        "count": 19
+      },
+      {
+        "bytes": 6065,
+        "count": 24
+      },
+      {
+        "bytes": 6066,
+        "count": 12
+      },
+      {
+        "bytes": 6067,
+        "count": 12
+      },
+      {
+        "bytes": 6068,
+        "count": 12
+      },
+      {
+        "bytes": 6069,
+        "count": 19
+      },
+      {
+        "bytes": 6070,
+        "count": 12
+      },
+      {
+        "bytes": 6071,
+        "count": 19
+      },
+      {
+        "bytes": 6072,
+        "count": 18
+      },
+      {
+        "bytes": 6073,
+        "count": 12
+      },
+      {
+        "bytes": 6075,
+        "count": 13
+      },
+      {
+        "bytes": 6076,
+        "count": 13
+      },
+      {
+        "bytes": 6077,
+        "count": 7
+      },
+      {
+        "bytes": 6078,
+        "count": 19
+      },
+      {
+        "bytes": 6079,
+        "count": 19
+      },
+      {
+        "bytes": 6080,
+        "count": 13
+      },
+      {
+        "bytes": 6081,
+        "count": 7
+      },
+      {
+        "bytes": 6082,
+        "count": 13
+      },
+      {
+        "bytes": 6083,
+        "count": 13
+      },
+      {
+        "bytes": 6084,
+        "count": 14
+      },
+      {
+        "bytes": 6085,
+        "count": 13
+      },
+      {
+        "bytes": 6086,
+        "count": 25
+      },
+      {
+        "bytes": 6087,
+        "count": 19
+      },
+      {
+        "bytes": 6089,
+        "count": 6
+      },
+      {
+        "bytes": 6090,
+        "count": 6
+      },
+      {
+        "bytes": 6091,
+        "count": 6
+      },
+      {
+        "bytes": 6092,
+        "count": 6
+      },
+      {
+        "bytes": 6093,
+        "count": 6
+      },
+      {
+        "bytes": 6094,
+        "count": 12
+      },
+      {
+        "bytes": 6096,
+        "count": 18
+      },
+      {
+        "bytes": 6097,
+        "count": 12
+      },
+      {
+        "bytes": 6098,
+        "count": 6
+      },
+      {
+        "bytes": 6099,
+        "count": 12
+      },
+      {
+        "bytes": 6100,
+        "count": 12
+      },
+      {
+        "bytes": 6101,
+        "count": 18
+      },
+      {
+        "bytes": 6102,
+        "count": 12
+      },
+      {
+        "bytes": 6103,
+        "count": 12
+      },
+      {
+        "bytes": 6104,
+        "count": 12
+      },
+      {
+        "bytes": 6106,
+        "count": 18
+      },
+      {
+        "bytes": 6108,
+        "count": 6
+      },
+      {
+        "bytes": 6110,
+        "count": 24
+      },
+      {
+        "bytes": 6111,
+        "count": 6
+      },
+      {
+        "bytes": 6112,
+        "count": 18
+      },
+      {
+        "bytes": 6113,
+        "count": 12
+      },
+      {
+        "bytes": 6114,
+        "count": 6
+      },
+      {
+        "bytes": 6115,
+        "count": 6
+      },
+      {
+        "bytes": 6116,
+        "count": 6
+      },
+      {
+        "bytes": 6117,
+        "count": 12
+      },
+      {
+        "bytes": 6118,
+        "count": 12
+      },
+      {
+        "bytes": 6119,
+        "count": 6
+      },
+      {
+        "bytes": 6120,
+        "count": 12
+      },
+      {
+        "bytes": 6121,
+        "count": 6
+      },
+      {
+        "bytes": 6122,
+        "count": 6
+      },
+      {
+        "bytes": 6123,
+        "count": 6
+      },
+      {
+        "bytes": 6124,
+        "count": 168
+      }
+    ],
+    "payloadSha256": "a72132b19b586c26f76ee1c635870b5dddb6727f744cd2099e9104745114c0e1",
+    "totalBytes": 9708106,
+    "totalChars": 9708106
+  },
+  "workload": {
+    "canonicalBenchmarkSource": "scripts/xterm-keyword-highlight-throughput.live.test.cjs",
+    "defaultChunkCount": 1600,
+    "encoding": "utf8",
+    "generatorSource": "scripts/terminal-sustained-output-workload.cjs",
+    "id": "xterm-keyword-highlight-sustained-output",
+    "parameters": {
+      "date": "2026-08-13",
+      "errorText": "ERROR",
+      "failureText": "failed",
+      "infoText": "INFO",
+      "ipOctetModulo": 255,
+      "ipPrefix": "10.2",
+      "lineEnding": "\r\n",
+      "linesPerChunk": 64,
+      "payloadCharacter": "x",
+      "payloadLength": 24,
+      "secondIpOctetChunkMultiplier": 7,
+      "warnText": "WARN",
+      "workerModulo": 32
+    },
+    "version": 1
+  }
+}

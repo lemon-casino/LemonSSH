@@ -1,0 +1,41 @@
+{
+  "limits": {
+    "ImporterLimits": {
+      "maxInputBytes": 67108864,
+      "maxOutputBytes": 67108864,
+      "maxRecordBytes": 67108864,
+      "maxRecords": 10000
+    },
+    "JsonValueLimits": {
+      "maxDepth": 128,
+      "maxNodes": 100000
+    },
+    "RpcLimits": {
+      "maxJsonBytes": 1048576
+    },
+    "StreamLimits": {
+      "maxChunkBytes": 16777216,
+      "maxCreditBytes": 16777216,
+      "maxFrameJsonBytes": 25165824,
+      "maxStreamIdLength": 128,
+      "maxWindowBytes": 16777216,
+      "minWindowBytes": 1024
+    },
+    "SyncLimits": {
+      "inlineObjectBytes": 92160,
+      "maxObjectBytes": 67108864,
+      "maxObjectKeyLength": 1024,
+      "maxRevisionLength": 256
+    },
+    "TerminalInterceptorLimits": {
+      "maxChunkBytes": 65536,
+      "maxWindowBytes": 262144
+    },
+    "WireIntegerLimits": {
+      "maxSafeInteger": 9007199254740991
+    }
+  },
+  "rootRef": "#/$defs/PluginManifest",
+  "schemaId": "https://netcatty.com/schemas/plugins/0.1.0-internal/plugin-contract.schema.json",
+  "title": "Netcatty Plugin Contract"
+}

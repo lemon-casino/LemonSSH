@@ -46,6 +46,8 @@
     "rebuild": "electron-builder install-app-deps",
     "tool:cli": "node electron/cli/netcatty-tool-cli.cjs",
     "generate:capability-tools": "node scripts/generate-capability-tools.cjs",
+    "generate:migration-electron-baseline": "node scripts/migration/export-electron-contract-fixtures.mjs",
+    "check:migration-electron-baseline": "node scripts/migration/export-electron-contract-fixtures.mjs --check && node --test --import tsx scripts/migration/export-electron-contract-fixtures.test.mjs && tsc -p tsconfig.migration-electron-baseline.json",
     "generate:codex-app-server-schema": "node scripts/generate-codex-app-server-schema.cjs",
     "check:codex-app-server-schema": "node scripts/generate-codex-app-server-schema.cjs --check",
     "check:codebuddy-sdk-contract": "tsc -p tsconfig.codebuddy-sdk-contract.json",

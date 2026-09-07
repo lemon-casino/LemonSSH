@@ -1,0 +1,2125 @@
+[
+  {
+    "description": "List user-attached files in the current AI chat scope.",
+    "domain": "attachment",
+    "id": "attachment.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "list_attachments",
+        "rpcMethod": "netcatty/listAttachments"
+      },
+      "cli": {
+        "command": [
+          "attachment",
+          "list"
+        ]
+      }
+    }
+  },
+  {
+    "description": "Read a user-attached file from the current AI chat scope.",
+    "domain": "attachment",
+    "id": "attachment.read",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "read_attachment",
+        "rpcMethod": "netcatty/readAttachment"
+      },
+      "cli": {
+        "command": [
+          "attachment",
+          "read"
+        ]
+      }
+    }
+  },
+  {
+    "description": "Read a bounded slice of the current terminal screen or scrollback from the active AI scope.",
+    "domain": "harness",
+    "id": "harness.terminal.read_context",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "terminal_read_context"
+      }
+    }
+  },
+  {
+    "description": "Read stored tool output by handle id when a prior tool result was truncated.",
+    "domain": "harness",
+    "id": "harness.tool_output.read",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "tool_output_read"
+      }
+    }
+  },
+  {
+    "description": "Fetch and read the content of an HTTPS URL.",
+    "domain": "harness",
+    "id": "harness.url.fetch",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "url_fetch"
+      }
+    }
+  },
+  {
+    "description": "Search the web for current information when configured in AI settings.",
+    "domain": "harness",
+    "id": "harness.web.search",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "web_search"
+      }
+    }
+  },
+  {
+    "description": "Get information about the current workspace, including all terminal sessions and their connection status.",
+    "domain": "harness",
+    "id": "harness.workspace.get_info",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "workspace_get_info"
+      }
+    }
+  },
+  {
+    "description": "Get detailed information about a specific terminal or SFTP session.",
+    "domain": "harness",
+    "id": "harness.workspace.get_session_info",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "catty": {
+        "toolName": "workspace_get_session_info"
+      }
+    }
+  },
+  {
+    "description": "Return bridge runtime status and policy configuration.",
+    "domain": "meta",
+    "id": "meta.status",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/getStatus"
+      },
+      "cli": {
+        "command": [
+          "status"
+        ]
+      },
+      "public": {
+        "rpcMethod": "public/getStatus"
+      }
+    }
+  },
+  {
+    "description": "Create a persisted port forwarding rule.",
+    "domain": "portforward",
+    "id": "portforward.rules.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "portforward/rules/create"
+      },
+      "public": {
+        "mcpTool": "portforward_rules_create",
+        "rpcMethod": "public/portforward/rules/create"
+      }
+    }
+  },
+  {
+    "description": "Delete a persisted port forwarding rule.",
+    "domain": "portforward",
+    "id": "portforward.rules.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "portforward/rules/delete"
+      },
+      "public": {
+        "mcpTool": "portforward_rules_delete",
+        "rpcMethod": "public/portforward/rules/delete"
+      }
+    }
+  },
+  {
+    "description": "Duplicate a persisted port forwarding rule.",
+    "domain": "portforward",
+    "id": "portforward.rules.duplicate",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "portforward/rules/duplicate"
+      },
+      "public": {
+        "mcpTool": "portforward_rules_duplicate",
+        "rpcMethod": "public/portforward/rules/duplicate"
+      }
+    }
+  },
+  {
+    "description": "List persisted port forwarding rules.",
+    "domain": "portforward",
+    "id": "portforward.rules.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "portforward",
+          "rules",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "portforward/rules/list"
+      },
+      "public": {
+        "mcpTool": "portforward_rules_list",
+        "rpcMethod": "public/portforward/rules/list"
+      }
+    }
+  },
+  {
+    "description": "Update a persisted port forwarding rule.",
+    "domain": "portforward",
+    "id": "portforward.rules.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "portforward/rules/update"
+      },
+      "public": {
+        "mcpTool": "portforward_rules_update",
+        "rpcMethod": "public/portforward/rules/update"
+      }
+    }
+  },
+  {
+    "description": "Start a port forwarding tunnel for a rule.",
+    "domain": "portforward",
+    "id": "portforward.start",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "portforward",
+          "start"
+        ]
+      },
+      "global": {
+        "rpcMethod": "portforward/start"
+      },
+      "public": {
+        "mcpTool": "portforward_start",
+        "rpcMethod": "public/portforward/start"
+      }
+    }
+  },
+  {
+    "description": "Stop an active port forwarding tunnel.",
+    "domain": "portforward",
+    "id": "portforward.stop",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "portforward",
+          "stop"
+        ]
+      },
+      "global": {
+        "rpcMethod": "portforward/stop"
+      },
+      "public": {
+        "mcpTool": "portforward_stop",
+        "rpcMethod": "public/portforward/stop"
+      }
+    }
+  },
+  {
+    "description": "List active port forwarding tunnels.",
+    "domain": "portforward",
+    "id": "portforward.tunnels.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "portforward",
+          "tunnels",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "portforward/tunnels/list"
+      },
+      "public": {
+        "mcpTool": "portforward_tunnels_list",
+        "rpcMethod": "public/portforward/tunnels/list"
+      }
+    }
+  },
+  {
+    "description": "Cancel in-flight operations for a chat session.",
+    "domain": "session",
+    "id": "session.cancel",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/setCancelled"
+      },
+      "cli": {
+        "command": [
+          "cancel"
+        ]
+      }
+    }
+  },
+  {
+    "description": "Close a terminal session previously opened by host_open in the current AI scope.",
+    "domain": "session",
+    "id": "session.close",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": true,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "session/close"
+      },
+      "public": {
+        "mcpTool": "session_close",
+        "rpcMethod": "public/session/close"
+      }
+    }
+  },
+  {
+    "description": "List scoped terminal sessions available to the agent.",
+    "domain": "session",
+    "id": "session.environment",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "get_environment",
+        "rpcMethod": "netcatty/getContext"
+      },
+      "cli": {
+        "command": [
+          "env"
+        ]
+      },
+      "public": {
+        "mcpTool": "get_environment",
+        "rpcMethod": "public/getEnvironment"
+      }
+    }
+  },
+  {
+    "description": "Get metadata for a single scoped session.",
+    "domain": "session",
+    "id": "session.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/getContext"
+      },
+      "cli": {
+        "command": [
+          "session"
+        ]
+      }
+    }
+  },
+  {
+    "description": "Resume write operations for a cancelled chat session.",
+    "domain": "session",
+    "id": "session.resume",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/setCancelled"
+      },
+      "cli": {
+        "command": [
+          "resume"
+        ]
+      }
+    }
+  },
+  {
+    "description": "Change remote file permissions over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.chmod",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/chmod"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "chmod"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_chmod",
+        "rpcMethod": "public/sftp/chmod"
+      }
+    }
+  },
+  {
+    "description": "Delete a remote file or directory over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/delete"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "delete"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_delete",
+        "rpcMethod": "public/sftp/delete"
+      }
+    }
+  },
+  {
+    "description": "Download a remote file to a local path.",
+    "domain": "sftp",
+    "id": "sftp.download",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/download"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "download"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_download",
+        "rpcMethod": "public/sftp/download"
+      }
+    }
+  },
+  {
+    "description": "Get the remote home directory for a session.",
+    "domain": "sftp",
+    "id": "sftp.home",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/home"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "home"
+        ]
+      },
+      "public": {
+        "confirmInConfirmMode": true,
+        "mcpTool": "sftp_home",
+        "rpcMethod": "public/sftp/home"
+      }
+    }
+  },
+  {
+    "description": "List a remote directory over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/list"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "list"
+        ]
+      },
+      "public": {
+        "confirmInConfirmMode": true,
+        "mcpTool": "sftp_list",
+        "rpcMethod": "public/sftp/list"
+      }
+    }
+  },
+  {
+    "description": "Create a remote directory over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.mkdir",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/mkdir"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "mkdir"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_mkdir",
+        "rpcMethod": "public/sftp/mkdir"
+      }
+    }
+  },
+  {
+    "description": "Read a remote file over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.read",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/read"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "read"
+        ]
+      },
+      "public": {
+        "confirmInConfirmMode": true,
+        "mcpTool": "sftp_read_file",
+        "rpcMethod": "public/sftp/readFile"
+      }
+    }
+  },
+  {
+    "description": "Rename a remote file or directory over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.rename",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/rename"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "rename"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_rename",
+        "rpcMethod": "public/sftp/rename"
+      }
+    }
+  },
+  {
+    "description": "Get remote file metadata over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.stat",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/stat"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "stat"
+        ]
+      },
+      "public": {
+        "confirmInConfirmMode": true,
+        "mcpTool": "sftp_stat",
+        "rpcMethod": "public/sftp/stat"
+      }
+    }
+  },
+  {
+    "description": "Upload a local file to a remote path.",
+    "domain": "sftp",
+    "id": "sftp.upload",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/upload"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "upload"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_upload",
+        "rpcMethod": "public/sftp/upload"
+      }
+    }
+  },
+  {
+    "description": "Write a remote file over the session file backend (SFTP or SCP-mode).",
+    "domain": "sftp",
+    "id": "sftp.write",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "rpcMethod": "netcatty/sftp/write"
+      },
+      "cli": {
+        "command": [
+          "sftp",
+          "write"
+        ]
+      },
+      "public": {
+        "mcpTool": "sftp_write_file",
+        "rpcMethod": "public/sftp/writeFile"
+      }
+    }
+  },
+  {
+    "description": "Execute a short command in a terminal session and wait for completion.",
+    "domain": "terminal",
+    "id": "terminal.execute",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "terminal_execute",
+        "rpcMethod": "netcatty/exec"
+      },
+      "cli": {
+        "command": [
+          "exec"
+        ]
+      },
+      "public": {
+        "mcpTool": "terminal_execute",
+        "rpcMethod": "public/terminalExecute"
+      }
+    }
+  },
+  {
+    "description": "Poll incremental output from a long-running terminal job.",
+    "domain": "terminal",
+    "id": "terminal.poll",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "terminal_poll",
+        "rpcMethod": "netcatty/jobPoll"
+      },
+      "cli": {
+        "command": [
+          "job-poll"
+        ]
+      },
+      "public": {
+        "mcpTool": "terminal_poll",
+        "rpcMethod": "public/terminalPoll"
+      }
+    }
+  },
+  {
+    "description": "Start a long-running command in a terminal session.",
+    "domain": "terminal",
+    "id": "terminal.start",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "terminal_start",
+        "rpcMethod": "netcatty/jobStart"
+      },
+      "cli": {
+        "command": [
+          "job-start"
+        ]
+      },
+      "public": {
+        "mcpTool": "terminal_start",
+        "rpcMethod": "public/terminalStart"
+      }
+    }
+  },
+  {
+    "description": "Stop a long-running terminal job.",
+    "domain": "terminal",
+    "id": "terminal.stop",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": true,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "builtin": {
+        "mcpTool": "terminal_stop",
+        "rpcMethod": "netcatty/jobStop"
+      },
+      "cli": {
+        "command": [
+          "job-stop"
+        ]
+      },
+      "public": {
+        "mcpTool": "terminal_stop",
+        "rpcMethod": "public/terminalStop"
+      }
+    }
+  },
+  {
+    "description": "Create a vault group with optional default connection settings.",
+    "domain": "vault",
+    "id": "vault.group.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/groups/create"
+      },
+      "public": {
+        "mcpTool": "vault_groups_create",
+        "rpcMethod": "public/vault/groups/create"
+      }
+    }
+  },
+  {
+    "description": "Delete a vault group, moving its hosts to the root unless deleteHosts is true.",
+    "domain": "vault",
+    "id": "vault.group.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/groups/delete"
+      },
+      "public": {
+        "mcpTool": "vault_groups_delete",
+        "rpcMethod": "public/vault/groups/delete"
+      }
+    }
+  },
+  {
+    "description": "List vault groups and their safe default settings.",
+    "domain": "vault",
+    "id": "vault.group.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/groups/list"
+      },
+      "public": {
+        "mcpTool": "vault_groups_list",
+        "rpcMethod": "public/vault/groups/list"
+      }
+    }
+  },
+  {
+    "description": "Update or rename a vault group and its default connection settings.",
+    "domain": "vault",
+    "id": "vault.group.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/groups/update"
+      },
+      "public": {
+        "mcpTool": "vault_groups_update",
+        "rpcMethod": "public/vault/groups/update"
+      }
+    }
+  },
+  {
+    "description": "List resolved onConnect automation scripts for a host (global, dynamic group, then host queue).",
+    "domain": "vault",
+    "id": "vault.host.connectScripts.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host",
+          "connect-scripts",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/host/connectScripts/list"
+      },
+      "public": {
+        "mcpTool": "host_connect_scripts_list",
+        "rpcMethod": "public/vault/hostConnectScripts/list"
+      }
+    }
+  },
+  {
+    "description": "Set ordered onConnect script IDs for a host (host-specific queue; globals run separately).",
+    "domain": "vault",
+    "id": "vault.host.connectScripts.set",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host",
+          "connect-scripts",
+          "set"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/host/connectScripts/set"
+      },
+      "public": {
+        "mcpTool": "host_connect_scripts_set",
+        "rpcMethod": "public/vault/hostConnectScripts/set"
+      }
+    }
+  },
+  {
+    "description": "Delete a saved vault host by id. Use vault_hosts_list first to resolve the hostId.",
+    "domain": "vault",
+    "id": "vault.host.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/hosts/delete"
+      },
+      "public": {
+        "mcpTool": "vault_hosts_delete",
+        "rpcMethod": "public/vault/hosts/delete"
+      }
+    }
+  },
+  {
+    "description": "Get host metadata from the vault.",
+    "domain": "vault",
+    "id": "vault.host.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host",
+          "get"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/host/get"
+      },
+      "public": {
+        "mcpTool": "host_get",
+        "rpcMethod": "public/vault/host/get"
+      }
+    }
+  },
+  {
+    "description": "Parse known host export file formats (PuTTY, MobaXterm, CSV, SecureCRT, ssh_config) into vault hosts. For arbitrary unstructured text, map to host objects and use vault_hosts_create instead.",
+    "domain": "vault",
+    "id": "vault.host.import",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/hosts/import"
+      },
+      "public": {
+        "mcpTool": "vault_hosts_import",
+        "rpcMethod": "public/vault/hosts/import"
+      }
+    }
+  },
+  {
+    "description": "List saved hosts in the vault (metadata only — no passwords or keys).",
+    "domain": "vault",
+    "id": "vault.host.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/hosts/list"
+      },
+      "public": {
+        "mcpTool": "vault_hosts_list",
+        "rpcMethod": "public/vault/hosts/list"
+      }
+    }
+  },
+  {
+    "description": "Read host metadata notes attached to a saved host (Host Details panel — not Vault sidebar Notes).",
+    "domain": "vault",
+    "id": "vault.host.notes.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host-notes",
+          "get"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/host/notes/get"
+      },
+      "public": {
+        "mcpTool": "host_notes_get",
+        "rpcMethod": "public/vault/hostNotes/get"
+      }
+    }
+  },
+  {
+    "description": "Update host metadata notes on a saved host (Host Details panel — not Vault sidebar Notes).",
+    "domain": "vault",
+    "id": "vault.host.notes.set",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host-notes",
+          "set"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/host/notes/set"
+      },
+      "public": {
+        "mcpTool": "host_notes_set",
+        "rpcMethod": "public/vault/hostNotes/set"
+      }
+    }
+  },
+  {
+    "agentKinds": [
+      "global"
+    ],
+    "description": "Open a vault host by creating a new terminal tab and starting the connection. Returns the new sessionId so you can run terminal/SFTP tools against it. Use vault_hosts_list first when you only know the label or hostname.",
+    "domain": "vault",
+    "id": "vault.host.open",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "vault",
+          "host",
+          "open"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/hosts/open"
+      },
+      "public": {
+        "mcpTool": "host_open",
+        "rpcMethod": "public/vault/hosts/open"
+      }
+    }
+  },
+  {
+    "description": "Update selected fields on an existing vault host. Use vault_hosts_list first to resolve the hostId.",
+    "domain": "vault",
+    "id": "vault.host.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/hosts/update"
+      },
+      "public": {
+        "mcpTool": "vault_hosts_update",
+        "rpcMethod": "public/vault/hosts/update"
+      }
+    }
+  },
+  {
+    "description": "Create vault hosts from structured host objects. Use when the user wants to add/create a host (Vault → Hosts). NOT for Vault → Notes sidebar documentation.",
+    "domain": "vault",
+    "id": "vault.hosts.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/hosts/create"
+      },
+      "public": {
+        "mcpTool": "vault_hosts_create",
+        "rpcMethod": "public/vault/hosts/create"
+      }
+    }
+  },
+  {
+    "description": "List reusable vault identities without passwords, private keys, or passphrases.",
+    "domain": "vault",
+    "id": "vault.identity.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/identities/list"
+      },
+      "public": {
+        "mcpTool": "vault_identities_list",
+        "rpcMethod": "public/vault/identities/list"
+      }
+    }
+  },
+  {
+    "description": "Create a note in Vault → Notes sidebar (markdown documentation). NOT for adding SSH hosts — use vault_hosts_create for that.",
+    "domain": "vault",
+    "id": "vault.note.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/notes/create"
+      },
+      "public": {
+        "mcpTool": "vault_notes_create",
+        "rpcMethod": "public/vault/notes/create"
+      }
+    }
+  },
+  {
+    "description": "Delete a Vault → Notes entry by id.",
+    "domain": "vault",
+    "id": "vault.note.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/notes/delete"
+      },
+      "public": {
+        "mcpTool": "vault_notes_delete",
+        "rpcMethod": "public/vault/notes/delete"
+      }
+    }
+  },
+  {
+    "description": "Get a Vault → Notes entry by id (full markdown content).",
+    "domain": "vault",
+    "id": "vault.note.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/notes/get"
+      },
+      "public": {
+        "mcpTool": "vault_notes_get",
+        "rpcMethod": "public/vault/notes/get"
+      }
+    }
+  },
+  {
+    "description": "List notes in Vault → Notes (markdown notes visible in the vault sidebar).",
+    "domain": "vault",
+    "id": "vault.note.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/notes/list"
+      },
+      "public": {
+        "mcpTool": "vault_notes_list",
+        "rpcMethod": "public/vault/notes/list"
+      }
+    }
+  },
+  {
+    "description": "Update an existing Vault → Notes entry by id.",
+    "domain": "vault",
+    "id": "vault.note.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/notes/update"
+      },
+      "public": {
+        "mcpTool": "vault_notes_update",
+        "rpcMethod": "public/vault/notes/update"
+      }
+    }
+  },
+  {
+    "description": "List reusable proxy profiles without credentials.",
+    "domain": "vault",
+    "id": "vault.proxyProfile.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": true,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "global": {
+        "rpcMethod": "vault/proxyProfiles/list"
+      },
+      "public": {
+        "mcpTool": "vault_proxy_profiles_list",
+        "rpcMethod": "public/vault/proxyProfiles/list"
+      }
+    }
+  },
+  {
+    "description": "Create an automation script using the nct JavaScript API. Call scripts_reference first when authoring nct automation.",
+    "domain": "vault",
+    "id": "vault.scripts.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "create"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/create"
+      },
+      "public": {
+        "mcpTool": "scripts_create",
+        "rpcMethod": "public/vault/scripts/create"
+      }
+    }
+  },
+  {
+    "description": "Delete an automation script and remove host connect bindings.",
+    "domain": "vault",
+    "id": "vault.scripts.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "delete"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/delete"
+      },
+      "public": {
+        "mcpTool": "scripts_delete",
+        "rpcMethod": "public/vault/scripts/delete"
+      }
+    }
+  },
+  {
+    "description": "Get a single automation script including JavaScript source.",
+    "domain": "vault",
+    "id": "vault.scripts.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "get"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/get"
+      },
+      "public": {
+        "mcpTool": "scripts_get",
+        "rpcMethod": "public/vault/scripts/get"
+      }
+    }
+  },
+  {
+    "description": "List automation scripts (kind=script) in the vault.",
+    "domain": "vault",
+    "id": "vault.scripts.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/list"
+      },
+      "public": {
+        "mcpTool": "scripts_list",
+        "rpcMethod": "public/vault/scripts/list"
+      }
+    }
+  },
+  {
+    "description": "Return Netcatty automation script syntax: nct API, triggers, host targeting, and source wrapping rules.",
+    "domain": "vault",
+    "id": "vault.scripts.reference",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "reference"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/reference"
+      },
+      "public": {
+        "mcpTool": "scripts_reference",
+        "rpcMethod": "public/vault/scripts/reference"
+      }
+    }
+  },
+  {
+    "description": "Run an automation script in a terminal session via the nct runtime. Set wait=true to block until completion.",
+    "domain": "vault",
+    "id": "vault.scripts.run",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "run"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/run"
+      },
+      "public": {
+        "mcpTool": "scripts_run",
+        "rpcMethod": "public/vault/scripts/run"
+      }
+    }
+  },
+  {
+    "description": "Pause a running automation script by runId.",
+    "domain": "vault",
+    "id": "vault.scripts.run.pause",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "run",
+          "pause"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/run/pause"
+      },
+      "public": {
+        "mcpTool": "scripts_run_pause",
+        "rpcMethod": "public/vault/scripts/run/pause"
+      }
+    }
+  },
+  {
+    "description": "Resume a paused automation script by runId.",
+    "domain": "vault",
+    "id": "vault.scripts.run.resume",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "run",
+          "resume"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/run/resume"
+      },
+      "public": {
+        "mcpTool": "scripts_run_resume",
+        "rpcMethod": "public/vault/scripts/run/resume"
+      }
+    }
+  },
+  {
+    "description": "Stop a running automation script by runId.",
+    "domain": "vault",
+    "id": "vault.scripts.run.stop",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "run",
+          "stop"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/run/stop"
+      },
+      "public": {
+        "mcpTool": "scripts_run_stop",
+        "rpcMethod": "public/vault/scripts/run/stop"
+      }
+    }
+  },
+  {
+    "description": "List automation script runs (optionally filter by sessionId).",
+    "domain": "vault",
+    "id": "vault.scripts.runs.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "runs",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/runs/list"
+      },
+      "public": {
+        "mcpTool": "scripts_runs_list",
+        "rpcMethod": "public/vault/scripts/runs/list"
+      }
+    }
+  },
+  {
+    "description": "Set host IDs, dynamic group paths, or targetsAllHosts for an automation script. onConnect host IDs sync host connect queues.",
+    "domain": "vault",
+    "id": "vault.scripts.targets.set",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "targets",
+          "set"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/targets/set"
+      },
+      "public": {
+        "mcpTool": "scripts_targets_set",
+        "rpcMethod": "public/vault/scripts/targets/set"
+      }
+    }
+  },
+  {
+    "description": "Update an automation script by id (partial fields).",
+    "domain": "vault",
+    "id": "vault.scripts.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "scripts",
+          "update"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/scripts/update"
+      },
+      "public": {
+        "mcpTool": "scripts_update",
+        "rpcMethod": "public/vault/scripts/update"
+      }
+    }
+  },
+  {
+    "description": "Create a vault snippet or automation script (set kind=script for nct automation).",
+    "domain": "vault",
+    "id": "vault.snippets.create",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "create"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/create"
+      },
+      "public": {
+        "mcpTool": "snippets_create",
+        "rpcMethod": "public/vault/snippets/create"
+      }
+    }
+  },
+  {
+    "description": "Delete a vault snippet or automation script by id.",
+    "domain": "vault",
+    "id": "vault.snippets.delete",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "delete"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/delete"
+      },
+      "public": {
+        "mcpTool": "snippets_delete",
+        "rpcMethod": "public/vault/snippets/delete"
+      }
+    }
+  },
+  {
+    "description": "Get a single code snippet from the vault.",
+    "domain": "vault",
+    "id": "vault.snippets.get",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "get"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/get"
+      },
+      "public": {
+        "mcpTool": "snippets_get",
+        "rpcMethod": "public/vault/snippets/get"
+      }
+    }
+  },
+  {
+    "description": "List code snippets stored in the vault.",
+    "domain": "vault",
+    "id": "vault.snippets.list",
+    "policy": {
+      "bypassesApproval": true,
+      "bypassesChatCancel": true,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": false
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "list"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/list"
+      },
+      "public": {
+        "mcpTool": "snippets_list",
+        "rpcMethod": "public/vault/snippets/list"
+      }
+    }
+  },
+  {
+    "description": "Run a vault snippet or automation script in a terminal session. Text snippets paste shell commands; scripts (kind=script) run via the nct JavaScript runtime.",
+    "domain": "vault",
+    "id": "vault.snippets.run",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": true,
+      "requiresChatSession": true,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "run"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/run"
+      },
+      "public": {
+        "mcpTool": "snippets_run",
+        "rpcMethod": "public/vault/snippets/run"
+      }
+    }
+  },
+  {
+    "description": "Update an existing vault snippet or automation script by id.",
+    "domain": "vault",
+    "id": "vault.snippets.update",
+    "policy": {
+      "bypassesApproval": false,
+      "bypassesChatCancel": false,
+      "bypassesObserverBlock": false,
+      "longRunning": false,
+      "requiresChatSession": false,
+      "sensitiveRead": false,
+      "write": true
+    },
+    "status": "implemented",
+    "surfaces": {
+      "cli": {
+        "command": [
+          "snippets",
+          "update"
+        ]
+      },
+      "global": {
+        "rpcMethod": "vault/snippets/update"
+      },
+      "public": {
+        "mcpTool": "snippets_update",
+        "rpcMethod": "public/vault/snippets/update"
+      }
+    }
+  }
+]
