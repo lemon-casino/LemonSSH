@@ -798,6 +798,16 @@ Exit：host-owned store 满足 transaction、recovery 和 revision semantics。
 
 ### P2-03 实现跨壳 profile writer lease 与协调服务
 
+执行状态：完成（coordination 层）。`internal/profile/coordination` 以 gofrs/flock
+（OS 原生 advisory lock，进程死亡即释放）做活性、持久 epoch 文件做 fencing、
+lease JSON 记录 holder/epoch/expiry：Acquire/Renew/Release/Current，双重获取、
+过期但存活拒抢、崩溃接管 epoch 单调、续期不改 epoch 全部测试覆盖（含 race）。
+最小 Go broker `cmd/netcatty-profile-broker`（JSONL stdio：acquire/renew/
+release/status）供两壳共用同一锁权威；Electron 侧适配器
+`electron/bridges/profileLeaseBroker.cjs` 已通过端到端 smoke（acquire epoch 1 →
+renew 同 epoch → status → release）。P2-07 将 Vault/sync 写路径迁到
+CoordinationPort。见 ledger `WV3-L019`。
+
 关联：FND-02
 
 Files:

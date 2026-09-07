@@ -80,6 +80,7 @@ experiments/*
 !cmd/
 /cmd/netcatty/frontend/dist
 /cmd/netcatty/bin
+/cmd/netcatty-profile-broker/*.exe
 !cmd/**
 !internal/
 !internal/**

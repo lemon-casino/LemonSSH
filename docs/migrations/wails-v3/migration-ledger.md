@@ -686,3 +686,43 @@ capability row, source paths, verification output or CI run.
   crash matrix
 - Next safe slice: P2-03 cross-shell profile writer lease and coordination
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L019 - 2026-09-08 - P2-03 cross-shell writer lease and coordination
+
+- Capability rows: `FND-02`
+- Plan task: `P2-03`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: 任意时刻只允许一个 shell 写 profile：OS 原生活性信号 + 持久 epoch
+  fencing，超时只用于拒绝而非判死，Electron 与 Wails 共用同一锁权威。
+- Go canonical owner: `internal/profile/coordination`（flock + epoch + lease）
+  与最小 broker `cmd/netcatty-profile-broker`（JSONL stdio）
+- Frontend adapter: `electron/bridges/profileLeaseBroker.cjs`（spawn helper，
+  供迁移/双壳写入前取锁；非随 Electron 发行物分发）
+- Electron owner affected: none yet; P2-07 将 Vault import/sync apply/key
+  rotation 的写路径迁到 CoordinationPort 后旧 Web Lock/storage event owner 退役
+- Preserved invariants: 活性判定不依赖超时（flock 随进程死亡释放）；epoch
+  单调持久使 stale writer 可被 fence；lease 过期但持锁存活时冲突拒绝而非抢占；
+  release 后 epoch 不回退
+- Data/schema impact: 三个辅助文件（writer.lock/epoch/lease）与 profile 同目录
+- Security impact: 文件 0600/目录 0700；broker 仅接受本地 env 指定的 profile
+  路径，无网络面
+- Verification: `go test -count=1 ./internal/profile/coordination/`（5 tests：
+  冲突与释放、崩溃接管 epoch 单调、续期扩展与过期拒绝、过期但存活拒抢、
+  双重获取拒绝）；`go test -race`；`go vet`；broker 构建 + Electron 适配器
+  端到端 smoke（acquire/renew/status/release）；全部在
+  `check:profile-store` 覆盖范围内
+- Platforms covered: Windows 10 22H2 x64（gofrs/flock 跨平台原语；三平台 CI
+  构建于 migration-evidence workflow）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 旧 storage event/Web Lock owner 在
+  P2-07 逐域退役；broker helper 随 P9-01 与 Electron runtime 一起删除
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: 双进程争用集成测试（Electron 真进程 + Wails 同时启停）在
+  P2-05/P2-06 迁移链路中补；epoch fencing 在 store 写路径的强制校验于
+  P2-07 接线时启用
+- Next safe slice: P2-04 platform credential providers
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
