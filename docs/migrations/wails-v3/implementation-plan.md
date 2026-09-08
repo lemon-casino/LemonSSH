@@ -921,6 +921,13 @@ Exit：无损 cutover 与真实 rollback 均可重复通过。
 
 ### P2-07 将 settings/Vault/session restore persistence 接到 Go owner
 
+执行状态：实现 transition adapter，canonical cutover 待后续逐域证据。新增
+`hostStorageAdapter`：保留同步 `localStorage` API，Electron 下完全不变；Wails
+bootstrap 配置 `ProfileClient`，同步 cache 写入后异步镜像到 Go profile store，
+失败不静默吞掉（console warning + pending flush）；session restore storage
+可复用同一 adapter，Settings/Vault 的逐域 canonical 切换、revision/CAS 替换
+以及 Web Lock/storage event 退役仍需按 domain 差分测试完成。见 ledger `WV3-L023`。
+
 关联：SYNC-01
 
 Files:

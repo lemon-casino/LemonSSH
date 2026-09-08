@@ -849,3 +849,42 @@ capability row, source paths, verification output or CI run.
   crash matrix、三平台 provider evidence and semantic equality remain open
 - Next safe slice: P2-07 settings/Vault/session restore persistence cutover
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L023 - 2026-09-08 - P2-07 host-backed persistence transition adapter
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 为 settings/Vault/session restore 建立不破坏同步 render-time API 的
+  host-backed transition：Electron 保持 localStorage 行为，Wails bootstrap 配置
+  ProfileClient 并异步镜像 Go profile store。
+- Go canonical owner: P2-02 `internal/profile/store` + Wails ProfileService；
+  当前仍是 transition mirror，不宣称 renderer canonical cutover
+- Frontend adapter: `infrastructure/persistence/hostStorageAdapter.ts` +
+  `infrastructure/runtime/profile/profileClient.ts`；Wails `bootstrap.ts` 接线
+- Electron owner affected: none in stable Electron；localStorage 继续 canonical
+  until per-domain cutover evidence
+- Preserved invariants: 现有同步 read/write/remove API、Quota/serialization
+  语义、Electron storage event 行为不改；Wails 写入异步、pending flush 可等待；
+  profile failures 不会静默抹掉 local cache
+- Data/schema impact: settings domain raw base64 mirror；session restore storage
+  可直接复用 adapter；Vault domain 尚未切 canonical
+- Security impact: host store 只接收 opaque raw values；secret-bearing fields
+  仍由 P2-04/P2-05 provider/broker 处理，不在 renderer adapter 解封
+- Verification: hostStorageAdapter tests 2 项；全应用 TypeScript 检查无新错误；
+  Wails bootstrap/adapter 类型通过；Go profile/store 与 migration tests 通过
+- Platforms covered: platform-independent frontend transition; Wails/Go build
+  Windows 本机通过，三平台 CI 继续收集
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Settings/Vault/session restore 各域差分
+  suite + revision/CAS 多窗口证据通过后逐域退役 localStorage/Web Lock owner
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: 仍有大量直接 localStorageAdapter consumer；异步 host mirror
+  的跨窗口 ordering、quota/error 映射和 crash recovery 需 P2-07 后续 child
+  slices；SYNC-01 不能标 verified/migrated
+- Next safe slice: P2-07 child slice: settings domain differential cutover
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
