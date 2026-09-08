@@ -1408,3 +1408,35 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 4 个 child slices 的实施与三平台设备/协议证据全部待做
 - Next safe slice: P3-08.1 telnet protocol owner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L039 - 2026-09-09 - P3-08.1 telnet protocol owner
+
+- Capability rows: `TERM-03.1`
+- Plan task: `P3-08`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 Go telnet 协议 owner：IAC 转义/解析、WILL/WONT/DO/DONT 协商、
+  NAWS 窗口（含 255 转义）、echo 模式追踪、auto-login 提示应答。
+- Go canonical owner: `internal/terminal/telnet`（Client + readLoop 协议状态机）
+- Frontend adapter: none yet; Wails telnet 接线与 P3-01 data plane 桥接后续
+- Electron owner affected: none; terminal bridge telnet paths remain baseline
+- Preserved invariants: 数据中 255 双写/还原；协商字节永不进数据流；DO ECHO
+  回 WONT（客户端不回显）、WILL ECHO 回 DO 并翻转 remoteEcho；未知 option
+  WONT/DONT 拒绝；NAWS 全帧带 SE 终止；写路径经 writeMu 串行化防止协商与
+  数据交错
+- Data/schema impact: Event/EventKind 类型；无用户数据
+- Security impact: 无凭据明文落盘（auto-login 仅内存）；prompt 应答经认证通道
+- Verification: `go test -race -count=1 ./internal/terminal/telnet/`（3 项：
+  协商+NAWS 默认 80 与 resize 200、IAC 转义上线验证、auto-login
+  admin/secret123 线上应答）；`go vet`
+- Platforms covered: platform-independent Go core（进程内 TCP server 测试）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 与 P3-01 data plane 桥接 + 真实设备
+  矩阵通过后，terminal bridge telnet 路径退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: TTYPE/TLS、设备矩阵与断连重连 live 证据；PTY/data plane 桥接
+- Next safe slice: P3-08.2 serial protocol owner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
