@@ -1311,3 +1311,34 @@ capability row, source paths, verification output or CI run.
   文件名、symlink 遍历、断连重试
 - Next safe slice: P3-06 Go transfer scheduler
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L036 - 2026-09-09 - P3-06 Go transfer scheduler
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 Go transfer scheduler owner：task identity、chunk checkpoint、
+  pause/resume/cancel、per-host 并发上限、聚合进度快照（UI 按快照订阅而非逐
+  chunk 事件，避免 Wails 事件洪水）。
+- Go canonical owner: `internal/terminal/transfer`（Source/Sink 抽象，SFTP/
+  local/relay 共用同一调度器）
+- Frontend adapter: none yet; Wails transfer adapter 后续接入
+- Electron owner affected: none; renderer scheduler remains baseline
+- Preserved invariants: task ID 唯一、chunk 边界与 offset 可续传、pause 门控
+  响应 cancel、cancel 优先于 worker 失败、host 槽位并发上限、snapshot 聚合
+- Data/schema impact: Progress/Chunk/TaskSpec 类型；无用户数据
+- Security impact: chunk worker 60s 超时 fail-closed；ctx 取消传播到 Source/Sink
+- Verification: `go test -race -count=1 ./internal/terminal/transfer/`（完成与
+  聚合、重复任务拒绝、cancel 收敛、pause/resume、unknown/double-start 状态机）
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 压缩上传 + 高 RTT/损坏实验室通过后，
+  renderer scheduler 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: 压缩上传/extract、hash 校验、renderer 关闭存活、高 RTT 实验室
+- Next safe slice: P3-07 Go port forwarding
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
