@@ -1279,3 +1279,35 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 真实双 WebView 进程并发（非模拟）与 quota/error 映射证据
 - Next safe slice: P3-04A SSH session integration over the shared pool
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L035 - 2026-09-09 - P3-05 SFTP browsing core
+
+- Capability rows: `SFTP-01`
+- Plan task: `P3-05`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 transport-neutral SFTP browsing owner：list/stat/mkdir/rename/
+  remove/read/write，路径词法规范化与受限并发 client。
+- Go canonical owner: `internal/terminal/sftp`（pkg/sftp v1.13.9 客户端适配 +
+  RemoteFS 接口 + Session client 上限 + NormalizePath/SortEntries）
+- Frontend adapter: none yet; Wails SFTP adapter 与 P3-04A pool lease 接线后续
+- Electron owner affected: none; `sftpBridge.cjs` remains baseline
+- Preserved invariants: backslash 名拒绝、base 逃逸词法拒绝（server 仍为真正
+  权限边界）、目录优先排序契约、client 并发上限
+- Data/schema impact: none
+- Security impact: 路径规范化为词法层；真实访问控制仍由远端 SFTP 服务端执行
+- Verification: 进程内真实 pkg/sftp server（net.Pipe）集成测试 6 项（列表排序、
+  stat/mkdir/rename/create/read/remove 全链、分块读、client 上限、路径规范化、
+  部分读）+ `go vet`；live sudo/非 UTF-8/raw path 矩阵 pending
+- Platforms covered: platform-independent Go core；真实服务器矩阵 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P3-04A pool 接线 + 真实服务器矩阵
+  （sudo/非 UTF-8/symlink/断连）通过后退役 sftpBridge
+- Documentation updated: capability matrix and ledger
+- Residual risks: sudo SFTP 支持（计划要求不能满足时暂停并产品决策）、raw byte
+  文件名、symlink 遍历、断连重试
+- Next safe slice: P3-06 Go transfer scheduler
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
