@@ -1573,3 +1573,36 @@ capability row, source paths, verification output or CI run.
   attributes live 矩阵、archive 格式扩展（tar/7z）
 - Next safe slice: P4-02 multi-window and popup terminal lifecycle
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L044 - 2026-09-09 - P4-02 Go window registry and lifecycle core
+
+- Capability rows: `FND-04`
+- Plan task: `P4-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Go window registry owner：role 单实例约束、opaque capability token、
+  close veto、dirty-editor guard、crash 清理、session/popup 角色围栏。
+- Go canonical owner: `internal/terminal/windows`
+- Frontend adapter: none yet; Wails 窗口接线（真实 BrowserWindow 生命周期、
+  multi-monitor/DPI）为下一子切片
+- Electron owner affected: none; Electron window manager remains baseline
+- Preserved invariants: token 不匹配即窗口不可见；main/settings 单实例；
+  close 顺序 = token → dirty → veto；crash 清理免 token 但不删窗口数据；
+  destroy 从 role 列表移除
+- Data/schema impact: none
+- Security impact: 无 token 的控制调用一律 fail-closed
+- Verification: `go test -race -count=1 ./internal/terminal/windows/`（6 项：
+  角色/单实例、token 门、veto+dirty 关闭门、crash 清理、角色围栏、destroy
+  列表维护）；`go vet`
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Wails 窗口接线 + multi-monitor/crash
+  live 矩阵通过后 Electron window manager 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: Wails 窗口生命周期接线、route rebind 集成（P3-01）、
+  multi-monitor/DPI/键盘缩放 live 证据
+- Next safe slice: P4-03 tray and global shortcuts
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
