@@ -1538,3 +1538,38 @@ capability row, source paths, verification output or CI run.
   编码）与真实对端（lrzsz）矩阵待做
 - Next safe slice: P4-01 filesystem and dedicated temp directory service
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L043 - 2026-09-09 - P4-01 dedicated temp directory and filesystem service
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 专用临时目录服务（AGENTS 契约：一切临时文件进 Netcatty temp root）+
+  symlink 安全路径解析 + zip-slip 加固解压。
+- Go canonical owner: `internal/platform/filesystem`（TempService/Resolve/
+  ExtractArchive）
+- Frontend adapter: none yet; Wails filesystem/dialog adapter 后续
+- Electron owner affected: none; tempDirBridge remains Electron baseline
+- Preserved invariants: 一切临时文件在专用 root 内；词法+symlink 双重逃逸
+  拒绝（悬空 symlink 仅允许作叶子）；WriteFile 自动建父目录 0700/0600；
+  Clear 保 root；root 替换不串库；zip 解压总大小上限 + 条目名安全 + 逐条目
+  目标路径 within-base 校验
+- Data/schema impact: none
+- Security impact: traversal 攻击语料（..、绝对、UNC 前缀、盘符、反斜杠）与
+  zip-slip 均 fail-closed；Settings > System 可展示 Usage 并 Clear
+- Verification: `go test -race -count=1 ./internal/platform/filesystem/`（7 项：
+  write/read/remove+usage、逃逸拒绝、root 替换隔离、clear 保 root、悬空
+  symlink 叶子/中间件语义、zip-slip 中止且无外部写入、干净解压）；`go vet`
+- Platforms covered: Windows 10 22H2 x64 live（symlink 测试依赖本机特权，不可用时 skip）；UNC/长路径/native dialog 三平台 live 证据 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: native dialog parenting + UNC/长路径
+  live 矩阵通过后，local FS/temp bridges 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: native dialog parenting（需 Wails UI）、UNC/长路径/Windows
+  attributes live 矩阵、archive 格式扩展（tar/7z）
+- Next safe slice: P4-02 multi-window and popup terminal lifecycle
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
