@@ -888,3 +888,41 @@ capability row, source paths, verification output or CI run.
   slices；SYNC-01 不能标 verified/migrated
 - Next safe slice: P2-07 child slice: settings domain differential cutover
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L024 - 2026-09-08 - P3-01 production terminal frame codec
+
+- Capability rows: `TERM-01`
+- Plan task: `P3-01`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: 将 P0-03 已验证的 terminal binary frame v2 contract 提升为 production
+  `internal/terminal/dataplane` codec owner，不复制 probe 的 Wails/WebSocket
+  orchestration，也不改变 Electron MessagePort owner。
+- Go canonical owner: `internal/terminal/dataplane/frame.go`
+- Frontend adapter: none yet; WebView transport orchestration follows after
+  codec differential gate
+- Electron owner affected: none; MessagePort remains release baseline
+- Preserved invariants: magic NTDP、version 2、40-byte header、128 KiB payload
+  bound、generation/sequence/credit/correlation/timestamp fields、8 allowed
+  frame kinds、zero reserved bytes、strict payload length
+- Data/schema impact: production Go codec only; probe remains disposable test
+  source and no user data is touched
+- Security impact: bounded parser rejects malformed magic/version/kind/length;
+  fuzz target ensures arbitrary input does not panic
+- Verification: Go unit tests + race + vet；fuzz seed/target；Node differential
+  test confirms production codec constants match P0-03 probe exactly；
+  `check:terminal-dataplane-core` passes
+- Platforms covered: platform-independent codec; WebView/WS three-platform
+  evidence remains in migration-evidence workflow
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P3-01 route orchestration + Gate 3
+  paired benchmarks; probe deleted only after production candidate is accepted
+- Documentation updated: capability matrix and ledger
+- Residual risks: no production WebSocket listener/credit controller/rebind
+  service yet; three-platform paired Electron envelope and 30-round evidence
+  still pending
+- Next safe slice: P3-01 production WebSocket route service and credit controller
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
