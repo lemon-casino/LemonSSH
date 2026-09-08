@@ -1606,3 +1606,40 @@ capability row, source paths, verification output or CI run.
   multi-monitor/DPI/键盘缩放 live 证据
 - Next safe slice: P4-03 tray and global shortcuts
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L045 - 2026-09-09 - P4-05 App Lock verifier core
+
+- Capability rows: `SYS-04`
+- Plan task: `P4-05`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Go app-lock verifier owner：口令永不存储——盐化 PBKDF2（210k 迭代、
+  SHA-256）verifier 经 P2-04 provider 密封进 OS keyring；verifier 记录本身
+  不含口令。
+- Go canonical owner: `internal/platform/applock`（Enable/Verify/
+  ChangePassword）
+- Frontend adapter: none yet; Wails lock 生命周期接线（idle/reopen 触发）后续
+- Electron owner affected: none; Electron app-lock runtime remains baseline
+- Preserved invariants: 无 verifier = 无锁（不伪造锁定态）；无法解封 =
+  fail-closed（锁定）；弱口令（<4）拒绝；换口令必须先验旧口令；verifier
+  记录 JSON 不含口令（测试断言）
+- Data/schema impact: Verifier JSON（salt/digest/createdMs）
+- Security impact: PBKDF2-SHA256 210k 迭代；constant-time digest 比较；密封
+  envelope purpose 绑定 app-lock/verifier/v1
+- Verification: `go test -race -count=1 ./internal/platform/applock/`（4 项：
+  enable/verify/reject + 口令不入记录、弱口令、换口令链、缺 verifier
+  fail-closed）；`go vet`
+- Platforms covered: platform-independent Go core；Windows Hello/Touch ID live
+  证据 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: lock 生命周期接线（idle/reopen）+
+  verifier 迁移（经 P2-05 broker）+ biometric 证据通过后 Electron app-lock
+  runtime 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: biometric（Hello/Touch ID）native 接线、verifier 迁移矩阵、
+  lock 生命周期（idle 触发/reopen 强制）Wails 侧接线
+- Next safe slice: P4-03 tray and global shortcuts owner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
