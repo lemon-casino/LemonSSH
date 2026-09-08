@@ -154,8 +154,8 @@ jobs:
       - name: Build probe frontend (embed requires dist)
         shell: bash
         run: |
-          npm --prefix frontend ci
-          npm --prefix frontend run build
+          npm --prefix experiments/terminal-data-plane/frontend ci
+          npm --prefix experiments/terminal-data-plane/frontend run build
 
       - name: Build data-plane probe
         working-directory: experiments/terminal-data-plane

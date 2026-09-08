@@ -34,9 +34,15 @@ func (p *unixProcess) Read(data []byte) (int, error)  { return p.file.Read(data)
 func (p *unixProcess) Write(data []byte) (int, error) { return p.file.Write(data) }
 func (p *unixProcess) Close() error                   { return p.file.Close() }
 func (p *unixProcess) Resize(cols, rows uint16) error {
-	return pty.Setsize(p.file, &pty.Winsize{Cols: cols, Rows: rows})
+	err := pty.Setsize(p.file, &pty.Winsize{Cols: cols, Rows: rows})
+	return err
 }
-func (p *unixProcess) Interrupt() error { return p.Write([]byte{3}) }
+func (p *unixProcess) Interrupt() error {
+	if _, err := p.Write([]byte{3}); err != nil {
+		return err
+	}
+	return nil
+}
 func (p *unixProcess) Kill() error {
 	if p.cmd.Process == nil {
 		return os.ErrProcessDone

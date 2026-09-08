@@ -78,7 +78,8 @@ experiments/*
 !go.mod
 !go.sum
 !cmd/
-/cmd/netcatty/frontend/dist
+/cmd/netcatty/frontend/dist/*
+!/cmd/netcatty/frontend/dist/index.html
 /cmd/netcatty/bin
 /cmd/netcatty-profile-broker/*.exe
 !cmd/**
