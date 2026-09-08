@@ -151,6 +151,31 @@ func (c *RouteController) AdmitOutput(sessionID string, generation uint32, paylo
 	return state.sentThrough, nil
 }
 
+// Generation reports the session's current route generation.
+func (c *RouteController) Generation(sessionID string) (uint32, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state, ok := c.routes[sessionID]
+	if !ok {
+		return 0, false
+	}
+	return state.generation, true
+}
+
+// TokenFor returns the current generation's data or urgent token.
+func (c *RouteController) TokenFor(sessionID string, urgent bool) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state, ok := c.routes[sessionID]
+	if !ok {
+		return "", false
+	}
+	if urgent {
+		return state.urgentToken, true
+	}
+	return state.dataToken, true
+}
+
 func (c *RouteController) Snapshot(sessionID string) (generation uint32, available uint64, sentThrough uint64, applied uint64, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

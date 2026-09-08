@@ -1069,3 +1069,40 @@ capability row, source paths, verification output or CI run.
   证据与真实网络 property 测试待后续
 - Next safe slice: P3-04A SSH session integration over the shared pool
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L029 - 2026-09-09 - P3-01 authenticated WebSocket transport
+
+- Capability rows: `TERM-01`
+- Plan task: `P3-01`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 建立生产 authenticated loopback WebSocket transport：127.0.0.1 绑定、
+  精确 Host、显式 Origin 白名单、one-use token 子协议、credit 流控、分片输出、
+  urgent ACK、stale generation 清理。
+- Go canonical owner: `internal/terminal/dataplane/server.go`/`handlers.go`
+  （对接 RouteController，无业务依赖）
+- Frontend adapter: TS frame/credit adapter 属下一子切片
+- Electron owner affected: none; MessagePort remains baseline
+- Preserved invariants: one-use 64-hex token（constant-time 比对）、generation
+  失配断连、初始 1 MiB credit 精确窗口、无信不发送（chunk 保留重试）、Publish
+  按 128 KiB 帧上限分片、入站 SetReadLimit(MaxFrameBytes)、reader 退出即关 queue
+  与连接
+- Data/schema impact: none
+- Security impact: coder/websocket 库内 origin 检查改由 authorize() 显式白名单
+  承担（InsecureSkipVerify 仅关闭 pattern 检查，鉴权边界保留）
+- Verification: 5 个集成测试（Host/Origin/token 拒绝 403/401、credit 窗口流控与
+  超窗拒绝、分片 1 MiB 投递、urgent handler+ACK correlation、rebind 后旧代连接
+  关闭）；`go test -race`、`go vet` 全绿
+- Platforms covered: Windows 10 22H2 x64 loopback; WKWebView/WebKitGTK paired
+  benchmark evidence pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Gate 3 paired benchmarks + xterm adapter
+  接线后才退役 MessagePort
+- Documentation updated: ledger
+- Residual risks: TS frame/credit adapter、PTY→Publish 接线、drain marker 完整
+  流程、三平台 paired benchmark 与 30-round formal evidence
+- Next safe slice: P3-01 TS frame/credit adapter + differential fixtures
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
