@@ -994,6 +994,14 @@ Exit：TERM-01 `verified`；Electron MessagePort 暂保留仅供 Electron 壳。
 
 ### P3-02 实现 Go local PTY runtime
 
+执行状态：进行中（lifecycle owner + Unix backend 已实现；Windows ConPTY
+adapter 与 Wails control wiring 为下一 child slice）。`internal/terminal/pty` 固定
+session generation、start/resize/input/signal/close/reconnect、cwd/shell/env/
+TERM defaults、stale generation reject、process kill/reap contract；Unix 使用
+creack/pty v2.0.1 真实 PTY，Windows 当前显式返回 `ErrUnsupported`，不伪造
+pipes-only parity。Lifecycle/fake backend 测试、race、vet 已通过。见 ledger
+`WV3-L026`。
+
 关联：TERM-02
 
 Files:

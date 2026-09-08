@@ -960,3 +960,41 @@ capability row, source paths, verification output or CI run.
   urgent channel and three-platform benchmark still pending
 - Next safe slice: P3-01 authenticated WebSocket transport integration
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L026 - 2026-09-08 - P3-02 Go local PTY lifecycle owner
+
+- Capability rows: `TERM-02`
+- Plan task: `P3-02`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 将 local PTY lifecycle 从 node-pty owner 拆为 Go session owner，固定
+  start/resize/input/interrupt/close/reconnect、generation fencing 和 process
+  reap 语义。
+- Go canonical owner: `internal/terminal/pty` session contract + Unix
+  creack/pty v2.0.1 backend
+- Frontend adapter: none yet; Wails terminal control wiring is next child slice
+- Electron owner affected: none; node-pty remains Electron release baseline
+- Preserved invariants: TERM=xterm-256color/truecolor defaults、shell/cwd/env
+  policy、80x24 defaults、stale generation reject、close/reconnect kill+wait；
+  invalid zero resize fail-closed
+- Data/schema impact: shell-neutral Config/Event/Process interfaces only
+- Security impact: cwd invalid falls back home；no pipes-only Windows fallback
+  that would falsely claim PTY semantics
+- Verification: lifecycle/fake backend tests、generation/reconnect、bounds、
+  `go test -race`、`go vet`；Unix backend compiles against creack/pty；Windows
+  backend explicit ErrUnsupported until native ConPTY child slice；状态按
+  状态机保持 probe，Windows ConPTY + 接线证据到位后由后续 ledger 升级
+- Platforms covered: Windows 10 22H2 x64 contract tests; Unix backend build
+  verified by Go package compilation; ConPTY live evidence absent
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Windows ConPTY + Wails terminal wiring,
+  shell matrix, resize/Unicode/Ctrl-C and child cleanup evidence; node-pty remains
+  until that gate
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: native Windows ConPTY adapter、PTY data-plane integration、
+  process-tree/job cleanup and three-platform live shell matrix remain
+- Next safe slice: P3-02 native Windows ConPTY adapter and Wails control facade
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
