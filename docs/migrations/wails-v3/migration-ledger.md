@@ -1342,3 +1342,38 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 压缩上传/extract、hash 校验、renderer 关闭存活、高 RTT 实验室
 - Next safe slice: P3-07 Go port forwarding
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L037 - 2026-09-09 - P3-07 Go port forwarding manager
+
+- Capability rows: `NET-01`
+- Plan task: `P3-07`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 Go forwarding owner：local/remote/dynamic SOCKS5、绑定 0 端口回报、
+  monotonic revision + subscribe/snapshot、注入式 tunnel（不依赖真实 SSH 即可
+  测试生命周期）。
+- Go canonical owner: `internal/terminal/forward`
+- Frontend adapter: none yet; Wails forwarding adapter 与 P3-04A pool tunnel
+  接线后续
+- Electron owner affected: none; `portForwardingBridge.cjs` remains baseline
+- Preserved invariants: 不依赖 renderer window；BindPort=0 由 OS 分配并回报实际
+  端口；重复 ID/不支持类型/坏端口 fail-closed；Stop 从注册表移除并推进 revision；
+  SOCKS5 握手完整读取 greeting（修复 method 字节污染）
+- Data/schema impact: none
+- Security impact: SOCKS5 仅支持 no-auth CONNECT（面向本机渲染进程的回环监听）
+- Verification: `go test -race -count=1 ./internal/terminal/forward/`（本地转发
+  字节 roundtrip、重复/类型/端口拒绝、dynamic SOCKS5 全握手 roundtrip、8 并发
+  start + StopAll、订阅 revision）
+- Platforms covered: platform-independent Go core; IPv6/跳板/transport-loss live
+  证据 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: pool tunnel 接线 + IPv6/碰撞/transport
+  loss 证据通过后退役 portForwardingBridge
+- Documentation updated: capability matrix and ledger
+- Residual risks: SSH pool tunnel 真实接线（P3-04A 之后）、IPv6 与端口碰撞 live
+  证据、remote forwarding 的服务端监听请求路径
+- Next safe slice: P3-08 decomposition gate (child rows) then telnet core
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
