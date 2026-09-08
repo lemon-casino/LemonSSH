@@ -1709,3 +1709,41 @@ capability row, source paths, verification output or CI run.
   preference 证据
 - Next safe slice: P5-01 manifest v2 and Go-first contract codegen
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L048 - 2026-09-09 - P5-01/P5-02A manifest v2 and permission broker
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-01`, `P5-02A`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 冻结插件 v2 contract 与安全边界：WASM-only entrypoint 的 manifest v2
+  schema 校验（13 例拒绝矩阵）与 fail-closed 权限 broker（canonical resource、
+  lifetime、过期、默认拒绝）。
+- Go canonical owner: `internal/plugin/manifest`（contract）与
+  `internal/plugin/permissions`（fail-closed broker；不执行能力，仅授权）
+- Frontend adapter: none yet; WASM runtime（P5-03）与 package store（P5-02）
+  后续消费
+- Electron owner affected: none; v1 runtime remains Electron baseline
+- Preserved invariants: v1 main.browser/main.node 在 schema 层不可表达
+  （WV3-005）；entrypoint 必须 .wasm + 64 hex sha256；权限 kind 白名单、mode
+  限 read/write、重复拒绝；contribution 类型白名单、ID 规范、去重；broker
+  默认拒绝、过期即拒、principal 未授权即拒
+- Data/schema impact: Manifest/Permission/Contribution JSON 契约；Grant 记录
+- Security impact: manifest 校验是安装边界第一道；broker 是 P5-03/P5-05 的
+  唯一授权面；口令/secret 类资源拒绝经 deep-link 层（P4-04）
+- Verification: `go test -count=1 ./internal/plugin/manifest/`（3 项：合法
+  接受、13 例拒绝矩阵、JSON round-trip + v1 拒绝说明）；
+  `go test -race ./internal/plugin/permissions/`（5 项：默认拒绝、写授权、
+  过期、revoke/revoke-all、资源别名隔离）；`go vet`
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P5-02 package store + P5-08 断开 v1
+  路径后，Electron plugin runtime 冻结（P9-01 删除）
+- Documentation updated: capability matrix and ledger
+- Residual risks: guest bindings codegen、WASM runtime（P5-03）、声明式 UI、
+  package store、native 进程 runtime、真实攻击语料
+- Next safe slice: P5-02 package store over the profile store
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
