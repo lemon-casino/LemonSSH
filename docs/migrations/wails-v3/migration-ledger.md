@@ -1440,3 +1440,36 @@ capability row, source paths, verification output or CI run.
 - Residual risks: TTYPE/TLS、设备矩阵与断连重连 live 证据；PTY/data plane 桥接
 - Next safe slice: P3-08.2 serial protocol owner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L040 - 2026-09-09 - P3-08.2 serial protocol owner
+
+- Capability rows: `TERM-03.2`
+- Plan task: `P3-08`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 Go serial owner：配置契约校验（baud/data bits/parity/stop bits）、
+  端口枚举、open/write/close 生命周期、CloseAll 会话回收。
+- Go canonical owner: `internal/terminal/serialport`（go.bug.st/serial v1.6.4
+  后端 + 可注入 Backend 接口）
+- Frontend adapter: none yet
+- Electron owner affected: none; terminal bridge serial paths remain baseline
+- Preserved invariants: 未验证配置不开设备；重复 open fail-closed；未知端口
+  写/关 fail-closed；CloseAll 回收全部句柄
+- Data/schema impact: none
+- Security impact: 设备句柄生命周期受会话边界约束，无全局泄漏路径
+- Verification: `go test -race -count=1 ./internal/terminal/serialport/`（6 项：
+  配置契约、枚举/开/写/关、重复 open、缺设备 fail-closed、CloseAll、list 错误
+  传播）；`go vet`；真机设备矩阵（USB-串口适配器、断连热拔）待硬件
+- Platforms covered: Windows 10 22H2 x64（枚举在无设备时返回空表验证）；三平台
+  真机证据待硬件
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真机设备矩阵通过后 terminal bridge
+  serial 路径退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: 真机设备矩阵（热拔/驱动错误/流控）需硬件；parity/stop bits
+  非默认组合 live 未测
+- Next safe slice: P3-08.3 Mosh/ET supervised binary runner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
