@@ -136,6 +136,26 @@ func (s *Session) Interrupt(generation uint32) error {
 	return s.process.Interrupt()
 }
 
+func (s *Session) processForTest() Process {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.process
+}
+
+// readOnce reads from the started process without holding the session lock
+// (blocking reads must not block Close/Resize).
+func (s *Session) readOnce(buf []byte) (int, error) {
+	s.mu.Lock()
+	process := s.process
+	started := s.started
+	closed := s.closed
+	s.mu.Unlock()
+	if !started || process == nil || closed {
+		return 0, ErrSessionNotFound
+	}
+	return process.Read(buf)
+}
+
 func (s *Session) Close() error {
 	s.mu.Lock()
 	if s.closed {

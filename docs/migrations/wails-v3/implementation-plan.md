@@ -994,13 +994,14 @@ Exit：TERM-01 `verified`；Electron MessagePort 暂保留仅供 Electron 壳。
 
 ### P3-02 实现 Go local PTY runtime
 
-执行状态：进行中（lifecycle owner + Unix backend 已实现；Windows ConPTY
-adapter 与 Wails control wiring 为下一 child slice）。`internal/terminal/pty` 固定
-session generation、start/resize/input/signal/close/reconnect、cwd/shell/env/
-TERM defaults、stale generation reject、process kill/reap contract；Unix 使用
-creack/pty v2.0.1 真实 PTY，Windows 当前显式返回 `ErrUnsupported`，不伪造
-pipes-only parity。Lifecycle/fake backend 测试、race、vet 已通过。见 ledger
-`WV3-L026`。
+执行状态：进行中（Windows ConPTY live 已通）。Windows backend 改用
+UserExistsError/conpty v0.1.4（本机 live smoke：cmd.exe banner、echo 回显、
+resize、干净关闭、race 全绿）；手写 CreatePseudoConsole 实现曾因 0xC0000142
+被库替换，教训记录于台账。Unix 侧 creack/pty v2.0.1。Wails `PTYService`
+facade（Start/Resize/Write/Interrupt/Close，generation fencing）已接入并再生成
+bindings（5 services / 20 methods）。剩余：PTY 输出接 P3-01 data plane、shell
+矩阵、Unicode/resize flood、多子进程树清理证据。见 ledger `WV3-L026` 与
+`WV3-L030`。
 
 关联：TERM-02
 

@@ -1106,3 +1106,39 @@ capability row, source paths, verification output or CI run.
   流程、三平台 paired benchmark 与 30-round formal evidence
 - Next safe slice: P3-01 TS frame/credit adapter + differential fixtures
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L030 - 2026-09-09 - P3-02 native Windows ConPTY adapter and Wails facade
+
+- Capability rows: `TERM-02`
+- Plan task: `P3-02`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: Windows 真实 ConPTY 后端与 Wails PTY control facade，使本地终端在
+  Wails 壳内可运行（而非显式 unsupported）。
+- Go canonical owner: `internal/terminal/pty` Windows backend 改用
+  UserExistsError/conpty v0.1.4；`cmd/netcatty` PTYService facade
+- Frontend adapter: 再生成 Wails bindings（5 services / 20 methods）
+- Electron owner affected: none; node-pty remains Electron baseline
+- Preserved invariants: generation fencing（resize/write/interrupt 按 generation
+  拒绝）、close/reap 契约、cwd/shell/env 默认策略；手写 CreatePseudoConsole
+  实现因 0xC0000142（STATUS_DLL_INIT_FAILED，x/sys attribute/handle 顺序差异）
+  被验证过的库替换——记录为兼容性决策而非 fallback
+- Data/schema impact: none
+- Security impact: job/ConPTY 生命周期由库管理；Ctrl+C 以 0x03 写入 PTY 输入
+- Verification: 本机 live smoke（cmd.exe ConPTY：banner、echo
+  NETCATTY_CONPTY_OK、resize 100x30→120x40、close 清理、reader 终止）+ race +
+  vet；Wails skeleton build 与 bindings 再生成通过；剩余 live 矩阵（PowerShell/
+  WSL/WSL 原生、Unicode、resize flood、reload）待后续 child slice
+- Platforms covered: Windows 10 22H2 x64 live；Unix backend 编译验证；macOS/
+  Linux live pending CI
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: PTY 输出接 P3-01 data plane + shell
+  矩阵证据后，node-pty/terminal worker 退役
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: PTY→data-plane 接线未完成；shell 矩阵/Unicode/resize flood/
+  多进程树清理 live 证据 pending
+- Next safe slice: P3-02 PTY output into the terminal data plane
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

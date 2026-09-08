@@ -63,6 +63,7 @@ func main() {
 	credentialProvider := credentials.NewOSProvider()
 	credentialService := newCredentialService(credentialProvider)
 	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
+	ptyService := newPTYService()
 
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
@@ -72,6 +73,7 @@ func main() {
 			application.NewService(profileService),
 			application.NewService(credentialService),
 			application.NewService(migrationService),
+			application.NewService(ptyService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
