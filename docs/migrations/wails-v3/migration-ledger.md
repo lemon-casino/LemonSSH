@@ -1377,3 +1377,34 @@ capability row, source paths, verification output or CI run.
   证据、remote forwarding 的服务端监听请求路径
 - Next safe slice: P3-08 decomposition gate (child rows) then telnet core
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L038 - 2026-09-09 - P3-08 decomposition gate for TERM-03
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P3-08`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 按计划 §3.5 decomposition gate 把复合行 TERM-03 拆为 4 个 stable child
+  rows（TERM-03.1 Telnet、TERM-03.2 Serial、TERM-03.3 Mosh/ET supervised
+  binaries、TERM-03.4 ZMODEM/YMODEM）并登记执行卡，实施前先满足拆分要求。
+- Go canonical owner: none; decomposition governance only
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: parent TERM-03 保持 required/not-started；child rows 均
+  required/not-started；checker 的 composite-before-implementation 规则现在由
+  真实子行满足（夹具同步移除 TERM-03 fixture 子行）
+- Data/schema impact: none
+- Security impact: none
+- Verification: `npm run check:migration-docs` 63/63 通过；执行卡（文件边界、
+  依赖、命令、平台、退役触发）登记于 implementation-plan P3-08 节
+- Platforms covered: platform-independent governance
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: governance only
+- Documentation updated: capability matrix, implementation plan, ledger, fixture
+  test
+- Residual risks: 4 个 child slices 的实施与三平台设备/协议证据全部待做
+- Next safe slice: P3-08.1 telnet protocol owner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -255,7 +255,6 @@ function setupNonAiFixture(root) {
   addNonAiFixtureDecisions(root);
   mutate(root, "capability-matrix.md", (source) => {
     const childRows = new Map([
-      ["TERM-03", "| TERM-03.1 | Fixture terminal child | required | fixture | fixture | fixture | fixture | not-started |"],
       ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
       ["PLUG-03", "| PLUG-03.1 | Fixture native child | required | fixture | fixture | fixture | fixture | not-started |"],
     ]);
@@ -694,7 +693,6 @@ test("checker accepts a complete non-AI gate without mutating mixed capability s
   addNonAiFixtureDecisions(root);
   mutate(root, "capability-matrix.md", (source) => {
     const childRows = new Map([
-      ["TERM-03", "| TERM-03.1 | Fixture terminal child | required | fixture | fixture | fixture | fixture | not-started |"],
       ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
       ["PLUG-03", "| PLUG-03.1 | Fixture native child | required | fixture | fixture | fixture | fixture | not-started |"],
     ]);

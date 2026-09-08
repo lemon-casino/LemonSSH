@@ -1171,6 +1171,24 @@ Exit：NET-01 `verified`。
 
 ### P3-08 迁移 Telnet、Serial、Mosh、ET 与 ZMODEM/YMODEM
 
+执行状态：decomposition gate 已通过（child rows 登记，实施未开始）。复合行
+TERM-03 拆为 TERM-03.1、TERM-03.2、TERM-03.3、TERM-03.4 四个 stable child
+rows 与 4 张执行卡：
+
+- **P3-08.1（TERM-03.1 Telnet）**：Create `internal/terminal/telnet/`；依赖
+  P3-01 route/route-controller 复用；命令 `go test ./internal/telnet/...`；
+  平台全平台；退役触发：terminal bridge telnet 路径删除（P9-01 前置于
+  cutover）。验收：协议协商（NAWS/ECHO）、auto-login、echo 模式、断连重连测试。
+- **P3-08.2（TERM-03.2 Serial）**：Create `internal/terminal/serialport/`（经
+  专项验证的 serial 库）；依赖 P3-02 生命周期契约；平台三平台（需真机设备）；
+  验收：设备枚举、断连、buffer 语义。
+- **P3-08.3（TERM-03.3 Mosh/ET）**：Create `internal/terminal/supervised/`；
+  依赖 P4-01 专用临时目录与 resource manifest；平台三平台；验收：helper
+  hash/arch 校验、reconnect、进程树清理。
+- **P3-08.4（TERM-03.4 ZMODEM/YMODEM）**：Create `internal/terminal/zmodem/`；
+  依赖 P3-01 data plane（文件事件不过 JSON RPC）；平台三平台；验收：事件边界、
+  文件安全、取消语义。
+
 关联：TERM-03
 
 Files:
