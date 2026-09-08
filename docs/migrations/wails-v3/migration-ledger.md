@@ -1142,3 +1142,41 @@ capability row, source paths, verification output or CI run.
   多进程树清理 live 证据 pending
 - Next safe slice: P3-02 PTY output into the terminal data plane
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L031 - 2026-09-09 - P3-03 SSH agent, proxy and ssh2 compat decisions
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 补齐 P3-03 剩余 dial primitives：ssh-agent 认证（Windows named pipe +
+  SSH_AUTH_SOCK）、agent forwarding 原语、socks5/http proxy dial、ssh2 patch
+  逐项兼容决策。
+- Go canonical owner: `internal/terminal/ssh/agentauth.go`（agent/proxy/
+  forwarding）+ `dial.go` ProxyURL 注入
+- Frontend adapter: none yet; P3-04A 接线
+- Electron owner affected: none; ssh2 patches remain the Electron baseline
+- Preserved invariants: agent 不可达 fail-closed（ErrAgentUnavailable）；proxy
+  URL 解析失败 fail-closed；ForwardAgentToClient 仅绑定本地 agent；auth 指纹
+  不含 agent 内容
+- Data/schema impact: `docs/migrations/wails-v3/ssh2-compat-decisions.md`
+  固化 7 个 patch 区域的 Go 决策（2 native test-pinned、1 native、1 deferred
+  P3-05、3 pending compatibility lab）
+- Security impact: Comware/legacy DHGEX 类老设备今天 fail-closed，不做静默
+  降级；Gate 4 实验室必须为 pending 行取证后 ssh2 patches 才可退役
+- Verification: `go test -count=1 ./internal/terminal/ssh/`（新增 agent 不可达
+  fail-closed、proxy 校验/死代理、RSA 证书 AlgorithmSigner sha2 能力 pin）+
+  race-free；`go vet`
+- Platforms covered: Windows named pipe agent 路径按 runtime 分支编译；live
+  agent/证书服务器证据 pending Gate 4
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: pending compatibility lab 行取证后，
+  ssh2+1.17.0.patch 随 P3-04A/Gate 4 退役
+- Documentation updated: ssh2-compat-decisions.md (new), ledger
+- Residual risks: live MFA/jump/proxy/agent 服务器证据；SFTP header-spanning
+  行为在 P3-05 用 pkg/sftp 验证
+- Next safe slice: P3-04 agent-forwarding asymmetric reuse policy
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

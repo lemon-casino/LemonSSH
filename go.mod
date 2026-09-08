@@ -7,10 +7,10 @@ require (
 	github.com/coder/websocket v1.8.14
 	github.com/creack/pty/v2 v2.0.1
 	github.com/gofrs/flock v0.12.1
-	github.com/wailsapp/wails/v3 v3.0.0-beta.12
+	github.com/wailsapp/wails/v3 v3.0.0-alpha.63
 	github.com/zalando/go-keyring v0.2.6
 	go.etcd.io/bbolt v1.4.3
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.43.0
 	golang.org/x/sys v0.47.0
 )
 
@@ -23,4 +23,5 @@ require (
 	github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	golang.org/x/net v0.45.0 // indirect
 )

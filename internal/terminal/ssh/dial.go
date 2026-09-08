@@ -26,6 +26,8 @@ type DialConfig struct {
 	KeepaliveInterval time.Duration
 	// JumpHosts are dialed in order before Hostname.
 	JumpHosts []DialConfig
+	// ProxyURL optionally routes the TCP dial (socks5:// or http://).
+	ProxyURL string
 }
 
 var ErrHostKeyPolicyRequired = errors.New("ssh dial requires a host key policy")
@@ -102,6 +104,17 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 	address := net.JoinHostPort(config.Hostname, fmt.Sprintf("%d", portOrDefault(config.Port)))
 
 	var connection net.Conn
+	if via == nil && config.ProxyURL != "" {
+		dialVia, proxyErr := ProxyDial(ctx, config.ProxyURL)
+		if proxyErr != nil {
+			return nil, proxyErr
+		}
+		proxied, proxiedErr := dialVia(ctx, "tcp", address)
+		if proxiedErr != nil {
+			return nil, fmt.Errorf("proxy dial %s via %s: %w", address, config.ProxyURL, proxiedErr)
+		}
+		connection = proxied
+	}
 	if via != nil {
 		tunnel, tunnelErr := via.Dial("tcp", address)
 		if tunnelErr != nil {
