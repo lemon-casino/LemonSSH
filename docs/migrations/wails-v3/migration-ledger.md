@@ -1643,3 +1643,37 @@ capability row, source paths, verification output or CI run.
   lock 生命周期（idle 触发/reopen 强制）Wails 侧接线
 - Next safe slice: P4-03 tray and global shortcuts owner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L046 - 2026-09-09 - P3-01 TS frame/credit adapter + P2-07 settings differential
+
+- Capability rows: all rows; no status advancement
+- Plan task: `P3-01`, `P2-07`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: 渲染侧补齐 P3-01 数据面最后一块代码：TS frame codec（与 Go codec 逐
+  字段同构）+ credit controller；P2-07 补 settings 域差分套件（adapter↔host
+  字节等值）。
+- Go canonical owner: `internal/terminal/dataplane`（不变）；`internal/profile/store`
+  （不变）
+- Frontend adapter: `infrastructure/terminal/dataplane/frame.ts`+
+  `creditController.ts`；`infrastructure/persistence/settingsDifferential.test.ts`
+- Electron owner affected: none
+- Preserved invariants: NTDP magic/version/40 字节头/128 KiB 上限/8 种 kind/
+  零保留位；初始窗口精确 1 MiB；applied 序列单调；镜写字节等值（含 Unicode）
+- Data/schema impact: none
+- Security impact: 越界 payload/非法 kind/坏 magic/坏保留位全部 fail-closed
+- Verification: `node --test --import tsx` 8 项（frame round-trip/malformed/
+  oversized/max-size + credit 窗口/applied + settings 差分 3 项）；`go vet`；
+  全套既有 TS 测试不回归
+- Platforms covered: platform-independent TS
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: WebSocket 连接接线 + Gate 3 paired
+  benchmark 后 MessagePort 退役
+- Documentation updated: ledger
+- Residual risks: WebSocket 连接管理（重连/背压）与真实 xterm 实例接线；
+  Gate 3 formal benchmark
+- Next safe slice: P3-04A SSH session integration over the shared pool
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
