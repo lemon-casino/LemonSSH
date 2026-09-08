@@ -1034,3 +1034,38 @@ capability row, source paths, verification output or CI run.
   child slices
 - Next safe slice: P3-04 shared SSH transport pool
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L028 - 2026-09-08 - P3-04 shared SSH transport pool
+
+- Capability rows: `SSH-02`
+- Plan task: `P3-04`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立唯一共享 SSH transport pool：immutable 兼容 key、single-flight
+  dial、引用计数 lease、健康回收、idle TTL/LRU、统一 shutdown；禁止业务域私建
+  连接池。
+- Go canonical owner: `internal/terminal/sshpool`（dial 函数注入，对接 P3-03）
+- Frontend adapter: none yet; P3-04A session 集成与 SFTP/transfer/forwarding
+  各域接入后续切片
+- Electron owner affected: none; `sshConnectionPool.cjs` remains baseline
+- Preserved invariants: 兼容 key 含 auth 指纹（哈希）与 jump 链，auth/host/
+  jump 任一变化即分线；一条 transport 合法承载多个并发 channel（引用计数）；
+  Discard 立即关闭防止 unhealthy 复用；TTL/LRU 只驱逐 outstanding=0
+- Data/schema impact: none
+- Security impact: auth material 只进哈希；race 测试覆盖并发 single-flight
+- Verification: `go test -count=1 ./internal/terminal/sshpool/`（6 tests：key
+  敏感性、共享/single-flight、并发 32 单拨、TTL 驱逐 + shutdown、auth 变更
+  分线）、`go test -race`、`go vet`；live one-auth network trace 证据 pending
+- Platforms covered: platform-independent Go core; live SSH server evidence
+  absent on this host
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P3-04A/SFTP/transfer/forwarding 全部
+  接入本 pool 且 one-auth 网络证据通过后，`sshConnectionPool.cjs` 才退役
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: agent-forwarding 非对称 policy 待 P3-04A 施加；live one-auth
+  证据与真实网络 property 测试待后续
+- Next safe slice: P3-04A SSH session integration over the shared pool
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

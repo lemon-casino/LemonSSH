@@ -1055,6 +1055,15 @@ Exit：认证/dial core 可被共享 pool 调用；尚不宣称完整 SSH sessio
 
 ### P3-04 实现共享 SSH transport pool
 
+执行状态：完成（pool 核心）。`internal/terminal/sshpool`：兼容 key =
+endpoint + auth 指纹（哈希，不存明文）+ jump 链哈希；single-flight dial
+（并发等待同一 dial group）；引用计数 lease（一条 transport 合法服务多个
+并发 channel）；healthy Return / unhealthy Discard（立即关闭并移除）；idle
+TTL 惰性驱逐 + LRU 上限；Shutdown 全量关闭并拒绝新 Get；dial 函数可注入。
+agent-forwarding 非对称复用 policy 在 P3-04A session 集成时按 kind 施加。测试
+覆盖 key 敏感性、共享、single-flight、TTL/LRU、auth 变更分线、race。见 ledger
+`WV3-L028`。
+
 关联：SSH-02
 
 Files:
