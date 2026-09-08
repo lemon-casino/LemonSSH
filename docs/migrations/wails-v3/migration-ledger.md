@@ -1677,3 +1677,35 @@ capability row, source paths, verification output or CI run.
   Gate 3 formal benchmark
 - Next safe slice: P3-04A SSH session integration over the shared pool
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L047 - 2026-09-09 - P4-04 deep link parser and intent queue
+
+- Capability rows: `SYS-03`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Go deep-link intent owner：严格解析 ssh/telnet/netcatty 三种 scheme、
+  拒绝携带 password/secret/token 参数的意图、pre-ready 队列恰好一次投递、
+  重复冷启动意图去重、并发入队安全。
+- Go canonical owner: `internal/platform/deeplink`（Parse + Queue）
+- Frontend adapter: none yet; Wails second-instance 事件对接后续
+- Electron owner affected: none; Electron deep-link 路径 remains baseline
+- Preserved invariants: 未知 scheme 拒绝；空 host/含空白 user/host 拒绝；
+  口令类参数拒绝（口令永不走 deep link）；Ready 后按到达序投递且仅一次
+- Data/schema impact: Action JSON 类型
+- Security impact: URL 解析不使用宽松 url.Parse 的 host 语义（手工 authority
+  切分），避免 user-info/方括号 IPv6 边界歧义被利用
+- Verification: `go test -race -count=1 ./internal/platform/deeplink/`（6 项：
+  三 scheme 解析、malformed/不安全拒绝、缓冲顺序投递、去重、16 并发入队）
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 安装包注册 + 三平台 cold/warm/畸形 URL
+  证据通过后，deep-link/main/installer 代码退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: 安装包注册（installer 层）、文件关联、context menu、disabled
+  preference 证据
+- Next safe slice: P5-01 manifest v2 and Go-first contract codegen
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
