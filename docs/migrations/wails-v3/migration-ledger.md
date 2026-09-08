@@ -1473,3 +1473,36 @@ capability row, source paths, verification output or CI run.
   非默认组合 live 未测
 - Next safe slice: P3-08.3 Mosh/ET supervised binary runner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L041 - 2026-09-09 - P3-08.3 Mosh/ET supervised binary runner
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-08`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立经 hash/arch 校验的外部二进制监督 runner：manifest 校验（存在性、
+  GOOS/GOARCH、SHA-256）、restart 预算、立即死亡 fast-fail、干净 teardown。
+- Go canonical owner: `internal/terminal/supervised`
+- Frontend adapter: none yet; mosh/et 会话协议层后续接入
+- Electron owner affected: none; packaged binaries + bridges remain baseline
+- Preserved invariants: 二进制不按文件名信任（SHA-256 必须 match manifest）；
+  arch/OS 失配 fail-closed；立即退出（arch/ABI 失配症状）触发 fast-fail 与
+  restart 预算；stdin pipe 保持打开防 EOF 早退；Kill 后 Wait 收敛
+- Data/schema impact: Manifest JSON 类型
+- Security impact: hash pinning 防替换攻击；资源清单（P6-02）复用此 Manifest
+- Verification: `go test -race -count=1 ./internal/terminal/supervised/`（3 项：
+  missing/wrong-arch/wrong-hash 拒绝、本机真实 cmd.exe live 运行+停止+双停
+  收敛、立即死亡 cmd /c exit 1 fail-closed）；`go vet`
+- Platforms covered: Windows 10 22H2 x64 live（cmd.exe）；mosh/et 真实二进制与
+  三平台 reconnect 证据 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: mosh/et 会话协议 parity + 资源清单接入
+  （P6-02 manifest）后，packaged bridges 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: mosh/et 协议层 parity（reconnect/roaming）、真实 helper 二进制
+  哈希清单、资源打包接入（P6-02）
+- Next safe slice: P3-08.4 ZMODEM/YMODEM service
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
