@@ -769,3 +769,83 @@ capability row, source paths, verification output or CI run.
   无 plaintext leak/crash matrix
 - Next safe slice: P2-05 Electron migration export broker
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L021 - 2026-09-08 - P2-05 Electron migration export broker core
+
+- Capability rows: `FND-03`
+- Plan task: `P2-05`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 冻结 migration bundle schema 与 Electron export broker 安全边界：trusted
+  origin、writer lease、protective backup、classified records、Electron source
+  secret 只在内存解封、Wails X25519 target key 一次性加密、成功 receipt 前 source
+  保持 writable。
+- Go canonical owner: none; Electron broker core is transitional export owner,
+  target import owner is P2-06 Go service
+- Frontend adapter: `electron/bridges/profileMigrationExportBridge.cjs` trusted
+  origin adapter over `profileMigrationBroker.cjs`
+- Electron owner affected: credential/safeStorage and profile persistence remain
+  unchanged; no steady-state dual writer introduced
+- Preserved invariants: bundle version 1，X25519/HKDF-SHA256/AES-256-GCM，purpose
+  AAD，raw/secret classification manifest，secret plaintext absent from returned
+  encrypted bundle，lease release in finally，export one-shot
+- Data/schema impact: encrypted bundle contains source fingerprint, backup
+  manifest, record/secret counts, ephemeral public key, nonce and ciphertext；不
+  写 plaintext temp file
+- Security impact: untrusted origin rejected；target key must be X25519；malformed
+  record/classification、missing backup、duplicate export、read failure all fail
+  closed；lease release is guaranteed on error
+- Verification: 4 broker tests（roundtrip decrypt、manifest/secret count、input
+  validation、once-only export、release-on-error）；trusted adapter tests；P0-04
+  Electron secret corpus remains the source unseal evidence
+- Platforms covered: platform-independent Node broker core; Windows DPAPI source
+  unseal evidence from WV3-L011; macOS/Linux source/provider live evidence pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`, `WV3-007`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P2-06 verified import/promote + rollback
+  replaces this export path; P9-01 deletes the bridge
+- Documentation updated: ledger
+- Residual risks: source reader must be wired to every P2-01 classified key and
+  P2-01A plugin envelope；full Electron shutdown/renderer attack/crash matrix
+  remains P2-05 integration work
+- Next safe slice: P2-06 Wails import/verify/promote
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L022 - 2026-09-08 - P2-06 Wails import/verify/promote core
+
+- Capability rows: `FND-03`
+- Plan task: `P2-06`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: Go 侧先验证加密 bundle（fingerprint、X25519、HKDF/AES-GCM、record count、
+  manifest/secret count），再将 secret 交给 P2-04 provider 转封，生成 staging
+  profile，最后原子 promote + backup manifest + receipt；验证失败不得触碰 target。
+- Go canonical owner: `internal/profile/migration` + `cmd/netcatty` ProfileMigrationService
+- Frontend adapter: regenerated Wails bindings（4 services / 15 methods / 7 models）
+- Electron owner affected: none until P2-07 writer/persistence cutover
+- Preserved invariants: source fingerprint mismatch fail-closed；unknown JSON fields
+  拒绝；provider unavailable 时 secret record 不导入；raw record 不要求 provider；
+  staging completion marker 和 profile store atomic promotion
+- Data/schema impact: P2-06 consumes bundle v1 and emits profile store schema v1
+  plus migration receipt; reverse export/rollback remains to be wired
+- Security impact: target private key only held by Wails process；provider sealed
+  envelope purpose uses the fixed `profile-migration/` prefix plus the validated
+  domain and key; plaintext 仅在 import call 内存生命周期存在并清零
+- Verification: Go import tests 4 cases（raw+secret re-seal、fingerprint/malformed、
+  provider unavailable、store-compatible mutations）；Go vet/build 全量通过；Wails
+  skeleton build 通过
+- Platforms covered: Windows 10 22H2 x64 build; cross-platform keyring/import smoke
+  pending migration-evidence CI
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`, `WV3-007`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P2-07 renderer persistence and reverse
+  rollback integration; no Electron path deleted yet
+- Documentation updated: capability matrix, ledger
+- Residual risks: P2-05 source reader/full bundle integration、reverse export/rollback、
+  crash matrix、三平台 provider evidence and semantic equality remain open
+- Next safe slice: P2-07 settings/Vault/session restore persistence cutover
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

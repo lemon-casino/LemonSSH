@@ -4,9 +4,11 @@
 
 import * as CredentialService from "./credentialservice.js";
 import * as NetcattyService from "./netcattyservice.js";
+import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 export {
     CredentialService,
     NetcattyService,
+    ProfileMigrationService,
     ProfileService
 };

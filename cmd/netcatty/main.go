@@ -10,6 +10,7 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -59,7 +60,9 @@ func main() {
 	}
 	defer profileStore.Close()
 	profileService := newProfileService(profileStore)
-	credentialService := newCredentialService(credentials.NewOSProvider())
+	credentialProvider := credentials.NewOSProvider()
+	credentialService := newCredentialService(credentialProvider)
+	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
@@ -68,6 +71,7 @@ func main() {
 			application.NewService(service),
 			application.NewService(profileService),
 			application.NewService(credentialService),
+			application.NewService(migrationService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

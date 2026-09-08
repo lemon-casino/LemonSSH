@@ -7,6 +7,128 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * BackupManifest describes the protective backup written at promotion.
+ */
+export class BackupManifest {
+    /**
+     * Creates a new BackupManifest instance.
+     * @param {Partial<BackupManifest>} [$$source = {}] - The source object to create the BackupManifest.
+     */
+    constructor($$source = {}) {
+        if (!("createdAtMs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["createdAtMs"] = 0;
+        }
+        if (!("originalPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["originalPath"] = "";
+        }
+        if (!("backupPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["backupPath"] = "";
+        }
+        if (!("originalSha256" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["originalSha256"] = "";
+        }
+        if (!("sizeBytes" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["sizeBytes"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BackupManifest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {BackupManifest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BackupManifest(/** @type {Partial<BackupManifest>} */($$parsedSource));
+    }
+}
+
+/**
+ * MigrationReceipt is written after a successful promotion.
+ */
+export class MigrationReceipt {
+    /**
+     * Creates a new MigrationReceipt instance.
+     * @param {Partial<MigrationReceipt>} [$$source = {}] - The source object to create the MigrationReceipt.
+     */
+    constructor($$source = {}) {
+        if (!("completedAtMs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["completedAtMs"] = 0;
+        }
+        if (!("targetPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetPath"] = "";
+        }
+        if (!("backupManifest" in $$source)) {
+            /**
+             * @member
+             * @type {BackupManifest | null}
+             */
+            this["backupManifest"] = null;
+        }
+        if (!("sourceFingerprint" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sourceFingerprint"] = "";
+        }
+        if (!("schemaVersion" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["schemaVersion"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MigrationReceipt instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {MigrationReceipt}
+     */
+    static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("backupManifest" in $$parsedSource) {
+            $$parsedSource["backupManifest"] = $$createField2_0($$parsedSource["backupManifest"]);
+        }
+        return new MigrationReceipt(/** @type {Partial<MigrationReceipt>} */($$parsedSource));
+    }
+}
+
+/**
  * Mutation is one key operation inside a transaction.
  */
 export class Mutation {
@@ -92,3 +214,7 @@ export class WriteResult {
         return new WriteResult(/** @type {Partial<WriteResult>} */($$parsedSource));
     }
 }
+
+// Private type creation functions
+const $$createType0 = BackupManifest.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
