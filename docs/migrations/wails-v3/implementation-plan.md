@@ -963,6 +963,15 @@ Exit：Go store 是 canonical owner；Renderer localStorage 只剩明确的 UI c
 
 ### P3-01 产品化 terminal data plane
 
+执行状态：进行中（codec + route controller 已实现，WebSocket transport 待下一子切片）。
+`internal/terminal/dataplane` 现在拥有 production v2 frame codec 与无 transport
+依赖的 `RouteController`：one-use token、generation fencing、initial 1 MiB
+credit、bounded admission、applied sequence 校验、rebind generation。codec 与
+P0-03 probe differential check、controller race tests 已通过；Electron
+MessagePort 仍保持 baseline。下一子切片接入 authenticated loopback WebSocket
+listener、drain/rebind、urgent route 和 Gate 3 paired benchmark。见 ledger
+`WV3-L024`（codec）与本次 route controller 变更。
+
 关联：TERM-01
 
 Files:

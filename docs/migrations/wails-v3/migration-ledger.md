@@ -926,3 +926,37 @@ capability row, source paths, verification output or CI run.
   still pending
 - Next safe slice: P3-01 production WebSocket route service and credit controller
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L025 - 2026-09-08 - P3-01 production route controller
+
+- Capability rows: `TERM-01`
+- Plan task: `P3-01`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 在 binary codec 之上建立无 transport 依赖的 production route owner，
+  固定 token authentication、generation fencing、credit admission 与 rebind
+  基础语义。
+- Go canonical owner: `internal/terminal/dataplane/route_controller.go`
+- Frontend adapter: none; WebSocket listener/urgent route next child slice
+- Electron owner affected: none; Electron MessagePort remains baseline
+- Preserved invariants: 32-byte hex one-use route tokens、generation stale reject、
+  initial 1 MiB credit、applied sequence monotonic、output admission never超过
+  available credit、route replacement generation increment
+- Data/schema impact: shell-neutral RouteBootstrap/RouteController types only
+- Security impact: constant-time token compare、route/session/generation binding、
+  bounded output admission
+- Verification: route controller unit tests + race + vet；tests cover token/auth,
+  generation replacement, bounded credit, sequence rejection and concurrent
+  admission；codec + differential check remains green
+- Platforms covered: platform-independent Go controller
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: WebSocket transport + Gate 3 paired
+  benchmarks; no Electron owner retired
+- Documentation updated: implementation plan and ledger
+- Residual risks: WebSocket listener Host/Origin enforcement, drain/rebind,
+  urgent channel and three-platform benchmark still pending
+- Next safe slice: P3-01 authenticated WebSocket transport integration
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
