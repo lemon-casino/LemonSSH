@@ -160,22 +160,36 @@ jobs:
       - name: Build data-plane probe
         working-directory: experiments/terminal-data-plane
         shell: bash
-        run: go build -o terminal-data-plane-probe .
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            go build -o terminal-data-plane-probe.exe .
+          else
+            go build -o terminal-data-plane-probe .
+          fi
 
       - name: Run autorun (Linux under xvfb)
         if: runner.os == 'Linux'
         working-directory: experiments/terminal-data-plane
         env:
           NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
+          # WebKitGTK crashes with DMABUF rendering on GPU-less CI runners.
+          WEBKIT_DISABLE_DMABUF_RENDERER: '1'
         run: xvfb-run -a ./terminal-data-plane-probe
 
-      - name: Run autorun
-        if: runner.os != 'Linux'
+      - name: Run autorun (Windows)
+        if: runner.os == 'Windows'
         working-directory: experiments/terminal-data-plane
         shell: bash
         env:
           NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
-        run: ./terminal-data-plane-probe${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: ./terminal-data-plane-probe.exe
+
+      - name: Run autorun (macOS)
+        if: runner.os == 'macOS'
+        working-directory: experiments/terminal-data-plane
+        env:
+          NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
+        run: ./terminal-data-plane-probe
 
   netcatty-skeleton-build:
     name: Netcatty Wails skeleton build (${{ matrix.os }})
