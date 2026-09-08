@@ -145,6 +145,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgtk-4-dev libwebkitgtk-6.0-dev
 
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build probe frontend (embed requires dist)
+        shell: bash
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run build
+
       - name: Build data-plane probe
         working-directory: experiments/terminal-data-plane
         shell: bash
@@ -259,7 +271,19 @@ jobs:
         shell: bash
         run: |
           for mode in after-spawn after-handshake after-first-secret; do
-            ./node_modules/.bin/electron experiments/profile-secret-migration/electron/runner.cjs "$(cygpath -m "$PWD")/experiments/profile-secret-migration/bin/profile-secret-migration-probe.exe" --interrupt=$mode || exit 1
+            set +e
+            ./node_modules/.bin/electron experiments/profile-secret-migration/electron/runner.cjs "$(cygpath -m "$PWD")/experiments/profile-secret-migration/bin/profile-secret-migration-probe.exe" --interrupt=$mode > "interrupt-$mode.log" 2>&1
+            status=$?
+            set -e
+            # Designed outcome: exit 1 with passed=false, cleanup=true, leakScan=true.
+            if [ $status -ne 0 ] && [ $status -ne 1 ]; then
+              echo "unexpected runner exit $status for $mode"; exit 1
+            fi
+            result_line=$(grep -a "PROFILE_SECRET_MIGRATION_PROBE_RESULT" "interrupt-$mode.log" | tail -1)
+            echo "$result_line" | grep -q 'passed":false' || { echo "$mode: passed must be false"; exit 1; }
+            echo "$result_line" | grep -q 'cleanup":true' || { echo "$mode: cleanup must be true"; exit 1; }
+            echo "$result_line" | grep -q 'leakScan":true' || { echo "$mode: leakScan must be true"; exit 1; }
+            echo "$mode: fail-closed verified"
           done
 
   electron-terminal-baseline:

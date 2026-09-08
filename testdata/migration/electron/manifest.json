@@ -86,7 +86,7 @@
     "infrastructure/config/terminalFlowConstants.json": "f344c323ccbe9eb961f03fedd5fc57d78ebca7fc2a9295005466733fcc05180b",
     "lib/commandBlocklist.json": "6edb000610735bcab8dc9b17967d35332b03239f91ce1f51ba27d0b40a1490db",
     "packages/plugin-contract/schema/plugin-contract.schema.json": "19cec877d4626498cfa3656fcc7999b2a58dfc74bf7baf1f28ae2ebaf1dfce5a",
-    "scripts/migration/export-electron-contract-fixtures.mjs": "2acf3bfdd85e50cd450b53f9f3e9e91b08081c1dd747b64e49f77a8755ea70a8",
+    "scripts/migration/export-electron-contract-fixtures.mjs": "5721ebe3845c5303362d0e1aae5a2d8031e70321ef5ac43b0450989644cbfc36",
     "scripts/terminal-sustained-output-workload.cjs": "9b5e88d3e6ec381fe6b135cc3a5125e3c6e756cbba8b0b5ecca7d959cd25ee36",
     "scripts/xterm-keyword-highlight-throughput.live.test.cjs": "020a37c18659ca8fa3c7be2a0098f91e9fcd0fc8e670518da90a3a5f525309b3",
     "types.ts": "d7e48a08c88097d3760a9c298d0e80393eced2ca992ef95661d51e4f5a63854e",

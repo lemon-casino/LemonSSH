@@ -121,65 +121,15 @@ test("manual package validations do not share push concurrency", () => {
 });
 
 test("package validation avoids duplicate branch runs and scopes PR builds", () => {
-  assert.match(buildWorkflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
-  assert.doesNotMatch(buildWorkflow, /branches:\s*\n\s*- "\*\*"/);
-  assert.match(buildWorkflow, /pull_request:\s*\n\s*paths:/);
+  // LemonSSH: the legacy Electron packaging pipeline is manual-dispatch only;
+  // the migration builds its own packaging in P6-02.
+  assert.doesNotMatch(buildWorkflow, /^  push:/m);
+  assert.doesNotMatch(buildWorkflow, /^  pull_request:/m);
+  assert.match(buildWorkflow, /workflow_dispatch:/);
   assert.doesNotMatch(buildWorkflow, /\n  dedupe:/);
   assert.doesNotMatch(buildWorkflow, /\n  dedupe-result:/);
-  for (const packagedInput of [
-    "electron/**",
-    "infrastructure/config/terminalFlowConstants.*",
-    "public/icon*",
-    "scripts/afterPackMacUuid.cjs",
-    "scripts/beforePackCursorSdk.cjs",
-    "scripts/nodePtyConptyPatch.cjs",
-    "scripts/patch-xterm-macos-column-selection.cjs",
-    "scripts/xterm-macos-column-selection.live.test.cjs",
-    "scripts/linux/**",
-    "skills/**",
-  ]) {
-    assert.ok(buildWorkflow.includes(`- "${packagedInput}"`), `${packagedInput} must trigger package validation`);
-  }
-
-  for (const excludedTestInput of [
-    "!electron/**/*.test.*",
-    "!electron/**/*.spec.*",
-    "!electron/**/__tests__/**",
-    "!electron/**/test/**",
-    "!electron/**/tests/**",
-    "!electron/**/example/**",
-    "!electron/**/examples/**",
-    "!electron/plugins/fixtures/**",
-  ]) {
-    assert.ok(buildWorkflow.includes(`- "${excludedTestInput}"`), `${excludedTestInput} must stay out of package validation`);
-  }
-
-  assert.ok(
-    buildWorkflow.indexOf('- "electron/**"') < buildWorkflow.indexOf('- "!electron/**/*.test.*"'),
-    "packaged Electron files must be included before test-only exclusions",
-  );
-
-  for (const packagedPath of [
-    "electron/main.cjs",
-    "electron/entitlements.mac.plist",
-    "electron/bridges/terminalBridge.cjs",
-    "electron/preload/api.cjs",
-    "electron/shared/protocol.cjs",
-    "electron/mcp/server.cjs",
-    "electron/plugins/pluginManager.cjs",
-    "scripts/linux/after-install.tpl",
-  ]) {
-    assert.equal(triggersPackageValidation(packagedPath), true, `${packagedPath} must trigger package validation`);
-  }
-
-  for (const testOnlyPath of [
-    "electron/main.test.cjs",
-    "electron/bridges/moshHandshake.test.cjs",
-    "electron/plugins/pluginManager.test.cjs",
-    "electron/plugins/fixtures/example/plugin.cjs",
-  ]) {
-    assert.equal(triggersPackageValidation(testOnlyPath), false, `${testOnlyPath} must not trigger package validation`);
-  }
+  // Path-scoped PR filters were removed with the dispatch-only trigger; the
+  // triggersPackageValidation helper below no longer applies.
 });
 
 test("Windows packaging reuses its dependency install for the ConPTY smoke test", () => {
