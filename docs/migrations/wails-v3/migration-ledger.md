@@ -1506,3 +1506,35 @@ capability row, source paths, verification output or CI run.
   哈希清单、资源打包接入（P6-02）
 - Next safe slice: P3-08.4 ZMODEM/YMODEM service
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L042 - 2026-09-09 - P3-08.4 ZMODEM/YMODEM service boundary
+
+- Capability rows: `TERM-03.4`
+- Plan task: `P3-08`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 ZMODEM 服务安全边界：CRC-16 帧解析（binary header + tamper
+  拒绝）、ZFILE 元数据文件安全（traversal/分隔符/保留名/大小上限）、ctx 取消
+  语义；完整 rz/sz 会话引擎后续接入。
+- Go canonical owner: `internal/terminal/zmodem`
+- Frontend adapter: none yet; terminal data plane 事件接线后续
+- Electron owner affected: none; `zmodemHelper.cjs` remains baseline
+- Preserved invariants: 文件名必须 base 名（拒绝路径/分隔符/..）、Windows 保留
+  设备名拒绝、大小上限 256 MiB fail-closed、CRC 不匹配拒绝、取消立即生效
+- Data/schema impact: FileMeta/Frame 类型
+- Security impact: 本包是"什么允许进文件系统"的唯一权威边界
+- Verification: `go test -count=1 ./internal/terminal/zmodem/`（6 项：安全名/
+  危险名矩阵、大小上限、CRC 已知向量、header 合法/篡改、取消即时生效、
+  big-endian CRC 组装）；`go vet`
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 完整会话引擎 + 真实 lrzsz 对端矩阵
+  通过后 zmodemHelper 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: 完整 rz/sz 会话引擎（ZRINIT 参数协商、32-bit CRC、escape
+  编码）与真实对端（lrzsz）矩阵待做
+- Next safe slice: P4-01 filesystem and dedicated temp directory service
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
