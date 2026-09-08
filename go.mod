@@ -1,6 +1,6 @@
 module github.com/binaricat/netcatty
 
-go 1.25.0
+go 1.26.0
 
 require github.com/wailsapp/wails/v3 v3.0.0-beta.12
 
@@ -18,5 +18,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/zalando/go-keyring v0.2.6 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 )

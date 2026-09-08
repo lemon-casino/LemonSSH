@@ -1024,6 +1024,14 @@ Exit：Wails 本地终端完整可用；`node-pty` 仍只属于 Electron 壳。
 
 ### P3-03 实现 Go SSH authentication 与 dial core
 
+执行状态：进行中（dial core 已实现）。`internal/terminal/ssh`：OpenSSH 格式
+known-hosts 存储（线程安全、首见 pin、变更 fail-closed）、password/私钥+
+passphrase/keyboard-interactive（MFA challenge 回调）认证方法、`Dial` 返回
+统一 `Transport`（jump 链按序建立、统一 Close、keepalive、timeout 默认值）；
+每跳 host key policy 必填否则 fail-closed。尚未实现：agent/certificate/
+agent-forwarding、proxy 原语、ssh2 patch 逐项 compatibility decision、live
+MFA/proxy/jump 证据。见 ledger `WV3-L027`。
+
 关联：SSH-01
 
 Files:

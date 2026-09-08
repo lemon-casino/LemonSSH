@@ -998,3 +998,39 @@ capability row, source paths, verification output or CI run.
   process-tree/job cleanup and three-platform live shell matrix remain
 - Next safe slice: P3-02 native Windows ConPTY adapter and Wails control facade
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L027 - 2026-09-08 - P3-03 SSH authentication and dial core
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: 建立 Go SSH 认证与 dial 核心：known-hosts policy、多策略认证、jump 链
+  transport，供 P3-04 共享 pool 调用；不创建业务私有连接池。
+- Go canonical owner: `internal/terminal/ssh`（hostkeys/auth/dial）
+- Frontend adapter: none yet; P3-04 pool 与 Wails terminal 接线后续切片
+- Electron owner affected: none; `sshBridge.cjs`/ssh2 patches remain baseline
+- Preserved invariants: host key 首见 pin、变更 fail-closed（OpenSSH 文件格式
+  持久化）；每跳 host key policy 必填；认证优先级 key → password →
+  keyboard-interactive（MFA challenge 回调）；jump 链任一跳失败即关闭已建立
+  跳；Transport.Close 顺序关闭全部跳
+- Data/schema impact: known-hosts 文件 0600 追加写
+- Security impact: nil policy fail-closed；私钥 passphrase 解析失败不重试明文；
+  keepalive 独立 goroutine 随 stop channel 退出
+- Verification: `go test -count=1 ./internal/terminal/ssh/`（known-hosts
+  pin/变更/persist、auth 方法顺序与无效 PEM、跨实例 policy）；`go vet`；live
+  MFA/proxy/jump/agent/certificate 证据 pending
+- Platforms covered: platform-independent Go core; live SSH server evidence
+  absent on this host
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P3-04 pool + P3-04A session integration
+  + Gate 4 compatibility lab 通过后才退役 ssh2 patches
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: agent/certificate/agent-forwarding、proxy dial 原语、ssh2
+  legacy algorithm 逐项 decision、Gate 4 live MFA/jump/proxy 证据全部待后续
+  child slices
+- Next safe slice: P3-04 shared SSH transport pool
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
