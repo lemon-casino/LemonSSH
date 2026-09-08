@@ -726,3 +726,46 @@ capability row, source paths, verification output or CI run.
   P2-07 接线时启用
 - Next safe slice: P2-04 platform credential providers
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L020 - 2026-09-08 - P2-04 platform credential providers
+
+- Capability rows: `FND-03`
+- Plan task: `P2-04`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: 建立 Go credential owner：Windows Credential Manager、macOS Keychain、
+  Linux Secret Service 统一抽象，purpose-bound envelope，keyring unavailable
+  时 fail-closed，禁止 plaintext fallback。
+- Go canonical owner: `internal/platform/credentials`（go-keyring v0.2.6 +
+  AES-256-GCM provider）与 `cmd/netcatty` CredentialService facade
+- Frontend adapter: Wails generated `CredentialService` bindings；P2-05
+  migration broker 消费 `Seal/Open`
+- Electron owner affected: none yet; Electron safeStorage 仍是 P2-05 的 source
+  unseal owner
+- Preserved invariants: 每个 purpose 独立随机 key（keyring service/user
+  namespace）；fresh nonce；purpose AAD；version/provider/purpose metadata
+  完整绑定；tamper、cross-purpose replay、损坏 envelope、不可用 keyring、
+  空/超大 plaintext 全部 fail-closed；内存 buffer 在 provider 边界清零
+- Data/schema impact: 新 JSON envelope v1（version/provider/purpose/nonce/
+  ciphertext），不会直接兼容 Electron `enc:v1:`，由 P2-05 负责转换
+- Security impact: 无 keyring 时不降级明文；provider key 不返回给 renderer；
+  facade 只返回 sealed envelope 或短生命周期 plaintext result
+- Verification: `go test -race ./internal/platform/credentials/...`、`go vet`；
+  4 个测试覆盖 roundtrip/purpose replay/nonce/tamper/malformed/unavailable/
+  bounds/per-purpose isolation；`check:credentials` 接入 test.yml；Wails
+  skeleton build 3 services/13 methods 通过
+- Platforms covered: Windows 10 22H2 x64 本机接口/race；Windows Credential
+  Manager、macOS Keychain、Linux Secret Service live smoke 由
+  migration-evidence 三平台 job 负责，尚未取得本地 A 级证据
+- Evidence grade: `C`
+- Decision references: `WV3-002`, `WV3-004`, `WV3-007`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P2-05/P2-06 完成 source unseal、转封、
+  atomic cutover 与 rollback 后，Electron credential owner 才断开
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: 三平台真实 keyring availability/locked negative smoke 待 CI；
+  P2-05 需要把 Electron `enc:v1:` corpus 全量映射到 purpose 命名空间，并做
+  无 plaintext leak/crash matrix
+- Next safe slice: P2-05 Electron migration export broker
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

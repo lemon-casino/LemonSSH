@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/binaricat/netcatty/internal/profile/store"
 	"os"
 	"path/filepath"
+
+	"github.com/binaricat/netcatty/internal/profile/store"
 )
 
 // ProfileService is the Wails-facing facade over the transactional profile

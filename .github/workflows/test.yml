@@ -74,6 +74,9 @@ jobs:
       - name: Verify transactional profile store
         run: npm run check:profile-store
 
+      - name: Verify platform credential providers
+        run: npm run check:credentials
+
       - name: Verify Wails shell probe
         run: npm run check:wails-shell-probe
 

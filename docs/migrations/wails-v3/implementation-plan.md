@@ -836,6 +836,17 @@ Exit：任意时刻只有一个 profile writer；没有 browser-lock fallback。
 
 ### P2-04 实现平台 credential providers
 
+执行状态：完成（provider 层）。`internal/platform/credentials` 以 go-keyring
+v0.2.6 对接 Windows Credential Manager、macOS Keychain、Linux Secret Service；
+每个 purpose 在 OS keyring 中保存独立随机 32-byte AES key，value 使用 fresh
+AES-256-GCM nonce + purpose AAD，统一 version/provider/purpose/nonce/ciphertext
+JSON envelope；purpose mismatch、损坏/篡改、超过 128 KiB、keyring unavailable
+均 fail-closed，无 plaintext fallback。并发首次 key 创建已串行化；测试覆盖
+roundtrip、purpose replay、nonce uniqueness、tamper/malformed、provider
+unavailable、边界与 race。`cmd/netcatty` CredentialService facade 已接入 Wails
+并重新生成 bindings，`check:credentials` 接入 CI。P0-04 Windows DPAPI 探针仍
+是 Electron `enc:v1:` 解封输入，P2-05 负责 broker 转封。见 ledger `WV3-L020`。
+
 关联：FND-03、SYS-04
 
 Files:

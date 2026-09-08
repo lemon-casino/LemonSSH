@@ -10,7 +10,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -28,20 +28,24 @@ export function DeleteRaw(domain, key) {
 
 /**
  * Domains lists the declared profile domains.
- * @returns {$CancellablePromise<string[] | null>}
+ * @returns {$CancellablePromise<string[]>}
  */
 export function Domains() {
-    return $Call.ByID(3215331561);
+    return $Call.ByID(3215331561).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
 }
 
 /**
  * GetRaw returns one opaque raw value (base64 on the wire).
  * @param {string} domain
  * @param {string} key
- * @returns {$CancellablePromise<string | null>}
+ * @returns {$CancellablePromise<string>}
  */
 export function GetRaw(domain, key) {
-    return $Call.ByID(3656545750, domain, key);
+    return $Call.ByID(3656545750, domain, key).then(/** @type {($result: any) => any} */(($result) => {
+        return $Create.ByteSlice($result);
+    }));
 }
 
 /**
@@ -56,7 +60,7 @@ export function Revision() {
  * SetRaw writes one opaque raw value atomically.
  * @param {string} domain
  * @param {string} key
- * @param {string | null} value
+ * @param {string} value
  * @returns {$CancellablePromise<void>}
  */
 export function SetRaw(domain, key, value) {
@@ -66,9 +70,15 @@ export function SetRaw(domain, key, value) {
 /**
  * Write applies an atomic multi-key transaction with optional CAS.
  * @param {number} expectedRevision
- * @param {store$0.Mutation[] | null} mutations
+ * @param {store$0.Mutation[]} mutations
  * @returns {$CancellablePromise<store$0.WriteResult>}
  */
 export function Write(expectedRevision, mutations) {
-    return $Call.ByID(2341111907, expectedRevision, mutations);
+    return $Call.ByID(2341111907, expectedRevision, mutations).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
+
+// Private type creation functions
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = store$0.WriteResult.createFrom;

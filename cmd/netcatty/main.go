@@ -14,6 +14,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/binaricat/netcatty/internal/app"
+	"github.com/binaricat/netcatty/internal/platform/credentials"
 )
 
 //go:embed all:frontend/dist
@@ -58,6 +59,7 @@ func main() {
 	}
 	defer profileStore.Close()
 	profileService := newProfileService(profileStore)
+	credentialService := newCredentialService(credentials.NewOSProvider())
 
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
@@ -65,6 +67,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(service),
 			application.NewService(profileService),
+			application.NewService(credentialService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
