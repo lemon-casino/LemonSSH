@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -42,10 +43,11 @@ func TestTempServiceRefusesEscapes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	escapeNames := []string{
-		`..\..\..\Windows\evil`,
-		"sub/../../../evil",
-		"C:\\Windows\\evil",
+	// Forward-slash traversal escapes on every platform; backslash traversal
+	// only escapes on Windows (backslash is a legal filename char on POSIX).
+	escapeNames := []string{"sub/../../../evil", "C:/Windows/evil"}
+	if runtime.GOOS == "windows" {
+		escapeNames = append(escapeNames, `..\..\..\Windows\evil`)
 	}
 	for _, name := range escapeNames {
 		if _, err := service.FilePath(name); !errors.Is(err, ErrPathEscapesRoot) {

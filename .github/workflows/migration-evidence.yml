@@ -62,7 +62,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Secret migration probe contracts
         run: npm run check:secret-migration-probe
@@ -106,7 +106,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Build shell probe with pinned wails3
         working-directory: experiments/wails-shell-probe
@@ -143,7 +143,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgtk-4-dev libwebkitgtk-6.0-dev
+          sudo apt-get install -y xvfb libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -172,8 +172,10 @@ jobs:
         working-directory: experiments/terminal-data-plane
         env:
           NETCATTY_TERMINAL_DATA_PLANE_AUTORUN: '1'
-          # WebKitGTK crashes with DMABUF rendering on GPU-less CI runners.
+          # WebKitGTK crashes on GPU-less CI runners without these.
           WEBKIT_DISABLE_DMABUF_RENDERER: '1'
+          WEBKIT_DISABLE_COMPOSITING_MODE: '1'
+          GDK_BACKEND: x11
         run: xvfb-run -a ./terminal-data-plane-probe
 
       - name: Run autorun (Windows)
@@ -219,7 +221,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Go test and vet
         shell: bash
