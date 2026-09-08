@@ -54,17 +54,19 @@ func CompatibilityKey(config netcattyssh.DialConfig) (string, error) {
 		jumpHash = hex.EncodeToString(sum[:])
 	}
 	input := struct {
-		Hostname   string `json:"hostname"`
-		Port       uint16 `json:"port"`
-		Username   string `json:"username"`
-		JumpHash   string `json:"jumpHash"`
-		AuthDigest string `json:"authDigest"`
+		Hostname     string `json:"hostname"`
+		Port         uint16 `json:"port"`
+		Username     string `json:"username"`
+		JumpHash     string `json:"jumpHash"`
+		AuthDigest   string `json:"authDigest"`
+		ForwardAgent bool   `json:"forwardAgent"`
 	}{
-		Hostname:   config.Hostname,
-		Port:       config.Port,
-		Username:   config.Username,
-		JumpHash:   jumpHash,
-		AuthDigest: authDigest,
+		Hostname:     config.Hostname,
+		Port:         config.Port,
+		Username:     config.Username,
+		JumpHash:     jumpHash,
+		AuthDigest:   authDigest,
+		ForwardAgent: config.ForwardAgent,
 	}
 	encoded, err := json.Marshal(input)
 	if err != nil {
@@ -99,6 +101,7 @@ type pooledTransport struct {
 	transport   *netcattyssh.Transport
 	lastUsed    time.Time
 	outstanding int
+	singleUse   bool
 }
 
 // Lease is one checkout. Return or Discard must be called exactly once.
@@ -169,6 +172,18 @@ func (p *Pool) Get(ctx context.Context, config netcattyssh.DialConfig, kind Leas
 		p.mu.Unlock()
 		return nil, ErrPoolClosed
 	}
+	if config.ForwardAgent {
+		// Asymmetric reuse: agent-forwarding transports are single-use.
+		transport, err := p.dialFunc(ctx, config)
+		if err != nil {
+			p.mu.Unlock()
+			return nil, err
+		}
+		entry := &pooledTransport{key: key, transport: transport, lastUsed: time.Now(), outstanding: 1, singleUse: true}
+		lease := &Lease{pool: p, entry: entry, Kind: kind}
+		p.mu.Unlock()
+		return lease, nil
+	}
 	if entry, ok := p.transports[key]; ok {
 		if entry.outstanding == 0 && time.Since(entry.lastUsed) > p.idleTTL {
 			_ = entry.transport.Close()
@@ -224,6 +239,12 @@ func (p *Pool) release(lease *Lease, healthy bool) {
 	entry := lease.entry
 	if entry.outstanding > 0 {
 		entry.outstanding--
+	}
+	if entry.singleUse {
+		// Agent-forwarding transports never re-enter the pool.
+		_ = entry.transport.Close()
+		delete(p.transports, entry.key)
+		return
 	}
 	if !healthy || p.closed {
 		_ = entry.transport.Close()

@@ -1180,3 +1180,33 @@ capability row, source paths, verification output or CI run.
   行为在 P3-05 用 pkg/sftp 验证
 - Next safe slice: P3-04 agent-forwarding asymmetric reuse policy
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L032 - 2026-09-09 - P3-04 agent-forwarding asymmetric reuse policy
+
+- Capability rows: `SSH-02`
+- Plan task: `P3-04`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: 施加 agent-forwarding 非对称复用 policy：开启 ForwardAgent 的
+  transport 单次使用，绝不入池复用。
+- Go canonical owner: `internal/terminal/sshpool`（singleUse 标记 + Return
+  关闭）与 `internal/terminal/ssh` DialConfig.ForwardAgent
+- Frontend adapter: none; P3-04A session 集成消费
+- Electron owner affected: none
+- Preserved invariants: ForwardAgent 参与兼容 key；单次 lease Return 即关闭
+  transport；非 forwarding 路径行为不变
+- Data/schema impact: none
+- Security impact: 持本地 agent 通道的连接不跨 lease 暴露给其他会话/域
+- Verification: `go test -race -count=1 ./internal/terminal/sshpool/`（新增
+  forwarding 单次使用 + key 区分 2 tests；全套 key 敏感性/共享/single-flight/
+  TTL/shutdown 保持通过）
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P3-04A/各域接入 + one-auth 网络证据
+- Documentation updated: ledger
+- Residual risks: live one-auth 证据、P3-04A session 集成
+- Next safe slice: P3-04A SSH session integration over the shared pool
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

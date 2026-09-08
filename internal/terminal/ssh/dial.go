@@ -28,6 +28,10 @@ type DialConfig struct {
 	JumpHosts []DialConfig
 	// ProxyURL optionally routes the TCP dial (socks5:// or http://).
 	ProxyURL string
+	// ForwardAgent marks transports that expose the local SSH agent to the
+	// remote host. Such transports are never pooled for reuse (asymmetric
+	// reuse policy, P3-04).
+	ForwardAgent bool
 }
 
 var ErrHostKeyPolicyRequired = errors.New("ssh dial requires a host key policy")

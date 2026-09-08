@@ -182,3 +182,59 @@ func TestPoolAuthChangeDialsSeparately(t *testing.T) {
 	first.Return()
 	second.Return()
 }
+
+func TestPoolForwardingTransportsAreSingleUse(t *testing.T) {
+	dial := &recordingDial{}
+	pool := New(dial.dial)
+	defer pool.Shutdown()
+	ctx := context.Background()
+
+	forwarding := baseConfig()
+	forwarding.ForwardAgent = true
+	lease, err := pool.Get(ctx, forwarding, KindShell)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lease.Return()
+	if pool.Size() != 0 {
+		t.Fatalf("forwarding transport must not re-enter the pool, got %d", pool.Size())
+	}
+
+	again, err := pool.Get(ctx, forwarding, KindShell)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again.Return()
+	if dial.count() != 2 {
+		t.Fatalf("forwarding transports must redial every time, got %d", dial.count())
+	}
+
+	plain, err := pool.Get(ctx, baseConfig(), KindShell)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain.Return()
+	if pool.Size() != 1 {
+		t.Fatal("non-forwarding transports must stay pooled")
+	}
+	if dial.count() != 3 {
+		t.Fatalf("unexpected dial count %d", dial.count())
+	}
+}
+
+func TestCompatibilityKeyIncludesForwarding(t *testing.T) {
+	base := baseConfig()
+	forwarding := baseConfig()
+	forwarding.ForwardAgent = true
+	first, err := CompatibilityKey(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := CompatibilityKey(forwarding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("forwarding must change the compatibility key")
+	}
+}
