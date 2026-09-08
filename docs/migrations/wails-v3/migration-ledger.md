@@ -1210,3 +1210,72 @@ capability row, source paths, verification output or CI run.
 - Residual risks: live one-auth 证据、P3-04A session 集成
 - Next safe slice: P3-04A SSH session integration over the shared pool
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L033 - 2026-09-09 - P2-05/P2-06 source reader, leak scan and reverse rollback
+
+- Capability rows: `FND-03`
+- Plan task: `P2-05`, `P2-06`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 把迁移链从 schema 落到数据面：按 P2-01 清单读取 canonical keys、加密
+  bundle 的明文/base64 泄漏扫描、Go store → Electron 的反向回滚导出、bundle
+  tamper 崩溃矩阵。
+- Go canonical owner: `internal/profile/migration/rollback.go`（反向导出，
+  secret envelope 不解封）
+- Frontend adapter: `electron/bridges/profileMigrationSourceReader.cjs`
+  （P2-01 清单驱动 classification、canonical-only 过滤）+ leak scan
+- Electron owner affected: none yet; source reader 通过 accessor 注入，
+  credentialBridge 解封由调用方组合
+- Preserved invariants: 未分类 key 抛错（drift 联动 P2-01）；device-local/
+  transient/retired 不导出；secret 记录以 plaintext 进内存 payload 且 bundle
+  立即加密（泄漏扫描双形态断言）；rollback bundle 与 cutover bundle 同格式、
+  secret 不解封直接以 sealed envelope 回传；tamper 矩阵逐字节位翻转全部
+  fail-closed；错误 fingerprint 拒绝；空 store 回滚拒绝
+- Data/schema impact: rollback bundle 复用 bundle v1；无新 schema
+- Security impact: 泄漏扫描成为 export 必经断言；回滚路径不增加 plaintext 面
+- Verification: Node 2 tests（canonical 过滤 + 分类、泄漏扫描正/反/base64）；
+  Go 3 tests（rollback→Import roundtrip、16 步 tamper 矩阵、wrong fingerprint、
+  空 store）+ race；`go vet`
+- Platforms covered: platform-independent core; 全 profile live 导出证据 pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`, `WV3-007`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 反向回滚是 P2-06 rollback 承诺的实现；
+  Electron 持久化退役仍在 P2-07 逐域证据后
+- Documentation updated: ledger
+- Residual risks: 真实 Electron localStorage 全量导出的端到端运行、Electron
+  端 crash/取消/renderer 攻击矩阵、双进程争用集成测试
+- Next safe slice: P2-07 settings domain cutover with differential suites
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L034 - 2026-09-09 - P2-07 host revision multi-window CAS evidence
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 以可执行证据固化 host-revision 取代 process-local stale write 防护：
+  两个窗口同起点 CAS 写入，过期者被宿主拒绝。
+- Go canonical owner: `internal/profile/store`（CAS 语义既有）；本条补 renderer
+  契约层证据
+- Frontend adapter: `infrastructure/persistence/hostStorageAdapter.test.ts`
+  新增双窗口 CAS 场景
+- Electron owner affected: none
+- Preserved invariants: 同起点 revision、先写者胜、stale CAS 抛 revision
+  conflict、宿主 revision 单调
+- Data/schema impact: none
+- Security impact: 跨窗口写序由宿主 revision 而非 renderer 本地状态裁决
+- Verification: hostStorageAdapter tests 3 项（含新增双窗口 CAS）；Go store
+  CAS/concurrency 测试保持通过
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-004`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 各域 canonical cutover + 差分套件后退役
+  localStorage owner
+- Documentation updated: ledger
+- Residual risks: 真实双 WebView 进程并发（非模拟）与 quota/error 映射证据
+- Next safe slice: P3-04A SSH session integration over the shared pool
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

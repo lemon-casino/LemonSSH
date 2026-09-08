@@ -43,3 +43,35 @@ test("host adapter mirrors writes to the profile client", async () => {
   assert.equal(calls[0].domain, "settings");
   assert.equal(Buffer.from(calls[0].value, "base64").toString("utf8"), "值");
 });
+
+test("two windows writing through CAS: stale revision is rejected, fresh wins", async () => {
+  // Simulates P2-07's host-revision semantics: window A and window B both
+  // read the profile revision, A writes first, and B's stale CAS must lose.
+  let storedRevision = 5;
+  const client = {
+    revision: async () => storedRevision,
+    getRawBase64: async () => undefined,
+    setRawBase64: async () => undefined,
+    deleteRaw: async () => undefined,
+    write: async (expectedRevision: number) => {
+      if (expectedRevision !== storedRevision) {
+        throw new Error("profile revision conflict");
+      }
+      storedRevision += 1;
+      return { revision: storedRevision };
+    },
+    domains: async () => ["settings"],
+  };
+  configureHostProfileClient(client);
+
+  // Both windows observe the same starting revision.
+  const revisionA = await client.revision();
+  const revisionB = await client.revision();
+  assert.equal(revisionA, revisionB);
+
+  // Window A writes with the current revision and wins.
+  await client.write(revisionA, []);
+  // Window B's stale write is rejected by the host.
+  await assert.rejects(() => client.write(revisionB, []), /revision conflict/);
+  assert.equal(storedRevision, 6);
+});
