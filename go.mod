@@ -8,6 +8,7 @@ require (
 	github.com/creack/pty/v2 v2.0.1
 	github.com/gofrs/flock v0.12.1
 	github.com/pkg/sftp v1.13.9
+	github.com/tetratelabs/wazero v1.8.2
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.63
 	github.com/zalando/go-keyring v0.2.6
 	go.bug.st/serial v1.6.4
