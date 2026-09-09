@@ -1,0 +1,223 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"sync"
+	"time"
+
+	gossh "golang.org/x/crypto/ssh"
+
+	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/netcatty/internal/terminal/ssh"
+)
+
+// TerminalService owns SSH terminal sessions end-to-end: SSH dial → auth →
+// PTY channel → data plane streaming → renderer WebSocket. Each session gets
+// a route bootstrap (generation + one-use tokens) that the renderer exchanges
+// for the loopback data/urgent WebSocket connections.
+type TerminalService struct {
+	mu         sync.Mutex
+	sessions   map[string]*terminalSession
+	controller *dataplane.RouteController
+	dp         *dataplane.Server
+	knownHosts *ssh.KnownHosts
+	counter    int
+}
+
+type terminalSession struct {
+	transport *ssh.Transport
+	session   *gossh.Session
+	stdin     io.WriteCloser
+	bootstrap dataplane.RouteBootstrap
+}
+
+// NewTerminalService wires the route controller, transport and known-hosts
+// store together. The urgent channel (Ctrl-C et al.) is handled in-process by
+// writing the payload to the session's stdin.
+func NewTerminalService(controller *dataplane.RouteController, dp *dataplane.Server, knownHosts *ssh.KnownHosts) *TerminalService {
+	service := &TerminalService{
+		sessions:   make(map[string]*terminalSession),
+		controller: controller,
+		dp:         dp,
+		knownHosts: knownHosts,
+	}
+	dp.SetUrgentHandler(service.handleUrgent)
+	return service
+}
+
+// Connect dials SSH, authenticates, opens a PTY shell and starts streaming
+// output into the data plane. It returns the session ID; call Bootstrap to
+// get the route credentials for the renderer WebSocket.
+func (s *TerminalService) Connect(host string, port uint16, username, password string, cols, rows uint16) (string, error) {
+	if host == "" || username == "" {
+		return "", fmt.Errorf("host and username are required")
+	}
+	if port == 0 {
+		port = 22
+	}
+	if cols == 0 {
+		cols = 80
+	}
+	if rows == 0 {
+		rows = 24
+	}
+	config := ssh.DialConfig{
+		Hostname:          host,
+		Port:              port,
+		Username:          username,
+		Auth:              ssh.AuthMethod{Password: password},
+		HostKeyPolicy:     ssh.StrictPolicy(s.knownHosts),
+		Timeout:           15 * time.Second,
+		HandshakeTimeout:  15 * time.Second,
+		KeepaliveInterval: 30 * time.Second,
+	}
+	transport, err := ssh.Dial(context.Background(), config)
+	if err != nil {
+		return "", fmt.Errorf("ssh dial %s:%d: %w", host, port, err)
+	}
+
+	sshSession, err := transport.Client.NewSession()
+	if err != nil {
+		transport.Close()
+		return "", fmt.Errorf("new session: %w", err)
+	}
+	if err := sshSession.RequestPty("xterm-256color", int(rows), int(cols), gossh.TerminalModes{}); err != nil {
+		sshSession.Close()
+		transport.Close()
+		return "", fmt.Errorf("pty request: %w", err)
+	}
+	stdin, err := sshSession.StdinPipe()
+	if err != nil {
+		sshSession.Close()
+		transport.Close()
+		return "", fmt.Errorf("stdin pipe: %w", err)
+	}
+	stdout, err := sshSession.StdoutPipe()
+	if err != nil {
+		sshSession.Close()
+		transport.Close()
+		return "", fmt.Errorf("stdout pipe: %w", err)
+	}
+	if err := sshSession.Shell(); err != nil {
+		sshSession.Close()
+		transport.Close()
+		return "", fmt.Errorf("shell request: %w", err)
+	}
+
+	bootstrap, err := s.controller.Open(fmt.Sprintf("%s@%s:%d", username, host, port))
+	if err != nil {
+		sshSession.Close()
+		transport.Close()
+		return "", fmt.Errorf("open route: %w", err)
+	}
+	sessionID := bootstrap.SessionID
+
+	s.mu.Lock()
+	s.counter++
+	term := &terminalSession{transport: transport, session: sshSession, stdin: stdin, bootstrap: bootstrap}
+	s.sessions[sessionID] = term
+	s.mu.Unlock()
+
+	// Pump SSH stdout → data plane. The controller admits frames against the
+	// renderer's credit, so the pump never needs its own backpressure.
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := stdout.Read(buf)
+			if n > 0 {
+				s.dp.Publish(sessionID, buf[:n])
+			}
+			if readErr != nil {
+				return
+			}
+		}
+	}()
+
+	// When the remote side closes the shell, tear the session down.
+	go func() {
+		_ = sshSession.Wait()
+		s.Close(sessionID)
+	}()
+
+	return sessionID, nil
+}
+
+// Bootstrap returns the route credentials the renderer needs to attach its
+// data/urgent WebSockets for a session.
+func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
+	s.mu.Lock()
+	term, ok := s.sessions[sessionID]
+	s.mu.Unlock()
+	if !ok {
+		return dataplane.RouteBootstrap{}, fmt.Errorf("session %q not found", sessionID)
+	}
+	return term.bootstrap, nil
+}
+
+// ListenAddr exposes the bound loopback data plane address (host:port).
+func (s *TerminalService) ListenAddr() string { return s.dp.Addr() }
+
+// Write sends raw stdin bytes to the remote shell.
+func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
+	term, ok := s.lookup(sessionID)
+	if !ok {
+		return 0, fmt.Errorf("session %q not found", sessionID)
+	}
+	return term.stdin.Write(data)
+}
+
+// Resize updates the remote PTY window size.
+func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
+	term, ok := s.lookup(sessionID)
+	if !ok {
+		return fmt.Errorf("session %q not found", sessionID)
+	}
+	return term.session.WindowChange(int(rows), int(cols))
+}
+
+// Signal delivers a POSIX signal name (e.g. "KILL") to the remote shell.
+func (s *TerminalService) Signal(sessionID, signal string) error {
+	term, ok := s.lookup(sessionID)
+	if !ok {
+		return fmt.Errorf("session %q not found", sessionID)
+	}
+	_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
+	return err
+}
+
+// Close tears the PTY, transport and data plane route down.
+func (s *TerminalService) Close(sessionID string) error {
+	s.mu.Lock()
+	term, ok := s.sessions[sessionID]
+	delete(s.sessions, sessionID)
+	s.mu.Unlock()
+	if !ok {
+		return nil
+	}
+	term.session.Close()
+	term.transport.Close()
+	_ = s.controller.Close(sessionID)
+	s.dp.DropOutput(sessionID)
+	return nil
+}
+
+func (s *TerminalService) lookup(sessionID string) (*terminalSession, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	term, ok := s.sessions[sessionID]
+	return term, ok
+}
+
+// handleUrgent writes urgent payloads (Ctrl-C et al.) straight to stdin.
+func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte {
+	term, ok := s.lookup(sessionID)
+	if !ok {
+		return nil
+	}
+	if _, err := term.stdin.Write(payload); err != nil {
+		return nil
+	}
+	return []byte("ok")
+}

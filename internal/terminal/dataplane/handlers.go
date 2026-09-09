@@ -47,6 +47,12 @@ func (q *outputQueue) close() {
 	q.cond.Broadcast()
 }
 
+func (q *outputQueue) isClosed() bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.closed
+}
+
 func (q *outputQueue) pop() ([]byte, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -62,14 +68,11 @@ func (q *outputQueue) pop() ([]byte, bool) {
 }
 
 // Publish queues renderer-bound output for the session's current generation.
-// Data larger than MaxPayloadBytes is split into frame-bounded chunks.
+// Data larger than MaxPayloadBytes is split into frame-bounded chunks. The
+// queue is created lazily so output produced before the renderer attaches is
+// buffered (admitted only after the first credit grant) instead of dropped.
 func (s *Server) Publish(sessionID string, data []byte) {
-	s.mu.Lock()
-	queue := s.outputs[sessionID]
-	s.mu.Unlock()
-	if queue == nil {
-		return
-	}
+	queue := s.queueFor(sessionID)
 	for len(data) > 0 {
 		chunk := data
 		if len(chunk) > MaxPayloadBytes {
@@ -77,6 +80,16 @@ func (s *Server) Publish(sessionID string, data []byte) {
 		}
 		queue.push(chunk)
 		data = data[len(chunk):]
+	}
+}
+
+// DropOutput discards the session's output queue (session teardown).
+func (s *Server) DropOutput(sessionID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if queue, ok := s.outputs[sessionID]; ok {
+		queue.close()
+		delete(s.outputs, sessionID)
 	}
 }
 
@@ -284,7 +297,10 @@ func (s *Server) queueFor(sessionID string) *outputQueue {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	queue := s.outputs[sessionID]
-	if queue == nil {
+	// A queue is closed when its WebSocket write loop exits; a reconnecting
+	// renderer must get a fresh queue or it would observe an immediate
+	// FrameComplete with no data.
+	if queue == nil || queue.isClosed() {
 		queue = newOutputQueue()
 		s.outputs[sessionID] = queue
 	}

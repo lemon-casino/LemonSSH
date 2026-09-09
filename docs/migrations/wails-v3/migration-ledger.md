@@ -1807,3 +1807,70 @@ capability row, source paths, verification output or CI run.
   codegen drift 检查
 - Next safe slice: P5-03 wazero WASM runtime
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L051 - 2026-09-10 - 切片 A: data plane 接入 Wails 壳（缓冲/重连/origin 修复）
+
+- Capability rows: `TERM-01`
+- Plan task: `P3-01`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 生产 data plane 在 Wails 壳内可用：Publish 懒建队列（渲染层接入前输出
+  缓冲而非丢弃）、WebSocket 断开后重连换取新队列、DropOutput 会话清理、
+  origin 校验放行 wails.localhost host（http/https/wails scheme 任意端口）。
+- Go canonical owner: `internal/terminal/dataplane`（handlers.go/server.go）
+- Frontend adapter: Wails bindings 重新生成（6 services / 27 methods，新增
+  terminalservice.js）；renderer WS 消费待切片 C
+- Electron owner affected: none
+- Preserved invariants: route token 一次性 + generation fencing；credit 门控
+  输出；Host 精确匹配 loopback；其余 origin 仍全部拒绝
+- Data/schema impact: none
+- Security impact: origin 校验扩展面仅为 wails.localhost host 前缀域（scheme
+  白名单），无新增网络暴露
+- Verification: `go test -race ./internal/terminal/dataplane/` 全绿；新增 4 项
+  测试（pre-attach 缓冲、重连新队列、DropOutput、origin 矩阵）；`go vet` 干净
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台配对基准证据后 TERM-01 才能进入 verified
+- Documentation updated: capability matrix (TERM-01 row)
+- Residual risks: 输出预缓冲无上限（首个 credit 前依赖写入速率）；断连-重连
+  窗口内的 publish 可能落入垂死队列；三平台基准证据缺失
+- Next safe slice: 切片 B SFTP Service（over SSH transport）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L052 - 2026-09-10 - 切片 A: Wails SSH Terminal Service 端到端接线
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: cmd/netcatty 新增 TerminalService：SSH dial → StrictPolicy host-key →
+  PTY shell → data plane Publish → resize/signal/close，urgent 通道注入 stdin，
+  Bootstrap 暴露 route 凭证给渲染层；main.go 完成 data plane 启停与服务注册。
+- Go canonical owner: `cmd/netcatty/terminalService.go` + `internal/terminal/ssh`
+- Frontend adapter: Wails service 绑定（terminalservice.js）；renderer 消费待切片 C
+- Electron owner affected: none
+- Preserved invariants: host-key 走 StrictPolicy（accept-new/reject-changed，
+  known_hosts 落 profile 数据目录，OpenSSH 行格式）；会话关闭统一回收
+  transport/route/输出队列；无业务逻辑进组件层（facade 模式）
+- Data/schema impact: 新增 known_hosts 文件
+- Security impact: 密码参数经 Wails 绑定传输（loopback IPC）；键盘交互认证
+  回调暂未接 UI，密码模式先行
+- Verification: `go test -race ./internal/... ./cmd/...` 全绿；修复 telnet
+  `c.handler` data race（flush/handleNegotiation 改为锁内快照）；`go vet` 干净；
+  `npm run wails:build` 产出 bin/netcatty-wails.exe 并完成 6 秒启动冒烟
+  （WebView2 加载真实前端资源，6 services 注册）
+- Platforms covered: Windows 10 22H2（本机）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 渲染层 WS 消费 + 活体 MFA/proxy/jump
+  证据后 SSH-01 才能进入 verified
+- Documentation updated: capability matrix (SSH-01 row)
+- Residual risks: 无活动 SSH 服务器可用的本机环境仅验证接线与编译产物；
+  键盘交互认证 UI 回调缺失；legacy 算法决策待定
+- Next safe slice: 切片 B SFTP Service（over SSH transport）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

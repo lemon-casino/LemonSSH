@@ -17,6 +17,8 @@ import (
 
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
+	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/netcatty/internal/terminal/ssh"
 )
 
 //go:embed all:frontend/dist
@@ -66,6 +68,16 @@ func main() {
 	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 	ptyService := newPTYService()
 
+	// Terminal data plane (loopback WebSocket) + SSH terminal service.
+	routeController := dataplane.NewRouteController()
+	dpServer := dataplane.NewServer(routeController, "127.0.0.1:0")
+	if err := dpServer.Start(); err != nil {
+		log.Fatalf("start terminal data plane: %v", err)
+	}
+	defer dpServer.Stop()
+	knownHosts := ssh.NewKnownHosts(filepath.Join(filepath.Dir(profileStore.Path()), "known_hosts"))
+	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
+
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
 		Description: "Netcatty Wails shell",
@@ -75,6 +87,7 @@ func main() {
 			application.NewService(credentialService),
 			application.NewService(migrationService),
 			application.NewService(ptyService),
+			application.NewService(terminalSvc),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

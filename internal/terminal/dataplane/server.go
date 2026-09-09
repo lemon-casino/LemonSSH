@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -104,13 +105,33 @@ var (
 	errUnauthorized    = errors.New("route token unauthorized")
 )
 
+// originAllowed reports whether the Origin may attach. Exact allowlist entries
+// always pass; additionally the Wails webview origins are accepted because the
+// asset server binds a random port per platform (Windows serves
+// http://wails.localhost:<port>, macOS/Linux wails://wails.localhost).
+func (s *Server) originAllowed(origin string) bool {
+	if _, ok := s.allowedOrigins[origin]; ok {
+		return true
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	switch parsed.Scheme {
+	case "http", "https", "wails":
+	default:
+		return false
+	}
+	return parsed.Hostname() == "wails.localhost"
+}
+
 func (s *Server) authorize(writer http.ResponseWriter, request *http.Request, sessionID string, urgent bool) bool {
 	if request.Host != s.listenAddr {
 		http.Error(writer, errForbiddenHost.Error(), http.StatusForbidden)
 		return false
 	}
 	origin := request.Header.Get("Origin")
-	if _, ok := s.allowedOrigins[origin]; !ok {
+	if !s.originAllowed(origin) {
 		http.Error(writer, errForbiddenOrigin.Error(), http.StatusForbidden)
 		return false
 	}

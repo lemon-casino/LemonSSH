@@ -147,6 +147,14 @@ func (c *Client) Close() error {
 	return conn.Close()
 }
 
+// currentHandler snapshots the event handler under the mutex; the handler may
+// be swapped concurrently (e.g. AutoLogin chaining).
+func (c *Client) currentHandler() func(Event) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.handler
+}
+
 // readLoop parses the inbound stream: plain data is dispatched; IAC sequences
 // drive negotiation and are never forwarded as data. Buffered data is flushed
 // after a short idle deadline so newline-less payloads (prompts, banners)
@@ -162,8 +170,8 @@ func (c *Client) readLoop() {
 	var dataBuffer []byte
 	flush := func() {
 		if len(dataBuffer) > 0 {
-			if c.handler != nil {
-				c.handler(Event{Kind: EventData, Data: append([]byte(nil), dataBuffer...)})
+			if handler := c.currentHandler(); handler != nil {
+				handler(Event{Kind: EventData, Data: append([]byte(nil), dataBuffer...)})
 			}
 			dataBuffer = dataBuffer[:0]
 		}
@@ -242,10 +250,11 @@ func (c *Client) handleNegotiation(command, option byte) {
 			c.mu.Lock()
 			changed := !c.remoteEcho
 			c.remoteEcho = true
+			handler := c.handler
 			c.mu.Unlock()
 			reply = []byte{IAC, DO, OptEcho}
-			if changed && c.handler != nil {
-				c.handler(Event{Kind: EventEchoMode, Data: []byte("remote")})
+			if changed && handler != nil {
+				handler(Event{Kind: EventEchoMode, Data: []byte("remote")})
 			}
 		case OptSGA:
 			reply = []byte{IAC, DO, OptSGA}
