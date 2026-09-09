@@ -1948,3 +1948,76 @@ capability row, source paths, verification output or CI run.
   仍在）；key/MFA 认证选项待 Go 绑定扩展；三平台证据缺失
 - Next safe slice: 切片 D（P6-02 打包 / P6-04 迁移执行 / P6-05 gate）
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L055 - 2026-09-10 - P6-02: Wails 资格打包管线（Windows 实证）
+
+- Capability rows: `REL-01`
+- Plan task: `P6-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 可重复的资格打包脚本 `scripts/package-wails.mjs`：版本 ldflags 戳记
+  （-X main.version，已验证替换默认字符串）、trimpath + 符号剥离、产物命名
+  Netcatty-{version}-{goos}-{goarch} 加平台可执行后缀、SHA-256 checksums.txt 与
+  artifact-manifest.json（version/commit/goos/goarch/cross/artifacts）、
+  交叉编译强制 CGO_ENABLED=0 并告警；node:test 单测 5 项覆盖纯函数。
+- Go canonical owner: none（打包脚本 + `cmd/netcatty` 构建产物）
+- Frontend adapter: 复用 npm run build + wails-prepare-frontend（--skip-frontend 可跳）
+- Electron owner affected: none
+- Preserved invariants: 产物清单与校验和先于发布证据；跨平台二进制不冒充
+  原生 GUI 产物（cross 标记）
+- Data/schema impact: 新增 dist/wails/{artifact-manifest.json, checksums.txt}
+  （构建产物，gitignore）
+- Security impact: 符号剥离 + trimpath 降低可利用面；签名仍缺（诚实记录）
+- Verification: node --test scripts/package-wails.test.mjs（5/5）；实际打包
+  Windows amd64 产物并 8 秒启动冒烟（WebView2 加载前端，trimpath 生效）；
+  grep 验证默认版本字符串已被 ldflags 替换
+- Platforms covered: Windows 10 22H2（本机实证）；macOS/Linux 目标为脚本
+  支持但仅有 CI 占位，无本机证据
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台签名包 + P8-01 干净机冒烟后
+  REL-01 才能进入 verified
+- Documentation updated: capability matrix (REL-01 row)
+- Residual risks: 签名、安装包格式（msi/pkg/AppImage/deb/rpm/pacman）、
+  更新feed 与干净机矩阵全部缺失
+- Next safe slice: P6-05 gate 前置缺口清点（其余 needs-verification 行）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L056 - 2026-09-10 - P6-04: 升级引导链持久化 + UpgradeService
+
+- Capability rows: `REL-02`
+- Plan task: `P6-04`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Electron N-1 → Wails 升级引导链产品化：internal/platform/upgrade
+  新增 PersistentCoordinator（upgrade-state.json 原子落盘 temp+rename、
+  崩溃后按存储 step 恢复、版本对不匹配 fail-closed、损坏状态拒绝、
+  ClearState 重置）；cmd/netcatty UpgradeService 门面（Status/Begin/
+  Advance/Cancel，无状态句柄，每调用重开持久协调器）。
+- Go canonical owner: `internal/platform/upgrade/persistent.go` +
+  `cmd/netcatty/upgradeService.go`
+- Frontend adapter: Wails bindings 8 services / 40 methods（新增
+  upgradeservice.js）；renderer 消费待接
+- Electron owner affected: none
+- Preserved invariants: 仅前向状态迁移（状态机校验不变）；状态写入原子
+  （tmp+rename）；损坏/不匹配状态 fail-closed 而非静默重置
+- Data/schema impact: profile 数据目录 upgrade/upgrade-state.json
+  （from/to/step/history/updatedAt）
+- Security impact: 升级状态不含机密；版本对不匹配显式拒绝避免错误回滚覆盖
+- Verification: persistent_test.go 4 项 race 全绿（begin/resume/原子性/
+  损坏/mismatch/clear）；`go test -race ./internal/... ./cmd/...` 全绿；
+  `go vet` 干净；bindings 重新生成
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真实 N-1 升级活体演练（含中断恢复）
+  + 签名 feed 后 REL-02 才能进入 verified
+- Documentation updated: capability matrix (REL-02 row: not-started -> probe)
+- Residual risks: 无生产 updater feed/签名密钥管理；P8-01 终局 N-1→N、
+  篡改、中断、提权、托盘、回滚矩阵全部待做
+- Next safe slice: P6-05 NONAI-COMPLETE gate 缺口清点
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

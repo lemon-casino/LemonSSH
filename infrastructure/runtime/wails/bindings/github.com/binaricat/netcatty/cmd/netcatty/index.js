@@ -9,6 +9,7 @@ import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
 import * as TerminalService from "./terminalservice.js";
+import * as UpgradeService from "./upgradeservice.js";
 export {
     CredentialService,
     NetcattyService,
@@ -16,5 +17,10 @@ export {
     ProfileMigrationService,
     ProfileService,
     SFTPService,
-    TerminalService
+    TerminalService,
+    UpgradeService
 };
+
+export {
+    UpgradeStatus
+} from "./models.js";

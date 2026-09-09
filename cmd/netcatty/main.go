@@ -68,6 +68,7 @@ func main() {
 	credentialService := newCredentialService(credentialProvider)
 	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 	ptyService := newPTYService()
+	upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -91,6 +92,7 @@ func main() {
 			application.NewService(credentialService),
 			application.NewService(migrationService),
 			application.NewService(ptyService),
+			application.NewService(upgradeService),
 			application.NewService(terminalSvc),
 			application.NewService(sftpService),
 		},
