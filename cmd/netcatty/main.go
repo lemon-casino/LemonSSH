@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/icons"
 
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
@@ -93,6 +94,19 @@ func main() {
 		BackgroundColour: application.NewRGB(20, 23, 28),
 		URL:              "/index.html",
 	})
+
+	// System Tray (P4-03)
+	tray := wailsApp.SystemTray.New()
+	tray.SetIcon(icons.SystrayLight)
+	tray.SetTooltip("Netcatty")
+	trayMenu := wailsApp.NewMenu()
+	trayMenu.Add("Show Netcatty").OnClick(func(*application.Context) {
+		if win, ok := wailsApp.Window.GetByName("main"); ok {
+			win.Show()
+		}
+	})
+	trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
+	tray.SetMenu(trayMenu)
 
 	if err := wailsApp.Run(); err != nil {
 		log.Fatal(err)
