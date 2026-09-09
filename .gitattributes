@@ -1,2 +1,5 @@
 *.sh text eol=lf
 testdata/migration/electron/** text eol=lf
+
+# Byte-exact migration fixtures must stay LF on every platform
+testdata/migration/** text eol=lf
