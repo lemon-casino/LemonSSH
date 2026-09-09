@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -265,7 +264,18 @@ test("resolve pastes Catty-style mixed markdown+html with image sizes", () => {
 });
 
 test("repo README paste collapses shields badges without debris", () => {
-  const readmeHead = readFileSync(new URL("../../README.md", import.meta.url), "utf8").slice(0, 2200);
+  // Self-contained fixture replicating a typical README head (project logo,
+  // shields badges, large screenshot) so the paste behavior test does not
+  // depend on repo branding.
+  const readmeHead = [
+    '<p align="center"><img src="public/icon.png" alt="App" width="128" height="128"></p>',
+    '<h1 align="center">App</h1>',
+    '<p align="center">',
+    '  <a href="https://example.com/releases"><img alt="Release" src="https://img.shields.io/github/v/release/example/app?style=for-the-badge&logo=github&label=Release"></a>',
+    '  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-green?style=for-the-badge"></a>',
+    '</p>',
+    '<img width="3142" height="1764" alt="Screenshot" src="https://github.com/user-attachments/assets/screenshot" />',
+  ].join("\n");
   const payload = resolveNoteClipboardPaste({ plainText: readmeHead, htmlText: "" });
   assert.ok(payload.text.length > 50);
   assert.doesNotMatch(payload.text, /^\s*\]\([^)\n]+\)\s*$/m);
