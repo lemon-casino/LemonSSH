@@ -175,6 +175,9 @@ jobs:
           # WebKitGTK crashes on GPU-less CI runners without these.
           WEBKIT_DISABLE_DMABUF_RENDERER: '1'
           WEBKIT_DISABLE_COMPOSITING_MODE: '1'
+          # bwrap cannot configure loopback on Actions runners; disable the
+          # WebKit process sandbox for this probe only.
+          WEBKIT_FORCE_SANDBOX: '0'
           GDK_BACKEND: x11
         run: xvfb-run -a ./terminal-data-plane-probe
 
