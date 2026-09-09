@@ -1776,3 +1776,34 @@ capability row, source paths, verification output or CI run.
 - Residual risks: OS-level 注册（Wails adapter 接线）、三平台 native smoke
 - Next safe slice: P5-02 package store
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L050 - 2026-09-09 - P5-02 package store + P5-04 declarative UI schema
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-02`, `P5-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 插件 v2 package store（内存清单 + 生命周期状态机 + 排序列表）与声明式
+  UI schema 校验（settings form + view，注入向量拒绝）。
+- Go canonical owner: `internal/plugin/store` + `internal/plugin/ui`
+- Frontend adapter: none yet; Wails 渲染层消费 ui.Schema
+- Electron owner affected: none
+- Preserved invariants: package record 含 manifest 快照/sha256/state/时间戳；
+  重复安装拒绝；UI schema ID 全小写+限定字符；HTML/JS/CSS 注入向量全拒；
+  select 必须有 options
+- Data/schema impact: PackageRecord/SettingField/ViewDef JSON 契约
+- Security impact: UI schema 是"什么允许渲染"的唯一权威；注入向量在 schema
+  校验层拒绝而非渲染时转义
+- Verification: `go test ./internal/plugin/store/`（3 项）+ `./internal/plugin/ui/`（4 项 race）+ `go vet`；全量 `internal/plugin/` 3 包全过
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: P5-03 wazero + P5-05 native 进程 +
+  P5-08 断开 v1 后，Electron plugin runtime 冻结
+- Documentation updated: capability matrix and ledger
+- Residual risks: wazero WASM runtime、native 进程 runtime、真实攻击语料、
+  codegen drift 检查
+- Next safe slice: P5-03 wazero WASM runtime
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
