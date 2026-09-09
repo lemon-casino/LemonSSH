@@ -1,120 +1,63 @@
 <p align="center">
-  <img src="public/icon.png" alt="Netcatty" width="128" height="128">
+  <img src="public/icon.png" alt="LemonSSH" width="128" height="128">
 </p>
 
-<h1 align="center">Netcatty</h1>
+<h1 align="center">LemonSSH</h1>
 
 <p align="center">
-  <strong>🔥 AI 搭載の SSH クライアント、SFTP ブラウザ & ターミナルマネージャー 🚀</strong><br/>
-  <a href="https://netcatty.app"><strong>netcatty.app</strong></a>
-</p>
-
-<p align="center">
-  Electron、React、xterm.js で構築された機能豊富な SSH ワークスペース。<br/>
-  🔥 内蔵 AI Agent · 分割ターミナル · Vault ビュー · SFTP ワークフロー · カスタムテーマ — すべてが一つに。
+  <strong>🔥 AI 搭載の SSH クライアント・SFTP ブラウザ & ターミナルマネージャー 🚀</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/binaricat/Netcatty/releases/latest"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/binaricat/Netcatty?style=for-the-badge&logo=github&label=Release"></a>
-  &nbsp;
-  <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=for-the-badge&logo=electron"></a>
+  Electron から Go + Wails v3 ランタイムへ移行中の、美しく高機能な SSH ワークスペース。<br/>
+  🔥 AI エージェント内蔵 · 画面分割ターミナル · Vault ビュー · SFTP ワークフロー · カスタムテーマ —— すべて揃っています。
+</p>
+
+<p align="center">
+  <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=for-the-badge"></a>
   &nbsp;
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-green?style=for-the-badge"></a>
+  &nbsp;
+  <a href="docs/migrations/wails-v3/README.md"><img alt="Migration" src="https://img.shields.io/badge/Migration-Wails%20v3%20%2B%20Go-informational?style=for-the-badge&logo=go"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/binaricat/Netcatty/releases/latest">
-    <img src="https://img.shields.io/github/v/release/binaricat/Netcatty?style=for-the-badge&logo=github&label=%E6%9C%80%E6%96%B0%E7%89%88%E3%82%92%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89&color=success" alt="最新版をダウンロード">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://ko-fi.com/binaricat">
-    <img src="https://cdn.ko-fi.com/cdn/kofi3.png?v=2" width="150" alt="Ko-fi でサポート">
-  </a>
-</p>
-
-<p align="center">
-  <a href="./README.md">English</a> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./README.zh-TW.md">繁體中文</a> · <a href="./README.ja-JP.md">日本語</a>
+  <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · 日本語 · <a href="README.md">English</a>
 </p>
 
 ---
 
-<img width="3142" height="1764" alt="Screenshot 2026-07-02 at 22 51 24" src="https://github.com/user-attachments/assets/3116165d-623a-4d3a-a28a-914befb9b72d" />
+## 移行状況（Electron → Go + Wails v3）
+
+このリポジトリは Netcatty プロジェクトの後継です。React/TypeScript フロントエンド、
+ユーザーデータ、機能セットを維持したまま、ランタイムを Electron/Node.js から
+**Go + Wails v3** へ移行しています。
+
+| 領域 | 状態 |
+| --- | --- |
+| 移行ガバナンス（ドキュメント・レジャー・CI エビデンスワークフロー） | ✅ 整備済み |
+| シェル非依存フロントエンドポート + Wails スケルトン + 基本コントラクト | ✅ 完了 |
+| Go トランザクション プロファイルストア・ライターリース・資格情報プロバイダー | ✅ コア完了 |
+| 暗号化マイグレーションバンドル（エクスポート/インポート/ロールバック） | ✅ コア完了 |
+| ターミナル バイナリデータプレーン・ローカル PTY・SSH ダイヤル/プール・SFTP・転送 | ✅ コア完了 |
+| 3 プラットフォーム実機エビデンス・ドメイン別永続化切り替え | 🚧 収集中 |
+| Telnet/Serial/Mosh/ET/ZMODEM・システム機能・プラグイン v2・同期・AI | ⏳ 順番待ち |
+
+権威あるステータス：[capability-matrix.md](docs/migrations/wails-v3/capability-matrix.md) · レジャー：[migration-ledger.md](docs/migrations/wails-v3/migration-ledger.md) · 計画：[implementation-plan.md](docs/migrations/wails-v3/implementation-plan.md)。
 
 ---
 
-<a name="catty-agent"></a>
-# 🔥 Catty Agent — あなたの IT 運用 AI パートナー
+<a name="lemonssh-とは"></a>
+# LemonSSH とは
 
-> 🚀 **AI で日常の IT 運用作業を加速。** Catty Agent はサーバー環境を理解し、コマンドを実行し、自然な会話で複数ホストの複雑な操作をこなす内蔵 AI アシスタントです。
+**LemonSSH** は、macOS・Windows・Linux 向けのモダンな SSH クライアント兼ターミナルマネージャーです。
+複数のリモートサーバーを効率的に管理したい開発者・システム管理者・DevOps エンジニアのために設計されています。
 
-### 🔥 Catty Agent にできること
-
-- 🚀 **自然言語でサーバー管理** — コマンドを暗記せず、必要なことを話しかけるだけ
-- 🔥 **リアルタイムサーバー診断** — 会話を通じてステータス確認、ログ調査、リソース監視
-- 🚀 **マルチホスト連携** — 複数サーバーのタスクを同時にコーディネート
-- 🔥 **インテリジェントなコンテキスト認識** — サーバー環境を理解し、的確な回答を提供
-- 🚀 **ワンステップで複雑な操作** — クラスター構築、サービスデプロイなど簡単な指示で実行
-
-### 🎬 AI の動作デモ
-
-#### 🔥 シングルホスト — インテリジェントなサーバー診断
-
-Catty Agent にサーバーの健全性チェックを依頼すると、適切なコマンドを実行し、出力を分析して数秒で明確なサマリーを提示します。
-
-<img width="1510" height="870" alt="ai-single" src="https://github.com/user-attachments/assets/d3f34e53-8476-4fab-8634-394b931d1ff1" />
-
-#### 🚀 マルチホスト — Docker Swarm クラスターのセットアップ
-
-1 つの会話で 2 台のサーバーをまたいで Docker Swarm クラスターをオーケストレーションする Catty Agent をご覧ください。初期化、トークン交換、ノード参加まですべてこなします — あなたは望む結果を伝えるだけ。
-
-<img width="1515" height="870" alt="ai-muti" src="https://github.com/user-attachments/assets/ca166fc5-65d9-4d7b-951a-962c2ef230d8" />
-
----
-
-# 目次 <!-- omit in toc -->
-
-- [🔥 Catty Agent — AI パートナー](#catty-agent)
-- [Netcatty とは](#netcatty-とは)
-- [なぜ Netcatty](#なぜ-netcatty)
-- [機能](#機能)
-- [スクリーンショット](#スクリーンショット)
-  - [メインウィンドウ](#メインウィンドウ)
-  - [Vault ビュー](#vault-ビュー)
-  - [分割ターミナル](#分割ターミナル)
-- [対応ディストリビューション](#対応ディストリビューション)
-- [はじめに](#はじめに)
-- [ビルドとパッケージ](#ビルドとパッケージ)
-- [技術スタック](#技術スタック)
-- [コントリビューション](#コントリビューション)
-- [コントリビューター](#コントリビューター)
-- [Star 履歴](#star-履歴)
-- [ライセンス](#ライセンス)
-
----
-
-<a name="netcatty-とは"></a>
-# Netcatty とは
-
-**Netcatty** は、複数のリモートサーバーを効率的に管理する必要がある開発者、システム管理者、DevOps エンジニア向けに設計された、モダンなクロスプラットフォーム SSH クライアントおよびターミナルマネージャーです。
-
-- **Netcatty は** PuTTY、Termius、SecureCRT、macOS Terminal.app の代替となる SSH 接続ツール
-- **Netcatty は** デュアルペインのファイルブラウザを備えた強力な SFTP クライアント
-- **Netcatty は** 分割ペイン、タブ、セッション管理を備えたターミナルワークスペース
-- **Netcatty は** SSH、ローカルターミナル、Telnet、Mosh、シリアル接続をサポートします（利用可能な場合）
-- **Netcatty は** シェルの代替ではありません — SSH/Telnet/Mosh またはローカル/シリアルセッション経由でシェルに接続します
-
----
-
-<a name="なぜ-netcatty"></a>
-# なぜ Netcatty
-
-複数サーバーを日常的に扱うなら、Netcatty は「スピード」と「流れ」を重視した作りになっています：
-
-- **ワークスペース中心** — 分割ペイン + タブ + セッション復元で常時使うワークフローに対応
-- **Vault の整理** — グリッド/リスト/ツリー表示、高速検索、ドラッグしやすいワークフロー
-- **本格的な SFTP** — 内蔵エディタ + ドラッグ＆ドロップ + スムーズなファイル操作
+- **LemonSSH は** PuTTY、Termius、SecureCRT、macOS ターミナルの代替です
+- **LemonSSH は** デュアルペインのファイルブラウザーを備えた高機能 SFTP クライアントです
+- **LemonSSH は** 分割ペイン・タブ・セッション管理に対応したターミナルワークスペースです
+- **LemonSSH は** SSH・ローカルターミナル・Telnet・Mosh・シリアル接続に対応しています（利用可能な場合）
+- **LemonSSH は** シェルの置き換えではありません —— SSH/Telnet/Mosh やローカル/シリアルセッションを通じてシェルに接続します
 
 ---
 
@@ -122,130 +65,88 @@ Catty Agent にサーバーの健全性チェックを依頼すると、適切�
 # 機能
 
 ### 🗂️ Vault
-- **複数ビュー** — グリッド / リスト / ツリー
-- **高速検索** — ホストやグループを素早く見つける
+
+ホスト・鍵・ID・プロキシプロファイル・グループ・スニペット・メモ・既知ホスト・ポートフォワーディングルールを
+一元管理するボールト。グリッド・リスト・ツリーの 3 種類のビューと高速検索。
 
 ### 🖥️ ターミナルワークスペース
-- **分割ペイン** — 水平・垂直分割でマルチタスク
-- **セッション管理** — 複数の接続を並行して扱う
-- **インライン画像** — リモートプログラムが出力する Kitty グラフィックス、SIXEL、iTerm インライン画像を描画
 
-### 📁 SFTP + 内蔵エディタ
-- **ファイル作業** — ドラッグ＆ドロップでアップロード/ダウンロード
-- **その場で編集** — 内蔵エディタで小さな修正を素早く
+折りたたみ可能なホストツリーサイドバー付きの分割ペイン。タブによる並列セッション。
+作業ディレクトリを含む完全なセッション復元。
+
+### 📁 SFTP + 内蔵エディター
+
+ドラッグ & ドロップ、転送センター、一時停止/再開、ディレクトリアップロード、アーカイブ展開、
+内蔵コードエディターに対応したデュアルペインブラウザー。
+
+### 🤖 AI エージェント（Catty）
+
+自然言語によるサーバー管理、リアルタイム診断、マルチホストオーケストレーション、ワンクリックの複雑な操作。
 
 ### 🎨 パーソナライズ
-- **カスタムテーマ** — UI の見た目を好みに調整
-- **キーワードハイライト** — ターミナル出力の強調表示ルールをカスタマイズ
+
+ライト/ダーク UI テーマ、ターミナルテーマ、カスタム CSS、フォント、アクセントカラー、
+アプリアイコン、グローバルホットキー。
 
 ---
 
 <a name="スクリーンショット"></a>
 # スクリーンショット
 
-<a name="メインウィンドウ"></a>
 ## メインウィンドウ
 
-メインウィンドウは、長時間の SSH 作業を前提に設計されています。セッション、ナビゲーション、主要ツールへ素早くアクセスできます。
+<img width="3142" height="1764" alt="Screenshot 2026-07-02 at 22 51 24" src="https://github.com/user-attachments/assets/3116165d-623a-4d3a-a28a-914befb9b72d" />
 
-<img width="1531" height="875" alt="black-grid" src="https://github.com/user-attachments/assets/004b80f6-5bbb-4f14-b8cd-33a0a5913b8c" />
-
-<img width="1550" height="876" alt="light" src="https://github.com/user-attachments/assets/2b59a999-a25e-4217-944c-9aef0a09f272" />
-
-<a name="vault-ビュー"></a>
 ## Vault ビュー
 
-作業に合わせて見え方を切り替え：グリッドで全体像、リストでスキャン、ツリーで整理と階層ナビゲーション。
+<img width="3142" height="1764" alt="vault" src="https://github.com/user-attachments/assets/6893a259-aebc-4773-a2b1-48cbb1b3c92e" />
 
-<img width="1554" height="882" alt="list" src="https://github.com/user-attachments/assets/03249f15-b5f8-4770-a3c3-d5001636ea00" />
-
-<img width="1561" height="878" alt="tree" src="https://github.com/user-attachments/assets/739f7b66-3898-43d0-8dd3-b9b97fd8e8de" />
-
-<a name="分割ターミナル"></a>
 ## 分割ターミナル
 
-分割ペインで複数のサーバー/タスクを同時に扱えます（例：デプロイ + ログ + 監視）。
-
-<img width="1560" height="871" alt="split" src="https://github.com/user-attachments/assets/c93a8523-6256-4bb3-8b6e-d599831f2f9f" />
+<img width="3142" height="1764" alt="split" src="https://github.com/user-attachments/assets/e9dcd0d8-19c4-4773-a2b1-48cbb1b3c92e" />
 
 ---
 
 <a name="対応ディストリビューション"></a>
 # 対応ディストリビューション
 
-Netcatty は接続したホストの OS を検出し、ホスト一覧でアイコンとして表示します：
+| プラットフォーム | 要件 |
+| --- | --- |
+| Windows | Windows 10 22H2 (x64) + WebView2 Evergreen |
+| macOS | macOS 12 Monterey+（Intel と Apple Silicon） |
+| Linux | GTK 4.14+ / WebKitGTK（Ubuntu 22.04+、Debian 12+、Fedora 38+）、X11/Wayland |
 
-<p align="center">
-  <img src="public/distro/ubuntu.svg" width="48" alt="Ubuntu" title="Ubuntu">
-  <img src="public/distro/debian.svg" width="48" alt="Debian" title="Debian">
-  <img src="public/distro/centos.svg" width="48" alt="CentOS" title="CentOS">
-  <img src="public/distro/fedora.svg" width="48" alt="Fedora" title="Fedora">
-  <img src="public/distro/arch.svg" width="48" alt="Arch Linux" title="Arch Linux">
-  <img src="public/distro/alpine.svg" width="48" alt="Alpine" title="Alpine">
-  <img src="public/distro/amazon.svg" width="48" alt="Amazon Linux" title="Amazon Linux">
-  <img src="public/distro/redhat.svg" width="48" alt="Red Hat" title="Red Hat">
-  <img src="public/distro/rocky.svg" width="48" alt="Rocky Linux" title="Rocky Linux">
-  <img src="public/distro/opensuse.svg" width="48" alt="openSUSE" title="openSUSE">
-  <img src="public/distro/oracle.svg" width="48" alt="Oracle Linux" title="Oracle Linux">
-  <img src="public/distro/kali.svg" width="48" alt="Kali Linux" title="Kali Linux">
-  <img src="public/distro/almalinux.svg" width="48" alt="AlmaLinux" title="AlmaLinux">
-</p>
+対応ターゲットは [release-target-matrix.md](docs/migrations/wails-v3/release-target-matrix.md)
+の決定 `WV3-011`–`WV3-013` により凍結されています。
+
+---
 
 <a name="はじめに"></a>
 # はじめに
 
-### ダウンロード
-
-[GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest) からお使いのプラットフォームに対応した最新版をダウンロードしてください。
-
-| OS | サポート状況 |
-| :--- | :--- |
-| **macOS** | Universal (x64 / arm64) |
-| **Windows** | x64 / arm64 |
-| **Linux** | x64 / arm64 |
-
-または [GitHub Releases](https://github.com/binaricat/Netcatty/releases) ですべてのリリースを参照してください。
-
-### コード署名とプライバシー
-
-Netcatty は SignPath Foundation のオープンソースプログラムに申請中です。
-承認後、対象となる Windows リリース成果物には **Free code signing provided by SignPath.io, certificate by SignPath Foundation** が使用されます。詳細は
-[コード署名ポリシー](CODE_SIGNING_POLICY.md)と
-[プライバシーポリシー](PRIVACY.md)をご覧ください。申請と導入が完了するまで、
-Windows リリースは未署名の場合があります。
-
-> **Windows のポータブルデータ：** Netcatty を終了し、`Netcatty.exe`（zip 版）またはポータブル版ランチャーと同じ場所に `data` フォルダーを作成してください。次回起動時から、Netcatty はデータをこのフォルダーに保存します。保存済みのパスワードと秘密鍵は、作成した Windows ユーザーによって引き続き保護されます。別のコンピューターまたは Windows ユーザーへ移動した場合は、これらの機密情報を再入力する必要があります。
-
-> **Windows でフォルダーを Netcatty で開く：** インストール版では、エクスプローラーのフォルダーおよびフォルダー背景のコンテキストメニューに **Open in Netcatty** が追加されます。選択すると、そのフォルダーでローカルターミナルが開きます。Windows 11 では、先に **その他のオプションを表示** を選択してください。**設定 → システム → Windows Explorer** からメニューの表示／非表示を切り替えられます。ZIP 版とポータブル版では、既定ではこのメニューは追加されません。
-
-> **macOS ユーザーへ：** 現在のリリースはコード署名と notarization が行われている想定です。Gatekeeper の警告が出る場合は、GitHub Releases から最新版の公式ビルドを取得しているか確認してください。
-
-### Nix / NixOS
-
-Netcatty は Nix および NixOS ユーザー向けに、公式 Linux AppImage リリースをラップした flake を提供しています：
-
-```bash
-nix run github:binaricat/Netcatty
-```
-
-宣言型インストールには、Netcatty flake を input として追加し、NixOS または Home Manager のパッケージリストで `inputs.netcatty.packages.${pkgs.system}.default` を使用してください。
+現在の安定リリースキャリアは Electron ビルドです。Wails/Go シェルは機能単位で段階的に展開中です。
 
 ### 前提条件
-- Node.js 18+ と npm
-- macOS、Windows 10+、または Linux
+
+- Node.js 22+ と npm
+- Go 1.25+（Wails シェルに必要）
+- Windows 10 22H2+ / macOS 12+ / GTK 4.14+ の Linux デスクトップ
 
 ### 開発
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/binaricat/Netcatty.git
-cd Netcatty
+git clone git@github.com:lemon-casino/LemonSSH.git
+cd LemonSSH
 
 # 依存関係をインストール
 npm install
 
-# 開発モードを起動（Vite + Electron）
+# 開発モードを起動（Vite + Electron —— 安定シェル）
 npm run dev
+
+# または Wails/Go シェルを実行（同じフロントエンドを読み込み）
+npm run wails:dev
 ```
 
 ---
@@ -254,16 +155,22 @@ npm run dev
 # ビルドとパッケージ
 
 ```bash
-# 本番用ビルド
+# Electron 本番ビルド（安定シェル）
 npm run build
+npm run pack:win     # Windows（NSIS インストーラー）
+npm run pack:mac     # macOS（DMG + ZIP）
+npm run pack:linux   # Linux（AppImage + DEB + RPM）
 
-# 現在のプラットフォーム用にパッケージ
-npm run pack
+# Wails/Go シェル：フロントエンドを Go バイナリに組み込む
+npm run wails:build  # 出力：bin/netcatty-wails.exe
 
-# 特定のプラットフォーム用にパッケージ
-npm run pack:mac     # macOS (DMG + ZIP)
-npm run pack:win     # Windows (NSIS インストーラー)
-npm run pack:linux   # Linux (AppImage + DEB + RPM)
+# 移行と Go のチェック
+npm run check:migration-docs          # 移行ガバナンス
+npm run check:migration-electron-baseline
+npm run check:contracts               # Go 基本コントラクト + TS コード生成ドリフト
+npm run check:profile-store           # トランザクション プロファイルストア（race）
+npm run check:credentials             # プラットフォームキーリングプロバイダー
+npm run check:terminal-dataplane-core # ターミナル フレームコーデック + ルートコントローラー
 ```
 
 ---
@@ -271,65 +178,34 @@ npm run pack:linux   # Linux (AppImage + DEB + RPM)
 <a name="技術スタック"></a>
 # 技術スタック
 
-| カテゴリ | テクノロジー |
-|--------|------------|
-| フレームワーク | Electron 40 |
-| フロントエンド | React 19, TypeScript |
-| ビルドツール | Vite 7 |
-| ターミナル | xterm.js 5 |
-| スタイリング | Tailwind CSS 4 |
-| SSH/SFTP | ssh2, ssh2-sftp-client |
-| PTY | node-pty |
-| アイコン | Lucide React |
+| カテゴリ | 安定ベースライン（Electron） | 目標ランタイム（Wails v3 + Go） |
+|----------|---------------------------|--------------------------------|
+| シェル | Electron 40 | Wails v3 (beta.12) |
+| フロントエンド | React 19, TypeScript, Vite 7 | React 19, TypeScript, Vite 7（変更なし） |
+| ターミナル | xterm.js 5, node-pty, MessagePort | xterm.js 5, Go ConPTY/Unix PTY, バイナリループバック WebSocket データプレーン |
+| SSH/SFTP | ssh2, ssh2-sftp-client | golang.org/x/crypto/ssh, pkg/sftp |
+| 永続化 | localStorage | Go トランザクション プロファイルストア（bbolt） |
+| 資格情報 | Electron safeStorage | OS キーリング（Windows 資格情報マネージャー / macOS Keychain / Linux Secret Service） |
+| スタイリング | Tailwind CSS 4 | Tailwind CSS 4（変更なし） |
 
 ---
 
 <a name="コントリビューション"></a>
 # コントリビューション
 
-コントリビューションを歓迎します！お気軽に Pull Request を提出してください。
+コントリビューションを歓迎します！Pull Request をお気軽にどうぞ。
 
 1. リポジトリをフォーク
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. Pull Request をオープン
+2. フィーチャーブランチを作成（`git checkout -b feature/amazing-feature`）
+3. 変更をコミット（`git commit -m 'Add some amazing feature'`）
+4. ブランチをプッシュ（`git push origin feature/amazing-feature`）
+5. Pull Request を作成
 
-アーキテクチャの概要とコーディング規約については [AGENTS.md](AGENTS.md) を参照してください。
-
----
-
-<a name="コントリビューター"></a>
-# コントリビューター
-
-貢献してくださったすべての方に感謝します！
-
-<a href="https://github.com/binaricat/Netcatty/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=binaricat/Netcatty" />
-</a>
+アーキテクチャの概要とコーディング規約は [AGENTS.md](AGENTS.md)、
+移行ワークフローは [docs/migrations/wails-v3/README.md](docs/migrations/wails-v3/README.md) を参照してください。
 
 ---
 
-<a name="ライセンス"></a>
 # ライセンス
 
-このプロジェクトは **GPL-3.0 ライセンス** の下でライセンスされています - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
-
----
-
-<a name="star-履歴"></a>
-# Star 履歴
-
-<a href="https://www.star-history.com/#binaricat/Netcatty&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg" />
-   <source media="(prefers-color-scheme: light)" srcset="docs/assets/star-history/star-history-light.svg" />
-   <img alt="Star History Chart" src="docs/assets/star-history/star-history-light.svg" />
- </picture>
-</a>
-
----
-
-<p align="center">
-  ❤️ を込めて作成 by <a href="https://ko-fi.com/binaricat">binaricat</a>
-</p>
+[GPL-3.0 License](LICENSE) のもとで公開されています。
