@@ -17,9 +17,16 @@ test("node test runtime selects the Electron adapter", () => {
   assert.equal(getActiveRuntimeClient(), undefined);
 });
 
-test("wails adapter rejects un-migrated ports fail-closed", () => {
+test("wails adapter routes migrated ports and rejects un-migrated fail-closed", () => {
   const client = createWailsRuntimeClient();
-  assert.throws(() => client.terminal.startSSHSession);
+  // Slice A/B/C: SSH terminal sessions and SFTP browsing route to Go.
+  assert.equal(typeof client.terminal.startSSHSession, "function");
+  assert.equal(typeof client.sftp.listSftp, "function");
+  // Electron-owned capabilities of the same ports still fail closed.
+  assert.throws(
+    () => (client.terminal as unknown as Record<string, unknown>).startLocalSession,
+    /not migrated to the Wails runtime yet/,
+  );
   assert.throws(() => client.files.readClipboardText);
   assert.throws(() => client.app.quitApp());
 });

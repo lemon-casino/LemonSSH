@@ -1910,3 +1910,41 @@ capability row, source paths, verification output or CI run.
   （P3-06 scheduler 待接）；sudo SFTP 未实现
 - Next safe slice: 切片 C 前端 service 层（Wails binding 路由）
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L054 - 2026-09-10 - 切片 C: Wails 适配器 terminal/sftp 端口路由
+
+- Capability rows: `FND-01`
+- Plan task: `P1-01`, `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 前端 service 层接通 Go 面：Wails adapter 的 terminal 端口实现
+  startSSHSession/writeToSession/resizeSession/interruptSession/closeSession，
+  sftp 端口实现 openSftp/listSftp/mkdirSftp/deleteSftp/renameSftp/statSftp/
+  closeSftp（Entry/FileInfo → RemoteFile/SftpStatResult 契约映射）；新增
+  goTerminalSurface() 暴露 data plane WS URL/route token 组装与流式
+  Download/Upload；未迁移方法保持 fail-closed。
+- Go canonical owner: none（复用 TerminalService/SFTPService 绑定）
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` +
+  纯映射模块 `terminalRoute.ts`（唯一 bindings 导入边界不变）
+- Electron owner affected: none（Electron adapter 不变）
+- Preserved invariants: 仅 wailsRuntimeClient.ts 可导入 bindings（ESLint）；
+  []byte stdin 经 base64 过 JSON 绑定层；Electron 形状之外的认证选项
+  （privateKey/passphrase/jumpHosts/proxy/MFA）显式拒绝而非静默降级
+- Data/schema impact: none
+- Security impact: route token 只在 bootstrap 响应中交付渲染层；WS URL 由
+  服务端 listenAddr 组装，渲染层不可改写 Host
+- Verification: terminalRoute.test.ts 8 项 + runtime 套件 24/24 全绿（含
+  更新后的 fail-closed 契约测试）；`tsc --noEmit` 干净；ESLint 干净；
+  `npm run wails:build` 重建 exe + 启动冒烟通过
+- Platforms covered: Windows 10 22H2（本机）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 全部 9 端口迁移完成且 transitionBridge
+  删除后，Electron preload/netcattyBridge 才能退役
+- Documentation updated: capability matrix (FND-01 row)
+- Residual risks: xterm.js 渲染层尚未消费 data plane WS（Electron 事件管线
+  仍在）；key/MFA 认证选项待 Go 绑定扩展；三平台证据缺失
+- Next safe slice: 切片 D（P6-02 打包 / P6-04 迁移执行 / P6-05 gate）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
