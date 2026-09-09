@@ -7,6 +7,7 @@ import * as NetcattyService from "./netcattyservice.js";
 import * as PTYService from "./ptyservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
+import * as SFTPService from "./sftpservice.js";
 import * as TerminalService from "./terminalservice.js";
 export {
     CredentialService,
@@ -14,5 +15,6 @@ export {
     PTYService,
     ProfileMigrationService,
     ProfileService,
+    SFTPService,
     TerminalService
 };

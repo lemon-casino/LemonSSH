@@ -1874,3 +1874,39 @@ capability row, source paths, verification output or CI run.
   键盘交互认证 UI 回调缺失；legacy 算法决策待定
 - Next safe slice: 切片 B SFTP Service（over SSH transport）
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L053 - 2026-09-10 - 切片 B: 生产 SFTP ClientFS + Wails SFTPService
+
+- Capability rows: `SFTP-01`
+- Plan task: `P3-05`, `P3-04A`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: pkg/sftp 生产适配器（ClientFS 实现 RemoteFS，含符号链接标记、递归
+  删除、PosixRename、下载/上传流式传输）+ cmd/netcatty SFTPService 门面
+  （共享 SSH pool KindSFTP 租约、每会话有界并发、路径规范化、池归还）。
+- Go canonical owner: `internal/terminal/sftp/clientfs.go` +
+  `cmd/netcatty/sftpService.go` + `internal/terminal/sshpool`
+- Frontend adapter: Wails bindings 7 services / 36 methods（新增
+  sftpservice.js）；renderer 消费待切片 C
+- Electron owner affected: none
+- Preserved invariants: 服务从不自建 SSH 连接（仅经 pool 租约）；路径一律
+  NormalizePath 规范化；会话关闭释放 SFTP 子系统并把租约归还池
+- Data/schema impact: none
+- Security impact: SFTP 凭据与 TerminalService 同源（StrictPolicy known_hosts）；
+  本地落盘路径由调用方（渲染层）显式指定，切片 C 接入专用临时目录
+- Verification: ClientFS 对真实 pkg/sftp server（net.Pipe + TempDir root）做
+  协议级 round-trip 测试（create/write/read/stat/mkdir/readdir/rename/
+  recursive remove）；`go test -race ./internal/... ./cmd/...` 全绿；`go vet`
+  干净；bindings 重新生成；`npm run wails:build` 重建 exe 并 6 秒启动冒烟
+- Platforms covered: Windows 10 22H2（本机；协议级测试与平台无关）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真实服务器矩阵 + 渲染层消费后
+  SFTP-01 才能进入 verified
+- Documentation updated: capability matrix (SFTP-01 row)
+- Residual risks: 真实服务器/编码/符号链接活体矩阵缺失；上传无断点续传
+  （P3-06 scheduler 待接）；sudo SFTP 未实现
+- Next safe slice: 切片 C 前端 service 层（Wails binding 路由）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

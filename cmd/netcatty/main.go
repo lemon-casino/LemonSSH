@@ -19,6 +19,7 @@ import (
 	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/netcatty/internal/terminal/sshpool"
 )
 
 //go:embed all:frontend/dist
@@ -76,7 +77,10 @@ func main() {
 	}
 	defer dpServer.Stop()
 	knownHosts := ssh.NewKnownHosts(filepath.Join(filepath.Dir(profileStore.Path()), "known_hosts"))
+	sshPool := sshpool.New(ssh.Dial)
+	defer sshPool.Shutdown()
 	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
+	sftpService := NewSFTPService(sshPool, knownHosts)
 
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
@@ -88,6 +92,7 @@ func main() {
 			application.NewService(migrationService),
 			application.NewService(ptyService),
 			application.NewService(terminalSvc),
+			application.NewService(sftpService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
