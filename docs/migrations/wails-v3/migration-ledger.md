@@ -1747,3 +1747,32 @@ capability row, source paths, verification output or CI run.
   package store、native 进程 runtime、真实攻击语料
 - Next safe slice: P5-02 package store over the profile store
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L049 - 2026-09-09 - P4-03 global shortcut registry and tray state
+
+- Capability rows: `SYS-02`
+- Plan task: `P4-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 建立 shortcut 注册/冲突/查找核心与 tray 菜单状态生成器，使 Wails
+  adapter 只需做 OS-level 注册映射。
+- Go canonical owner: `internal/terminal/shortcuts`
+- Frontend adapter: none yet; Wails tray/shortcut adapter 后续
+- Electron owner affected: none; global shortcut/window bridges remain baseline
+- Preserved invariants: accelerator 解析（modifier 校验）、冲突检测（同加速器
+  拒绝）、大小写不敏感查找、注销即移除
+- Data/schema impact: none
+- Security impact: none
+- Verification: `go test -race -count=1 ./internal/terminal/shortcuts/`（6 项：
+  合法解析、非法拒绝、冲突/查找/注销、大小写不敏感、tray 菜单生成）；`go vet`
+- Platforms covered: platform-independent Go core
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Wails tray/shortcut adapter 接线 +
+  native smoke 矩阵通过后，global shortcut/window bridges 退役
+- Documentation updated: capability matrix and ledger
+- Residual risks: OS-level 注册（Wails adapter 接线）、三平台 native smoke
+- Next safe slice: P5-02 package store
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
