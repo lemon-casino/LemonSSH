@@ -10,14 +10,12 @@ import { DARK_UI_THEMES, LIGHT_UI_THEMES } from "../../../infrastructure/config/
 import { useAvailableUIFonts } from "../../../application/state/uiFontStore";
 import { useAvailableFonts } from "../../../application/state/fontStore";
 import { SUPPORTED_UI_LOCALES } from "../../../infrastructure/config/i18n";
-import { APP_ICON_VARIANT_ASSET_PATH, APP_ICON_VARIANT_GROUPS, APP_ICON_VARIANT_I18N_KEY } from "../../../infrastructure/config/appIconVariants";
 import {
   STORAGE_KEY_AUTO_IMPORT_SYSTEM_KNOWN_HOSTS,
   STORAGE_KEY_VAULT_NOTES_FONT_FAMILY,
   STORAGE_KEY_VAULT_NOTES_FONT_SIZE,
   STORAGE_KEY_VAULT_NOTES_CODE_FONT_SIZE,
 } from "../../../infrastructure/config/storageKeys";
-import { resolveAppIconVariant, type AppIconVariant } from "../../../domain/appIconVariant";
 import { resolveNoteFontSelectionFamily, resolveNoteFontSelectionId } from "../../../domain/noteFonts";
 import { DEFAULT_AUTO_IMPORT_SYSTEM_KNOWN_HOSTS } from "../../../domain/systemKnownHostsAutoImport";
 import { cn } from "../../../lib/utils";
@@ -66,8 +64,6 @@ function SettingsAppearanceTab(props: {
   setShowHostTreeSidebar: (enabled: boolean) => void;
   windowOpacity: number;
   setWindowOpacity: (opacity: number) => void;
-  appIconVariant: AppIconVariant;
-  setAppIconVariant: (variant: AppIconVariant) => void;
 }) {
   const { t } = useI18n();
   const availableUIFonts = useAvailableUIFonts();
@@ -135,10 +131,7 @@ function SettingsAppearanceTab(props: {
     setShowHostTreeSidebar,
     windowOpacity,
     setWindowOpacity,
-    appIconVariant,
-    setAppIconVariant,
   } = props;
-  const resolvedAppIconVariant = resolveAppIconVariant(appIconVariant);
 
   const WINDOW_OPACITY_PRESETS = [
     { label: '100%', value: 1 },
@@ -403,52 +396,6 @@ function SettingsAppearanceTab(props: {
           </div>
         )}
       </div>
-
-      <SectionHeader title={t("settings.appearance.appIcon")} />
-      <SettingsAnchor anchorId="appearance-app-icon" className="rounded-lg border bg-card px-4 py-3 space-y-4">
-        <p className="text-xs text-muted-foreground">
-          {t("settings.appearance.appIcon.desc")}
-        </p>
-        <div className="space-y-3">
-          {APP_ICON_VARIANT_GROUPS.map((group) => (
-            <div key={group.id} className="space-y-1.5">
-              <span className="text-[11px] text-muted-foreground">{t(group.labelKey)}</span>
-              <div className="flex flex-wrap gap-2">
-                {group.variants.map((variant) => (
-                  <Tooltip key={variant}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setAppIconVariant(variant)}
-                        className={cn(
-                          "relative w-11 h-11 rounded-xl overflow-hidden transition-transform",
-                          resolvedAppIconVariant === variant
-                            ? "scale-105"
-                            : "hover:scale-105 opacity-90 hover:opacity-100",
-                        )}
-                        aria-label={t(APP_ICON_VARIANT_I18N_KEY[variant])}
-                      >
-                        <img
-                          src={APP_ICON_VARIANT_ASSET_PATH[variant]}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                        {resolvedAppIconVariant === variant && (
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <Check className="text-white drop-shadow-md" size={14} />
-                          </span>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t(APP_ICON_VARIANT_I18N_KEY[variant])}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SettingsAnchor>
 
       <SectionHeader title={t("settings.vault.title")} />
       <div className="space-y-0 divide-y divide-border rounded-lg border bg-card px-4">

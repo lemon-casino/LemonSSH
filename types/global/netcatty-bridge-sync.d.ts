@@ -42,7 +42,6 @@ declare global {
     setTheme?(theme: 'light' | 'dark' | 'system'): Promise<boolean>;
     setBackgroundColor?(color: string): Promise<boolean>;
     setWindowOpacity?(opacity: number): Promise<boolean>;
-    setAppIconVariant?(variant: import('../../domain/appIconVariant').AppIconVariant): Promise<boolean>;
     setLanguage?(language: string): Promise<boolean>;
     // Window controls for custom title bar (Windows/Linux)
     windowMinimize?(): Promise<void>;
@@ -86,6 +85,11 @@ declare global {
       currentPassword?: string;
       nextPassword: string;
     }): Promise<AppLockSettings | AppLockSettingsMutationError>;
+    /** Legacy Electron-only icon variant switch; the frontend feature was removed. */
+    setAppIconVariant?(variant:
+      | 'original' | 'bright' | 'dark' | 'colorful' | 'high-contrast'
+      | 'white-navy' | 'white-sky' | 'white-rose' | 'white-emerald'
+      | 'white-amber' | 'white-violet' | 'rainbow'): Promise<boolean>;
     setAppLockRuntimeLocked?(reason: Exclude<AppLockRuntimeReason, null>): Promise<AppLockRuntimeState>;
     requestAppLockUnlock?(password: string): Promise<AppLockUnlockResult>;
     getAppLockSystemUnlockStatus?(): Promise<AppLockSystemUnlockStatus>;
