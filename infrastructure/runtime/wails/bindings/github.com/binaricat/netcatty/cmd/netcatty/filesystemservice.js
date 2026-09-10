@@ -52,6 +52,18 @@ export function StageDiscard(tempPath) {
 }
 
 /**
+ * StageFromLocalPath copies one local file into the LemonSSH staging temp
+ * directory in a single call (stat → open → copy with no renderer round trip
+ * in between), so transient drag sources and path quirks cannot race the
+ * upload. Returns the staged temp path and original size.
+ * @param {string} path
+ * @returns {$CancellablePromise<[string, number]>}
+ */
+export function StageFromLocalPath(path) {
+    return $Call.ByID(1820087868, path);
+}
+
+/**
  * StatPath stats one local path (read-only) so dropped files can be
  * classified before upload.
  * @param {string} path

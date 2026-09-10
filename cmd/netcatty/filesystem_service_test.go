@@ -72,3 +72,30 @@ func TestStageAppendRejectsNonStagingPaths(t *testing.T) {
 		t.Fatal("non-staging discard must be rejected")
 	}
 }
+
+func TestStageFromLocalPathCopiesImmediately(t *testing.T) {
+	service := newFilesystemService()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "report.pdf")
+	if err := os.WriteFile(file, []byte("PDFDATA"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	staged, size, err := service.StageFromLocalPath(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(staged)
+	if size != 7 {
+		t.Fatalf("size = %d", size)
+	}
+	data, err := os.ReadFile(staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "PDFDATA" {
+		t.Fatalf("content = %q", data)
+	}
+	if _, _, err := service.StageFromLocalPath(filepath.Join(dir, "missing.pdf")); err == nil {
+		t.Fatal("missing source must fail")
+	}
+}

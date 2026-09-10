@@ -1869,21 +1869,21 @@ export const useSftpExternalOperations = (
   const uploadExternalPaths = useCallback(
     async (side: "left" | "right", paths: string[], targetPath?: string): Promise<UploadResult[]> => {
       const bridge = netcattyBridge.get();
-      if (!bridge?.statLocalPath) {
-        throw new Error("Native drop path stat is not available");
+      if (!bridge?.stageFromLocalPath) {
+        throw new Error("Native drop staging is not available");
       }
       const entries: DropEntry[] = [];
       for (const droppedPath of paths) {
         const localPath = normalizeDroppedLocalPath(droppedPath);
-        bridge.appendDiagnosticLog?.(`drop-stat path=${JSON.stringify(localPath)}`);
-        const stat = await bridge.statLocalPath(localPath);
-        bridge.appendDiagnosticLog?.(`drop-stat-ok size=${stat.size} isDir=${stat.isDir}`);
+        // Stat + open + copy to the LemonSSH staging dir in ONE Go call: the
+        // original path is only read here, never during the upload itself.
+        const staged = await bridge.stageFromLocalPath(localPath);
         entries.push({
           file: null,
-          localPath,
-          relativePath: stat.name,
-          isDirectory: stat.isDir,
-          size: stat.size,
+          localPath: staged.stagedPath,
+          relativePath: staged.name,
+          isDirectory: false,
+          size: staged.size,
         });
       }
       if (entries.length === 0) return [];

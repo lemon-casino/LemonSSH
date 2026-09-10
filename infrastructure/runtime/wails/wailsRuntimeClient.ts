@@ -149,6 +149,7 @@ export interface WailsBindingDeps {
   filesystem?: {
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
     StatPath?: (path: string) => Promise<{ name: string; isDir: boolean; size: number }>;
+    StageFromLocalPath?: (path: string) => Promise<{ stagedPath: string; name: string; size: number }>;
     StageBegin?: (fileName: string) => Promise<string>;
     StageAppend?: (tempPath: string, offset: number, data: string) => Promise<unknown>;
     StageDiscard?: (tempPath: string) => Promise<unknown>;
@@ -520,6 +521,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return path || undefined;
     }) as unknown as NetcattyBridge["getPathForFile"],
     statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
+    stageFromLocalPath: ((path: string) =>
+      bindings.filesystem?.StageFromLocalPath?.(path) as Promise<{ stagedPath: string; name: string; size: number }>) as unknown as NetcattyBridge["stageFromLocalPath"],
     appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
     stageUploadFile: (async (file: File, transferId: string) => {
       if (!bindings.filesystem?.StageBegin || !bindings.filesystem?.StageAppend || !bindings.filesystem?.StageDiscard) {

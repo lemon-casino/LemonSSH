@@ -133,6 +133,8 @@ declare global {
     getPathForFile?(file: File): string | undefined;
     /** Stat one local path (Wails: read-only os.Stat for drop classification). */
     statLocalPath?(path: string): Promise<{ name: string; isDir: boolean; size: number }>;
+    /** Stat + copy one local path into the LemonSSH staging temp dir in a single Go call. */
+    stageFromLocalPath?(path: string): Promise<{ stagedPath: string; name: string; size: number }>;
     /** Append one line to the profile diagnostics log (drag-drop debugging). */
     appendDiagnosticLog?(line: string): Promise<void>;
     /** Wails native file drop (real OS paths). */
