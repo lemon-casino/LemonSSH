@@ -132,6 +132,7 @@ func main() {
 		wailsApp.Window.NewWithOptions(mainWindowOptions())
 		settingsWindowService := newSettingsWindowService(wailsApp)
 		wailsApp.RegisterService(application.NewService(settingsWindowService))
+		settingsWindowService.Preload()
 
 		// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()

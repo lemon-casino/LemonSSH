@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 const settingsWindowName = "settings"
@@ -24,43 +25,55 @@ func settingsWindowOptions() application.WebviewWindowOptions {
 }
 
 type SettingsWindowService struct {
-	mu  sync.Mutex
-	app *application.App
+	mu      sync.Mutex
+	app     *application.App
+	created bool
 }
 
 func newSettingsWindowService(app *application.App) *SettingsWindowService {
 	return &SettingsWindowService{app: app}
 }
 
+func (s *SettingsWindowService) ensureCreated() {
+	if s.created {
+		if _, ok := s.app.Window.GetByName(settingsWindowName); ok {
+			return
+		}
+	}
+	win := s.app.Window.NewWithOptions(settingsWindowOptions())
+	win.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		event.Cancel()
+		win.Hide()
+	})
+	s.created = true
+}
+
+func (s *SettingsWindowService) Preload() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureCreated()
+}
+
 func (s *SettingsWindowService) Open() (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.app.Window.GetByName(settingsWindowName); ok {
-		return true, nil
+	s.ensureCreated()
+	if win, ok := s.app.Window.GetByName(settingsWindowName); ok {
+		win.Show()
+		win.Focus()
 	}
-	s.app.Window.NewWithOptions(settingsWindowOptions())
 	return true, nil
 }
 
 func (s *SettingsWindowService) Show() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	win, ok := s.app.Window.GetByName(settingsWindowName)
-	if !ok {
-		return nil
-	}
-	win.Show()
-	win.Focus()
 	return nil
 }
 
 func (s *SettingsWindowService) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	win, ok := s.app.Window.GetByName(settingsWindowName)
-	if !ok {
-		return nil
+	if win, ok := s.app.Window.GetByName(settingsWindowName); ok {
+		win.Hide()
 	}
-	win.Close()
 	return nil
 }

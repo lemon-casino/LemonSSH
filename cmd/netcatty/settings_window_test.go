@@ -27,3 +27,10 @@ func TestSettingsWindowStartsHiddenWithoutAutoShowHook(t *testing.T) {
 		t.Fatal("settings window must start hidden")
 	}
 }
+
+func TestSettingsWindowShouldBePrecreatedHidden(t *testing.T) {
+	options := settingsWindowOptions()
+	if !options.Hidden {
+		t.Fatal("settings window must be precreated hidden")
+	}
+}
