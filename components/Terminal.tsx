@@ -1940,7 +1940,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             mode: terminalSettingsRef.current?.oscNotifications,
             sessionFocused: isFocusedRef.current,
             sessionId,
-            fallbackTitle: host.label || host.hostname || "Netcatty",
+            fallbackTitle: host.label || host.hostname || "LemonSSH",
             onSessionActivity: () => onTerminalBell?.(sessionId),
           });
         }
@@ -4014,7 +4014,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         mode: terminalSettingsRef.current?.oscNotifications,
         sessionFocused: isFocusedRef.current,
         sessionId,
-        fallbackTitle: host.label || host.hostname || "Netcatty",
+        fallbackTitle: host.label || host.hostname || "LemonSSH",
         onSessionActivity: () => onTerminalBell?.(sessionId),
       });
     },

@@ -69,7 +69,7 @@ func mainWindowOptions() application.WebviewWindowOptions {
 }
 
 func main() {
-	core := app.New("Netcatty", version)
+	core := app.New("LemonSSH", version)
 	service := newNetcattyService(core)
 
 	profileStore, err := openProfileStore()
@@ -102,8 +102,8 @@ func main() {
 		forwardService := NewForwardService(sshPool, knownHosts)
 
 	wailsApp := application.New(application.Options{
-		Name:        "Netcatty",
-		Description: "Netcatty Wails shell",
+		Name:        "LemonSSH",
+		Description: "LemonSSH",
 		Services: []application.Service{
 			application.NewService(service),
 			application.NewService(profileService),

@@ -83,7 +83,7 @@ export const zhCNCoreMessages: Messages = {
   'appLock.systemUnlock.preparing': '正在准备 {label}...',
   'appLock.systemUnlock.verifying': '正在等待 {label}...',
   'appLock.systemUnlock.error': '系统解锁未完成。请使用锁定密码继续。',
-  'appLock.logoLabel': 'Netcatty',
+  'appLock.logoLabel': 'LemonSSH',
   'appLock.reset.title': '重置应用锁定',
   'appLock.reset.description': '这会删除当前锁定密码并关闭应用锁定。需要再次使用时，请到设置里创建新密码。',
   'appLock.reset.cancel': '取消',

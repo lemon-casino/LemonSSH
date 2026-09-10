@@ -100,7 +100,7 @@ export const enCoreMessages: Messages = {
   'appLock.systemUnlock.preparing': 'Preparing {label}...',
   'appLock.systemUnlock.verifying': 'Waiting for {label}...',
   'appLock.systemUnlock.error': 'System unlock was not completed. Use the lock password to continue.',
-  'appLock.logoLabel': 'Netcatty',
+  'appLock.logoLabel': 'LemonSSH',
   'appLock.reset.title': 'Reset App Lock',
   'appLock.reset.description': 'This removes the current lock password and turns off App Lock. Set a new password from Settings when you need it again.',
   'appLock.reset.cancel': 'Cancel',

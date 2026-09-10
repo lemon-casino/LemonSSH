@@ -99,7 +99,7 @@ export const ruCoreMessages: Messages = {
   'appLock.systemUnlock.preparing': 'Подготовка {label}...',
   'appLock.systemUnlock.verifying': 'Ожидание {label}...',
   'appLock.systemUnlock.error': 'Системная разблокировка не завершена. Используйте пароль блокировки, чтобы продолжить.',
-  'appLock.logoLabel': 'Netcatty',
+  'appLock.logoLabel': 'LemonSSH',
   'appLock.reset.title': 'Сбросить блокировку',
   'appLock.reset.description': 'Это удалит текущий пароль блокировки и отключит App Lock. Новый пароль можно создать позже в настройках.',
   'appLock.reset.cancel': 'Отмена',

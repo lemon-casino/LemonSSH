@@ -86,7 +86,7 @@ export const zhTWCoreMessages: Messages = {
   'appLock.systemUnlock.preparing': '正在準備 {label}...',
   'appLock.systemUnlock.verifying': '正在等待 {label}...',
   'appLock.systemUnlock.error': '系統解鎖未完成。請改用鎖定密碼繼續。',
-  'appLock.logoLabel': 'Netcatty',
+  'appLock.logoLabel': 'LemonSSH',
   'appLock.reset.title': '重設應用程式鎖定',
   'appLock.reset.description': '這會移除目前的鎖定密碼並關閉應用程式鎖定。之後需要再用時，請到設定裡建立新密碼。',
   'appLock.reset.cancel': '取消',
