@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  A beautiful, feature-rich SSH workspace, migrating from Electron to a Go + Wails v3 runtime.<br/>
+  A beautiful, feature-rich SSH workspace built on Go + Wails v3 with a React/TypeScript frontend.<br/>
   🔥 Built-in AI Agent · Split terminals · Vault views · SFTP workflows · Custom themes — all in one.
 </p>
 
@@ -17,29 +17,7 @@
   <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=for-the-badge"></a>
   &nbsp;
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-green?style=for-the-badge"></a>
-  &nbsp;
-  <a href="docs/migrations/wails-v3/README.md"><img alt="Migration" src="https://img.shields.io/badge/Migration-Wails%20v3%20%2B%20Go-informational?style=for-the-badge&logo=go"></a>
 </p>
-
----
-
-## Migration Status (Electron → Go + Wails v3)
-
-This repository is the continuation of the Netcatty project, migrating its
-runtime from Electron/Node.js to **Go + Wails v3** while keeping the
-React/TypeScript frontend, user data and feature set intact.
-
-| Domain | Status |
-| --- | --- |
-| Migration governance (docs, ledger, CI evidence workflow) | ✅ in place |
-| Shell-neutral frontend ports + Wails skeleton + base contracts | ✅ done |
-| Go transactional profile store, writer lease, credential providers | ✅ core done |
-| Encrypted migration bundle (export/import/rollback) | ✅ core done |
-| Terminal binary data plane, local PTY, SSH dial/pool, SFTP, transfer, forwarding | ✅ core done |
-| Three-platform live evidence, per-domain persistence cutover | 🚧 collecting |
-| Telnet/Serial/Mosh/ET/ZMODEM, system capabilities, plugins v2, sync, AI | ⏳ queued |
-
-Authoritative status: [docs/migrations/wails-v3/capability-matrix.md](docs/migrations/wails-v3/capability-matrix.md) · ledger: [docs/migrations/wails-v3/migration-ledger.md](docs/migrations/wails-v3/migration-ledger.md) · plan: [docs/migrations/wails-v3/implementation-plan.md](docs/migrations/wails-v3/implementation-plan.md).
 
 ---
 
@@ -50,7 +28,6 @@ Authoritative status: [docs/migrations/wails-v3/capability-matrix.md](docs/migra
 - [Screenshots](#screenshots)
 - [Supported Distros](#supported-distros)
 - [Getting Started](#getting-started)
-- [Development](#development)
 - [Build & Package](#build--package)
 - [Tech Stack](#tech-stack)
 - [Contributing](#contributing)
@@ -86,9 +63,17 @@ Split panes with collapsible host-tree sidebar. Parallel sessions via tabs. Full
 
 Dual-pane browser with drag & drop, transfer center, pause/resume, directory upload, archive extraction, and a built-in code editor.
 
+### 🔌 Port Forwarding
+
+Local, remote, and dynamic (SOCKS5) tunnels with per-rule lifecycle management, status snapshots, and one-click tray toggles.
+
 ### 🤖 AI Agent (Catty)
 
 Natural language server management, real-time diagnostics, multi-host orchestration and one-click complex operations.
+
+### 🧩 Plugin System
+
+Sandboxed plugins with a declarative UI schema, permission broker, and terminal/SFTP provider extension points.
 
 ### 🎨 Personalization
 
@@ -122,21 +107,15 @@ Light/dark UI themes, terminal themes, custom CSS, fonts, accent colors, app ico
 | macOS | macOS 12 Monterey+ (Intel & Apple Silicon) |
 | Linux | GTK 4.14+ / WebKitGTK (Ubuntu 22.04+, Debian 12+, Fedora 38+), X11/Wayland |
 
-Targets frozen by decisions `WV3-011`–`WV3-013` in
-[release-target-matrix.md](docs/migrations/wails-v3/release-target-matrix.md).
-
 ---
 
 <a name="getting-started"></a>
 # Getting Started
 
-The Electron build is today's stable release carrier; the Wails/Go shell is
-landing capability by capability.
-
 ### Prerequisites
 
 - Node.js 22+ and npm
-- Go 1.25+ (for the Wails shell)
+- Go 1.25+
 - Windows 10 22H2+ / macOS 12+ / a GTK 4.14+ Linux desktop
 
 ### Development
@@ -149,10 +128,7 @@ cd LemonSSH
 # Install dependencies
 npm install
 
-# Start development mode (Vite + Electron — the stable shell)
-npm run dev
-
-# Or run the Wails/Go shell (loads the same frontend)
+# Start development mode (Vite frontend + Go/Wails shell)
 npm run wails:dev
 ```
 
@@ -162,22 +138,15 @@ npm run wails:dev
 # Build & Package
 
 ```bash
-# Electron production build (stable shell)
-npm run build
-npm run pack:win     # Windows (NSIS installer)
-npm run pack:mac     # macOS (DMG + ZIP)
-npm run pack:linux   # Linux (AppImage + DEB + RPM)
+# Build the frontend into the Go binary
+npm run wails:build            # output: bin/netcatty-wails(.exe)
 
-# Wails/Go shell: build the frontend into the Go binary
-npm run wails:build  # output: bin/netcatty-wails.exe
+# Qualification packaging: stamped version, checksums, artifact manifest
+node scripts/package-wails.mjs # output: dist/wails/
 
-# Migration & Go checks
-npm run check:migration-docs          # migration governance
-npm run check:migration-electron-baseline
-npm run check:contracts               # Go base contracts + TS codegen drift
-npm run check:profile-store           # transactional profile store (race)
-npm run check:credentials             # platform keyring provider
-npm run check:terminal-dataplane-core # terminal frame codec + route controller
+# Tests
+npm test                       # frontend + scripts
+go test ./...                  # Go domain, services and shell
 ```
 
 ---
@@ -185,15 +154,15 @@ npm run check:terminal-dataplane-core # terminal frame codec + route controller
 <a name="tech-stack"></a>
 # Tech Stack
 
-| Category | Stable baseline (Electron) | Target runtime (Wails v3 + Go) |
-|----------|---------------------------|--------------------------------|
-| Shell | Electron 40 | Wails v3 (beta.12) |
-| Frontend | React 19, TypeScript, Vite 7 | React 19, TypeScript, Vite 7 (unchanged) |
-| Terminal | xterm.js 5, node-pty, MessagePort | xterm.js 5, Go ConPTY/Unix PTY, binary loopback WebSocket data plane |
-| SSH/SFTP | ssh2, ssh2-sftp-client | golang.org/x/crypto/ssh, pkg/sftp |
-| Persistence | localStorage | Go transactional profile store (bbolt) |
-| Credentials | Electron safeStorage | OS keyring (Win Credential Manager / macOS Keychain / Linux Secret Service) |
-| Styling | Tailwind CSS 4 | Tailwind CSS 4 (unchanged) |
+| Category | Technology |
+|----------|------------|
+| Shell | Wails v3 + Go |
+| Frontend | React 19, TypeScript, Vite 7 |
+| Terminal | xterm.js 5, Go ConPTY/Unix PTY, binary loopback WebSocket data plane |
+| SSH/SFTP | golang.org/x/crypto/ssh, pkg/sftp |
+| Persistence | Go transactional profile store (bbolt) |
+| Credentials | OS keyring (Win Credential Manager / macOS Keychain / Linux Secret Service) |
+| Styling | Tailwind CSS 4 |
 
 ---
 
@@ -208,9 +177,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-See [AGENTS.md](AGENTS.md) for architecture overview and coding conventions,
-and [docs/migrations/wails-v3/README.md](docs/migrations/wails-v3/README.md)
-for the migration workflow.
+See [AGENTS.md](AGENTS.md) for the architecture overview and coding conventions.
 
 ---
 
