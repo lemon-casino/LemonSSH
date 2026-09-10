@@ -93,6 +93,7 @@ export interface WailsBindingDeps {
   };
   settings?: {
     Open: () => Promise<boolean>;
+    Show?: () => Promise<unknown>;
     Close: () => Promise<unknown>;
   };
   forward?: {
@@ -302,6 +303,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
+  const showSettingsWindow = () => bindings.settings?.Show?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
   const selectFile = async () => {
     const selected = await bindings.dialogs?.OpenFile({ CanChooseFiles: true, CanChooseDirectories: false });
@@ -355,6 +357,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     windowIsMaximized,
     windowIsFullscreen,
     openSettingsWindow,
+    showSettingsWindow,
     closeSettingsWindow,
     getAppLockRuntimeState,
     reportAppLockActivity,

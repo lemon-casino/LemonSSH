@@ -14,7 +14,9 @@ export function subscribeWindowFullscreenChanged(
 export const useWindowControls = () => {
   const notifyRendererReady = useCallback(() => {
     try {
-      netcattyBridge.get()?.rendererReady?.();
+      const bridge = netcattyBridge.get();
+      bridge?.rendererReady?.();
+      void (bridge as { showSettingsWindow?: () => Promise<unknown> } | undefined)?.showSettingsWindow?.();
     } catch {
       // ignore
     }

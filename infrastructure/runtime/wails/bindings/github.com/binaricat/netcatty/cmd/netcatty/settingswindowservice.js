@@ -19,3 +19,10 @@ export function Close() {
 export function Open() {
     return $Call.ByID(1829813804);
 }
+
+/**
+ * @returns {$CancellablePromise<void>}
+ */
+export function Show() {
+    return $Call.ByID(3854190277);
+}

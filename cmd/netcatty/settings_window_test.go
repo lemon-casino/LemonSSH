@@ -20,3 +20,10 @@ func TestSettingsWindowOptionsAreDedicatedAndFrameless(t *testing.T) {
 		t.Fatal("settings window must start hidden until the frontend has painted")
 	}
 }
+
+func TestSettingsWindowStartsHiddenWithoutAutoShowHook(t *testing.T) {
+	options := settingsWindowOptions()
+	if !options.Hidden {
+		t.Fatal("settings window must start hidden")
+	}
+}

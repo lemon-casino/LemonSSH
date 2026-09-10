@@ -218,6 +218,9 @@
         // Tray overlay uses CSS border-radius over a transparent BrowserWindow.
         // Mark it before first paint so body/root/splash never flash an opaque
         // backdrop (#2505). Splash lives in <body>, so remove it on DOM ready.
+        if ((window.location.hash || '') === '#/settings' || (window.location.hash || '').indexOf('#/settings') === 0) {
+          root.classList.add('settings-window');
+        }
         if ((window.location.hash || '') === '#/tray' || (window.location.hash || '').indexOf('#/tray') === 0) {
           root.classList.add('tray-window');
           var removeTraySplash = function () {
