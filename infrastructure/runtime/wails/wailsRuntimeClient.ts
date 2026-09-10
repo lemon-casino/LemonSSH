@@ -7,6 +7,7 @@ import { Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
+import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -81,6 +82,10 @@ export interface WailsBindingDeps {
     IsMaximised: () => Promise<boolean>;
     IsFullscreen: () => Promise<boolean>;
   };
+  settings?: {
+    Open: () => Promise<boolean>;
+    Close: () => Promise<unknown>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -88,6 +93,7 @@ const defaultBindings: WailsBindingDeps = {
   terminal: terminalService as unknown as WailsBindingDeps["terminal"],
   sftp: sftpService as unknown as WailsBindingDeps["sftp"],
   window: wailsWindow,
+  settings: settingsWindowService as unknown as WailsBindingDeps["settings"],
 };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -219,6 +225,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const windowClose = () => bindings.window?.Close();
   const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
+  const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
+  const closeSettingsWindow = () => bindings.settings?.Close();
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
@@ -241,6 +249,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     windowClose,
     windowIsMaximized,
     windowIsFullscreen,
+    openSettingsWindow,
+    closeSettingsWindow,
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {

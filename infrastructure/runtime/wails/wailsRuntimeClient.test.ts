@@ -80,6 +80,24 @@ test("optional-chain startup calls do not throw on missing bridge methods", () =
   });
 });
 
+test("openSettingsWindow creates or focuses a dedicated settings window", async () => {
+  const bindings = stubBindings();
+  const calls: string[] = [];
+  bindings.settings = {
+    Open: async () => {
+      calls.push("open");
+      return true;
+    },
+    Close: async () => {
+      calls.push("close");
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.equal(await bridge.openSettingsWindow?.(), true);
+  await bridge.closeSettingsWindow?.();
+  assert.deepEqual(calls, ["open", "close"]);
+});
+
 test("window controls call the Wails native window API", async () => {
   const calls: string[] = [];
   const bindings = stubBindings();

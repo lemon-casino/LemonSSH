@@ -8,6 +8,7 @@ import * as PTYService from "./ptyservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
+import * as SettingsWindowService from "./settingswindowservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as UpgradeService from "./upgradeservice.js";
 export {
@@ -17,6 +18,7 @@ export {
     ProfileMigrationService,
     ProfileService,
     SFTPService,
+    SettingsWindowService,
     TerminalService,
     UpgradeService
 };

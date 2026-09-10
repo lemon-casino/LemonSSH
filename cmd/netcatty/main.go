@@ -118,9 +118,11 @@ func main() {
 		},
 	})
 
-	wailsApp.Window.NewWithOptions(mainWindowOptions())
+		wailsApp.Window.NewWithOptions(mainWindowOptions())
+		settingsWindowService := newSettingsWindowService(wailsApp)
+		wailsApp.RegisterService(application.NewService(settingsWindowService))
 
-	// System Tray (P4-03)
+		// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()
 	tray.SetIcon(icons.SystrayLight)
 	tray.SetTooltip("Netcatty")
