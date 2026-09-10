@@ -80,6 +80,25 @@ test("optional-chain startup calls do not throw on missing bridge methods", () =
   });
 });
 
+test("window controls call the Wails native window API", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.window = {
+    Minimise: async () => { calls.push("minimize"); },
+    ToggleMaximise: async () => { calls.push("maximize"); },
+    Close: async () => { calls.push("close"); },
+    IsMaximised: async () => true,
+    IsFullscreen: async () => false,
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.windowMinimize?.();
+  assert.equal(await bridge.windowMaximize?.(), true);
+  assert.equal(await bridge.windowIsMaximized?.(), true);
+  assert.equal(await bridge.windowIsFullscreen?.(), false);
+  await bridge.windowClose?.();
+  assert.deepEqual(calls, ["minimize", "maximize", "close"]);
+});
+
 test("startLocalSession attaches the data plane", async () => {
   const bindings = stubBindings();
   const client = createWailsRuntimeClient(bindings);

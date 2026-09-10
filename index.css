@@ -743,8 +743,9 @@ html[data-theme-transition] *::after {
   animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-/* Custom titlebar drag regions for Electron */
+/* Custom titlebar drag regions for Wails and Electron. */
 .app-drag {
+  --wails-non-client-region: caption;
   -webkit-app-region: drag;
   app-region: drag;
   user-select: none;
@@ -752,6 +753,7 @@ html[data-theme-transition] *::after {
 }
 
 .app-no-drag {
+  --wails-non-client-region: none;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   user-select: auto;
@@ -759,6 +761,7 @@ html[data-theme-transition] *::after {
 }
 
 .app-no-drag * {
+  --wails-non-client-region: none;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   user-select: auto;

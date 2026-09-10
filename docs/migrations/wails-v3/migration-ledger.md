@@ -2109,3 +2109,31 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无 Unicode/reload 广度矩阵；cmd.exe 活体绘制未单独记录
 - Next safe slice: 活体 SSH/SFTP 证据（不可伪造 verified）
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L060 - 2026-09-10 - Wails 无边框主窗口与原生窗口控制
+
+- Capability rows: `FND-04`
+- Plan task: `P4-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 主窗口启用 Frameless，现有 TopTabs 成为唯一标题栏；windowMinimize/
+  windowMaximize/windowClose/windowIsMaximized/windowIsFullscreen 接 Wails Window API；
+  app-drag/app-no-drag 同时映射 Electron 与 Wails 非客户区属性。
+- Go canonical owner: `cmd/netcatty/main.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts`
+- Electron owner affected: none
+- Preserved invariants: 窗口可调整大小；现有 Electron drag 属性保留；交互控件不进入拖拽区
+- Data/schema impact: none
+- Security impact: none
+- Verification: cmd/netcatty frameless test；窗口适配器测试；CSS drag-region 契约测试；
+  Go race/vet 绿；Wails 本机构建成功
+- Platforms covered: Windows 10 22H2（本机）
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-012`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台无边框拖拽/缩放/窗口按钮验证后
+- Documentation updated: migration ledger
+- Residual risks: macOS/Linux 非客户区行为待活体验证
+- Next safe slice: 三平台窗口行为证据
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

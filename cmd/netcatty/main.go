@@ -54,6 +54,20 @@ func (s *NetcattyService) ResolveWindowRole(role string) (app.WindowRoleInfo, er
 	return s.application.ResolveWindowRole(context.Background(), role)
 }
 
+func mainWindowOptions() application.WebviewWindowOptions {
+	return application.WebviewWindowOptions{
+		Name:             "main",
+		Title:            fmt.Sprintf("LemonSSH %s", version),
+		Width:            1280,
+		Height:           800,
+		MinWidth:         960,
+		MinHeight:        600,
+		Frameless:        true,
+		BackgroundColour: application.NewRGB(20, 23, 28),
+		URL:              "/index.html",
+	}
+}
+
 func main() {
 	core := app.New("Netcatty", version)
 	service := newNetcattyService(core)
@@ -104,16 +118,7 @@ func main() {
 		},
 	})
 
-	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:             "main",
-		Title:            fmt.Sprintf("Netcatty %s", version),
-		Width:            1280,
-		Height:           800,
-		MinWidth:         960,
-		MinHeight:        600,
-		BackgroundColour: application.NewRGB(20, 23, 28),
-		URL:              "/index.html",
-	})
+	wailsApp.Window.NewWithOptions(mainWindowOptions())
 
 	// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()

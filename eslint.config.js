@@ -21,7 +21,7 @@ export default [
     // globally with an explicit Electron adapter allowlist below. Disposable
     // experiments/ probes are exempt.
     files: ["**/*.{ts,tsx}"],
-    ignores: ["experiments/**"],
+    ignores: ["experiments/**", "infrastructure/runtime/wails/wailsRuntimeClient.ts"],
     rules: {
       "no-restricted-imports": ["error",
         { paths: [{ name: "@wailsio/runtime", message: "Only the Wails RuntimeClient adapter may import the Wails runtime." }] },

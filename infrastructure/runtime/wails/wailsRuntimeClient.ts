@@ -3,6 +3,7 @@
 // ESLint). Ports without a Go owner reject every call fail-closed instead of
 // pretending parity; they are implemented domain by domain from P2 onward.
 
+import { Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
@@ -73,12 +74,20 @@ export interface WailsBindingDeps {
     Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
     Close: (sftpID: string) => Promise<unknown>;
   };
+  window?: {
+    Minimise: () => Promise<void>;
+    ToggleMaximise: () => Promise<void>;
+    Close: () => Promise<void>;
+    IsMaximised: () => Promise<boolean>;
+    IsFullscreen: () => Promise<boolean>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
 const defaultBindings: WailsBindingDeps = {
   terminal: terminalService as unknown as WailsBindingDeps["terminal"],
   sftp: sftpService as unknown as WailsBindingDeps["sftp"],
+  window: wailsWindow,
 };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -202,6 +211,15 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const closeSftp = (sftpID: string) =>
     bindings.sftp.Close(sftpID) as Promise<void>;
 
+  const windowMinimize = () => bindings.window?.Minimise();
+  const windowMaximize = async () => {
+    await bindings.window?.ToggleMaximise();
+    return bindings.window?.IsMaximised() ?? false;
+  };
+  const windowClose = () => bindings.window?.Close();
+  const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
+  const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
+
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
     startLocalSession,
@@ -218,6 +236,11 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     renameSftp,
     statSftp,
     closeSftp,
+    windowMinimize,
+    windowMaximize,
+    windowClose,
+    windowIsMaximized,
+    windowIsFullscreen,
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {
