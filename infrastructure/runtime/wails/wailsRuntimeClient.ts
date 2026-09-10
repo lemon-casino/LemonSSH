@@ -516,9 +516,11 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     // port types gain Wails-specific variants.
     getSftpHomeDir: ((sftpID: string) =>
       bindings.sftp.HomeDir?.(sftpID).then((homeDir) => ({ success: true, homeDir }))) as unknown as NetcattyBridge["getSftpHomeDir"],
-    getPathForFile: ((file: File) => {
-      const path = (file as File & { path?: string }).path;
-      return path || undefined;
+    getPathForFile: (() => {
+      // WebView2 File.path points at the dropped file but os.Open rejects it
+      // with PATH_NOT_FOUND on some hosts while os.Stat succeeds. Return
+      // undefined so the upload pipeline stages the File content instead.
+      return undefined;
     }) as unknown as NetcattyBridge["getPathForFile"],
     statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
     stageFromLocalPath: ((path: string) =>
