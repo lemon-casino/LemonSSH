@@ -164,6 +164,23 @@ test("onKeyboardInteractive fans Wails events to the existing modal queue", asyn
   assert.equal(result?.success, true);
 });
 
+test("statSftp returns null for missing upload targets instead of throwing", async () => {
+  const bindings = stubBindings();
+  bindings.sftp.Stat = async () => {
+    throw new Error('sftp: "file does not exist" (SSH_FX_NO_SUCH_FILE)');
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const stat = await client.transitionBridge.statSftp?.("sftp-1", "/root/new.png");
+  assert.equal(stat, null);
+  bindings.sftp.Stat = async () => {
+    throw new Error("connection lost");
+  };
+  await assert.rejects(
+    () => client.transitionBridge.statSftp?.("sftp-1", "/root/x"),
+    /connection lost/,
+  );
+});
+
 test("onFilesDropped fans the Wails drop event to listeners", async () => {
   const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
   const bindings = stubBindings();

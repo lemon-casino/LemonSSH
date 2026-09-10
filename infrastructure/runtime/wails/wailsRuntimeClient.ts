@@ -331,8 +331,17 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const renameSftp = (sftpID: string, oldPath: string, newPath: string) =>
     bindings.sftp.Rename(sftpID, oldPath, newPath) as Promise<void>;
   const statSftp = async (sftpID: string, path: string) => {
-    const stat = await bindings.sftp.Stat(sftpID, path);
-    return statToSftpStatResult(stat);
+    try {
+      const stat = await bindings.sftp.Stat(sftpID, path);
+      return statToSftpStatResult(stat);
+    } catch (error) {
+      // Conflict detection stats a not-yet-existing upload target; the
+      // Electron bridge returns null there and so must this adapter.
+      if (error instanceof Error && /does not exist|no such file/i.test(error.message)) {
+        return null;
+      }
+      throw error;
+    }
   };
   const closeSftp = (sftpID: string) =>
     bindings.sftp.Close(sftpID) as Promise<void>;
