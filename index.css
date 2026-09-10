@@ -746,6 +746,7 @@ html[data-theme-transition] *::after {
 /* Custom titlebar drag regions for Wails and Electron. */
 .app-drag {
   --wails-non-client-region: caption;
+  --wails-draggable: drag;
   -webkit-app-region: drag;
   app-region: drag;
   user-select: none;
@@ -754,6 +755,7 @@ html[data-theme-transition] *::after {
 
 .app-no-drag {
   --wails-non-client-region: none;
+  --wails-draggable: no-drag;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   user-select: auto;
@@ -762,6 +764,7 @@ html[data-theme-transition] *::after {
 
 .app-no-drag * {
   --wails-non-client-region: none;
+  --wails-draggable: no-drag;
   -webkit-app-region: no-drag;
   app-region: no-drag;
   user-select: auto;
