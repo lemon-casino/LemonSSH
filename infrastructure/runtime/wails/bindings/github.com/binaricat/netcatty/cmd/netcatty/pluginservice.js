@@ -24,6 +24,15 @@ export function Install(pluginID, version, sha256Hex, manifestJSON) {
 }
 
 /**
+ * @param {string} pluginID
+ * @param {string} wasmBytes
+ * @returns {$CancellablePromise<void>}
+ */
+export function InstantiateWASM(pluginID, wasmBytes) {
+    return $Call.ByID(1676454686, pluginID, wasmBytes);
+}
+
+/**
  * @returns {$CancellablePromise<(store$0.PackageRecord | null)[]>}
  */
 export function List() {

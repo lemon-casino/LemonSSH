@@ -87,6 +87,8 @@ export interface UseSftpViewFileOpsResult {
   onDownloadFilesRight: (files: SftpFileEntry[]) => void;
   onUploadExternalFilesLeft: (dataTransfer: DataTransfer, targetPath?: string) => void;
   onUploadExternalFilesRight: (dataTransfer: DataTransfer, targetPath?: string) => void;
+  onUploadExternalPathsLeft: (paths: string[], targetPath?: string) => void;
+  onUploadExternalPathsRight: (paths: string[], targetPath?: string) => void;
   onUploadExternalFileListLeft: (fileList: FileList, targetPath?: string) => void;
   onUploadExternalFileListRight: (fileList: FileList, targetPath?: string) => void;
   onUploadExternalFolderLeft: (targetPath?: string) => Promise<void>;

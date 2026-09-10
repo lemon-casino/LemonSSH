@@ -66,6 +66,8 @@ export interface SftpPaneCallbacks {
     onUploadExternalFileList?: (fileList: FileList, targetPath?: string) => Promise<void>;
     // External folder upload from native directory picker.
     onUploadExternalFolder?: (targetPath?: string) => Promise<void>;
+    // OS-level file drop carrying real local paths (Wails native drop).
+    onUploadExternalPaths?: (paths: string[], targetPath?: string) => Promise<void>;
     onListDirectory: (path: string) => Promise<SftpFileEntry[]>;
     onListDrives: () => Promise<string[]>;
 }

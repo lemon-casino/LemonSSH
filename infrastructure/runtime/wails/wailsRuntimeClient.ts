@@ -147,6 +147,7 @@ export interface WailsBindingDeps {
   };
   filesystem?: {
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
+    StatPath?: (path: string) => Promise<{ name: string; isDir: boolean; size: number }>;
   };
   transfer?: {
     Enqueue?: (spec: unknown) => Promise<unknown>;
@@ -392,6 +393,33 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const listPortForwards = () => bindings.forward?.List();
   const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
   const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
+  const statLocalPath = (path: string) =>
+    bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
+  type FilesDroppedCallback = (payload: {
+    filenames: string[];
+    x: number;
+    y: number;
+    elementDetails?: { id?: string; classList?: string[]; attributes?: Record<string, string> };
+  }) => void;
+  const filesDroppedListeners = new Set<FilesDroppedCallback>();
+  let filesDroppedSubscribed = false;
+  const subscribeFilesDropped = () => {
+    if (filesDroppedSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    filesDroppedSubscribed = true;
+    eventsOn("common:WindowFilesDropped", (event) => {
+      const payload = (event?.data ?? event) as Parameters<FilesDroppedCallback>[0];
+      for (const listener of filesDroppedListeners) listener(payload);
+    });
+  };
+  const onFilesDropped = (cb: FilesDroppedCallback) => {
+    subscribeFilesDropped();
+    filesDroppedListeners.add(cb);
+    return () => {
+      filesDroppedListeners.delete(cb);
+    };
+  };
   const reportAppLockActivity = () => bindings.appLock?.ReportActivity?.();
   const listPlugins = () => bindings.plugins?.List() ?? Promise.resolve([]);
   type KeyboardInteractiveCallback = Parameters<NonNullable<NetcattyBridge["onKeyboardInteractive"]>>[0];
@@ -467,6 +495,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       const path = (file as File & { path?: string }).path;
       return path || undefined;
     }) as unknown as NetcattyBridge["getPathForFile"],
+    statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
+    onFilesDropped,
     startStreamTransfer: (async (options: {
       sourceType: "local" | "sftp";
       targetType: "local" | "sftp";

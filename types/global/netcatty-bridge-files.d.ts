@@ -131,6 +131,15 @@ declare global {
 
     // Get file path from File object (for drag-and-drop, uses Electron's webUtils)
     getPathForFile?(file: File): string | undefined;
+    /** Stat one local path (Wails: read-only os.Stat for drop classification). */
+    statLocalPath?(path: string): Promise<{ name: string; isDir: boolean; size: number }>;
+    /** Wails native file drop (real OS paths). */
+    onFilesDropped?(cb: (payload: {
+      filenames: string[];
+      x: number;
+      y: number;
+      elementDetails?: { id?: string; classList?: string[]; attributes?: Record<string, string> };
+    }) => void): () => void;
     showSystemNotification?(payload: {
       title: string;
       body: string;

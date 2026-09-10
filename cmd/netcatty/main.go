@@ -69,6 +69,7 @@ func mainWindowOptions() application.WebviewWindowOptions {
 		MinWidth:         960,
 		MinHeight:        600,
 		Frameless:        true,
+		EnableFileDrop:   true,
 		BackgroundColour: application.NewRGB(20, 23, 28),
 		URL:              "/index.html",
 	}

@@ -16,6 +16,7 @@ import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
 import * as SettingsWindowService from "./settingswindowservice.js";
 import * as ShortcutService from "./shortcutservice.js";
+import * as SyncService from "./syncservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as TransferService from "./transferservice.js";
 import * as UpgradeService from "./upgradeservice.js";
@@ -34,6 +35,7 @@ export {
     SFTPService,
     SettingsWindowService,
     ShortcutService,
+    SyncService,
     TerminalService,
     TransferService,
     UpgradeService
@@ -43,6 +45,7 @@ export {
     AppLockRuntimeState,
     HotkeyResult,
     HotkeyStatus,
+    LocalPathStat,
     PopupOpenResult,
     SSHConnectRequest,
     UpgradeStatus

@@ -6,6 +6,10 @@
 // @ts-ignore: Unused imports
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @param {string} archivePath
  * @param {string} destinationRoot
@@ -14,3 +18,18 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 export function ExtractArchive(archivePath, destinationRoot) {
     return $Call.ByID(3240863779, archivePath, destinationRoot);
 }
+
+/**
+ * StatPath stats one local path (read-only) so dropped files can be
+ * classified before upload.
+ * @param {string} path
+ * @returns {$CancellablePromise<$models.LocalPathStat>}
+ */
+export function StatPath(path) {
+    return $Call.ByID(1999196219, path).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+// Private type creation functions
+const $$createType0 = $models.LocalPathStat.createFrom;

@@ -332,6 +332,32 @@ export const useSftpViewFileOps = ({
     [handleUploadExternalFilesForSide],
   );
 
+  const handleUploadExternalPathsForSide = useCallback(
+    async (side: "left" | "right", paths: string[], targetPath?: string) => {
+      try {
+        const results = await sftpRef.current.uploadExternalPaths(side, paths, targetPath);
+        reportSftpUploadResults({ results, t, toast });
+      } catch (error) {
+        logger.error("[SftpView] Failed to upload dropped paths:", error);
+        toast.error(
+          error instanceof Error ? error.message : t("sftp.error.uploadFailed"),
+          "SFTP",
+        );
+      }
+    },
+    [sftpRef, t],
+  );
+
+  const onUploadExternalPathsLeft = useCallback(
+    (paths: string[], targetPath?: string) => handleUploadExternalPathsForSide("left", paths, targetPath),
+    [handleUploadExternalPathsForSide],
+  );
+
+  const onUploadExternalPathsRight = useCallback(
+    (paths: string[], targetPath?: string) => handleUploadExternalPathsForSide("right", paths, targetPath),
+    [handleUploadExternalPathsForSide],
+  );
+
   const handleUploadExternalFileListForSide = useCallback(
     async (side: "left" | "right", fileList: FileList, targetPath?: string) => {
       try {
@@ -791,6 +817,8 @@ export const useSftpViewFileOps = ({
     onDownloadFilesRight,
     onUploadExternalFilesLeft,
     onUploadExternalFilesRight,
+    onUploadExternalPathsLeft,
+    onUploadExternalPathsRight,
     onUploadExternalFileListLeft,
     onUploadExternalFileListRight,
     onUploadExternalFolderLeft,

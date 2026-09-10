@@ -1864,6 +1864,29 @@ export const useSftpExternalOperations = (
     [],
   );
 
+  const uploadExternalPaths = useCallback(
+    async (side: "left" | "right", paths: string[], targetPath?: string): Promise<UploadResult[]> => {
+      const bridge = netcattyBridge.get();
+      if (!bridge?.statLocalPath) {
+        throw new Error("Native drop path stat is not available");
+      }
+      const entries: DropEntry[] = [];
+      for (const localPath of paths) {
+        const stat = await bridge.statLocalPath(localPath);
+        entries.push({
+          file: null,
+          localPath,
+          relativePath: stat.name,
+          isDirectory: stat.isDir,
+          size: stat.size,
+        });
+      }
+      if (entries.length === 0) return [];
+      return uploadExternalEntries(side, entries, { targetPath });
+    },
+    [uploadExternalEntries],
+  );
+
   return {
     readTextFile,
     readBinaryFile,
@@ -1875,6 +1898,7 @@ export const useSftpExternalOperations = (
     uploadExternalFileList,
     uploadExternalFolderPath,
     uploadExternalEntries,
+    uploadExternalPaths,
     cancelExternalUpload,
     selectApplication,
     activeFileWatchCountRef,

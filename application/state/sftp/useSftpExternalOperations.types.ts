@@ -83,6 +83,12 @@ export interface SftpExternalOperationsResult {
     fileList: FileList | File[],
     targetPath?: string
   ) => Promise<UploadResult[]>;
+  /** Upload OS-dropped real paths (Wails native file drop). */
+  uploadExternalPaths: (
+    side: "left" | "right",
+    paths: string[],
+    targetPath?: string
+  ) => Promise<UploadResult[]>;
   uploadExternalFolderPath: (
     side: "left" | "right",
     folderPath: string,

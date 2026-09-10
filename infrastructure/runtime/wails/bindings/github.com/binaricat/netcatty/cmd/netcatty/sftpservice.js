@@ -43,6 +43,17 @@ export function Download(sessionID, remotePath, localPath) {
 }
 
 /**
+ * ExtractArchive downloads a remote zip, extracts it locally with zip-slip
+ * protection, and uploads the files next to the archive.
+ * @param {string} sessionID
+ * @param {string} remotePath
+ * @returns {$CancellablePromise<number>}
+ */
+export function ExtractArchive(sessionID, remotePath) {
+    return $Call.ByID(3471517857, sessionID, remotePath);
+}
+
+/**
  * HomeDir returns the remote working directory for the SFTP session.
  * @param {string} sessionID
  * @returns {$CancellablePromise<string>}
@@ -134,6 +145,17 @@ export function Stat(sessionID, target) {
  */
 export function Upload(sessionID, localPath, remotePath) {
     return $Call.ByID(3196629929, sessionID, localPath, remotePath);
+}
+
+/**
+ * UploadCompressedFolder zips a local folder and uploads the archive.
+ * @param {string} sessionID
+ * @param {string} localFolder
+ * @param {string} remoteZipPath
+ * @returns {$CancellablePromise<number>}
+ */
+export function UploadCompressedFolder(sessionID, localFolder, remoteZipPath) {
+    return $Call.ByID(3644613492, sessionID, localFolder, remoteZipPath);
 }
 
 /**

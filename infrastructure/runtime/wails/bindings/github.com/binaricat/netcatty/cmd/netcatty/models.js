@@ -160,6 +160,51 @@ export class HotkeyStatus {
     }
 }
 
+/**
+ * LocalPathStat is the os.Stat view of one local path.
+ */
+export class LocalPathStat {
+    /**
+     * Creates a new LocalPathStat instance.
+     * @param {Partial<LocalPathStat>} [$$source = {}] - The source object to create the LocalPathStat.
+     */
+    constructor($$source = {}) {
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("isDir" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isDir"] = false;
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LocalPathStat instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {LocalPathStat}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LocalPathStat(/** @type {Partial<LocalPathStat>} */($$parsedSource));
+    }
+}
+
 export class PopupOpenResult {
     /**
      * Creates a new PopupOpenResult instance.
@@ -254,6 +299,13 @@ export class SSHConnectRequest {
              */
             this["passphrase"] = "";
         }
+        if (!("certificate" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["certificate"] = "";
+        }
         if (!("proxyUrl" in $$source)) {
             /**
              * @member
@@ -267,6 +319,20 @@ export class SSHConnectRequest {
              * @type {boolean}
              */
             this["enableMfa"] = false;
+        }
+        if (!("useAgent" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["useAgent"] = false;
+        }
+        if (!("identityFilePaths" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["identityFilePaths"] = [];
         }
         if (!("cols" in $$source)) {
             /**
@@ -299,10 +365,14 @@ export class SSHConnectRequest {
      * @returns {SSHConnectRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField10_0 = $$createType1;
+        const $$createField10_0 = $$createType0;
+        const $$createField13_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("identityFilePaths" in $$parsedSource) {
+            $$parsedSource["identityFilePaths"] = $$createField10_0($$parsedSource["identityFilePaths"]);
+        }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField10_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField13_0($$parsedSource["jumpHosts"]);
         }
         return new SSHConnectRequest(/** @type {Partial<SSHConnectRequest>} */($$parsedSource));
     }
@@ -355,7 +425,7 @@ export class UpgradeStatus {
      * @returns {UpgradeStatus}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType2;
+        const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("history" in $$parsedSource) {
             $$parsedSource["history"] = $$createField3_0($$parsedSource["history"]);
@@ -365,6 +435,6 @@ export class UpgradeStatus {
 }
 
 // Private type creation functions
-const $$createType0 = SSHConnectRequest.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $Create.Array($Create.Any);
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = SSHConnectRequest.createFrom;
+const $$createType2 = $Create.Array($$createType1);

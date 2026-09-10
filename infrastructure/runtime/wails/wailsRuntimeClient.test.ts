@@ -164,6 +164,26 @@ test("onKeyboardInteractive fans Wails events to the existing modal queue", asyn
   assert.equal(result?.success, true);
 });
 
+test("onFilesDropped fans the Wails drop event to listeners", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const bindings = stubBindings();
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ filenames: string[] }> = [];
+  client.transitionBridge.onFilesDropped?.((payload) => seen.push({ filenames: payload.filenames }));
+  listeners.get("common:WindowFilesDropped")?.[0]({
+    data: { filenames: ["C:\\a.txt"], x: 1, y: 2, elementDetails: { id: "pane" } },
+  });
+  assert.deepEqual(seen, [{ filenames: ["C:\\a.txt"] }]);
+});
+
 test("getPathForFile reads the WebView2 path property", () => {
   const client = createWailsRuntimeClient(stubBindings());
   const file = { name: "a.txt", path: "C:\\Users\\Lemon\\a.txt" } as File & { path: string };
