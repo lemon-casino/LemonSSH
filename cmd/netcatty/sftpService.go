@@ -246,10 +246,11 @@ func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, er
 	if err != nil {
 		return 0, err
 	}
-	reader, err := os.Open(localPath)
-	if err != nil {
-		return 0, err
-	}
+		reader, err := os.Open(localPath)
+		if err != nil {
+			// %q exposes invisible characters that a plain %s path hides.
+			return 0, fmt.Errorf("upload open %q: %w", localPath, err)
+		}
 	defer reader.Close()
 	writer, err := client.fs.Create(resolved)
 	if err != nil {

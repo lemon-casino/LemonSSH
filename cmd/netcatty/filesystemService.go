@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
@@ -28,7 +29,8 @@ type LocalPathStat struct {
 func (s *FilesystemService) StatPath(path string) (LocalPathStat, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return LocalPathStat{}, err
+		// %q exposes invisible characters that a plain %s path hides.
+		return LocalPathStat{}, fmt.Errorf("stat %q: %w", path, err)
 	}
 	return LocalPathStat{
 		Name:  info.Name(),
