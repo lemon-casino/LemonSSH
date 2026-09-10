@@ -2021,3 +2021,62 @@ capability row, source paths, verification output or CI run.
   篡改、中断、提权、托盘、回滚矩阵全部待做
 - Next safe slice: P6-05 NONAI-COMPLETE gate 缺口清点
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L057 - 2026-09-10 - 渲染层消费 loopback 数据面（transitionBridge）
+
+- Capability rows: `FND-01`
+- Plan task: `P1-01`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 现有 UI 通过 netcattyBridge.transitionBridge 走到 Go 终端/SFTP
+  而不改组件：startSSHSession 拨号后自动 Bootstrap + 打开数据面 WebSocket，
+  onSessionData 把 Output 帧解码为 UTF-8 回调，closeSession 关闭套接字。
+- Go canonical owner: none（复用 TerminalService/SFTPService）
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` +
+  `dataPlaneSession.ts`（纯客户端：开窗、授信、ACK、Complete）
+- Electron owner affected: none
+- Preserved invariants: 未迁移方法仍 fail-closed；Electron adapter 未改；
+  数据面帧编解码复用 infrastructure/terminal/dataplane/frame.ts
+- Data/schema impact: none
+- Security impact: 路由令牌仍只经 Bootstrap 交付；Host 由 listenAddr 组装
+- Verification: dataPlaneSession.test.ts 2 项 + wailsRuntimeClient.test.ts
+  3 项 + runtime 套件 29/29 全绿；tsc --noEmit 干净；ESLint 干净
+- Platforms covered: platform-independent TypeScript
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台配对基准证据后 TERM-01 才能进入 verified
+- Documentation updated: capability matrix (FND-01, TERM-01 rows)
+- Residual risks: 无活体 SSH 服务器的端到端绘制证据；urgent 通道尚未接到
+  Ctrl-C 以外的 UI 路径；未迁移端口仍 fail-closed
+- Next safe slice: 活体 SSH/SFTP 证据或 P6-05 缺口清点（不可伪造 verified）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L058 - 2026-09-10 - 数据面 Output 帧接入 onSessionData
+
+- Capability rows: `TERM-01`
+- Plan task: `P3-01`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: 渲染层 dataPlaneSession 客户端：开窗后授予 1 MiB receive window，
+  Output 帧解码为 UTF-8 回调并按 creditCost 回授信，Complete 关闭套接字。
+- Go canonical owner: `internal/terminal/dataplane`
+- Frontend adapter: `infrastructure/runtime/wails/dataPlaneSession.ts`
+- Electron owner affected: none
+- Preserved invariants: 帧编解码与 Go v2 契约字节一致；初始授信必须是
+  整窗 1 MiB；Host 由 listenAddr 组装
+- Data/schema impact: none
+- Security impact: 一次性路由令牌经 Bootstrap 交付，不进 URL
+- Verification: dataPlaneSession.test.ts 2 项（授信/输出/Complete、dispose
+  忽略后续帧）；runtime 套件 29/29
+- Platforms covered: platform-independent TypeScript
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台配对基准证据后才能 verified
+- Documentation updated: capability matrix (TERM-01 row)
+- Residual risks: 无活体 SSH 绘制证据；urgent 通道未接到 UI
+- Next safe slice: 活体 SSH 证据（不可伪造 verified）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

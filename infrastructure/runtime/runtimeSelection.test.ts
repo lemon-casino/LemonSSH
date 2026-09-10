@@ -22,6 +22,8 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
   // Slice A/B/C: SSH terminal sessions and SFTP browsing route to Go.
   assert.equal(typeof client.terminal.startSSHSession, "function");
   assert.equal(typeof client.sftp.listSftp, "function");
+  assert.equal(typeof client.transitionBridge.startSSHSession, "function");
+  assert.equal(typeof client.transitionBridge.onSessionData, "function");
   // Electron-owned capabilities of the same ports still fail closed.
   assert.throws(
     () => (client.terminal as unknown as Record<string, unknown>).startLocalSession,
@@ -34,7 +36,7 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
 test("wails transition bridge fails closed on call, not on access", () => {
   const client = createWailsRuntimeClient();
   const bridge = client.transitionBridge;
-  const method = (bridge as unknown as Record<string, () => unknown>).startSSHSession;
+  const method = (bridge as unknown as Record<string, () => unknown>).startLocalSession;
   assert.equal(typeof method, "function");
   assert.throws(() => method());
 });

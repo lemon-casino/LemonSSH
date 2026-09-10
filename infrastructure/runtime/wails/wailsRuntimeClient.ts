@@ -22,6 +22,8 @@ import type {
 import { setActiveRuntimeClient } from "../runtimeClient";
 import type { RuntimeClient } from "../runtimeClient";
 import type { RemoteFile } from "../../../domain/models/workspace";
+import { openDataPlaneSession } from "./dataPlaneSession";
+import type { DataPlaneSessionHandle } from "./dataPlaneSession";
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -45,26 +47,169 @@ function portWith<T extends object>(portName: string, implemented: object): T {
   }) as T;
 }
 
-// Fail-closed transition bridge: property access yields a function that
-// rejects on call, so netcattyBridge.get() keeps returning an object (facade
-// semantics unchanged) while every call honestly reports the missing owner.
-const failClosedTransitionBridge = new Proxy({}, {
-  get(_target, property) {
-    return () => {
-      throw new Error(
-        `Netcatty bridge method ${String(property)} is not available under the Wails runtime yet`,
-      );
-    };
-  },
-});
+function missingBridgeMethod(property: string | symbol): never {
+  throw new Error(
+    `Netcatty bridge method ${String(property)} is not available under the Wails runtime yet`,
+  );
+}
 
-export function createWailsRuntimeClient(): RuntimeClient {
+export interface WailsBindingDeps {
+  terminal: {
+    Connect: (...args: unknown[]) => Promise<string>;
+    Write: (...args: unknown[]) => unknown;
+    Resize: (...args: unknown[]) => unknown;
+    Signal: (...args: unknown[]) => unknown;
+    Close: (sessionID: string) => Promise<unknown>;
+    Bootstrap: (sessionID: string) => Promise<WailsRouteBootstrap>;
+    ListenAddr: () => Promise<string> | string;
+  };
+  sftp: {
+    Open: (...args: unknown[]) => Promise<string>;
+    List: (sftpID: string, path: string) => Promise<WailsSftpEntry[]>;
+    Mkdir: (sftpID: string, path: string) => Promise<unknown>;
+    Remove: (sftpID: string, path: string) => Promise<unknown>;
+    Rename: (sftpID: string, oldPath: string, newPath: string) => Promise<unknown>;
+    Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
+    Close: (sftpID: string) => Promise<unknown>;
+  };
+  openDataPlane?: typeof openDataPlaneSession;
+}
+
+const defaultBindings: WailsBindingDeps = {
+  terminal: terminalService as unknown as WailsBindingDeps["terminal"],
+  sftp: sftpService as unknown as WailsBindingDeps["sftp"],
+};
+
+type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
+type SessionExitCallback = (evt: { sessionId: string; code?: number }) => void;
+
+export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBindings): RuntimeClient {
   const unimplemented = <T extends object>(portName: string): T => portWith<T>(portName, {});
+  const dataListeners = new Map<string, Set<SessionDataCallback>>();
+  const exitListeners = new Map<string, Set<SessionExitCallback>>();
+  const planes = new Map<string, DataPlaneSessionHandle>();
+
+  function emitData(sessionID: string, chunk: string): void {
+    for (const listener of dataListeners.get(sessionID) ?? []) listener(chunk);
+  }
+
+  function emitExit(sessionID: string): void {
+    for (const listener of exitListeners.get(sessionID) ?? []) listener({ sessionId: sessionID });
+  }
+
+  async function attachDataPlane(sessionID: string): Promise<void> {
+    planes.get(sessionID)?.dispose();
+    const [bootstrap, listenAddr] = await Promise.all([
+      bindings.terminal.Bootstrap(sessionID),
+      Promise.resolve(bindings.terminal.ListenAddr()),
+    ]);
+    planes.set(sessionID, (bindings.openDataPlane ?? openDataPlaneSession)({
+      listenAddr,
+      bootstrap,
+      onData: (chunk) => emitData(sessionID, chunk),
+      onComplete: () => emitExit(sessionID),
+    }));
+  }
+
+  const startSSHSession = (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
+    const args = pickSSHConnectArgs(options);
+    return bindings.terminal.Connect(
+      args.hostname,
+      args.port,
+      args.username,
+      args.password,
+      args.cols,
+      args.rows,
+    ).then(async (sessionID) => {
+      await attachDataPlane(sessionID);
+      return sessionID;
+    });
+  };
+  const writeToSession = (sessionID: string, data: string) =>
+    bindings.terminal.Write(sessionID, bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
+  const resizeSession = (sessionID: string, cols: number, rows: number) =>
+    bindings.terminal.Resize(sessionID, cols, rows) as unknown as void;
+  const interruptSession = (sessionID: string) =>
+    bindings.terminal.Signal(sessionID, "INT") as unknown as void;
+  const closeSession = async (sessionID: string) => {
+    planes.get(sessionID)?.dispose();
+    planes.delete(sessionID);
+    await bindings.terminal.Close(sessionID);
+  };
+  const onSessionData = (
+    sessionID: string,
+    cb: SessionDataCallback,
+  ) => {
+    let set = dataListeners.get(sessionID);
+    if (!set) {
+      set = new Set();
+      dataListeners.set(sessionID, set);
+    }
+    set.add(cb);
+    return () => {
+      set.delete(cb);
+      if (set.size === 0) dataListeners.delete(sessionID);
+    };
+  };
+  const onSessionExit = (sessionID: string, cb: SessionExitCallback) => {
+    let set = exitListeners.get(sessionID);
+    if (!set) {
+      set = new Set();
+      exitListeners.set(sessionID, set);
+    }
+    set.add(cb);
+    return () => {
+      set.delete(cb);
+      if (set.size === 0) exitListeners.delete(sessionID);
+    };
+  };
+
+  const openSftp = (options: Parameters<NetcattyBridge["openSftp"]>[0]) => {
+    const args = pickSSHConnectArgs(options);
+    return bindings.sftp.Open(args.hostname, args.port, args.username, args.password);
+  };
+  const listSftp = async (sftpID: string, path: string): Promise<RemoteFile[]> => {
+    const entries = await bindings.sftp.List(sftpID, path);
+    return entries.map(entryToRemoteFile);
+  };
+  const mkdirSftp = (sftpID: string, path: string) =>
+    bindings.sftp.Mkdir(sftpID, path) as Promise<void>;
+  const deleteSftp = (sftpID: string, path: string) =>
+    bindings.sftp.Remove(sftpID, path) as Promise<void>;
+  const renameSftp = (sftpID: string, oldPath: string, newPath: string) =>
+    bindings.sftp.Rename(sftpID, oldPath, newPath) as Promise<void>;
+  const statSftp = async (sftpID: string, path: string) => {
+    const stat = await bindings.sftp.Stat(sftpID, path);
+    return statToSftpStatResult(stat);
+  };
+  const closeSftp = (sftpID: string) =>
+    bindings.sftp.Close(sftpID) as Promise<void>;
+
+  const implementedBridge: Partial<NetcattyBridge> = {
+    startSSHSession,
+    writeToSession,
+    resizeSession,
+    interruptSession,
+    closeSession,
+    onSessionData: onSessionData as NetcattyBridge["onSessionData"],
+    onSessionExit: onSessionExit as NetcattyBridge["onSessionExit"],
+    openSftp,
+    listSftp,
+    mkdirSftp,
+    deleteSftp,
+    renameSftp,
+    statSftp,
+    closeSftp,
+  };
+  const transitionBridge = new Proxy(implementedBridge, {
+    get(target, property, receiver) {
+      if (property in target) return Reflect.get(target, property, receiver);
+      return () => missingBridgeMethod(property);
+    },
+  }) as NetcattyBridge;
+
   return {
     app: portWith("app", {
-      // The Wails skeleton owns health/version/window-role only. The
-      // Electron-owned app methods stay unimplemented until their domains
-      // migrate (P4+).
       quitApp: () => {
         throw new Error("quitApp is not migrated to the Wails runtime yet");
       },
@@ -73,57 +218,27 @@ export function createWailsRuntimeClient(): RuntimeClient {
     files: unimplemented("files"),
     script: unimplemented("script"),
     terminal: portWith("terminal", {
-      // SSH sessions route to the Go TerminalService (Slice A). Data flows
-      // through the loopback data plane WebSocket (see goTerminalSurface),
-      // not the Electron onSessionData event stream.
-      startSSHSession: (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
-        const args = pickSSHConnectArgs(options);
-        return terminalService.Connect(
-          args.hostname,
-          args.port,
-          args.username,
-          args.password,
-          args.cols,
-          args.rows,
-        ) as unknown as Promise<string>;
-      },
-      writeToSession: (sessionID: string, data: string) =>
-        terminalService.Write(sessionID, bytesToBase64(new TextEncoder().encode(data))) as unknown as void,
-      resizeSession: (sessionID: string, cols: number, rows: number) =>
-        terminalService.Resize(sessionID, cols, rows) as unknown as void,
-      interruptSession: (sessionID: string) =>
-        terminalService.Signal(sessionID, "INT") as unknown as void,
-      closeSession: (sessionID: string) =>
-        terminalService.Close(sessionID) as unknown as Promise<void>,
+      startSSHSession,
+      writeToSession,
+      resizeSession,
+      interruptSession,
+      closeSession,
+      onSessionData,
+      onSessionExit,
     }),
     sftp: portWith("sftp", {
-      // SFTP browsing routes to the Go SFTPService over the shared SSH pool
-      // (Slice B). Encoding args are accepted but only UTF-8 is supported.
-      openSftp: (options: Parameters<NetcattyBridge["openSftp"]>[0]) => {
-        const args = pickSSHConnectArgs(options);
-        return sftpService.Open(args.hostname, args.port, args.username, args.password) as unknown as Promise<string>;
-      },
-      listSftp: async (sftpID: string, path: string): Promise<RemoteFile[]> => {
-        const entries = (await sftpService.List(sftpID, path)) as unknown as WailsSftpEntry[];
-        return entries.map(entryToRemoteFile);
-      },
-      mkdirSftp: (sftpID: string, path: string) =>
-        sftpService.Mkdir(sftpID, path) as unknown as Promise<void>,
-      deleteSftp: (sftpID: string, path: string) =>
-        sftpService.Remove(sftpID, path) as unknown as Promise<void>,
-      renameSftp: (sftpID: string, oldPath: string, newPath: string) =>
-        sftpService.Rename(sftpID, oldPath, newPath) as unknown as Promise<void>,
-      statSftp: async (sftpID: string, path: string) => {
-        const stat = (await sftpService.Stat(sftpID, path)) as unknown as WailsSftpFileInfo;
-        return statToSftpStatResult(stat);
-      },
-      closeSftp: (sftpID: string) =>
-        sftpService.Close(sftpID) as unknown as Promise<void>,
+      openSftp,
+      listSftp,
+      mkdirSftp,
+      deleteSftp,
+      renameSftp,
+      statSftp,
+      closeSftp,
     }),
     sync: unimplemented("sync"),
     system: unimplemented("system"),
     plugin: unimplemented("plugin"),
-    transitionBridge: failClosedTransitionBridge as NetcattyBridge,
+    transitionBridge,
   };
 }
 
