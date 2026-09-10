@@ -222,7 +222,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {
       if (property in target) return Reflect.get(target, property, receiver);
-      return () => missingBridgeMethod(property);
+      // Optional-chain callers (bridge?.setLanguage?.()) must see undefined,
+      // not a throwing function. A throwing stub crashes first paint.
+      return undefined;
     },
   }) as NetcattyBridge;
 

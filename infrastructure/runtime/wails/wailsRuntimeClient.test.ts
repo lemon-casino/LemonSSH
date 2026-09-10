@@ -69,6 +69,17 @@ test("transitionBridge closeSession disposes the data plane", async () => {
   assert.equal(disposed, true);
 });
 
+test("optional-chain startup calls do not throw on missing bridge methods", () => {
+  const client = createWailsRuntimeClient(stubBindings());
+  const bridge = client.transitionBridge;
+  assert.doesNotThrow(() => {
+    bridge.setLanguage?.("en");
+    void bridge.getAppLockSettings?.();
+    void bridge.rendererReady?.();
+    void bridge.notifySettingsChanged?.({ key: "x", value: "y" });
+  });
+});
+
 test("startLocalSession attaches the data plane", async () => {
   const bindings = stubBindings();
   const client = createWailsRuntimeClient(bindings);

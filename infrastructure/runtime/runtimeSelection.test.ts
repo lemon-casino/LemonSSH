@@ -34,12 +34,12 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
   assert.throws(() => client.app.quitApp());
 });
 
-test("wails transition bridge fails closed on call, not on access", () => {
+test("wails transition bridge leaves unmigrated methods undefined for optional chaining", () => {
   const client = createWailsRuntimeClient();
-  const bridge = client.transitionBridge;
-  const method = (bridge as unknown as Record<string, () => unknown>).startTelnetSession;
-  assert.equal(typeof method, "function");
-  assert.throws(() => method());
+  const bridge = client.transitionBridge as unknown as Record<string, unknown>;
+  assert.equal(bridge.startTelnetSession, undefined);
+  assert.equal(bridge.setLanguage, undefined);
+  assert.doesNotThrow(() => (bridge.setLanguage as undefined)?.("en"));
 });
 
 test("generated wails bindings expose the skeleton service surface", async () => {
