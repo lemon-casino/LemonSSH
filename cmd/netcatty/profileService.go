@@ -54,6 +54,11 @@ func (s *ProfileService) Domains() []string {
 	return store.Domains
 }
 
+// DomainKeys lists keys in one profile domain, used to hydrate localStorage.
+func (s *ProfileService) DomainKeys(domain string) ([]string, error) {
+	return s.store.DomainKeys(domain)
+}
+
 // openProfileStore opens the host-owned profile store. The directory can be
 // overridden with NETCATTY_PROFILE_DIR for tests and portable layouts.
 func openProfileStore() (*store.Store, error) {

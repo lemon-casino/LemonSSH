@@ -217,6 +217,27 @@ test("drainDeepLinks Ready then Drain", async () => {
   assert.equal((actions?.[0] as { Host?: string }).Host, "lab");
 });
 
+test("extractSftpArchive fails closed until a remote extract owner exists", async () => {
+  const client = createWailsRuntimeClient(stubBindings());
+  const result = await client.transitionBridge.extractSftpArchive?.("sftp-1", "/tmp/a.zip");
+  assert.equal(result?.success, false);
+});
+
+test("registerGlobalHotkey reaches ShortcutService", async () => {
+  const seen: string[] = [];
+  const bindings = stubBindings();
+  bindings.shortcuts = {
+    Register: async (raw) => {
+      seen.push(raw);
+      return { success: true, enabled: true, accelerator: raw };
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.registerGlobalHotkey?.("CmdOrCtrl+Shift+K");
+  assert.equal(result?.success, true);
+  assert.deepEqual(seen, ["CmdOrCtrl+Shift+K"]);
+});
+
 test("openTerminalPopup calls the popup window service", async () => {
   const seen: unknown[] = [];
   const bindings = stubBindings();

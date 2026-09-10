@@ -25,6 +25,7 @@ export interface ProfileClient {
   deleteRaw(domain: string, key: string): Promise<void>;
   write(expectedRevision: number, mutations: ProfileMutation[]): Promise<ProfileWriteResult>;
   domains(): Promise<string[]>;
+  domainKeys?(domain: string): Promise<string[]>;
 }
 
 function toWireMutations(mutations: ProfileMutation[]): Array<{ Domain: string; Key: string; Value: string | null; Delete: boolean }> {
@@ -54,6 +55,10 @@ export function createProfileClient(): ProfileClient {
       return { revision: Number(result.Revision) };
     },
     domains: () => bindings.Domains(),
+    domainKeys: async (domain) => {
+      const listed = await (bindings as { DomainKeys?: (domain: string) => Promise<string[]> }).DomainKeys?.(domain);
+      return listed ?? [];
+    },
   };
 }
 

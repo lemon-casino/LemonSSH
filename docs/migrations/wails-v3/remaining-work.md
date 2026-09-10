@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L078`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L081`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -47,16 +47,16 @@
 - filesystem/transfer 绑定已进入 defaultBindings；缺 ExtractArchive 时失败关闭，不再假成功 — 已处理
 - 调度器 pause/resume/cancel 接到 Wails TransferService；压缩上传仍未接（SFTP-02）— 已处理
 - sudo SFTP、非 UTF-8 文件名矩阵未验证 — pending
-- 远程压缩包提取仍未接 — pending
+- 远程压缩包提取诚实失败关闭（extractSftpArchive 返回 success false）；完整远程解压 owner 仍未接 — 已处理
 
 ### 系统能力
 - App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；生物识别未接（SYS-04）— 已处理
 - deep link 二次启动 argv 入队；渲染层 drainDeepLinks + onSshDeepLink 已接；OS 协议注册未做（SYS-03）— 已处理
-- 快捷键 in-memory Registry 已暴露；原生 OS 注册未验证（SYS-02）— 已处理
+- 快捷键 Register 接到 ShortcutService；Wails alpha.63 无 GlobalShortcut，原生注册诚实失败关闭（SYS-02）— 已处理
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- Vault/settings 仍走过渡适配层，渲染层 canonical 切换未做（SYNC-01）— pending
+- Vault/settings 启动时从 Go profile DomainKeys 回填空的 localStorage 键；本地已有值优先；canonical 切换仍未做（SYNC-01）— 已处理
 - 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件

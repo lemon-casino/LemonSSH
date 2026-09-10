@@ -6,6 +6,10 @@
 // @ts-ignore: Unused imports
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @returns {$CancellablePromise<string[]>}
  */
@@ -17,20 +21,33 @@ export function List() {
 
 /**
  * @param {string} raw
- * @param {string} callbackID
- * @returns {$CancellablePromise<void>}
+ * @returns {$CancellablePromise<$models.HotkeyResult>}
  */
-export function Register(raw, callbackID) {
-    return $Call.ByID(1316855942, raw, callbackID);
+export function Register(raw) {
+    return $Call.ByID(1316855942, raw).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
 
 /**
- * @param {string} raw
- * @returns {$CancellablePromise<void>}
+ * @returns {$CancellablePromise<$models.HotkeyStatus>}
  */
-export function Unregister(raw) {
-    return $Call.ByID(2049886653, raw);
+export function Status() {
+    return $Call.ByID(1665189637).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.HotkeyResult>}
+ */
+export function Unregister() {
+    return $Call.ByID(2049886653).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
 
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $models.HotkeyResult.createFrom;
+const $$createType2 = $models.HotkeyStatus.createFrom;

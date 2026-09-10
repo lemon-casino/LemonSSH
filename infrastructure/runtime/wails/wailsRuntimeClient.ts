@@ -15,6 +15,7 @@ import * as deepLinkService from "./bindings/github.com/binaricat/netcatty/cmd/n
 import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/filesystemservice";
 import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/transferservice";
 import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
+import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -157,6 +158,11 @@ export interface WailsBindingDeps {
   popup?: {
     Open: (payload: unknown) => Promise<{ success: boolean; popupId?: string; error?: string }>;
   };
+  shortcuts?: {
+    Register?: (raw: string) => Promise<{ success: boolean; enabled?: boolean; error?: string; accelerator?: string }>;
+    Unregister?: () => Promise<{ success: boolean }>;
+    Status?: () => Promise<{ enabled: boolean; hotkey: string | null }>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -174,6 +180,7 @@ export interface WailsBindingDeps {
     filesystem: filesystemService as unknown as WailsBindingDeps["filesystem"],
     transfer: transferService as unknown as WailsBindingDeps["transfer"],
     popup: popupWindowService as unknown as WailsBindingDeps["popup"],
+    shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -579,6 +586,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     cancelTransfer: ((transferId: string) =>
       bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
     cancelZmodem: (async () => ({ success: false, error: "zmodem session engine is not wired yet" })) as unknown as NetcattyBridge["cancelZmodem"],
+    extractSftpArchive: (async () => ({ success: false })) as unknown as NetcattyBridge["extractSftpArchive"],
+    registerGlobalHotkey: (async (hotkey: string) => {
+      if (!bindings.shortcuts?.Register) return { success: false, error: "registerGlobalHotkey unavailable" };
+      return bindings.shortcuts.Register(hotkey);
+    }) as unknown as NetcattyBridge["registerGlobalHotkey"],
+    unregisterGlobalHotkey: (async () => {
+      if (!bindings.shortcuts?.Unregister) return { success: false };
+      return bindings.shortcuts.Unregister();
+    }) as unknown as NetcattyBridge["unregisterGlobalHotkey"],
+    getGlobalHotkeyStatus: (async () => {
+      if (!bindings.shortcuts?.Status) return { enabled: false, hotkey: null };
+      return bindings.shortcuts.Status();
+    }) as unknown as NetcattyBridge["getGlobalHotkeyStatus"],
     startMoshSession: (async () => {
       throw new Error("mosh reconnect protocol is not wired on the Wails data plane yet");
     }) as unknown as NetcattyBridge["startMoshSession"],

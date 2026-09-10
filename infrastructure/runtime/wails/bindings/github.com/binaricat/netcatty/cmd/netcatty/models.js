@@ -76,6 +76,90 @@ export class AppLockRuntimeState {
     }
 }
 
+export class HotkeyResult {
+    /**
+     * Creates a new HotkeyResult instance.
+     * @param {Partial<HotkeyResult>} [$$source = {}] - The source object to create the HotkeyResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["enabled"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["accelerator"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HotkeyResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {HotkeyResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HotkeyResult(/** @type {Partial<HotkeyResult>} */($$parsedSource));
+    }
+}
+
+export class HotkeyStatus {
+    /**
+     * Creates a new HotkeyStatus instance.
+     * @param {Partial<HotkeyStatus>} [$$source = {}] - The source object to create the HotkeyStatus.
+     */
+    constructor($$source = {}) {
+        if (!("enabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enabled"] = false;
+        }
+        if (!("hotkey" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["hotkey"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HotkeyStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {HotkeyStatus}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HotkeyStatus(/** @type {Partial<HotkeyStatus>} */($$parsedSource));
+    }
+}
+
 export class PopupOpenResult {
     /**
      * Creates a new PopupOpenResult instance.

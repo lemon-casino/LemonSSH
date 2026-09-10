@@ -41,6 +41,8 @@ export {
 
 export {
     AppLockRuntimeState,
+    HotkeyResult,
+    HotkeyStatus,
     PopupOpenResult,
     SSHConnectRequest,
     UpgradeStatus

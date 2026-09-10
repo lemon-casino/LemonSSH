@@ -2593,3 +2593,78 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 远程压缩包提取仍未接
 - Next safe slice: Vault canonical 读通
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L079 - 2026-09-10 - Wails 启动从 Go profile 回填空 localStorage
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: ProfileService.DomainKeys 列出 settings/vault 键；Wails boot hydrate 只填空的 localStorage 键，已有本地值优先。不把渲染层改成 Go canonical。
+- Go canonical owner: cmd/netcatty/profileService.go + internal/profile/store
+- Frontend adapter: hostStorageHydrate.ts + bootstrap.ts
+- Electron owner affected: none
+- Preserved invariants: Electron 路径不 hydrate；本地已有值不被覆盖
+- Data/schema impact: none
+- Security impact: 回填走既有 profile 密文边界，不解密到新位置
+- Verification: node hostStorageHydrate 套件；go test profile/store
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 渲染层 canonical 读通与差分套件后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: hooks 仍直读 localStorage
+- Next safe slice: 原生快捷键诚实失败关闭
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L080 - 2026-09-10 - 全局快捷键在 alpha.63 诚实失败关闭
+
+- Capability rows: `SYS-02`
+- Plan task: `P4-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: registerGlobalHotkey 接到 ShortcutService；解析加速键并写入内存 registry；因生产依赖 Wails v3.0.0-alpha.63 无 GlobalShortcut，Register 返回 success false 并说明原因。
+- Go canonical owner: cmd/netcatty/shortcutService.go
+- Frontend adapter: wailsRuntimeClient registerGlobalHotkey
+- Electron owner affected: none
+- Preserved invariants: 不把内存登记标成原生成功
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test cmd/netcatty TestShortcutRegister；runtime registerGlobalHotkey 套件
+- Platforms covered: Windows 契约；无原生 OS 注册
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 升级 Wails 后接入 GlobalShortcut
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 系统级热键在 alpha.63 不可用
+- Next safe slice: 远程解压失败关闭
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L081 - 2026-09-10 - 远程 SFTP 解压失败关闭
+
+- Capability rows: `SFTP-01`
+- Plan task: `P3-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: extractSftpArchive 在 transitionBridge 上返回 success false，避免 UI 以为远程 zip 已解压。
+- Go canonical owner: none; fail-closed adapter only
+- Frontend adapter: wailsRuntimeClient extractSftpArchive
+- Electron owner affected: none
+- Preserved invariants: 本地 ExtractArchive 路径未改
+- Data/schema impact: none
+- Security impact: 不在远程主机执行未审查解压命令
+- Verification: runtime extractSftpArchive 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 远程解压 owner 与真实服务器矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: UI 仍显示解压动作但会失败
+- Next safe slice: Vault canonical 读通
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

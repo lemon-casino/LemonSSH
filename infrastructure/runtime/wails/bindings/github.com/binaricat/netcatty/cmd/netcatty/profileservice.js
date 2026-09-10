@@ -27,6 +27,17 @@ export function DeleteRaw(domain, key) {
 }
 
 /**
+ * DomainKeys lists keys in one profile domain, used to hydrate localStorage.
+ * @param {string} domain
+ * @returns {$CancellablePromise<string[]>}
+ */
+export function DomainKeys(domain) {
+    return $Call.ByID(2744587012, domain).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * Domains lists the declared profile domains.
  * @returns {$CancellablePromise<string[]>}
  */
