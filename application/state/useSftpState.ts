@@ -281,7 +281,9 @@ export const useSftpState = (
       retainSession: async (sftpId, leaseId) => {
         const bridge = netcattyBridge.get();
         if (!bridge?.retainSftpTransferSession) {
-          throw new Error("SFTP transfer session retention is unavailable");
+          // Wails has no main-process session registry to retain against;
+          // pool slots are tracked renderer-side and closed via closeSftp.
+          return;
         }
         const result = await bridge.retainSftpTransferSession(sftpId, leaseId);
         if (!result?.success) {

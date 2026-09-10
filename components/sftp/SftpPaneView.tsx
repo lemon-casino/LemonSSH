@@ -512,9 +512,8 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
   useEffect(() => {
     const bridge = netcattyBridge.get();
     if (!bridge?.onFilesDropped) return;
-    const containerId = `sftp-pane-drop-${pane.id}`;
     return bridge.onFilesDropped((payload) => {
-      if (payload.elementDetails?.id !== containerId) return;
+      if (payload.elementDetails?.attributes?.["data-drop-pane-id"] !== pane.id) return;
       if (!pane.connection || pane.connection.isLocal) return;
       const dropPath = payload.elementDetails.attributes?.["data-drop-path"];
       const targetPath = dropPath || pane.connection.currentPath;
@@ -544,6 +543,7 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
       ref={paneContainerRef}
       id={`sftp-pane-drop-${pane.id}`}
       data-file-drop-target="true"
+      data-drop-pane-id={pane.id}
       data-section="terminal-sftp-pane"
       data-sftp-pane-side={side}
       data-sftp-view-mode={viewMode}

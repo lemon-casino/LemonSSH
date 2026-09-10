@@ -9,7 +9,7 @@ export function useSftpPaneTreeRows(props: SftpPaneTreeRowsProps) {
   const {
     nodeDescriptors, scrollTop, viewportHeight, tRef, columnTemplate, visibleColumns, selectedPaths, dragOverNodePath,
     toggleExpand, handleNodeClick, stableOnOpenEntry, stableOnDragStart, stableOnDragEnd,
-    handleNodeDragOver, handleNodeDrop, handleNodeDragLeave, handleNodeContextMenu,
+    handleNodeDragOver, handleNodeDrop, handleNodeDragLeave, handleNodeContextMenu, paneId,
   } = props;
 
   const { totalHeight, visibleRange } = useMemo(() => {
@@ -60,6 +60,7 @@ export function useSftpPaneTreeRows(props: SftpPaneTreeRowsProps) {
           <TreeNode
             entry={descriptor.entry}
             entryPath={descriptor.entryPath}
+            paneId={paneId}
             depth={descriptor.depth}
             columnTemplate={columnTemplate}
             visibleColumns={visibleColumns}

@@ -310,7 +310,11 @@ export const useSftpViewFileOps = ({
     async (side: "left" | "right", dataTransfer: DataTransfer, targetPath?: string) => {
       try {
         const results = await sftpRef.current.uploadExternalFiles(side, dataTransfer, targetPath);
-        reportSftpUploadResults({ results, t, toast });
+        // An empty result also covers the Wails native-drop yield: stay silent
+        // so the yielded HTML5 drop does not raise a misleading toast.
+        if (results.length > 0) {
+          reportSftpUploadResults({ results, t, toast });
+        }
       } catch (error) {
         logger.error("[SftpView] Failed to upload external files:", error);
         toast.error(

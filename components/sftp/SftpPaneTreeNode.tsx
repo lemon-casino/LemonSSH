@@ -14,6 +14,7 @@ export type NodeDescriptor =
 interface TreeNodeProps {
   entry: SftpFileEntry;
   entryPath: string;
+  paneId?: string;
   depth: number;
   columnTemplate: string;
   visibleColumns: SftpColumnVisibility;
@@ -35,7 +36,7 @@ interface TreeNodeProps {
 export const TREE_ROW_HEIGHT = 28;
 
 export const TreeNode = React.memo<TreeNodeProps>(({
-  entry, entryPath, depth, columnTemplate, visibleColumns, isSelected,
+  entry, entryPath, paneId, depth, columnTemplate, visibleColumns, isSelected,
   isExpanded, isLoading, isDragOver,
   onToggleExpand, onNodeClick, onOpenEntry, onDragStart, onDragEnd,
   onDragOverEntry, onDropEntry, onDragLeaveEntry,
@@ -55,7 +56,7 @@ export const TreeNode = React.memo<TreeNodeProps>(({
       data-section="terminal-sftp-tree-row"
       data-entry-name={entry.name}
       data-entry-type={isDir ? 'directory' : entry.type}
-      {...(isDir && !isParentEntry ? { 'data-file-drop-target': 'true', 'data-drop-path': entryPath } : {})}
+      {...(isDir && !isParentEntry ? { 'data-file-drop-target': 'true', 'data-drop-path': entryPath, 'data-drop-pane-id': paneId } : {})}
       data-selected={isSelected ? 'true' : 'false'}
       data-expanded={isDir ? (isExpanded ? 'true' : 'false') : undefined}
       data-drag-over={isDragOver ? 'true' : 'false'}
