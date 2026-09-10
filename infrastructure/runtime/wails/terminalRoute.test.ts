@@ -153,3 +153,14 @@ test("pickSSHConnectArgs fails closed on certificate and command proxy", () => {
     /proxy/,
   );
 });
+
+test("pickSSHConnectArgs fails closed on agent and identity files", () => {
+  assert.throws(
+    () => pickSSHConnectArgs({ hostname: "h", username: "u", useSshAgent: true } as never),
+    /useSshAgent/,
+  );
+  assert.throws(
+    () => pickSSHConnectArgs({ hostname: "h", username: "u", identityFilePaths: ["~/.ssh/id"] } as never),
+    /identityFilePaths/,
+  );
+});

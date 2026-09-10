@@ -37,7 +37,8 @@ function encodeBase64(value: string): string {
   return btoa(unescape(encodeURIComponent(value)));
 }
 
-export const hostStorageAdapter: HostStorageAdapter = {
+export const hostStorageAdapter: HostStorageAdapter & typeof localStorageAdapter = {
+  ...localStorageAdapter,
   read<T>(key: string): T | null {
     return localStorageAdapter.read<T>(key);
   },
@@ -56,6 +57,16 @@ export const hostStorageAdapter: HostStorageAdapter = {
   writeString(key: string, value: string): boolean {
     const result = localStorageAdapter.writeString(key, value);
     if (result) mirror(key, value);
+    return result;
+  },
+  writeBoolean(key: string, value: boolean): boolean {
+    const result = localStorageAdapter.writeBoolean(key, value);
+    if (result) mirror(key, value ? "true" : "false");
+    return result;
+  },
+  writeNumber(key: string, value: number): boolean {
+    const result = localStorageAdapter.writeNumber(key, value);
+    if (result) mirror(key, String(value));
     return result;
   },
 };

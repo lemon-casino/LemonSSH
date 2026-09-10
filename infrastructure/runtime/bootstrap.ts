@@ -10,11 +10,13 @@ import { hydrateLocalStorageFromProfile, listHydrationKeys } from "../persistenc
 // Electron remains the default dev/release shell, so the Electron path must
 // behave exactly as before this module existed.
 
+export let hydrateReady: Promise<void> = Promise.resolve();
+
 export function installRuntimeClient(): void {
   if (installWailsRuntimeClient()) {
     const client = createProfileClient();
     configureHostProfileClient(client);
-    void hydrateWailsProfile(client);
+    hydrateReady = hydrateWailsProfile(client);
     return;
   }
   // Electron remains the stable release shell; localStorage is canonical

@@ -13,7 +13,7 @@ import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import App from './App';
 import { AppLockGate } from './components/AppLockGate';
-import { installRuntimeClient } from './infrastructure/runtime/bootstrap';
+import { hydrateReady, installRuntimeClient } from './infrastructure/runtime/bootstrap';
 
 // Shell-neutral runtime selection (P1-02): install the Wails RuntimeClient
 // under the Wails shell and the Electron adapter otherwise, before any
@@ -239,8 +239,9 @@ const renderApp = () => {
   }
 };
 
-// Initial render
-renderApp();
+void hydrateReady.then(() => {
+  renderApp();
+});
 
 // Listen for hash changes
 window.addEventListener('hashchange', renderApp);

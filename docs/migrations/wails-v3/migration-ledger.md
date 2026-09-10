@@ -2668,3 +2668,53 @@ capability row, source paths, verification output or CI run.
 - Residual risks: UI 仍显示解压动作但会失败
 - Next safe slice: Vault canonical 读通
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L082 - 2026-09-10 - Wails 首屏等待 profile hydrate
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: installRuntimeClient 把 hydrateReady 设为 hydrate 完成的 Promise；index.tsx 在 hydrateReady 后再 renderApp，避免 hooks 读到空 localStorage。
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: bootstrap.ts + index.tsx
+- Electron owner affected: none
+- Preserved invariants: Electron 路径 hydrateReady 立即完成；本地已有值不被覆盖
+- Data/schema impact: none
+- Security impact: none
+- Verification: node bootstrap.test.ts hydrateReady；hostStorageHydrate 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: hooks 改读 Go canonical 后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: hooks 仍直读 localStorage
+- Next safe slice: SSH agent/identityFile 失败关闭
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L083 - 2026-09-10 - SSH agent 与 identityFile 失败关闭
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: pickSSHConnectArgs 对 useSshAgent 与 identityFilePaths 显式抛错，避免静默退化成密码认证。
+- Go canonical owner: internal/terminal/ssh
+- Frontend adapter: terminalRoute.pickSSHConnectArgs
+- Electron owner affected: none
+- Preserved invariants: PEM 私钥与 passphrase 路径未改
+- Data/schema impact: none
+- Security impact: 不把缺密钥的 agent 主机当成密码登录
+- Verification: node terminalRoute.test.ts agent/identityFile 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: agent 与 IdentityFile 活体后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 仅文件/agent 的主机在 Wails 下无法连接
+- Next safe slice: Vault canonical 读通
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

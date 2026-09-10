@@ -155,6 +155,8 @@ export interface WailsSSHConnectOptions {
   requiresMfa?: boolean;
   jumpHosts?: WailsSSHConnectOptions[];
   proxy?: WailsProxyConfig;
+  useSshAgent?: boolean;
+  identityFilePaths?: string[];
 }
 
 /** Builds a socks5:// or http:// URL. Command proxies fail closed. */
@@ -180,6 +182,12 @@ export function formatProxyUrl(proxy?: WailsProxyConfig): string {
 export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHConnectArgs {
   if (options.certificate) {
     throw new Error("SSH options not migrated to the Wails Connect binding yet: certificate");
+  }
+  if (options.useSshAgent) {
+    throw new Error("SSH options not migrated to the Wails Connect binding yet: useSshAgent");
+  }
+  if (options.identityFilePaths?.length) {
+    throw new Error("SSH options not migrated to the Wails Connect binding yet: identityFilePaths");
   }
   return {
     hostname: options.hostname,

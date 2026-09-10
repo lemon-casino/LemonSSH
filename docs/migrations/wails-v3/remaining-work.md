@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L081`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L083`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -56,7 +56,7 @@
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- Vault/settings 启动时从 Go profile DomainKeys 回填空的 localStorage 键；本地已有值优先；canonical 切换仍未做（SYNC-01）— 已处理
+- Vault/settings 启动等待 hydrateReady 后再 renderApp；空键从 Go DomainKeys 回填，本地已有值优先；hooks 仍直读 localStorage（SYNC-01）— 已处理
 - 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件
