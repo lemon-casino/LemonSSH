@@ -26,6 +26,10 @@ export function buildLdflags(version) {
   return `-s -w -X main.version=${value}`;
 }
 
+export function windowsGuiLdflags(goos) {
+  return goos === "windows" ? " -H windowsgui" : "";
+}
+
 export function parseArgs(argv) {
   const args = {
     version: undefined,
@@ -108,7 +112,7 @@ async function main() {
     env.CGO_ENABLED = "0";
     console.warn(`[package-wails] cross build for ${target.goos}/${target.goarch}: CGO disabled (qualification binary only)`);
   }
-  run(`go build -trimpath "-ldflags=${buildLdflags(version)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
+  run(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
 
   const files = (await readdir(args.outDir))
     .filter((name) => name !== "checksums.txt" && name !== "artifact-manifest.json")

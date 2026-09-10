@@ -9,6 +9,7 @@ import {
   buildLdflags,
   checksumEntries,
   parseArgs,
+  windowsGuiLdflags,
 } from "./package-wails.mjs";
 
 test("artifactBasename applies the platform executable suffix", () => {
@@ -26,6 +27,12 @@ test("artifactBasename rejects unknown targets", () => {
 test("buildLdflags strips the quote characters", () => {
   assert.equal(buildLdflags('1.2.3'), "-s -w -X main.version=1.2.3");
   assert.equal(buildLdflags('a"b'), "-s -w -X main.version=ab");
+});
+
+test("windowsGuiLdflags hides the console on Windows GUI builds", () => {
+  assert.equal(windowsGuiLdflags("windows"), " -H windowsgui");
+  assert.equal(windowsGuiLdflags("linux"), "");
+  assert.equal(windowsGuiLdflags("darwin"), "");
 });
 
 test("parseArgs accepts the documented flags", () => {
