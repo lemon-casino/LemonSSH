@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { SftpBookmark } from "../../../domain/models";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { STORAGE_KEY_SFTP_LOCAL_BOOKMARKS } from "../../../infrastructure/config/storageKeys";
 import { createSftpBookmark } from "./bookmarkHelpers";
 

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { STORAGE_KEY_SFTP_DIRECTORIES_FIRST } from "../../../infrastructure/config/storageKeys";
-import {
-  LOCAL_STORAGE_ADAPTER_CHANGED_EVENT,
-  localStorageAdapter,
-} from "../../../infrastructure/persistence/localStorageAdapter";
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 
 export const useSftpDirectoriesFirst = () => {
   const [directoriesFirst, setDirectoriesFirst] = useState(

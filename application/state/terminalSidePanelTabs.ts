@@ -11,7 +11,7 @@ import {
   STORAGE_KEY_TERMINAL_SIDE_PANEL_TAB_LAYOUT,
   STORAGE_KEY_TERMINAL_SIDE_PANEL_TAB_ORDER,
 } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { useToolbarItemLayout } from './useToolbarItemLayout';
 import type { SidePanelTool } from '../../domain/sidePanelLayout';
 

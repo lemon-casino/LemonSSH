@@ -5,7 +5,7 @@ import {
   STORAGE_KEY_VAULT_APPLY_IN_PROGRESS,
   STORAGE_KEY_VAULT_RESTORE_IN_PROGRESS_UNTIL,
 } from '../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../infrastructure/persistence/hostStorageAdapter';
 import { getCloudSyncManager } from '../infrastructure/services/CloudSyncManager';
 import { netcattyBridge } from '../infrastructure/services/netcattyBridge';
 import { hasMeaningfulSyncData } from './syncPayload';

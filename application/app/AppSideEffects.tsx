@@ -64,7 +64,7 @@ import {
 } from '../localVaultBackups';
 import { getCredentialProtectionAvailability } from '../../infrastructure/services/credentialProtection';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import {
   markExternalMcpStartupReady,
   readExternalMcpFocusOnHostOpen,

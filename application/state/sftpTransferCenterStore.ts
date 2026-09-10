@@ -11,7 +11,7 @@ import {
   pathConflictMessage,
 } from "../../domain/sftpTransferConflicts";
 import { STORAGE_KEY_SFTP_TRANSFER_CENTER } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 import { notify } from "../notification";
 import { globalSftpTransferScheduler } from "./sftp/globalTransferScheduler";

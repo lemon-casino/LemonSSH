@@ -74,7 +74,7 @@ async function listLocalTreeWithAbort(
 
 import type { UseSftpExternalOperationsParams, SftpExternalOperationsResult } from "./useSftpExternalOperations.types";
 import { getSftpTransferResourceKeys, globalSftpTransferScheduler } from "./globalTransferScheduler";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY } from "../../../infrastructure/config/storageKeys";
 import { sftpTransferCenterStore } from "../sftpTransferCenterStore";
 import { editorTabStore } from "../editorTabStore";

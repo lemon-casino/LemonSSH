@@ -1,5 +1,5 @@
 import { STORAGE_KEY_TERMINAL_YMODEM_SEND_DIR } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 
 type YmodemFileMemoryStore = {
   readString: (key: string) => string | null;

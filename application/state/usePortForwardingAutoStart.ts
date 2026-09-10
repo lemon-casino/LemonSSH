@@ -8,7 +8,7 @@ import { GroupConfig, Host, Identity, KnownHost, PortForwardingRule, ProxyProfil
 import { resolveGroupDefaults, applyGroupDefaults } from "../../domain/groupConfig";
 import { materializeHostProxyProfile } from "../../domain/proxyProfiles";
 import { STORAGE_KEY_PORT_FORWARDING } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import {
   getActiveConnection,
   isReconnectRecoveryEligible,

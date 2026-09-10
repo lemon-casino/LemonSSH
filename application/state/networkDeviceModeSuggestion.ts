@@ -1,5 +1,5 @@
 import { STORAGE_KEY_NETWORK_DEVICE_SUGGEST_HANDLED } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 /**
  * Persistence boundary for the "enable Network Device Mode" suggestion.

@@ -11,6 +11,12 @@ const VAULT_KEYS = new Set([
   "netcatty_identities_v1",
   "netcatty_proxy_profiles_v1",
   "netcatty_port_forwarding_v1",
+  "netcatty_default_key_passphrases_v1",
+  "netcatty_sftp_global_bookmarks_v1",
+  "netcatty_sftp_local_bookmarks_v1",
+  "netcatty_sftp_file_associations_v1",
+  "netcatty_sftp_host_view_modes_v1",
+  "netcatty_sftp_transfer_center_v1",
 ]);
 
 const SESSION_KEYS = new Set([

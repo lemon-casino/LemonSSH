@@ -1,7 +1,7 @@
 import type { Host, Identity, KnownHost, SSHKey, TerminalSettings, TransferTask } from "../../../domain/models";
 import { validateTransferResumeSource } from "../../../domain/sftpTransferCenter";
 import { STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY } from "../../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
 import { buildSftpHostCredentials } from "./useSftpHostCredentials";
 import {

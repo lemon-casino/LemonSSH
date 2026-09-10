@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { STORAGE_KEY_SFTP_HOST_VIEW_MODES } from "../../../infrastructure/config/storageKeys";
 
 // ── Shared external store for per-host SFTP view mode preferences ──

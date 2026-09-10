@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 
 export const useTreeExpandedState = (storageKey: string) => {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {

@@ -2818,3 +2818,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 压缩上传 UI 仍可见但会失败
 - Next safe slice: 活体 MFA 服务器矩阵
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L088 - 2026-09-10 - 非 AI 持久化写入切到按域镜像
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: SFTP 书签/传输中心、通用 stored hooks、port-forward autostart、vault backups 等非 AI 写入走 hostStorageAdapter；AI 存储仍直写 localStorage。读取仍同步。
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: hostStorageAdapter.ts + profileDomain.ts
+- Electron owner affected: none
+- Preserved invariants: Electron 无 profileClient 时只写 localStorage；不开始 Phase 7 AI
+- Data/schema impact: vault 域增加 SFTP 书签与传输中心键
+- Security impact: 默认密钥口令仍先加密再镜像
+- Verification: node profileDomain.test.ts
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 渲染层改读 Go canonical 后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: AI 存储与读取仍是 localStorage
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L087`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L088`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -57,7 +57,7 @@
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- Vault/settings/session restore/port forwarding 写入经 hostStorageAdapter 按域镜像；启动等待 hydrateReady；读取仍同步（SYNC-01）— 已处理
+- 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05；读取仍同步（SYNC-01）— 已处理
 - 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件

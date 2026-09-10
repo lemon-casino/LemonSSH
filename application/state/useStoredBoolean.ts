@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 
 /**
  * Hook for persisting a boolean value to localStorage.

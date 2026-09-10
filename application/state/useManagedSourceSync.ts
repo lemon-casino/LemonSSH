@@ -8,7 +8,7 @@ import {
 } from "../../domain/sshConfigSerializer";
 import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 import { STORAGE_KEY_MANAGED_SOURCES } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import { withVaultImportLock } from "./vaultManagedImportLock";
 
 const MANAGED_BLOCK_BEGIN = "# BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK";

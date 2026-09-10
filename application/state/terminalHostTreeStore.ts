@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 import { STORAGE_KEY_TERMINAL_HOST_TREE_COLLAPSED } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 type Listener = () => void;
 

@@ -12,10 +12,8 @@ import {
   type ToolbarItemPartition,
   type ToolbarItemPlacement,
 } from '../../domain/toolbarItemLayout';
-import {
-  LOCAL_STORAGE_ADAPTER_CHANGED_EVENT,
-  localStorageAdapter,
-} from '../../infrastructure/persistence/localStorageAdapter';
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 export type UseToolbarItemLayoutResult = {
   layout: ToolbarItemLayout;

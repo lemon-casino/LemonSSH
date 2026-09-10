@@ -14,7 +14,7 @@ import {
   STORAGE_KEY_SFTP_SKIP_UNCHANGED,
   STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY,
 } from "../../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
 import { logger } from "../../../lib/logger";
 import {

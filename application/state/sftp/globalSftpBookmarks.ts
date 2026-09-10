@@ -1,6 +1,6 @@
 import type { SftpBookmark } from "../../../domain/models";
 import { STORAGE_KEY_SFTP_GLOBAL_BOOKMARKS } from "../../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 
 type Listener = () => void;
 

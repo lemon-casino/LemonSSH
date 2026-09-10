@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 
 export type ViewMode = "grid" | "list" | "tree";
 

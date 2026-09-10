@@ -8,10 +8,8 @@ import {
   type SortOrder,
 } from "./columnLayout";
 import { STORAGE_KEY_SFTP_VISIBLE_COLUMNS } from "../../../infrastructure/config/storageKeys";
-import {
-  LOCAL_STORAGE_ADAPTER_CHANGED_EVENT,
-  localStorageAdapter,
-} from "../../../infrastructure/persistence/localStorageAdapter";
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
 import { useSftpDirectoriesFirst } from "./useSftpDirectoriesFirst";
 
 export interface UseSftpPaneSortingResult {

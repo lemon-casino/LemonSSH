@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  LOCAL_STORAGE_ADAPTER_CHANGED_EVENT,
-  localStorageAdapter,
-} from "../../infrastructure/persistence/localStorageAdapter";
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 
 type StoredStringSetter<T extends string> = (nextValue: T | ((currentValue: T) => T)) => void;
 

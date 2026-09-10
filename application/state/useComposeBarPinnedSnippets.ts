@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STORAGE_KEY_COMPOSE_BAR_PINNED_SNIPPETS } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 interface PinnedState {
   pinnedIds: string[];

@@ -1,7 +1,7 @@
 import type { SSHKey } from "../domain/models";
 import { isEncryptedCredentialPlaceholder } from "../domain/credentials";
 import { STORAGE_KEY_DEFAULT_KEY_PASSPHRASES } from "../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../infrastructure/persistence/hostStorageAdapter";
 import { encryptField, decryptField } from "../infrastructure/persistence/secureFieldAdapter";
 import { netcattyBridge } from "../infrastructure/services/netcattyBridge";
 

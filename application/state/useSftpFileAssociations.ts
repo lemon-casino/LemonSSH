@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { STORAGE_KEY_SFTP_FILE_ASSOCIATIONS, STORAGE_KEY_SFTP_DEFAULT_OPENER } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import type { FileAssociation, FileOpenerType, SystemAppInfo } from '../../lib/sftpFileUtils';
 import { getFileExtension, isKnownBinaryFile } from '../../lib/sftpFileUtils';
 
