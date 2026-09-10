@@ -14,6 +14,7 @@ import (
 	"github.com/binaricat/netcatty/internal/terminal/serialport"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/telnet"
+	"github.com/binaricat/netcatty/internal/terminal/zmodem"
 )
 
 // TerminalService owns SSH terminal sessions end-to-end: SSH dial → auth →
@@ -21,12 +22,30 @@ import (
 // a route bootstrap (generation + one-use tokens) that the renderer exchanges
 // for the loopback data/urgent WebSocket connections.
 type TerminalService struct {
-	mu         sync.Mutex
-	sessions   map[string]*terminalSession
-	controller *dataplane.RouteController
-	dp         *dataplane.Server
-	knownHosts *ssh.KnownHosts
-	counter    int
+	mu            sync.Mutex
+	sessions      map[string]*terminalSession
+	controller    *dataplane.RouteController
+	dp            *dataplane.Server
+	knownHosts    *ssh.KnownHosts
+	interactive   *ssh.InteractiveBroker
+	emitChallenge func(ssh.KeyboardChallenge)
+	counter       int
+}
+
+// SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
+// command proxies and certificates remain fail-closed in the renderer mapper.
+type SSHConnectRequest struct {
+	Hostname   string              `json:"hostname"`
+	Port       uint16              `json:"port"`
+	Username   string              `json:"username"`
+	Password   string              `json:"password"`
+	PrivateKey string              `json:"privateKey"`
+	Passphrase string              `json:"passphrase"`
+	ProxyURL   string              `json:"proxyUrl"`
+	EnableMFA  bool                `json:"enableMfa"`
+	Cols       uint16              `json:"cols"`
+	Rows       uint16              `json:"rows"`
+	JumpHosts  []SSHConnectRequest `json:"jumpHosts"`
 }
 
 type terminalSession struct {
@@ -50,43 +69,65 @@ func NewTerminalService(controller *dataplane.RouteController, dp *dataplane.Ser
 		dp:         dp,
 		knownHosts: knownHosts,
 	}
+	service.interactive = ssh.NewInteractiveBroker(func(challenge ssh.KeyboardChallenge) {
+		if service.emitChallenge != nil {
+			service.emitChallenge(challenge)
+		}
+	}, 2*time.Minute)
 	dp.SetUrgentHandler(service.handleUrgent)
 	return service
+}
+
+func (s *TerminalService) SetChallengeEmitter(emit func(ssh.KeyboardChallenge)) {
+	s.emitChallenge = emit
+}
+
+// RespondKeyboardInteractive completes or cancels a pending MFA challenge.
+func (s *TerminalService) RespondKeyboardInteractive(requestID string, responses []string, cancelled bool) error {
+	return s.interactive.Respond(requestID, responses, cancelled)
+}
+
+func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
+	input := ssh.ConnectInput{
+		Hostname:   request.Hostname,
+		Port:       request.Port,
+		Username:   request.Username,
+		Password:   request.Password,
+		PrivateKey: request.PrivateKey,
+		Passphrase: request.Passphrase,
+		ProxyURL:   request.ProxyURL,
+		EnableMFA:  request.EnableMFA,
+	}
+	if len(request.JumpHosts) > 0 {
+		input.JumpHosts = make([]ssh.ConnectInput, 0, len(request.JumpHosts))
+		for _, hop := range request.JumpHosts {
+			input.JumpHosts = append(input.JumpHosts, sshConnectToInput(hop))
+		}
+	}
+	return input
 }
 
 // Connect dials SSH, authenticates, opens a PTY shell and starts streaming
 // output into the data plane. It returns the session ID; call Bootstrap to
 // get the route credentials for the renderer WebSocket.
-func (s *TerminalService) Connect(host string, port uint16, username, password, privateKey, passphrase string, cols, rows uint16) (string, error) {
-	if host == "" || username == "" {
+func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
+	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
-	if port == 0 {
-		port = 22
+	if request.Port == 0 {
+		request.Port = 22
 	}
-	if cols == 0 {
-		cols = 80
+	if request.Cols == 0 {
+		request.Cols = 80
 	}
-	if rows == 0 {
-		rows = 24
+	if request.Rows == 0 {
+		request.Rows = 24
 	}
-	config := ssh.DialConfig{
-		Hostname:          host,
-		Port:              port,
-		Username:          username,
-		Auth: ssh.AuthMethod{
-			Password:      password,
-			PrivateKeyPEM: []byte(privateKey),
-			Passphrase:    passphrase,
-		},
-		HostKeyPolicy:     ssh.StrictPolicy(s.knownHosts),
-		Timeout:           15 * time.Second,
-		HandshakeTimeout:  15 * time.Second,
-		KeepaliveInterval: 30 * time.Second,
-	}
+	policy := ssh.StrictPolicy(s.knownHosts)
+	config := ssh.BuildDialConfig(sshConnectToInput(request), policy, s.interactive.Handler(request.Hostname))
 	transport, err := ssh.Dial(context.Background(), config)
 	if err != nil {
-		return "", fmt.Errorf("ssh dial %s:%d: %w", host, port, err)
+		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
 	}
 
 	sshSession, err := transport.Client.NewSession()
@@ -94,7 +135,7 @@ func (s *TerminalService) Connect(host string, port uint16, username, password, 
 		transport.Close()
 		return "", fmt.Errorf("new session: %w", err)
 	}
-	if err := sshSession.RequestPty("xterm-256color", int(rows), int(cols), gossh.TerminalModes{}); err != nil {
+	if err := sshSession.RequestPty("xterm-256color", int(request.Rows), int(request.Cols), gossh.TerminalModes{}); err != nil {
 		sshSession.Close()
 		transport.Close()
 		return "", fmt.Errorf("pty request: %w", err)
@@ -117,7 +158,7 @@ func (s *TerminalService) Connect(host string, port uint16, username, password, 
 		return "", fmt.Errorf("shell request: %w", err)
 	}
 
-	bootstrap, err := s.controller.Open(fmt.Sprintf("%s@%s:%d", username, host, port))
+	bootstrap, err := s.controller.Open(fmt.Sprintf("%s@%s:%d", request.Username, request.Hostname, request.Port))
 	if err != nil {
 		sshSession.Close()
 		transport.Close()
@@ -153,6 +194,26 @@ func (s *TerminalService) Connect(host string, port uint16, username, password, 
 	}()
 
 	return sessionID, nil
+}
+
+// StartMosh is intentionally fail-closed until reconnect protocol lands.
+func (s *TerminalService) StartMosh() (string, error) {
+	return "", fmt.Errorf("mosh reconnect protocol is not wired on the Wails data plane yet")
+}
+
+// StartEt is intentionally fail-closed until reconnect protocol lands.
+func (s *TerminalService) StartEt() (string, error) {
+	return "", fmt.Errorf("eternal terminal reconnect protocol is not wired on the Wails data plane yet")
+}
+
+// CancelZmodem honours the existing CRC/safety cancellation boundary.
+func (s *TerminalService) CancelZmodem() error {
+	return zmodem.ErrCancelled
+}
+
+// SendSerialYmodem is intentionally fail-closed until a serial session engine lands.
+func (s *TerminalService) SendSerialYmodem() error {
+	return fmt.Errorf("serial ymodem session engine is not wired yet")
 }
 
 // StartLocal launches a local PTY and streams it on the same data plane as SSH.
@@ -195,98 +256,98 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 			}
 		}
 	}()
-		return sessionID, nil
-	}
+	return sessionID, nil
+}
 
-	// StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
-	// data plane as SSH/local PTY.
-	func (s *TerminalService) StartTelnet(host string, port uint16, cols, rows uint16) (string, error) {
-		if host == "" {
-			return "", fmt.Errorf("host is required")
+// StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
+// data plane as SSH/local PTY.
+func (s *TerminalService) StartTelnet(host string, port uint16, cols, rows uint16) (string, error) {
+	if host == "" {
+		return "", fmt.Errorf("host is required")
+	}
+	if port == 0 {
+		port = 23
+	}
+	if cols == 0 {
+		cols = 80
+	}
+	if rows == 0 {
+		rows = 24
+	}
+	s.mu.Lock()
+	s.counter++
+	sessionID := fmt.Sprintf("telnet-%d", s.counter)
+	s.mu.Unlock()
+	bootstrap, err := s.controller.Open(sessionID)
+	if err != nil {
+		return "", fmt.Errorf("open route: %w", err)
+	}
+	client, err := telnet.Connect(context.Background(), fmt.Sprintf("%s:%d", host, port), func(event telnet.Event) {
+		if event.Kind == telnet.EventData && len(event.Data) > 0 {
+			s.dp.Publish(sessionID, event.Data)
 		}
-		if port == 0 {
-			port = 23
+		if event.Kind == telnet.EventClosed {
+			s.Close(sessionID)
 		}
-		if cols == 0 {
-			cols = 80
-		}
-		if rows == 0 {
-			rows = 24
-		}
-		s.mu.Lock()
-		s.counter++
-		sessionID := fmt.Sprintf("telnet-%d", s.counter)
-		s.mu.Unlock()
-		bootstrap, err := s.controller.Open(sessionID)
-		if err != nil {
-			return "", fmt.Errorf("open route: %w", err)
-		}
-		client, err := telnet.Connect(context.Background(), fmt.Sprintf("%s:%d", host, port), func(event telnet.Event) {
-			if event.Kind == telnet.EventData && len(event.Data) > 0 {
-				s.dp.Publish(sessionID, event.Data)
+	})
+	if err != nil {
+		_ = s.controller.Close(sessionID)
+		return "", err
+	}
+	_ = client.Resize(cols, rows)
+	s.mu.Lock()
+	s.sessions[sessionID] = &terminalSession{telnet: client, bootstrap: bootstrap}
+	s.mu.Unlock()
+	return sessionID, nil
+}
+
+// ListSerialPorts enumerates OS serial devices.
+func (s *TerminalService) ListSerialPorts() ([]serialport.Info, error) {
+	return serialport.NewOSBackend().List()
+}
+
+// StartSerial opens a serial port and streams bytes onto the data plane.
+func (s *TerminalService) StartSerial(path string, baudRate int) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("serial path is required")
+	}
+	backend := serialport.NewOSBackend()
+	config := serialport.DefaultConfig(path)
+	if baudRate > 0 {
+		config.BaudRate = baudRate
+	}
+	if err := backend.Open(config); err != nil {
+		return "", err
+	}
+	s.mu.Lock()
+	s.counter++
+	sessionID := fmt.Sprintf("serial-%d", s.counter)
+	s.mu.Unlock()
+	bootstrap, err := s.controller.Open(sessionID)
+	if err != nil {
+		_ = backend.Close(path)
+		return "", err
+	}
+	s.mu.Lock()
+	s.sessions[sessionID] = &terminalSession{serial: backend, serialID: path, bootstrap: bootstrap}
+	s.mu.Unlock()
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, readErr := backend.Read(path, buf)
+			if n > 0 {
+				s.dp.Publish(sessionID, buf[:n])
 			}
-			if event.Kind == telnet.EventClosed {
+			if readErr != nil {
 				s.Close(sessionID)
+				return
 			}
-		})
-		if err != nil {
-			_ = s.controller.Close(sessionID)
-			return "", err
 		}
-		_ = client.Resize(cols, rows)
-		s.mu.Lock()
-		s.sessions[sessionID] = &terminalSession{telnet: client, bootstrap: bootstrap}
-		s.mu.Unlock()
-		return sessionID, nil
-	}
+	}()
+	return sessionID, nil
+}
 
-	// ListSerialPorts enumerates OS serial devices.
-	func (s *TerminalService) ListSerialPorts() ([]serialport.Info, error) {
-		return serialport.NewOSBackend().List()
-	}
-
-	// StartSerial opens a serial port and streams bytes onto the data plane.
-	func (s *TerminalService) StartSerial(path string, baudRate int) (string, error) {
-		if path == "" {
-			return "", fmt.Errorf("serial path is required")
-		}
-		backend := serialport.NewOSBackend()
-		config := serialport.DefaultConfig(path)
-		if baudRate > 0 {
-			config.BaudRate = baudRate
-		}
-		if err := backend.Open(config); err != nil {
-			return "", err
-		}
-		s.mu.Lock()
-		s.counter++
-		sessionID := fmt.Sprintf("serial-%d", s.counter)
-		s.mu.Unlock()
-		bootstrap, err := s.controller.Open(sessionID)
-		if err != nil {
-			_ = backend.Close(path)
-			return "", err
-		}
-		s.mu.Lock()
-		s.sessions[sessionID] = &terminalSession{serial: backend, serialID: path, bootstrap: bootstrap}
-		s.mu.Unlock()
-		go func() {
-			buf := make([]byte, 4096)
-			for {
-				n, readErr := backend.Read(path, buf)
-				if n > 0 {
-					s.dp.Publish(sessionID, buf[:n])
-				}
-				if readErr != nil {
-					s.Close(sessionID)
-					return
-				}
-			}
-		}()
-		return sessionID, nil
-	}
-
-	// Bootstrap returns the route credentials the renderer needs to attach its
+// Bootstrap returns the route credentials the renderer needs to attach its
 // data/urgent WebSockets for a session.
 func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
 	s.mu.Lock()
@@ -307,20 +368,20 @@ func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 	if !ok {
 		return 0, fmt.Errorf("session %q not found", sessionID)
 	}
-		if term.local != nil {
-			return term.local.Write(term.local.Generation(), data)
-		}
-		if term.telnet != nil {
-			if err := term.telnet.Send(data); err != nil {
-				return 0, err
-			}
-			return len(data), nil
-		}
-		if term.serial != nil {
-			return term.serial.Write(term.serialID, data)
-		}
-		return term.stdin.Write(data)
+	if term.local != nil {
+		return term.local.Write(term.local.Generation(), data)
 	}
+	if term.telnet != nil {
+		if err := term.telnet.Send(data); err != nil {
+			return 0, err
+		}
+		return len(data), nil
+	}
+	if term.serial != nil {
+		return term.serial.Write(term.serialID, data)
+	}
+	return term.stdin.Write(data)
+}
 
 // Resize updates the remote PTY window size.
 func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
@@ -328,14 +389,14 @@ func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
-		if term.local != nil {
-			return term.local.Resize(term.local.Generation(), cols, rows)
-		}
-		if term.telnet != nil {
-			return term.telnet.Resize(cols, rows)
-		}
-		return term.session.WindowChange(int(rows), int(cols))
+	if term.local != nil {
+		return term.local.Resize(term.local.Generation(), cols, rows)
 	}
+	if term.telnet != nil {
+		return term.telnet.Resize(cols, rows)
+	}
+	return term.session.WindowChange(int(rows), int(cols))
+}
 
 // Signal delivers a POSIX signal name (e.g. "KILL") to the remote shell.
 func (s *TerminalService) Signal(sessionID, signal string) error {
@@ -343,13 +404,13 @@ func (s *TerminalService) Signal(sessionID, signal string) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
-		if term.local != nil {
-			return term.local.Interrupt(term.local.Generation())
-		}
-		if term.telnet != nil {
-			return term.telnet.Send([]byte{3})
-		}
-		_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
+	if term.local != nil {
+		return term.local.Interrupt(term.local.Generation())
+	}
+	if term.telnet != nil {
+		return term.telnet.Send([]byte{3})
+	}
+	_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
 	return err
 }
 
@@ -362,16 +423,16 @@ func (s *TerminalService) Close(sessionID string) error {
 	if !ok {
 		return nil
 	}
-		if term.local != nil {
-			_ = term.local.Close()
-		}
-		if term.telnet != nil {
-			_ = term.telnet.Close()
-		}
-		if term.serial != nil {
-			_ = term.serial.Close(term.serialID)
-		}
-		if term.session != nil {
+	if term.local != nil {
+		_ = term.local.Close()
+	}
+	if term.telnet != nil {
+		_ = term.telnet.Close()
+	}
+	if term.serial != nil {
+		_ = term.serial.Close(term.serialID)
+	}
+	if term.session != nil {
 		term.session.Close()
 	}
 	if term.transport != nil {
@@ -395,24 +456,24 @@ func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte 
 	if !ok {
 		return nil
 	}
-		if term.local != nil {
-			if _, err := term.local.Write(term.local.Generation(), payload); err != nil {
-				return nil
-			}
-			return []byte("ok")
+	if term.local != nil {
+		if _, err := term.local.Write(term.local.Generation(), payload); err != nil {
+			return nil
 		}
-		if term.telnet != nil {
-			if err := term.telnet.Send(payload); err != nil {
-				return nil
-			}
-			return []byte("ok")
+		return []byte("ok")
+	}
+	if term.telnet != nil {
+		if err := term.telnet.Send(payload); err != nil {
+			return nil
 		}
-		if term.serial != nil {
-			if _, err := term.serial.Write(term.serialID, payload); err != nil {
-				return nil
-			}
-			return []byte("ok")
+		return []byte("ok")
+	}
+	if term.serial != nil {
+		if _, err := term.serial.Write(term.serialID, payload); err != nil {
+			return nil
 		}
+		return []byte("ok")
+	}
 	if term.stdin == nil {
 		return nil
 	}

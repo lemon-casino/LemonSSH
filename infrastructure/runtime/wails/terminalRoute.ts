@@ -126,16 +126,23 @@ export interface WailsSSHConnectArgs {
   password: string;
   privateKey: string;
   passphrase: string;
+  proxyUrl: string;
+  enableMfa: boolean;
   cols: number;
   rows: number;
+  jumpHosts: WailsSSHConnectArgs[];
 }
 
-/**
- * Normalizes the Electron NetcattySSHOptions to the Go Connect binding.
- * Authentication shapes the Go binding does not accept yet fail closed with
- * an explicit migration error instead of silently degrading to password auth.
- */
-export function pickSSHConnectArgs(options: {
+export interface WailsProxyConfig {
+  type?: string;
+  host?: string;
+  port?: number;
+  command?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface WailsSSHConnectOptions {
   hostname: string;
   username: string;
   port?: number;
@@ -146,19 +153,33 @@ export function pickSSHConnectArgs(options: {
   certificate?: string;
   passphrase?: string;
   requiresMfa?: boolean;
-  jumpHosts?: unknown[];
-  proxy?: unknown;
-}): WailsSSHConnectArgs {
-  const unsupported = [
-    ["certificate", options.certificate],
-    ["jumpHosts", options.jumpHosts?.length],
-    ["proxy", options.proxy],
-  ].filter(([, value]) => Boolean(value));
-  if (options.requiresMfa) unsupported.push(["requiresMfa", true]);
-  if (unsupported.length > 0) {
-    throw new Error(
-      `SSH options not migrated to the Wails Connect binding yet: ${unsupported.map(([name]) => name).join(", ")}`,
-    );
+  jumpHosts?: WailsSSHConnectOptions[];
+  proxy?: WailsProxyConfig;
+}
+
+/** Builds a socks5:// or http:// URL. Command proxies fail closed. */
+export function formatProxyUrl(proxy?: WailsProxyConfig): string {
+  if (!proxy) return "";
+  if (proxy.command || (proxy.type && proxy.type !== "socks5" && proxy.type !== "http")) {
+    throw new Error(`SSH options not migrated to the Wails Connect binding yet: proxy`);
+  }
+  if (!proxy.host || !proxy.port) {
+    throw new Error(`SSH options not migrated to the Wails Connect binding yet: proxy`);
+  }
+  const auth = proxy.username
+    ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password ?? "")}@`
+    : "";
+  return `${proxy.type ?? "socks5"}://${auth}${proxy.host}:${proxy.port}`;
+}
+
+/**
+ * Normalizes the Electron NetcattySSHOptions to the Go Connect binding.
+ * Certificate and command-proxy shapes fail closed instead of silently
+ * degrading to password auth.
+ */
+export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHConnectArgs {
+  if (options.certificate) {
+    throw new Error("SSH options not migrated to the Wails Connect binding yet: certificate");
   }
   return {
     hostname: options.hostname,
@@ -167,7 +188,10 @@ export function pickSSHConnectArgs(options: {
     password: options.password ?? "",
     privateKey: options.privateKey ?? "",
     passphrase: options.passphrase ?? "",
+    proxyUrl: formatProxyUrl(options.proxy),
+    enableMfa: Boolean(options.requiresMfa),
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
+    jumpHosts: (options.jumpHosts ?? []).map((hop) => pickSSHConnectArgs(hop)),
   };
 }

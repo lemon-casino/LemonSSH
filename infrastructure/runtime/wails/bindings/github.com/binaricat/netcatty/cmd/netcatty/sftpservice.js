@@ -18,6 +18,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as sftp$0 from "../../internal/terminal/sftp/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * Close releases the SFTP client and returns the transport to the pool.
  * @param {string} sessionID
@@ -71,14 +75,11 @@ export function Mkdir(sessionID, dir) {
 
 /**
  * Open dials (or borrows) a transport for host and registers an SFTP session.
- * @param {string} host
- * @param {number} port
- * @param {string} username
- * @param {string} password
+ * @param {$models.SSHConnectRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function Open(host, port, username, password) {
-    return $Call.ByID(3618100000, host, port, username, password);
+export function Open(request) {
+    return $Call.ByID(3618100000, request);
 }
 
 /**

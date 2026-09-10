@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
@@ -44,26 +43,17 @@ func NewSFTPService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *SFT
 }
 
 // Open dials (or borrows) a transport for host and registers an SFTP session.
-func (s *SFTPService) Open(host string, port uint16, username, password string) (string, error) {
-	if host == "" || username == "" {
+func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
+	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
-	if port == 0 {
-		port = 22
+	if request.Port == 0 {
+		request.Port = 22
 	}
-	config := netcattyssh.DialConfig{
-		Hostname:          host,
-		Port:              port,
-		Username:          username,
-		Auth:              netcattyssh.AuthMethod{Password: password},
-		HostKeyPolicy:     netcattyssh.StrictPolicy(s.knownHosts),
-		Timeout:           15 * time.Second,
-		HandshakeTimeout:  15 * time.Second,
-		KeepaliveInterval: 30 * time.Second,
-	}
+	config := netcattyssh.BuildDialConfig(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
 	lease, err := s.pool.Get(context.Background(), config, sshpool.KindSFTP)
 	if err != nil {
-		return "", fmt.Errorf("ssh dial %s:%d: %w", host, port, err)
+		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
 	}
 	raw, err := pkgsftp.NewClient(lease.Client())
 	if err != nil {

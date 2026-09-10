@@ -23,22 +23,16 @@ func NewForwardService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *
 	return &ForwardService{pool: pool, knownHosts: knownHosts}
 }
 
-func (s *ForwardService) ensureManager(host string, port uint16, username, password string) error {
+func (s *ForwardService) ensureManager(request SSHConnectRequest) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.manager != nil {
 		return nil
 	}
-	if port == 0 {
-		port = 22
+	if request.Port == 0 {
+		request.Port = 22
 	}
-	config := netcattyssh.DialConfig{
-		Hostname:      host,
-		Port:          port,
-		Username:      username,
-		Auth:          netcattyssh.AuthMethod{Password: password},
-		HostKeyPolicy: netcattyssh.StrictPolicy(s.knownHosts),
-	}
+	config := netcattyssh.BuildDialConfig(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
 	lease, err := s.pool.Get(context.Background(), config, sshpool.KindForward)
 	if err != nil {
 		return err
@@ -88,8 +82,8 @@ func ioCopy(dst net.Conn, src net.Conn) (int64, error) {
 	}
 }
 
-func (s *ForwardService) Start(id, kind, bindHost string, bindPort uint16, targetHost string, targetPort uint16, sshHost string, sshPort uint16, username, password string) (forward.State, error) {
-	if err := s.ensureManager(sshHost, sshPort, username, password); err != nil {
+func (s *ForwardService) Start(id, kind, bindHost string, bindPort uint16, targetHost string, targetPort uint16, request SSHConnectRequest) (forward.State, error) {
+	if err := s.ensureManager(request); err != nil {
 		return forward.State{}, err
 	}
 	return s.manager.Start(context.Background(), forward.Spec{

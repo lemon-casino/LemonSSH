@@ -11,6 +11,24 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
+ * @param {string} password
+ * @returns {$CancellablePromise<void>}
+ */
+export function Disable(password) {
+    return $Call.ByID(2017783423, password);
+}
+
+/**
+ * @param {string} password
+ * @returns {$CancellablePromise<$models.AppLockRuntimeState>}
+ */
+export function Enable(password) {
+    return $Call.ByID(3197078282, password).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * @returns {$CancellablePromise<$models.AppLockRuntimeState>}
  */
 export function GetRuntimeState() {
@@ -34,6 +52,14 @@ export function SetRuntimeLocked(reason) {
     return $Call.ByID(357214711, reason).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType0($result);
     }));
+}
+
+/**
+ * @param {string} password
+ * @returns {$CancellablePromise<void>}
+ */
+export function Unlock(password) {
+    return $Call.ByID(3034665761, password);
 }
 
 // Private type creation functions

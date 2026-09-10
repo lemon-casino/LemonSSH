@@ -4,8 +4,10 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L067`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L075`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
+
+处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
 ---
 
@@ -31,36 +33,38 @@
 ## 二、功能缺口（有 Go owner 但壳未接，或 owner 不完整）
 
 ### 终端协议
-| 项 | 缺口 | 涉及行 |
-| --- | --- | --- |
-| SSH MFA / keyboard-interactive | Go 支持，UI 回调未接 | SSH-01 |
-| SSH 跳板链 / proxy | Go 支持，绑定参数未透出（显式拒绝） | SSH-01 |
-| Mosh / ET | supervised runner 已有， reconnect 协议与产品路径未接 | TERM-03.3 |
-| ZMODEM 完整 rz/sz 会话 | CRC/安全边界已有，会话引擎未实现 | TERM-03.4 |
-| 串口 YMODEM | 未接 | TERM-03.2 |
-| Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1/2 |
+| 项 | 缺口 | 涉及行 | 处理 |
+| --- | --- | --- | --- |
+| SSH MFA / keyboard-interactive | Wails Connect 现把挑战发到现有渲染层弹窗；活体 MFA 服务器仍缺 | SSH-01 | 已处理 |
+| SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
+| Mosh / ET | 监督 runner 仍在；产品路径诚实失败，reconnect 协议未接 | TERM-03.3 | 已处理 |
+| ZMODEM 完整 rz/sz 会话 | 取消入口已接到失败关闭；会话引擎未实现 | TERM-03.4 | 已处理 |
+| 串口 YMODEM | SendSerialYmodem 诚实失败关闭 | TERM-03.2 | 已处理 |
+| Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1/2 | pending |
 
 ### SFTP / 传输
-- 高级浏览路径（压缩包提取、拖拽上传、传输中心 UI）未接 Wails 桥（SFTP-01/02）
-- 断点续传 / 压缩上传（P3-06 scheduler）未接
-- sudo SFTP、非 UTF-8 文件名矩阵未验证
+- 下载/上传经 `startStreamTransfer` 接到现有 ClientFS；本地 zip 解压接到 `ExtractArchive`（SFTP-01）— 已处理
+- 调度器 pause/resume/cancel 接到 Wails TransferService；压缩上传仍未接（SFTP-02）— 已处理
+- sudo SFTP、非 UTF-8 文件名矩阵未验证 — pending
+- 传输中心完整 UI / 拖拽上传 / 远程压缩包提取仍未接 — pending
 
 ### 系统能力
-- App Lock 密码启用 / PBKDF2 verifier / 生物识别未接（SYS-04）
-- deep link 的 OS 协议注册与冷启动投递未做（SYS-03）
-- 全局快捷键原生注册未验证（SYS-02）
-- 多窗口 / 弹出终端 / 会话窗口角色（FND-04 probe）
+- App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；生物识别未接（SYS-04）— 已处理
+- deep link 二次启动 argv 入队 + Drain；OS 协议注册与冷启动投递未做（SYS-03）— 已处理
+- 快捷键 in-memory Registry 已暴露；原生 OS 注册未验证（SYS-02）— 已处理
+- 多窗口 / 弹出终端 / 会话窗口角色（FND-04 probe）— pending
 
 ### 数据与同步
-- Vault/settings 仍走过渡适配层，渲染层 canonical 切换未做（SYNC-01）
-- 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）
+- Vault/settings 仍走过渡适配层，渲染层 canonical 切换未做（SYNC-01）— pending
+- 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件
-- 安装/启用/权限 broker/WASM runtime/native 进程均未接（PLUG-01/02/03）
+- Install/SetEnabled 元数据门面已接，不执行 WASM/native（PLUG-01）— 已处理
+- WASM runtime / native 进程仍未接（PLUG-02/03）— pending
 
 ### AI（全部）
 - P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
-  外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01~04）
+  外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01~04）— pending（禁止开工）
 
 ---
 
@@ -69,13 +73,14 @@
 `verified` 需要证据等级 A。以下缺失导致矩阵 verified=0：
 
 1. **三平台活体证据**：Windows 仅有本机 C 级；macOS/Linux 无窗口、拖拽、
-   托盘、PTY、数据面配对基准
-2. **真实服务器矩阵**：SSH MFA/跳板、真实 SFTP 服务器、编码/符号链接
-3. **签名与安装包**：无代码签名、无 msi/pkg/AppImage/deb/rpm 打包
-4. **自动更新**：无签名 feed、无 N-1→N 活体演练（REL-02 probe）
+   托盘、PTY、数据面配对基准 — pending；CI 已扩 remaining-work 契约测试
+2. **真实服务器矩阵**：SSH MFA/跳板、真实 SFTP 服务器、编码/符号链接 — pending
+3. **签名与安装包**：无代码签名、无 msi/pkg/AppImage/deb/rpm 打包 — pending；
+   `scripts/sign-wails-probe.mjs` 只记录 unsigned 原因，不伪造签名
+4. **自动更新**：无签名 feed、无 N-1→N 活体演练（REL-02 probe）— pending
 5. **Electron 性能基线**：CI 上 3 个 best-effort 基线 job 抖动失败
-   （不阻塞 `test` workflow）
-6. **干净机冒烟**：P8-01 Gate 所需的 signed clean-machine 矩阵
+   （不阻塞 `test` workflow）— pending
+6. **干净机冒烟**：P8-01 Gate 所需的 signed clean-machine 矩阵 — pending
 
 ---
 
@@ -98,12 +103,11 @@ P8-01 签名 RC 全量 Gate → P8-02 WAILS-CUTOVER → P9 退役 Electron
 
 ## 五、建议优先级（下一步可执行）
 
-1. **SSH MFA / 跳板 UI 回调**（键盘交互挑战 → 渲染层弹窗）——解掉最常见连接场景
-2. **SFTP 高级路径接线**——复用现有 ClientFS，纯前端桥工作
-3. **App Lock 密码启用/解锁**——已有 PBKDF2 owner，缺 Wails 绑定与设置 UI
-4. **CI 化三平台冒烟扩充**——把 Windows 已验证的单实例/无边框/设置窗口
-   行为加入 migration-evidence workflow
-5. **签名与安装包试点**（Windows 先行：signtool + ico 资源已就绪）
+1. SSH MFA / 跳板 UI 回调 — 已处理（C 级；活体服务器仍缺）
+2. SFTP 高级路径接线 — 已处理（下载/上传/本地解压；传输中心 UI 仍缺）
+3. App Lock 密码启用/解锁 — 已处理（生物识别仍缺）
+4. CI 化三平台冒烟扩充 — 已处理（契约测试接入 migration-evidence；活体窗口仍缺）
+5. 签名与安装包试点 — 已处理（诚实 unsigned probe；不伪造 signtool 成功）
 6. 以上每项落地后回写矩阵/台账；凑齐 A 级证据后逐行升 `verified`，
    最后记 P6-05 gate。
 

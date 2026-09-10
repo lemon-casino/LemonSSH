@@ -254,6 +254,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Remaining-work wiring contracts
+        shell: bash
+        run: |
+          go test ./internal/terminal/ssh/ ./internal/platform/applock/ ./internal/platform/deeplink/ ./internal/plugin/store/ ./cmd/netcatty/
+          node --test --import tsx infrastructure/runtime/wails/terminalRoute.test.ts infrastructure/runtime/wails/wailsRuntimeClient.test.ts scripts/sign-wails-probe.test.mjs
+
+      - name: Honest Windows Authenticode probe
+        if: runner.os == 'Windows'
+        shell: bash
+        run: node scripts/sign-wails-probe.mjs --artifact netcatty-wails-shell.exe
+
   secret-migration-interop:
     name: Secret migration live interop (windows)
     runs-on: windows-latest

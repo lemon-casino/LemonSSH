@@ -2318,3 +2318,203 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无法安装或运行插件
 - Next safe slice: 本机构建
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L068 - 2026-09-10 - SSH MFA 与跳板/代理接到 Wails Connect
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: TerminalService.Connect 接受 jumpHosts、socks5/http proxyUrl 与 enableMfa；keyboard-interactive 经 ssh:keyboard-interactive 事件进入现有渲染层弹窗；command 代理与证书仍失败关闭。
+- Go canonical owner: cmd/netcatty/terminalService.go + internal/terminal/ssh
+- Frontend adapter: terminalRoute.pickSSHConnectArgs + wailsRuntimeClient onKeyboardInteractive
+- Electron owner affected: none
+- Preserved invariants: 证书与 command 代理仍显式拒绝；无活体 MFA 不断言 verified
+- Data/schema impact: none
+- Security impact: MFA 应答经现有 respondKeyboardInteractive 完成，超时失败关闭
+- Verification: go test internal/terminal/ssh + cmd/netcatty；node terminalRoute 与 wailsRuntimeClient 套件
+- Platforms covered: Windows 10 22H2 本机契约；无活体 MFA 服务器
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 活体 MFA/跳板/代理矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无真实 MFA 或跳板证据；SFTP Open 仍不走交互式 MFA
+- Next safe slice: SFTP 下载上传接线
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L069 - 2026-09-10 - SFTP 下载上传与本地解压接线
+
+- Capability rows: `SFTP-01`
+- Plan task: `P3-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: startStreamTransfer 调用既有 Download/Upload；extractLocalArchive 调用 zip-slip 硬化 ExtractArchive；SFTP Open 与 SSH 共用 Connect 结构体。
+- Go canonical owner: cmd/netcatty/sftpService.go + filesystemService.go
+- Frontend adapter: wailsRuntimeClient startStreamTransfer / extractLocalArchive
+- Electron owner affected: none
+- Preserved invariants: sudo SFTP 与非 UTF-8 路径仍未验证
+- Data/schema impact: none
+- Security impact: 解压拒绝 zip-slip；下载写入调用方指定本地路径
+- Verification: go test cmd/netcatty filesystem；runtime adapter 绿
+- Platforms covered: Windows 10 22H2 契约
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真实 SFTP 编码/符号链接矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 传输中心 UI 与远程压缩包提取仍未接
+- Next safe slice: 传输调度器门面
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L070 - 2026-09-10 - 传输调度器 pause/resume/cancel 门面
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: TransferService 暴露既有 scheduler 的 Enqueue/Pause/Resume/Cancel/Progress；压缩上传仍未接线。
+- Go canonical owner: cmd/netcatty/transferService.go + internal/terminal/transfer
+- Frontend adapter: pauseTransfer/resumeTransfer/cancelTransfer
+- Electron owner affected: none
+- Preserved invariants: 不假装压缩上传或高 RTT 实验室完成
+- Data/schema impact: none
+- Security impact: 取消失败关闭未知任务
+- Verification: go test internal/terminal/transfer + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 压缩上传与 renderer-close 存活证据后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无真实损坏/续传实验室
+- Next safe slice: App Lock 密码启用
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L071 - 2026-09-10 - App Lock 密码启用与解锁
+
+- Capability rows: `SYS-04`
+- Plan task: `P4-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: AppLockService.Enable/Unlock/Disable 使用 PBKDF2 owner 并持久化 verifier；requestAppLockUnlock 接到 transitionBridge。生物识别仍未接。
+- Go canonical owner: cmd/netcatty/appLockService.go + internal/platform/applock
+- Frontend adapter: requestAppLockUnlock / requestAppLockPasswordChange / requestAppLockDisable
+- Electron owner affected: none
+- Preserved invariants: 无 verifier 则不锁定；Hello/Touch ID 仍 undefined
+- Data/schema impact: settings 域 app-lock-verifier 记录
+- Security impact: 口令不落盘，仅存 salt/digest
+- Verification: go test applock + cmd/netcatty AppLock round-trip
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Windows Hello/Touch ID 活体后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 生物识别未接；无跨会话锁生命周期 A 级证据
+- Next safe slice: deep link 二次启动入队
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L072 - 2026-09-10 - Deep link 二次启动 argv 入队
+
+- Capability rows: `SYS-03`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 冷启动 os.Args 与二次启动 Args 中的 ssh/telnet/netcatty URL 入队；Drain 暴露给渲染层。OS 协议注册仍未做。
+- Go canonical owner: cmd/netcatty/deepLinkService.go + main.go
+- Frontend adapter: bindings Drain
+- Electron owner affected: none
+- Preserved invariants: 密码 query 仍拒绝
+- Data/schema impact: none
+- Security impact: 密码不得进入 deep link
+- Verification: go test deeplink + cmd/netcatty TestDeepLinkSecondInstanceArgs
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 已安装包 OS 协议注册后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 未注册 ssh/telnet/netcatty URL scheme
+- Next safe slice: 插件安装元数据门面
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L073 - 2026-09-10 - 插件安装元数据门面不执行 WASM
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: PluginService.Install/SetEnabled 只改内存清单；不启动 WASM 或 native 进程。
+- Go canonical owner: cmd/netcatty/pluginService.go + internal/plugin/store
+- Frontend adapter: listPlugins
+- Electron owner affected: none
+- Preserved invariants: 空清单不假装已运行插件
+- Data/schema impact: none
+- Security impact: 无执行面
+- Verification: go test plugin/store + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: WASM 沙箱与权限 broker 活体后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无法执行插件代码
+- Next safe slice: 签名探测脚本
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L074 - 2026-09-10 - 诚实 Windows 签名探测
+
+- Capability rows: `REL-01`
+- Plan task: `P6-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: scripts/sign-wails-probe.mjs 在缺 signtool 或缺证书时记录 unsigned 原因，不调用伪造签名，不声称安装包完成。
+- Go canonical owner: none; packaging probe only
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: 无 msi/pkg/AppImage；无 Authenticode 成功断言
+- Data/schema impact: none
+- Security impact: 不把未签名产物标成已签名
+- Verification: node --test scripts/sign-wails-probe.test.mjs
+- Platforms covered: Windows 探测路径；macOS/Linux 不调用 signtool
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台签名安装包后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 仍无代码签名证书
+- Next safe slice: CI remaining-work 契约
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L075 - 2026-09-10 - remaining-work 接线契约进入 evidence CI
+
+- Capability rows: `SYS-02`
+- Plan task: `P4-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: migration-evidence 的 netcatty-skeleton-build 增加 Go/Node remaining-work 契约测试与 Windows 签名探测；ShortcutService 暴露内存注册。原生 OS 快捷键仍未验证。
+- Go canonical owner: cmd/netcatty/shortcutService.go
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: Electron 基线 job 仍 continue-on-error
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test cmd/netcatty；sign-wails-probe 与 runtime 套件
+- Platforms covered: CI matrix windows/macos/ubuntu 契约；无活体窗口
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台原生快捷键与窗口冒烟后
+- Documentation updated: remaining-work, capability matrix, ledger, migration-evidence.yml
+- Residual risks: 无 macOS/Linux 窗口活体证据
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

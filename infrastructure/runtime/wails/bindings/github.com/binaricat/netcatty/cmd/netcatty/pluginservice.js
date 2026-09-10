@@ -11,12 +11,34 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as store$0 from "../../internal/plugin/store/models.js";
 
 /**
+ * @param {string} pluginID
+ * @param {string} version
+ * @param {string} sha256Hex
+ * @param {string} manifestJSON
+ * @returns {$CancellablePromise<store$0.PackageRecord | null>}
+ */
+export function Install(pluginID, version, sha256Hex, manifestJSON) {
+    return $Call.ByID(2825911517, pluginID, version, sha256Hex, manifestJSON).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * @returns {$CancellablePromise<(store$0.PackageRecord | null)[]>}
  */
 export function List() {
     return $Call.ByID(2357850258).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType2($result);
     }));
+}
+
+/**
+ * @param {string} pluginID
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetEnabled(pluginID, enabled) {
+    return $Call.ByID(1774562395, pluginID, enabled);
 }
 
 // Private type creation functions

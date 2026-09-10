@@ -77,6 +77,112 @@ export class AppLockRuntimeState {
 }
 
 /**
+ * SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
+ * command proxies and certificates remain fail-closed in the renderer mapper.
+ */
+export class SSHConnectRequest {
+    /**
+     * Creates a new SSHConnectRequest instance.
+     * @param {Partial<SSHConnectRequest>} [$$source = {}] - The source object to create the SSHConnectRequest.
+     */
+    constructor($$source = {}) {
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("port" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["password"] = "";
+        }
+        if (!("privateKey" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["privateKey"] = "";
+        }
+        if (!("passphrase" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["passphrase"] = "";
+        }
+        if (!("proxyUrl" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyUrl"] = "";
+        }
+        if (!("enableMfa" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enableMfa"] = false;
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+        if (!("jumpHosts" in $$source)) {
+            /**
+             * @member
+             * @type {SSHConnectRequest[]}
+             */
+            this["jumpHosts"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SSHConnectRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SSHConnectRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField10_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("jumpHosts" in $$parsedSource) {
+            $$parsedSource["jumpHosts"] = $$createField10_0($$parsedSource["jumpHosts"]);
+        }
+        return new SSHConnectRequest(/** @type {Partial<SSHConnectRequest>} */($$parsedSource));
+    }
+}
+
+/**
  * UpgradeStatus is the wire view of the persisted sequence.
  */
 export class UpgradeStatus {
@@ -123,7 +229,7 @@ export class UpgradeStatus {
      * @returns {UpgradeStatus}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType0;
+        const $$createField3_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("history" in $$parsedSource) {
             $$parsedSource["history"] = $$createField3_0($$parsedSource["history"]);
@@ -133,4 +239,6 @@ export class UpgradeStatus {
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
+const $$createType0 = SSHConnectRequest.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = $Create.Array($Create.Any);

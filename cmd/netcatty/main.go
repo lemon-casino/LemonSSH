@@ -10,6 +10,7 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/binaricat/netcatty/internal/app"
+	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
@@ -73,6 +75,10 @@ func mainWindowOptions() application.WebviewWindowOptions {
 }
 
 func main() {
+	deepLinkService := newDeepLinkService()
+	for _, rawURL := range deepLinkURLsFromArgs(os.Args) {
+		_ = deepLinkService.Enqueue(rawURL)
+	}
 	// Acquire the single-instance lock FIRST: bbolt blocks on the profile
 	// store's file lock while another instance runs, which would otherwise
 	// hang a second launch before Wails could forward it to the first.
@@ -83,7 +89,10 @@ func main() {
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "app.lemonssh.desktop",
 			ExitCode: 0,
-			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				for _, rawURL := range deepLinkURLsFromArgs(data.Args) {
+					_ = deepLinkService.Enqueue(rawURL)
+				}
 				app := application.Get()
 				if app == nil {
 					return
@@ -120,9 +129,14 @@ func main() {
 	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 	ptyService := newPTYService()
 	upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
-	appLockService := newAppLockService()
-	deepLinkService := newDeepLinkService()
+	appLockService := newAppLockServiceWithDeps(
+		applock.New(credentialProvider),
+		profileStore,
+	)
 	pluginService := newPluginService()
+	filesystemService := newFilesystemService()
+	transferService := newTransferService()
+	shortcutService := newShortcutService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -135,6 +149,9 @@ func main() {
 	sshPool := sshpool.New(ssh.Dial)
 	defer sshPool.Shutdown()
 	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
+	terminalSvc.SetChallengeEmitter(func(challenge ssh.KeyboardChallenge) {
+		wailsApp.Event.Emit("ssh:keyboard-interactive", challenge)
+	})
 	sftpService := NewSFTPService(sshPool, knownHosts)
 	forwardService := NewForwardService(sshPool, knownHosts)
 
@@ -150,6 +167,9 @@ func main() {
 	wailsApp.RegisterService(application.NewService(terminalSvc))
 	wailsApp.RegisterService(application.NewService(sftpService))
 	wailsApp.RegisterService(application.NewService(forwardService))
+	wailsApp.RegisterService(application.NewService(filesystemService))
+	wailsApp.RegisterService(application.NewService(transferService))
+	wailsApp.RegisterService(application.NewService(shortcutService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	settingsWindowService := newSettingsWindowService(wailsApp)

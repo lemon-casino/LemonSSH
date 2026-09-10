@@ -3,7 +3,7 @@
 // ESLint). Ports without a Go owner reject every call fail-closed instead of
 // pretending parity; they are implemented domain by domain from P2 onward.
 
-import { Dialogs, Window as wailsWindow } from "@wailsio/runtime";
+import { Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
@@ -60,7 +60,8 @@ function missingBridgeMethod(property: string | symbol): never {
 
 export interface WailsBindingDeps {
   terminal: {
-    Connect: (...args: unknown[]) => Promise<string>;
+    Connect: (request: unknown) => Promise<string>;
+    RespondKeyboardInteractive?: (requestID: string, responses: string[], cancelled: boolean) => Promise<unknown>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
     StartTelnet?: (host: string, port: number, cols: number, rows: number) => Promise<string>;
     StartSerial?: (path: string, baudRate: number) => Promise<string>;
@@ -73,7 +74,9 @@ export interface WailsBindingDeps {
     ListenAddr: () => Promise<string> | string;
   };
   sftp: {
-    Open: (...args: unknown[]) => Promise<string>;
+    Open: (request: unknown) => Promise<string>;
+    Download?: (sftpID: string, remotePath: string, localPath: string) => Promise<number>;
+    Upload?: (sftpID: string, localPath: string, remotePath: string) => Promise<number>;
     List: (sftpID: string, path: string) => Promise<WailsSftpEntry[]>;
     Mkdir: (sftpID: string, path: string) => Promise<unknown>;
     Remove: (sftpID: string, path: string) => Promise<unknown>;
@@ -98,7 +101,7 @@ export interface WailsBindingDeps {
     Close: () => Promise<unknown>;
   };
   forward?: {
-    Start: (...args: unknown[]) => Promise<unknown>;
+    Start: (id: string, kind: string, bindHost: string, bindPort: number, targetHost: string, targetPort: number, request: unknown) => Promise<unknown>;
     Stop: (id: string) => Promise<unknown>;
     List: () => Promise<unknown>;
     Snapshot: (id: string) => Promise<unknown>;
@@ -118,23 +121,49 @@ export interface WailsBindingDeps {
       lastActivityAt: number | null;
     }>;
     ReportActivity?: () => Promise<unknown>;
+    Enable?: (password: string) => Promise<unknown>;
+    Unlock?: (password: string) => Promise<unknown>;
+    Disable?: (password: string) => Promise<unknown>;
+    SetRuntimeLocked?: (reason: string) => Promise<unknown>;
   };
   plugins?: {
     List: () => Promise<unknown[]>;
+    Install?: (pluginID: string, version: string, sha256Hex: string, manifestJSON: string) => Promise<unknown>;
+    SetEnabled?: (pluginID: string, enabled: boolean) => Promise<unknown>;
+  };
+  deepLink?: {
+    Parse?: (rawURL: string) => Promise<unknown>;
+    Enqueue?: (rawURL: string) => Promise<unknown>;
+    Pending?: () => Promise<number>;
+    Ready?: () => Promise<unknown>;
+    Drain?: () => Promise<unknown[]>;
+  };
+  filesystem?: {
+    ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
+  };
+  transfer?: {
+    Enqueue?: (spec: unknown) => Promise<unknown>;
+    Pause?: (taskID: string) => Promise<unknown>;
+    Resume?: (taskID: string) => Promise<unknown>;
+    Cancel?: (taskID: string) => Promise<unknown>;
+  };
+  events?: {
+    On: (name: string, callback: (event: { data?: unknown }) => void) => () => void;
   };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
-const defaultBindings: WailsBindingDeps = {
-  terminal: terminalService as unknown as WailsBindingDeps["terminal"],
-  sftp: sftpService as unknown as WailsBindingDeps["sftp"],
-  window: wailsWindow,
-  settings: settingsWindowService as unknown as WailsBindingDeps["settings"],
-  forward: forwardService as unknown as WailsBindingDeps["forward"],
-  dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
-  appLock: appLockService as unknown as WailsBindingDeps["appLock"],
-  plugins: pluginService as unknown as WailsBindingDeps["plugins"],
-};
+  const defaultBindings: WailsBindingDeps = {
+    terminal: terminalService as unknown as WailsBindingDeps["terminal"],
+    sftp: sftpService as unknown as WailsBindingDeps["sftp"],
+    window: wailsWindow,
+    settings: settingsWindowService as unknown as WailsBindingDeps["settings"],
+    forward: forwardService as unknown as WailsBindingDeps["forward"],
+    dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
+    appLock: appLockService as unknown as WailsBindingDeps["appLock"],
+    plugins: pluginService as unknown as WailsBindingDeps["plugins"],
+    events: Events as unknown as WailsBindingDeps["events"],
+  };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
 type SessionExitCallback = (evt: { sessionId: string; code?: number }) => void;
@@ -169,16 +198,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const startSSHSession = (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
     const args = pickSSHConnectArgs(options);
-    return bindings.terminal.Connect(
-      args.hostname,
-      args.port,
-      args.username,
-      args.password,
-      args.privateKey,
-      args.passphrase,
-      args.cols,
-      args.rows,
-    ).then(async (sessionID) => {
+    return bindings.terminal.Connect(args).then(async (sessionID) => {
       await attachDataPlane(sessionID);
       return sessionID;
     });
@@ -273,8 +293,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const openSftp = (options: Parameters<NetcattyBridge["openSftp"]>[0]) => {
     const args = pickSSHConnectArgs(options);
-    return bindings.sftp.Open(args.hostname, args.port, args.username, args.password);
+    return bindings.sftp.Open(args);
   };
+  const downloadSftp = (sftpID: string, remotePath: string, localPath: string) =>
+    bindings.sftp.Download?.(sftpID, remotePath, localPath) as Promise<number>;
+  const uploadSftp = (sftpID: string, localPath: string, remotePath: string) =>
+    bindings.sftp.Upload?.(sftpID, localPath, remotePath) as Promise<number>;
   const listSftp = async (sftpID: string, path: string): Promise<RemoteFile[]> => {
     const entries = await bindings.sftp.List(sftpID, path);
     return entries.map(entryToRemoteFile);
@@ -316,13 +340,83 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     return typeof selected === "string" ? selected : selected?.[0] ?? "";
   };
   const showSaveDialog = async () => bindings.dialogs?.SaveFile({}) ?? "";
-  const startPortForward = (...args: unknown[]) => bindings.forward?.Start(...args);
+  const startPortForward = (options: {
+    tunnelId: string;
+    type: string;
+    bindAddress?: string;
+    localPort: number;
+    remoteHost?: string;
+    remotePort?: number;
+    hostname: string;
+    port?: number;
+    username: string;
+    password?: string;
+    privateKey?: string;
+    passphrase?: string;
+    requiresMfa?: boolean;
+    jumpHosts?: unknown[];
+    proxy?: unknown;
+  }) => {
+    const request = pickSSHConnectArgs(options as Parameters<NetcattyBridge["startSSHSession"]>[0]);
+    return bindings.forward?.Start(
+      options.tunnelId,
+      options.type,
+      options.bindAddress ?? "127.0.0.1",
+      options.localPort,
+      options.remoteHost ?? "",
+      options.remotePort ?? 0,
+      request,
+    );
+  };
   const stopPortForward = (id: string) => bindings.forward?.Stop(id);
   const listPortForwards = () => bindings.forward?.List();
   const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
   const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
   const reportAppLockActivity = () => bindings.appLock?.ReportActivity?.();
   const listPlugins = () => bindings.plugins?.List() ?? Promise.resolve([]);
+  type KeyboardInteractiveCallback = Parameters<NonNullable<NetcattyBridge["onKeyboardInteractive"]>>[0];
+  const keyboardListeners = new Set<KeyboardInteractiveCallback>();
+  let keyboardSubscribed = false;
+  const subscribeKeyboardEvents = () => {
+    if (keyboardSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    keyboardSubscribed = true;
+    eventsOn("ssh:keyboard-interactive", (event) => {
+      const challenge = (event?.data ?? event) as {
+        requestId?: string;
+        hostname?: string;
+        name?: string;
+        instructions?: string;
+        prompts?: Array<{ prompt: string; echo: boolean }>;
+      };
+      const request = {
+        requestId: challenge.requestId ?? "",
+        sessionId: "",
+        name: challenge.name ?? "",
+        instructions: challenge.instructions ?? "",
+        prompts: challenge.prompts ?? [],
+        hostname: challenge.hostname ?? "",
+        scope: "external" as const,
+      };
+      for (const listener of keyboardListeners) listener(request);
+    });
+  };
+  const onKeyboardInteractive = (cb: KeyboardInteractiveCallback) => {
+    subscribeKeyboardEvents();
+    keyboardListeners.add(cb);
+    return () => {
+      keyboardListeners.delete(cb);
+    };
+  };
+  const respondKeyboardInteractive = async (requestId: string, responses: string[], cancelled?: boolean) => {
+    try {
+      await bindings.terminal.RespondKeyboardInteractive?.(requestId, responses, Boolean(cancelled));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
@@ -349,11 +443,36 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     // port types gain Wails-specific variants.
     getSftpHomeDir: ((sftpID: string) =>
       bindings.sftp.HomeDir?.(sftpID).then((homeDir) => ({ success: true, homeDir }))) as unknown as NetcattyBridge["getSftpHomeDir"],
+    startStreamTransfer: (async (options: {
+      sourceType: "local" | "sftp";
+      targetType: "local" | "sftp";
+      sourcePath: string;
+      targetPath: string;
+      sourceSftpId?: string;
+      targetSftpId?: string;
+      transferId: string;
+    }) => {
+      if (options.sourceType === "sftp" && options.targetType === "local" && options.sourceSftpId) {
+        await downloadSftp(options.sourceSftpId, options.sourcePath, options.targetPath);
+        return { transferId: options.transferId };
+      }
+      if (options.sourceType === "local" && options.targetType === "sftp" && options.targetSftpId) {
+        await uploadSftp(options.targetSftpId, options.sourcePath, options.targetPath);
+        return { transferId: options.transferId };
+      }
+      return { transferId: options.transferId, error: "stream transfer shape not migrated yet" };
+    }) as unknown as NetcattyBridge["startStreamTransfer"],
+    extractLocalArchive: (async (archivePath: string) => {
+      const parent = archivePath.replace(/[\\/][^\\/]+$/, "") || ".";
+      await bindings.filesystem?.ExtractArchive?.(archivePath, parent);
+      return { success: true };
+    }) as unknown as NetcattyBridge["extractLocalArchive"],
+    onKeyboardInteractive,
+    respondKeyboardInteractive,
     selectFile,
     selectDirectory,
     showSaveDialog,
-    startPortForward: ((...args: Parameters<NonNullable<NetcattyBridge["startPortForward"]>>) =>
-      bindings.forward?.Start(...(args as unknown[]))) as unknown as NetcattyBridge["startPortForward"],
+    startPortForward: startPortForward as unknown as NetcattyBridge["startPortForward"],
     stopPortForward: ((id: string) =>
       bindings.forward?.Stop(id)) as unknown as NetcattyBridge["stopPortForward"],
     listPortForwards: (() =>
@@ -374,6 +493,52 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       bindings.appLock?.ReportActivity?.()) as unknown as NetcattyBridge["reportAppLockActivity"],
     listPlugins: (() =>
       Promise.resolve(bindings.plugins?.List() ?? [])) as unknown as NetcattyBridge["listPlugins"],
+    requestAppLockPasswordChange: (async (input: { currentPassword?: string; nextPassword: string }) => {
+      if (!input.nextPassword) return { ok: false, error: "empty-next" };
+      if (input.currentPassword) {
+        try {
+          await bindings.appLock?.Disable?.(input.currentPassword);
+        } catch {
+          return { ok: false, error: "incorrect" };
+        }
+      }
+      try {
+        await bindings.appLock?.Enable?.(input.nextPassword);
+        return { enabled: true, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: { version: 1, algorithm: "PBKDF2-SHA256", iterations: 210000, salt: "", hash: "" } };
+      } catch {
+        return { ok: false, error: "incorrect" };
+      }
+    }) as unknown as NetcattyBridge["requestAppLockPasswordChange"],
+    requestAppLockUnlock: (async (password: string) => {
+      if (!password) return { ok: false, error: "empty" };
+      try {
+        await bindings.appLock?.Unlock?.(password);
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "incorrect" };
+      }
+    }) as unknown as NetcattyBridge["requestAppLockUnlock"],
+    requestAppLockDisable: (async (currentPassword: string) => {
+      try {
+        await bindings.appLock?.Disable?.(currentPassword);
+        return { enabled: false, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null };
+      } catch {
+        return { ok: false, error: "incorrect" };
+      }
+    }) as unknown as NetcattyBridge["requestAppLockDisable"],
+    pauseTransfer: ((transferId: string) =>
+      bindings.transfer?.Pause?.(transferId)) as unknown as NetcattyBridge["pauseTransfer"],
+    resumeTransfer: ((transferId: string) =>
+      bindings.transfer?.Resume?.(transferId)) as unknown as NetcattyBridge["resumeTransfer"],
+    cancelTransfer: ((transferId: string) =>
+      bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
+    cancelZmodem: (async () => ({ success: false, error: "zmodem session engine is not wired yet" })) as unknown as NetcattyBridge["cancelZmodem"],
+    startMoshSession: (async () => {
+      throw new Error("mosh reconnect protocol is not wired on the Wails data plane yet");
+    }) as unknown as NetcattyBridge["startMoshSession"],
+    startEtSession: (async () => {
+      throw new Error("eternal terminal reconnect protocol is not wired on the Wails data plane yet");
+    }) as unknown as NetcattyBridge["startEtSession"],
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {

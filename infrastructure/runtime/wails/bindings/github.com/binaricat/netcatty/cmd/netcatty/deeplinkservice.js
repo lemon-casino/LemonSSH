@@ -11,6 +11,15 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as deeplink$0 from "../../internal/platform/deeplink/models.js";
 
 /**
+ * @returns {$CancellablePromise<(deeplink$0.Action | null)[]>}
+ */
+export function Drain() {
+    return $Call.ByID(3300770991).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * @param {string} rawURL
  * @returns {$CancellablePromise<void>}
  */
@@ -45,3 +54,4 @@ export function Ready() {
 // Private type creation functions
 const $$createType0 = deeplink$0.Action.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($$createType1);

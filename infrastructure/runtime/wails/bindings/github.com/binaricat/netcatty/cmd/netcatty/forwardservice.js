@@ -10,6 +10,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as forward$0 from "../../internal/terminal/forward/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @returns {$CancellablePromise<forward$0.State[]>}
  */
@@ -36,14 +40,11 @@ export function Snapshot(id) {
  * @param {number} bindPort
  * @param {string} targetHost
  * @param {number} targetPort
- * @param {string} sshHost
- * @param {number} sshPort
- * @param {string} username
- * @param {string} password
+ * @param {$models.SSHConnectRequest} request
  * @returns {$CancellablePromise<forward$0.State>}
  */
-export function Start(id, kind, bindHost, bindPort, targetHost, targetPort, sshHost, sshPort, username, password) {
-    return $Call.ByID(1065595960, id, kind, bindHost, bindPort, targetHost, targetPort, sshHost, sshPort, username, password).then(/** @type {($result: any) => any} */(($result) => {
+export function Start(id, kind, bindHost, bindPort, targetHost, targetPort, request) {
+    return $Call.ByID(1065595960, id, kind, bindHost, bindPort, targetHost, targetPort, request).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType0($result);
     }));
 }

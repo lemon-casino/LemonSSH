@@ -124,6 +124,46 @@ test("startLocalSession attaches the data plane", async () => {
   assert.equal(id, "local-1");
 });
 
+test("startSSHSession maps jump and MFA onto one Connect payload", async () => {
+  const seen: unknown[] = [];
+  const bindings = stubBindings({
+    Connect: async (request) => {
+      seen.push(request);
+      return "term-1";
+    },
+  });
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession({
+    hostname: "h",
+    username: "u",
+    requiresMfa: true,
+    jumpHosts: [{ hostname: "jump", username: "bastion", port: 2222 }],
+  });
+  assert.equal((seen[0] as { enableMfa: boolean }).enableMfa, true);
+  assert.equal((seen[0] as { jumpHosts: Array<{ hostname: string }> }).jumpHosts[0].hostname, "jump");
+});
+
+test("onKeyboardInteractive fans Wails events to the existing modal queue", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const bindings = stubBindings();
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  bindings.terminal.RespondKeyboardInteractive = async () => undefined;
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ requestId: string }> = [];
+  client.transitionBridge.onKeyboardInteractive?.((request) => seen.push({ requestId: request.requestId }));
+  listeners.get("ssh:keyboard-interactive")?.[0]({ data: { requestId: "kbd-1", hostname: "h", prompts: [{ prompt: "PIN:", echo: false }] } });
+  assert.deepEqual(seen, [{ requestId: "kbd-1" }]);
+  const result = await client.transitionBridge.respondKeyboardInteractive?.("kbd-1", ["1234"], false);
+  assert.equal(result?.success, true);
+});
+
 test("onSessionData fans out chunks from the data plane", async () => {
   let deliver: ((chunk: string) => void) | undefined;
   const bindings = stubBindings();

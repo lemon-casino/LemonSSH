@@ -20,6 +20,9 @@ type AuthMethod struct {
 	// Interactive answers keyboard-interactive challenges (MFA). Each
 	// question is surfaced with its echo flag; empty answers are allowed.
 	Interactive func(question string, echo bool) (string, error)
+	// Challenge answers a full keyboard-interactive round (name, instruction,
+	// all prompts) so the renderer can show one MFA modal per round.
+	Challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)
 }
 
 var ErrNoAuthMethod = errors.New("no ssh auth method configured")
@@ -29,7 +32,7 @@ var ErrNoAuthMethod = errors.New("no ssh auth method configured")
 // turn and accepts partial-success MFA flows.
 func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 	var result []ssh.AuthMethod
-	if strings.TrimSpace(method.Password) != "" || len(method.PrivateKeyPEM) > 0 || method.Interactive != nil {
+	if strings.TrimSpace(method.Password) != "" || len(method.PrivateKeyPEM) > 0 || method.Interactive != nil || method.Challenge != nil {
 		// at least one strategy present
 	} else {
 		return nil, ErrNoAuthMethod
@@ -50,7 +53,9 @@ func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 	if method.Password != "" {
 		result = append(result, ssh.Password(method.Password))
 	}
-	if method.Interactive != nil {
+	if method.Challenge != nil {
+		result = append(result, ssh.KeyboardInteractive(method.Challenge))
+	} else if method.Interactive != nil {
 		result = append(result, ssh.KeyboardInteractive(func(name, instruction string, questions []string, echoes []bool) ([]string, error) {
 			answers := make([]string, 0, len(questions))
 			for index, question := range questions {

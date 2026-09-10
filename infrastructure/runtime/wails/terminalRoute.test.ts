@@ -88,21 +88,68 @@ test("modeToPermissions keeps the last nine characters only", () => {
 test("pickSSHConnectArgs normalizes defaults", () => {
   assert.deepEqual(
     pickSSHConnectArgs({ hostname: "h", username: "u" }),
-    { hostname: "h", username: "u", port: 22, password: "", privateKey: "", passphrase: "", cols: 80, rows: 24 },
+    {
+      hostname: "h",
+      username: "u",
+      port: 22,
+      password: "",
+      privateKey: "",
+      passphrase: "",
+      proxyUrl: "",
+      enableMfa: false,
+      cols: 80,
+      rows: 24,
+      jumpHosts: [],
+    },
   );
 });
 
-test("pickSSHConnectArgs accepts key auth and fails closed on jump/MFA/proxy", () => {
+test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
   assert.deepEqual(
-    pickSSHConnectArgs({ hostname: "h", username: "u", privateKey: "PEM", passphrase: "pw" }),
-    { hostname: "h", username: "u", port: 22, password: "", privateKey: "PEM", passphrase: "pw", cols: 80, rows: 24 },
+    pickSSHConnectArgs({
+      hostname: "h",
+      username: "u",
+      privateKey: "PEM",
+      passphrase: "pw",
+      requiresMfa: true,
+      proxy: { type: "socks5", host: "127.0.0.1", port: 1080 },
+      jumpHosts: [{ hostname: "jump", username: "bastion", port: 2222, password: "jpw" }],
+    }),
+    {
+      hostname: "h",
+      username: "u",
+      port: 22,
+      password: "",
+      privateKey: "PEM",
+      passphrase: "pw",
+      proxyUrl: "socks5://127.0.0.1:1080",
+      enableMfa: true,
+      cols: 80,
+      rows: 24,
+      jumpHosts: [{
+        hostname: "jump",
+        username: "bastion",
+        port: 2222,
+        password: "jpw",
+        privateKey: "",
+        passphrase: "",
+        proxyUrl: "",
+        enableMfa: false,
+        cols: 80,
+        rows: 24,
+        jumpHosts: [],
+      }],
+    },
+  );
+});
+
+test("pickSSHConnectArgs fails closed on certificate and command proxy", () => {
+  assert.throws(
+    () => pickSSHConnectArgs({ hostname: "h", username: "u", certificate: "CERT" }),
+    /certificate/,
   );
   assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", requiresMfa: true }),
-    /requiresMfa/,
-  );
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", jumpHosts: [{}] }),
-    /jumpHosts/,
+    () => pickSSHConnectArgs({ hostname: "h", username: "u", proxy: { type: "command", command: "nc", host: "x", port: 1 } }),
+    /proxy/,
   );
 });

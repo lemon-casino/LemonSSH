@@ -21,6 +21,10 @@ import * as dataplane$0 from "../../internal/terminal/dataplane/models.js";
 // @ts-ignore: Unused imports
 import * as serialport$0 from "../../internal/terminal/serialport/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * Bootstrap returns the route credentials the renderer needs to attach its
  * data/urgent WebSockets for a session.
@@ -31,6 +35,14 @@ export function Bootstrap(sessionID) {
     return $Call.ByID(2388013009, sessionID).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType0($result);
     }));
+}
+
+/**
+ * CancelZmodem honours the existing CRC/safety cancellation boundary.
+ * @returns {$CancellablePromise<void>}
+ */
+export function CancelZmodem() {
+    return $Call.ByID(2146045067);
 }
 
 /**
@@ -46,18 +58,11 @@ export function Close(sessionID) {
  * Connect dials SSH, authenticates, opens a PTY shell and starts streaming
  * output into the data plane. It returns the session ID; call Bootstrap to
  * get the route credentials for the renderer WebSocket.
- * @param {string} host
- * @param {number} port
- * @param {string} username
- * @param {string} password
- * @param {string} privateKey
- * @param {string} passphrase
- * @param {number} cols
- * @param {number} rows
+ * @param {$models.SSHConnectRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function Connect(host, port, username, password, privateKey, passphrase, cols, rows) {
-    return $Call.ByID(4197416449, host, port, username, password, privateKey, passphrase, cols, rows);
+export function Connect(request) {
+    return $Call.ByID(4197416449, request);
 }
 
 /**
@@ -90,6 +95,33 @@ export function Resize(sessionID, cols, rows) {
 }
 
 /**
+ * RespondKeyboardInteractive completes or cancels a pending MFA challenge.
+ * @param {string} requestID
+ * @param {string[]} responses
+ * @param {boolean} cancelled
+ * @returns {$CancellablePromise<void>}
+ */
+export function RespondKeyboardInteractive(requestID, responses, cancelled) {
+    return $Call.ByID(547631165, requestID, responses, cancelled);
+}
+
+/**
+ * SendSerialYmodem is intentionally fail-closed until a serial session engine lands.
+ * @returns {$CancellablePromise<void>}
+ */
+export function SendSerialYmodem() {
+    return $Call.ByID(4074171664);
+}
+
+/**
+ * @param {any} emit
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetChallengeEmitter(emit) {
+    return $Call.ByID(3085412466, emit);
+}
+
+/**
  * Signal delivers a POSIX signal name (e.g. "KILL") to the remote shell.
  * @param {string} sessionID
  * @param {string} signal
@@ -97,6 +129,14 @@ export function Resize(sessionID, cols, rows) {
  */
 export function Signal(sessionID, signal) {
     return $Call.ByID(4236247009, sessionID, signal);
+}
+
+/**
+ * StartEt is intentionally fail-closed until reconnect protocol lands.
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartEt() {
+    return $Call.ByID(2928365382);
 }
 
 /**
@@ -109,6 +149,14 @@ export function Signal(sessionID, signal) {
  */
 export function StartLocal(shell, cwd, cols, rows) {
     return $Call.ByID(3430581078, shell, cwd, cols, rows);
+}
+
+/**
+ * StartMosh is intentionally fail-closed until reconnect protocol lands.
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartMosh() {
+    return $Call.ByID(2465988376);
 }
 
 /**

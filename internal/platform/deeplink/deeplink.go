@@ -160,3 +160,12 @@ func (q *Queue) Pending() int {
 	defer q.mu.Unlock()
 	return len(q.pending)
 }
+
+// Drain returns and clears buffered intents without marking the queue ready.
+func (q *Queue) Drain() []*Action {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	pending := q.pending
+	q.pending = nil
+	return pending
+}

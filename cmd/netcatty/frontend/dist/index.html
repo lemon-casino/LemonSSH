@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' data: blob: ws: wss: https:; img-src 'self' data: https:;" />
-  <title>netcatty SSH</title>
+  <title>LemonSSH</title>
   <style>
     /* Load extended Unicode ranges for terminal box drawing characters */
     @font-face {
@@ -218,6 +218,9 @@
         // Tray overlay uses CSS border-radius over a transparent BrowserWindow.
         // Mark it before first paint so body/root/splash never flash an opaque
         // backdrop (#2505). Splash lives in <body>, so remove it on DOM ready.
+        if ((window.location.hash || '') === '#/settings' || (window.location.hash || '').indexOf('#/settings') === 0) {
+          root.classList.add('settings-window');
+        }
         if ((window.location.hash || '') === '#/tray' || (window.location.hash || '').indexOf('#/tray') === 0) {
           root.classList.add('tray-window');
           var removeTraySplash = function () {
@@ -235,10 +238,10 @@
       }
     })();
   </script>
-  <script type="module" crossorigin src="./assets/index-DEzvc-9p.js"></script>
+  <script type="module" crossorigin src="./assets/index-Db5Aj1zD.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-ai-C3X27dAL.js">
   <link rel="modulepreload" crossorigin href="./assets/vendor-radix-BB4rY6J4.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-BkIRLHfj.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-aj_gUZr0.css">
 </head>
 
 <body class="bg-background text-foreground overflow-hidden antialiased h-screen w-screen">
@@ -246,7 +249,7 @@
     <!-- Splash screen: shown while React loads, hidden after first paint -->
     <div id="splash" class="splash-screen">
       <div class="splash-content">
-        <img class="splash-logo" src="./logo.svg" alt="netcatty" draggable="false" />
+        <img class="splash-logo" src="./icon.png" alt="LemonSSH" draggable="false" />
 
         <div class="splash-spinner"></div>
       </div>
