@@ -16,4 +16,7 @@ func TestSettingsWindowOptionsAreDedicatedAndFrameless(t *testing.T) {
 	if options.Width != 980 || options.Height != 720 {
 		t.Fatalf("settings window size = %dx%d", options.Width, options.Height)
 	}
+	if !options.Hidden {
+		t.Fatal("settings window must start hidden until the frontend has painted")
+	}
 }

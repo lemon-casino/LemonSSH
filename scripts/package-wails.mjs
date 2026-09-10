@@ -18,7 +18,7 @@ export function artifactBasename(version, goos, goarch) {
   if (!GOOS_EXTENSIONS.has(goos)) throw new Error(`unsupported GOOS ${goos}`);
   if (!ARCH_EXTENSIONS.has(goarch)) throw new Error(`unsupported GOARCH ${goarch}`);
   const extension = goos === "windows" ? ".exe" : "";
-  return `Netcatty-${version}-${goos}-${goarch}${extension}`;
+  return `LemonSSH-${version}-${goos}-${goarch}${extension}`;
 }
 
 export function buildLdflags(version) {

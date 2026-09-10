@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 const settingsWindowName = "settings"
@@ -17,6 +18,7 @@ func settingsWindowOptions() application.WebviewWindowOptions {
 		MinWidth:         820,
 		MinHeight:        600,
 		Frameless:        true,
+		Hidden:           true,
 		BackgroundColour: application.NewRGB(20, 23, 28),
 		URL:              "/index.html#/settings",
 	}
@@ -40,8 +42,10 @@ func (s *SettingsWindowService) Open() (bool, error) {
 		return true, nil
 	}
 	win := s.app.Window.NewWithOptions(settingsWindowOptions())
-	win.Show()
-	win.Focus()
+	win.RegisterHook(events.Common.WindowRuntimeReady, func(*application.WindowEvent) {
+		win.Show()
+		win.Focus()
+	})
 	return true, nil
 }
 

@@ -13,9 +13,9 @@ import {
 } from "./package-wails.mjs";
 
 test("artifactBasename applies the platform executable suffix", () => {
-  assert.equal(artifactBasename("1.2.3", "windows", "amd64"), "Netcatty-1.2.3-windows-amd64.exe");
-  assert.equal(artifactBasename("1.2.3", "darwin", "arm64"), "Netcatty-1.2.3-darwin-arm64");
-  assert.equal(artifactBasename("1.2.3", "linux", "amd64"), "Netcatty-1.2.3-linux-amd64");
+  assert.equal(artifactBasename("1.2.3", "windows", "amd64"), "LemonSSH-1.2.3-windows-amd64.exe");
+  assert.equal(artifactBasename("1.2.3", "darwin", "arm64"), "LemonSSH-1.2.3-darwin-arm64");
+  assert.equal(artifactBasename("1.2.3", "linux", "amd64"), "LemonSSH-1.2.3-linux-amd64");
 });
 
 test("artifactBasename rejects unknown targets", () => {
