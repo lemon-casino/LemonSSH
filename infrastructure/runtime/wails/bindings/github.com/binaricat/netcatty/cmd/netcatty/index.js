@@ -4,9 +4,11 @@
 
 import * as AppLockService from "./applockservice.js";
 import * as CredentialService from "./credentialservice.js";
+import * as DeepLinkService from "./deeplinkservice.js";
 import * as ForwardService from "./forwardservice.js";
 import * as NetcattyService from "./netcattyservice.js";
 import * as PTYService from "./ptyservice.js";
+import * as PluginService from "./pluginservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
@@ -16,9 +18,11 @@ import * as UpgradeService from "./upgradeservice.js";
 export {
     AppLockService,
     CredentialService,
+    DeepLinkService,
     ForwardService,
     NetcattyService,
     PTYService,
+    PluginService,
     ProfileMigrationService,
     ProfileService,
     SFTPService,

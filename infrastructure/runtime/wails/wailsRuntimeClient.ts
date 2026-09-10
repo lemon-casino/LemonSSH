@@ -10,6 +10,7 @@ import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netca
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
 import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
 import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
+import * as pluginService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/pluginservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -116,6 +117,9 @@ export interface WailsBindingDeps {
     }>;
     ReportActivity?: () => Promise<unknown>;
   };
+  plugins?: {
+    List: () => Promise<unknown[]>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -127,6 +131,7 @@ const defaultBindings: WailsBindingDeps = {
   forward: forwardService as unknown as WailsBindingDeps["forward"],
   dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
   appLock: appLockService as unknown as WailsBindingDeps["appLock"],
+  plugins: pluginService as unknown as WailsBindingDeps["plugins"],
 };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -313,6 +318,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
   const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
   const reportAppLockActivity = () => bindings.appLock?.ReportActivity?.();
+  const listPlugins = () => bindings.plugins?.List() ?? Promise.resolve([]);
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
@@ -352,6 +358,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     closeSettingsWindow,
     getAppLockRuntimeState,
     reportAppLockActivity,
+    listPlugins,
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {

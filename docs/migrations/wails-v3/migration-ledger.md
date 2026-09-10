@@ -2243,3 +2243,78 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 密码启用/生物识别未接
 - Next safe slice: 本机构建验证
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L065 - 2026-09-10 - 托盘品牌与设置入口
+
+- Capability rows: `SYS-02`
+- Plan task: `P4-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: 托盘文案改为 LemonSSH；增加 Settings 菜单项打开独立设置窗口；Show 会 Focus 主窗口。
+- Go canonical owner: cmd/netcatty/main.go
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: Quit 仍走 wailsApp.Quit
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test cmd/netcatty
+- Platforms covered: Windows 10 22H2
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台托盘行为后
+- Documentation updated: ledger
+- Residual risks: 全局快捷键未注册
+- Next safe slice: deep link 服务
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L066 - 2026-09-10 - Deep link 解析服务
+
+- Capability rows: `SYS-03`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: DeepLinkService 暴露 Parse/Enqueue/Pending/Ready，密码参数仍拒绝。OS 协议注册未做。
+- Go canonical owner: cmd/netcatty/deepLinkService.go + internal/platform/deeplink
+- Frontend adapter: bindings only
+- Electron owner affected: none
+- Preserved invariants: 密码 query 失败关闭；重复冷启动意图去重
+- Data/schema impact: none
+- Security impact: 密码不得进入 deep link
+- Verification: go test deeplink + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: OS 协议注册与冷启动投递后
+- Documentation updated: ledger
+- Residual risks: 未注册 ssh/telnet/netcatty URL scheme
+- Next safe slice: plugin list
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L067 - 2026-09-10 - 插件清单只读门面
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: PluginService.List 暴露空清单；安装/启用/WASM 仍未接线。
+- Go canonical owner: cmd/netcatty/pluginService.go + internal/plugin/store
+- Frontend adapter: listPlugins on transitionBridge
+- Electron owner affected: none
+- Preserved invariants: 空清单不假装已安装插件
+- Data/schema impact: none
+- Security impact: 无执行面
+- Verification: go test plugin/store + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 安装/权限/WASM 后
+- Documentation updated: ledger
+- Residual risks: 无法安装或运行插件
+- Next safe slice: 本机构建
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

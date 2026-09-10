@@ -84,6 +84,8 @@ func main() {
 	ptyService := newPTYService()
 		upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
 		appLockService := newAppLockService()
+		deepLinkService := newDeepLinkService()
+		pluginService := newPluginService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -110,6 +112,8 @@ func main() {
 			application.NewService(ptyService),
 				application.NewService(upgradeService),
 				application.NewService(appLockService),
+				application.NewService(deepLinkService),
+				application.NewService(pluginService),
 			application.NewService(terminalSvc),
 				application.NewService(sftpService),
 				application.NewService(forwardService),
@@ -129,15 +133,19 @@ func main() {
 		// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()
 	tray.SetIcon(icons.SystrayLight)
-	tray.SetTooltip("Netcatty")
-	trayMenu := wailsApp.NewMenu()
-	trayMenu.Add("Show Netcatty").OnClick(func(*application.Context) {
-		if win, ok := wailsApp.Window.GetByName("main"); ok {
-			win.Show()
-		}
-	})
-	trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
-	tray.SetMenu(trayMenu)
+		tray.SetTooltip("LemonSSH")
+		trayMenu := wailsApp.NewMenu()
+		trayMenu.Add("Show LemonSSH").OnClick(func(*application.Context) {
+			if win, ok := wailsApp.Window.GetByName("main"); ok {
+				win.Show()
+				win.Focus()
+			}
+		})
+		trayMenu.Add("Settings").OnClick(func(*application.Context) {
+			_, _ = settingsWindowService.Open()
+		})
+		trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
+		tray.SetMenu(trayMenu)
 
 	if err := wailsApp.Run(); err != nil {
 		log.Fatal(err)
