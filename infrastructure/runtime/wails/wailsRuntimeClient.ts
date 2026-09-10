@@ -9,6 +9,7 @@ import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/n
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
 import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
+import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -103,6 +104,18 @@ export interface WailsBindingDeps {
     OpenFile: (options: Record<string, unknown>) => Promise<string | string[]>;
     SaveFile: (options: Record<string, unknown>) => Promise<string>;
   };
+  appLock?: {
+    GetRuntimeState: () => Promise<{
+      initialized: boolean;
+      locked: boolean;
+      reason: string | null;
+      version: number;
+      lastLockedAt: number | null;
+      lastUnlockedAt: number | null;
+      lastActivityAt: number | null;
+    }>;
+    ReportActivity?: () => Promise<unknown>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -113,6 +126,7 @@ const defaultBindings: WailsBindingDeps = {
   settings: settingsWindowService as unknown as WailsBindingDeps["settings"],
   forward: forwardService as unknown as WailsBindingDeps["forward"],
   dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
+  appLock: appLockService as unknown as WailsBindingDeps["appLock"],
 };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -297,6 +311,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const stopPortForward = (id: string) => bindings.forward?.Stop(id);
   const listPortForwards = () => bindings.forward?.List();
   const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
+  const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
+  const reportAppLockActivity = () => bindings.appLock?.ReportActivity?.();
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
@@ -334,6 +350,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     windowIsFullscreen,
     openSettingsWindow,
     closeSettingsWindow,
+    getAppLockRuntimeState,
+    reportAppLockActivity,
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {

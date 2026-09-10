@@ -2216,3 +2216,30 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无真实硬件证据；YMODEM 未接
 - Next safe slice: App Lock 最小 Go owner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L064 - 2026-09-10 - App Lock 最小运行时 owner
+
+- Capability rows: `SYS-04`
+- Plan task: `P4-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: AppLockService 提供 initialized=true, locked=false 的运行时快照，
+  getAppLockRuntimeState 成为 transitionBridge 真方法，避免门控永久等待。
+  生物识别与密码 verifier 仍未接线。
+- Go canonical owner: cmd/netcatty/appLockService.go
+- Frontend adapter: wailsRuntimeClient.getAppLockRuntimeState
+- Electron owner affected: none
+- Preserved invariants: 无 verifier 则永不锁定；未实现方法仍 undefined
+- Data/schema impact: none
+- Security impact: 未启用锁时明确未锁定，不伪造已验证状态
+- Verification: go test cmd/netcatty；runtime adapter 绿
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: PBKDF2 verifier + 生物识别活体后
+- Documentation updated: ledger
+- Residual risks: 密码启用/生物识别未接
+- Next safe slice: 本机构建验证
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

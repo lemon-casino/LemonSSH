@@ -6,6 +6,76 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+export class AppLockRuntimeState {
+    /**
+     * Creates a new AppLockRuntimeState instance.
+     * @param {Partial<AppLockRuntimeState>} [$$source = {}] - The source object to create the AppLockRuntimeState.
+     */
+    constructor($$source = {}) {
+        if (!("initialized" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["initialized"] = false;
+        }
+        if (!("locked" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["locked"] = false;
+        }
+        if (!("reason" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["reason"] = null;
+        }
+        if (!("version" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["version"] = 0;
+        }
+        if (!("lastLockedAt" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["lastLockedAt"] = null;
+        }
+        if (!("lastUnlockedAt" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["lastUnlockedAt"] = null;
+        }
+        if (!("lastActivityAt" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["lastActivityAt"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AppLockRuntimeState instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AppLockRuntimeState}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AppLockRuntimeState(/** @type {Partial<AppLockRuntimeState>} */($$parsedSource));
+    }
+}
+
 /**
  * UpgradeStatus is the wire view of the persisted sequence.
  */
