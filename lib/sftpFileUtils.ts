@@ -490,6 +490,17 @@ export function getPathForFile(file: File): string | undefined {
   }
 }
 
+/**
+ * Repair WebView2 ICoreWebView2File::GetPath output that omits the drive
+ * colon ("C:\Users\a.txt" arrives as "C\Users\a.txt"). No legit Windows
+ * path is a single drive letter directly followed by a separator.
+ */
+export function normalizeDroppedLocalPath(path: string): string {
+  return /^[A-Za-z](?:[\\/]|$)/.test(path) && path[1] !== ":"
+    ? `${path[0]}:${path.slice(1)}`
+    : path;
+}
+
 /** Build a short label for the scanning task (folder names visible immediately). */
 export function formatDropScanLabel(roots: readonly CapturedDropRoot[]): string {
   const names = roots.map((root) => root.name).filter(Boolean);

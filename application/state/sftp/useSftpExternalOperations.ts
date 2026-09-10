@@ -21,6 +21,7 @@ import {
   formatDropScanLabel,
   getPathForFile,
   isDropScanCancelledError,
+  normalizeDroppedLocalPath,
   localTreeToDropEntries,
   materializeDropEntries,
   type DropEntry,
@@ -1882,7 +1883,8 @@ export const useSftpExternalOperations = (
         throw new Error("Native drop path stat is not available");
       }
       const entries: DropEntry[] = [];
-      for (const localPath of paths) {
+      for (const droppedPath of paths) {
+        const localPath = normalizeDroppedLocalPath(droppedPath);
         const stat = await bridge.statLocalPath(localPath);
         entries.push({
           file: null,

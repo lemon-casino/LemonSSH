@@ -8,8 +8,18 @@ import {
   hasFileExtension,
   localTreeToDropEntries,
   materializeDropEntries,
+  normalizeDroppedLocalPath,
   type LocalTreeListEntry,
 } from "./sftpFileUtils.ts";
+
+test("normalizeDroppedLocalPath restores the drive colon WebView2 drops", () => {
+  assert.equal(normalizeDroppedLocalPath("C\\Users\\ldamao\\Desktop\\screenshot.png"), "C:\\Users\\ldamao\\Desktop\\screenshot.png");
+  assert.equal(normalizeDroppedLocalPath("c/Users/a.txt"), "c:/Users/a.txt");
+  assert.equal(normalizeDroppedLocalPath("C:\\Users\\a.txt"), "C:\\Users\\a.txt");
+  assert.equal(normalizeDroppedLocalPath("/root/a.txt"), "/root/a.txt");
+  assert.equal(normalizeDroppedLocalPath("\\\\server\\share\\a.txt"), "\\\\server\\share\\a.txt");
+  assert.equal(normalizeDroppedLocalPath("C:"), "C:");
+});
 
 test("hasFileExtension identifies extensionless and dotted filenames", () => {
   assert.equal(hasFileExtension("nginx"), false);
