@@ -475,15 +475,18 @@ async function processEntriesIteratively(
 }
 
 /**
- * Get the local file path for a File object using Electron's webUtils API
- * Falls back to the legacy file.path property if webUtils is not available
+ * Get the local file path for a File object using Electron's webUtils API.
+ * When the active bridge owns this decision (Wails), its verdict is final:
+ * WebView2 populates File.path but the path cannot be opened, so returning
+ * undefined routes the upload through staged File content instead.
  */
 export function getPathForFile(file: File): string | undefined {
   try {
-    // Try Electron's webUtils API (exposed via preload)
-    const path = netcattyBridge.get()?.getPathForFile?.(file);
-    if (path) return path;
-    // Fallback: try legacy file.path property
+    const bridge = netcattyBridge.get();
+    if (bridge?.getPathForFile) {
+      return bridge.getPathForFile(file);
+    }
+    // Electron without the bridge method: legacy file.path property.
     return (file as File & { path?: string }).path;
   } catch {
     return undefined;
