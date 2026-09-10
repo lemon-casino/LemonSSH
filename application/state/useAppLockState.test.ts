@@ -8,6 +8,7 @@ import {
   normalizeAppLockSystemUnlockStatus,
   normalizeAppLockSystemUnlockResult,
   resolveUnlockAttempt,
+  resolveAppLockRuntimeWhenOwnerMissing,
   shouldLockAfterIdle,
   shouldLockOnStartup,
 } from "./useAppLockState.ts";
@@ -20,6 +21,31 @@ const verifier: AppLockPasswordVerifier = {
   salt: Buffer.alloc(16, 1).toString("base64"),
   hash: Buffer.alloc(32, 2).toString("base64"),
 };
+
+test("resolveAppLockRuntimeWhenOwnerMissing treats a missing owner as unlocked", () => {
+  const uninitialized = {
+    initialized: false,
+    locked: false,
+    reason: null,
+    version: 0,
+    lastLockedAt: null,
+    lastUnlockedAt: null,
+    lastActivityAt: null,
+  };
+  assert.deepEqual(
+    resolveAppLockRuntimeWhenOwnerMissing(uninitialized, false),
+    { ...uninitialized, initialized: true },
+  );
+  assert.equal(resolveAppLockRuntimeWhenOwnerMissing(uninitialized, true), uninitialized);
+
+  const wailsStub = new Proxy({}, {
+    get: () => () => {
+      throw new Error("not available");
+    },
+  });
+  assert.equal('getAppLockRuntimeState' in wailsStub, false);
+  assert.equal(typeof (wailsStub as { getAppLockRuntimeState?: unknown }).getAppLockRuntimeState, 'function');
+});
 
 test("shouldLockOnStartup locks only when enabled with a verifier", () => {
   const enabled: AppLockSettings = {

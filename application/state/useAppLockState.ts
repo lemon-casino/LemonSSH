@@ -72,6 +72,19 @@ export function normalizeAppLockSystemUnlockResult(input: unknown): AppLockSyste
   return { ok: false, error: 'failed' };
 }
 
+export function resolveAppLockRuntimeWhenOwnerMissing(
+  runtime: RuntimeAppLockState,
+  hasRuntimeOwner: boolean,
+): RuntimeAppLockState {
+  if (hasRuntimeOwner || runtime.initialized) return runtime;
+  return {
+    ...runtime,
+    initialized: true,
+    locked: false,
+    reason: null,
+  };
+}
+
 export function shouldLockOnStartup(settings: AppLockSettings): boolean {
   const normalized = normalizeAppLockSettings(settings);
   return normalized.enabled && normalized.passwordVerifier !== null;
@@ -144,16 +157,20 @@ export function useAppLockState(settings: AppLockSettings) {
     [runtimeState],
   );
   const effectiveRuntimeState = useMemo(() => {
-    if (normalizedRuntimeState.initialized) return normalizedRuntimeState;
+    const resolved = resolveAppLockRuntimeWhenOwnerMissing(
+      normalizedRuntimeState,
+      Boolean(bridge && 'getAppLockRuntimeState' in bridge),
+    );
+    if (resolved.initialized) return resolved;
     if (shouldLockOnStartup(normalizedSettings)) {
       return {
-        ...normalizedRuntimeState,
+        ...resolved,
         locked: true,
         reason: 'startup' as const,
       };
     }
-    return normalizedRuntimeState;
-  }, [normalizedRuntimeState, normalizedSettings]);
+    return resolved;
+  }, [bridge, normalizedRuntimeState, normalizedSettings]);
 
   const lockNow = useCallback((reason: AppLockReason = 'manual') => {
     if (!shouldLockOnStartup(normalizedSettings) || !reason) return;
