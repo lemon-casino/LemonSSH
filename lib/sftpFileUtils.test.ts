@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import {
   captureDropPayload,
   formatDropScanLabel,
+  getDropEntryLocalPath,
   getFileExtension,
+  getPathForFile,
   hasFileExtension,
   localTreeToDropEntries,
   materializeDropEntries,
@@ -73,6 +75,60 @@ test("captureDropPayload reads webkit entries synchronously", () => {
   assert.equal(payload.roots[0].name, "note.txt");
   assert.equal(payload.roots[0].isDirectory, false);
   assert.equal(payload.roots[0].localPath, "/tmp/note.txt");
+});
+
+test("getPathForFile treats a declining bridge verdict as final even when File.path is set", (t) => {
+  const previousWindow = globalThis.window;
+  const previousNetcatty = previousWindow?.netcatty;
+  const nextWindow = previousWindow ?? ({} as Window & typeof globalThis);
+  nextWindow.netcatty = {
+    ...previousNetcatty,
+    getPathForFile: () => undefined,
+  } as NetcattyBridge;
+  Object.defineProperty(globalThis, "window", {
+    value: nextWindow,
+    writable: true,
+    configurable: true,
+  });
+  t.after(() => {
+    if (previousWindow) {
+      previousWindow.netcatty = previousNetcatty;
+      Object.defineProperty(globalThis, "window", {
+        value: previousWindow,
+        writable: true,
+        configurable: true,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+
+  const file = new File(["x"], "notes.txt");
+  Object.defineProperty(file, "path", { value: "C:\\Users\\damao\\Desktop\\notes.txt" });
+  const dataTransfer = {
+    items: [{
+      kind: "file",
+      getAsFile: () => file,
+      webkitGetAsEntry: () => ({
+        name: "notes.txt",
+        isFile: true,
+        isDirectory: false,
+      }),
+    }],
+    files: [file],
+  } as unknown as DataTransfer;
+
+  assert.equal(getPathForFile(file), undefined);
+  assert.equal(captureDropPayload(dataTransfer).roots[0]?.localPath, undefined);
+  assert.equal(
+    getDropEntryLocalPath({
+      file,
+      localPath: "C:\\Users\\damao\\Desktop\\notes.txt",
+      relativePath: "notes.txt",
+      isDirectory: false,
+    }),
+    undefined,
+  );
 });
 
 test("materializeDropEntries prefers listLocalTree for directory roots with paths", async () => {

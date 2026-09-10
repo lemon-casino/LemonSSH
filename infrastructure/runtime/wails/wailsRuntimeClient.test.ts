@@ -201,10 +201,10 @@ test("onFilesDropped fans the Wails drop event to listeners", async () => {
   assert.deepEqual(seen, [{ filenames: ["C:\\a.txt"] }]);
 });
 
-test("getPathForFile reads the WebView2 path property", () => {
+test("getPathForFile ignores the WebView2 path property", () => {
   const client = createWailsRuntimeClient(stubBindings());
   const file = { name: "a.txt", path: "C:\\Users\\Lemon\\a.txt" } as File & { path: string };
-  assert.equal(client.transitionBridge.getPathForFile?.(file), "C:\\Users\\Lemon\\a.txt");
+  assert.equal(client.transitionBridge.getPathForFile?.(file), undefined);
 });
 
 test("extractLocalArchive fails closed when filesystem ExtractArchive is missing", async () => {

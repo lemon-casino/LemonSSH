@@ -295,8 +295,12 @@ export interface MaterializeDropOptions {
   isCancelled?: () => boolean;
 }
 
-export const getDropEntryLocalPath = (entry: DropEntry): string | undefined =>
-  entry.localPath ?? (entry.file ? getPathForFile(entry.file) : undefined);
+export const getDropEntryLocalPath = (entry: DropEntry): string | undefined => {
+  // File handles re-query the bridge: WebView2 File.path is not openable, but
+  // callers still snapshot it onto localPath. Path-only drops keep file: null.
+  if (entry.file) return getPathForFile(entry.file);
+  return entry.localPath;
+};
 
 const createDropEntriesFromFiles = (files: FileList | File[]): DropEntry[] => {
   const results: DropEntry[] = [];
