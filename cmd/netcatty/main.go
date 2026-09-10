@@ -173,7 +173,9 @@ func main() {
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	settingsWindowService := newSettingsWindowService(wailsApp)
+	popupWindowService := newPopupWindowService(wailsApp)
 	wailsApp.RegisterService(application.NewService(settingsWindowService))
+	wailsApp.RegisterService(application.NewService(popupWindowService))
 	// Preload the hidden settings window off the boot path: a second
 	// WebView during startup delays first paint noticeably.
 	mainWindow.RegisterHook(events.Common.WindowRuntimeReady, func(*application.WindowEvent) {

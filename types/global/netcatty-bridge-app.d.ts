@@ -32,6 +32,7 @@ declare global {
     // Fired when an install was requested but blocked by unsaved editors (#1215).
     onUpdateNeedsSave?(cb: () => void): () => void;
     onSshDeepLink?(cb: (payload: { url?: string }) => void): () => void;
+    drainDeepLinks?(): Promise<Array<{ Kind?: string; kind?: string; Host?: string; host?: string; Port?: string; port?: string; Username?: string; username?: string }>>;
     onTelnetDeepLink?(cb: (payload: { url?: string }) => void): () => void;
     onOpenTerminalPath?(cb: (payload: { path?: string }) => void): () => void;
     /** Fired once after cold-start deep-link / open-terminal queues have been drained. */

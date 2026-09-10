@@ -164,6 +164,75 @@ test("onKeyboardInteractive fans Wails events to the existing modal queue", asyn
   assert.equal(result?.success, true);
 });
 
+test("extractLocalArchive fails closed when filesystem ExtractArchive is missing", async () => {
+  const client = createWailsRuntimeClient(stubBindings());
+  const result = await client.transitionBridge.extractLocalArchive?.("/tmp/a.zip");
+  assert.equal(result?.success, false);
+});
+
+test("extractLocalArchive calls filesystem ExtractArchive", async () => {
+  const seen: string[] = [];
+  const bindings = stubBindings();
+  bindings.filesystem = {
+    ExtractArchive: async (archivePath, destinationRoot) => {
+      seen.push(archivePath, destinationRoot);
+      return 2;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.extractLocalArchive?.("/tmp/dir/a.zip");
+  assert.equal(result?.success, true);
+  assert.equal(seen[0], "/tmp/dir/a.zip");
+  assert.match(seen[1], /[/\\]tmp[/\\]dir$/);
+});
+
+test("pauseTransfer reaches the Go transfer service", async () => {
+  const paused: string[] = [];
+  const bindings = stubBindings();
+  bindings.transfer = {
+    Pause: async (taskID) => {
+      paused.push(taskID);
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.pauseTransfer?.("t-1");
+  assert.deepEqual(paused, ["t-1"]);
+});
+
+test("drainDeepLinks Ready then Drain", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.deepLink = {
+    Ready: async () => {
+      calls.push("ready");
+    },
+    Drain: async () => {
+      calls.push("drain");
+      return [{ Kind: "ssh", Host: "lab", Port: "22", Username: "root" }];
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const actions = await client.transitionBridge.drainDeepLinks?.();
+  assert.deepEqual(calls, ["ready", "drain"]);
+  assert.equal((actions?.[0] as { Host?: string }).Host, "lab");
+});
+
+test("openTerminalPopup calls the popup window service", async () => {
+  const seen: unknown[] = [];
+  const bindings = stubBindings();
+  bindings.popup = {
+    Open: async (payload) => {
+      seen.push(payload);
+      return { success: true, popupId: "popup-1" };
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.openTerminalPopup?.({ sessionId: "s1" } as never);
+  assert.equal(result?.success, true);
+  assert.equal(result?.popupId, "popup-1");
+  assert.equal((seen[0] as { sessionId: string }).sessionId, "s1");
+});
+
 test("onSessionData fans out chunks from the data plane", async () => {
   let deliver: ((chunk: string) => void) | undefined;
   const bindings = stubBindings();

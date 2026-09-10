@@ -76,6 +76,48 @@ export class AppLockRuntimeState {
     }
 }
 
+export class PopupOpenResult {
+    /**
+     * Creates a new PopupOpenResult instance.
+     * @param {Partial<PopupOpenResult>} [$$source = {}] - The source object to create the PopupOpenResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["popupId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PopupOpenResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PopupOpenResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PopupOpenResult(/** @type {Partial<PopupOpenResult>} */($$parsedSource));
+    }
+}
+
 /**
  * SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
  * command proxies and certificates remain fail-closed in the renderer mapper.

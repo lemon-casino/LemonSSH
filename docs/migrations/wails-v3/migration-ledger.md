@@ -2518,3 +2518,78 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无 macOS/Linux 窗口活体证据
 - Next safe slice: 活体 MFA 服务器矩阵
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L076 - 2026-09-10 - 弹出终端窗口接到 Wails
+
+- Capability rows: `FND-04`
+- Plan task: `P4-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: PopupWindowService 打开 frameless `#/terminal-popup` 窗口并 emit terminal:popup-config；openTerminalPopup/onTerminalPopupConfig 接到 transitionBridge。多显示器与崩溃重绑仍未验证。
+- Go canonical owner: cmd/netcatty/popupWindowService.go
+- Frontend adapter: wailsRuntimeClient openTerminalPopup
+- Electron owner affected: none
+- Preserved invariants: 主窗口与设置窗口路径未改；无 popup 绑定时失败关闭
+- Data/schema impact: none
+- Security impact: 弹出窗口只承载已有会话配置，不新拨号
+- Verification: go test cmd/netcatty TestPopupWindow；runtime openTerminalPopup 套件
+- Platforms covered: Windows 10 22H2 契约
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台弹出窗口与崩溃重绑后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无多显示器或崩溃活体证据
+- Next safe slice: deep link 渲染层 drain
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L077 - 2026-09-10 - 渲染层 drain deep links
+
+- Capability rows: `SYS-03`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: drainDeepLinks 先 Ready 再 Drain；AppSideEffects 启动时消费队列并复用现有 SSH/Telnet 处理。OS 协议注册仍未做。
+- Go canonical owner: cmd/netcatty/deepLinkService.go
+- Frontend adapter: wailsRuntimeClient drainDeepLinks + AppSideEffects
+- Electron owner affected: none
+- Preserved invariants: 密码 query 仍拒绝；无 drain 绑定时 optional-chain 跳过
+- Data/schema impact: none
+- Security impact: 密码不得进入 deep link
+- Verification: runtime drainDeepLinks 套件；go test cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 已安装包 OS 协议注册后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 未注册 ssh/telnet/netcatty URL scheme
+- Next safe slice: extract 失败关闭
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L078 - 2026-09-10 - extract 与 transfer 绑定不再假成功
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: filesystem/transfer/deeplink/popup 进入 defaultBindings；extractLocalArchive 在缺 ExtractArchive 时返回 success false；pauseTransfer 打到 TransferService。
+- Go canonical owner: cmd/netcatty/filesystemService.go + transferService.go
+- Frontend adapter: wailsRuntimeClient defaultBindings
+- Electron owner affected: none
+- Preserved invariants: 不解压则不声称成功；压缩上传仍未接
+- Data/schema impact: none
+- Security impact: zip-slip 硬化提取仍有效
+- Verification: runtime extractLocalArchive 与 pauseTransfer 套件
+- Platforms covered: Windows 10 22H2 契约
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: UNC/长路径活体后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 远程压缩包提取仍未接
+- Next safe slice: Vault canonical 读通
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

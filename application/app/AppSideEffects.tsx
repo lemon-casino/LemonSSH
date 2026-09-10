@@ -1528,6 +1528,24 @@ export function AppSideEffects() {
     });
   }, [isPeerSessionWindow]);
 
+  useEffect(() => {
+    if (isPeerSessionWindow) return;
+    const bridge = netcattyBridge.get();
+    if (!bridge?.drainDeepLinks) return;
+    void bridge.drainDeepLinks().then((actions) => {
+      for (const action of actions ?? []) {
+        const kind = (action.Kind ?? action.kind ?? "ssh").toLowerCase();
+        const host = action.Host ?? action.host;
+        if (!host) continue;
+        const user = action.Username ?? action.username;
+        const port = action.Port ?? action.port;
+        const url = `${kind}://${user ? `${user}@` : ""}${host}${port ? `:${port}` : ""}`;
+        if (kind === "telnet") _processTelnetDeepLink({ url });
+        else _handleSshDeepLink({ url });
+      }
+    });
+  }, [isPeerSessionWindow]);
+
   const _processTelnetDeepLink = useEffectEvent((payload: { url?: string }) => {
     startupLaunchIntentReceivedRef.current = true;
     const rawUrl = payload?.url || '';

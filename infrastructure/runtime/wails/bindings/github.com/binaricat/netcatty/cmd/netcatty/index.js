@@ -10,6 +10,7 @@ import * as ForwardService from "./forwardservice.js";
 import * as NetcattyService from "./netcattyservice.js";
 import * as PTYService from "./ptyservice.js";
 import * as PluginService from "./pluginservice.js";
+import * as PopupWindowService from "./popupwindowservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
@@ -27,6 +28,7 @@ export {
     NetcattyService,
     PTYService,
     PluginService,
+    PopupWindowService,
     ProfileMigrationService,
     ProfileService,
     SFTPService,
@@ -39,6 +41,7 @@ export {
 
 export {
     AppLockRuntimeState,
+    PopupOpenResult,
     SSHConnectRequest,
     UpgradeStatus
 } from "./models.js";

@@ -11,6 +11,10 @@ import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty
 import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
 import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
 import * as pluginService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/pluginservice";
+import * as deepLinkService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/deeplinkservice";
+import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/filesystemservice";
+import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/transferservice";
+import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -150,6 +154,9 @@ export interface WailsBindingDeps {
   events?: {
     On: (name: string, callback: (event: { data?: unknown }) => void) => () => void;
   };
+  popup?: {
+    Open: (payload: unknown) => Promise<{ success: boolean; popupId?: string; error?: string }>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -163,6 +170,10 @@ export interface WailsBindingDeps {
     appLock: appLockService as unknown as WailsBindingDeps["appLock"],
     plugins: pluginService as unknown as WailsBindingDeps["plugins"],
     events: Events as unknown as WailsBindingDeps["events"],
+    deepLink: deepLinkService as unknown as WailsBindingDeps["deepLink"],
+    filesystem: filesystemService as unknown as WailsBindingDeps["filesystem"],
+    transfer: transferService as unknown as WailsBindingDeps["transfer"],
+    popup: popupWindowService as unknown as WailsBindingDeps["popup"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -463,10 +474,45 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return { transferId: options.transferId, error: "stream transfer shape not migrated yet" };
     }) as unknown as NetcattyBridge["startStreamTransfer"],
     extractLocalArchive: (async (archivePath: string) => {
+      if (!bindings.filesystem?.ExtractArchive) return { success: false };
       const parent = archivePath.replace(/[\\/][^\\/]+$/, "") || ".";
-      await bindings.filesystem?.ExtractArchive?.(archivePath, parent);
-      return { success: true };
+      try {
+        await bindings.filesystem.ExtractArchive(archivePath, parent);
+        return { success: true };
+      } catch {
+        return { success: false };
+      }
     }) as unknown as NetcattyBridge["extractLocalArchive"],
+    drainDeepLinks: (async () => {
+      await bindings.deepLink?.Ready?.();
+      return bindings.deepLink?.Drain?.() ?? [];
+    }) as unknown as NetcattyBridge["drainDeepLinks"],
+    onSshDeepLink: ((cb: (payload: { url?: string }) => void) => {
+      const eventsOn = bindings.events?.On ?? Events.On;
+      if (typeof eventsOn !== "function") return () => undefined;
+      return eventsOn("deeplink:ssh", (event) => {
+        const data = (event?.data ?? event) as { url?: string; Kind?: string; Host?: string; Port?: string; Username?: string };
+        if (data.url) {
+          cb({ url: data.url });
+          return;
+        }
+        if (!data.Host) return;
+        const user = data.Username ? `${data.Username}@` : "";
+        const port = data.Port ? `:${data.Port}` : "";
+        cb({ url: `ssh://${user}${data.Host}${port}` });
+      });
+    }) as unknown as NetcattyBridge["onSshDeepLink"],
+    openTerminalPopup: (async (payload) => {
+      if (!bindings.popup?.Open) return { success: false, error: "openTerminalPopup unavailable" };
+      return bindings.popup.Open(payload);
+    }) as unknown as NetcattyBridge["openTerminalPopup"],
+    onTerminalPopupConfig: ((cb) => {
+      const eventsOn = bindings.events?.On ?? Events.On;
+      if (typeof eventsOn !== "function") return () => undefined;
+      return eventsOn("terminal:popup-config", (event) => {
+        cb((event?.data ?? event) as import("../../../domain/systemManager/types").TerminalPopupPayload);
+      });
+    }) as unknown as NetcattyBridge["onTerminalPopupConfig"],
     onKeyboardInteractive,
     respondKeyboardInteractive,
     selectFile,
