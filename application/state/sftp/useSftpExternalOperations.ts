@@ -19,6 +19,7 @@ import { uploadLocalFoldersProgressively } from "../../../lib/progressiveFolderU
 import {
   captureDropPayload,
   formatDropScanLabel,
+  getPathForFile,
   isDropScanCancelledError,
   localTreeToDropEntries,
   materializeDropEntries,
@@ -966,6 +967,16 @@ export const useSftpExternalOperations = (
       // Native tree expansion (listLocalTree) happens after the scanning UI is up.
       const dropPayload = captureDropPayload(dataTransfer);
       if (dropPayload.roots.length === 0 && dropPayload.filesFallback.length === 0) {
+        return [];
+      }
+
+      // Wails owns OS file drops via the native FilesDropped pipeline (real
+      // paths). WebView2 File objects carry no path, so a path-less HTML5 drop
+      // here would only create a duplicate task that fails on stream upload.
+      const hasPathBackedEntry =
+        dropPayload.roots.some((root) => !!root.localPath)
+        || dropPayload.filesFallback.some((file) => !!getPathForFile(file));
+      if (!hasPathBackedEntry && netcattyBridge.get()?.onFilesDropped) {
         return [];
       }
 
