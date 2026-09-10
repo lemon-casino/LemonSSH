@@ -95,7 +95,8 @@ func main() {
 	sshPool := sshpool.New(ssh.Dial)
 	defer sshPool.Shutdown()
 	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
-	sftpService := NewSFTPService(sshPool, knownHosts)
+		sftpService := NewSFTPService(sshPool, knownHosts)
+		forwardService := NewForwardService(sshPool, knownHosts)
 
 	wailsApp := application.New(application.Options{
 		Name:        "Netcatty",
@@ -108,7 +109,8 @@ func main() {
 			application.NewService(ptyService),
 			application.NewService(upgradeService),
 			application.NewService(terminalSvc),
-			application.NewService(sftpService),
+				application.NewService(sftpService),
+				application.NewService(forwardService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

@@ -3,11 +3,12 @@
 // ESLint). Ports without a Go owner reject every call fail-closed instead of
 // pretending parity; they are implemented domain by domain from P2 onward.
 
-import { Window as wailsWindow } from "@wailsio/runtime";
+import { Dialogs, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
+import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -74,6 +75,9 @@ export interface WailsBindingDeps {
     Rename: (sftpID: string, oldPath: string, newPath: string) => Promise<unknown>;
     Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
     Close: (sftpID: string) => Promise<unknown>;
+    Read?: (sftpID: string, path: string) => Promise<string>;
+    WriteText?: (sftpID: string, path: string, content: string) => Promise<unknown>;
+    HomeDir?: (sftpID: string) => Promise<string>;
   };
   window?: {
     Minimise: () => Promise<void>;
@@ -86,6 +90,16 @@ export interface WailsBindingDeps {
     Open: () => Promise<boolean>;
     Close: () => Promise<unknown>;
   };
+  forward?: {
+    Start: (...args: unknown[]) => Promise<unknown>;
+    Stop: (id: string) => Promise<unknown>;
+    List: () => Promise<unknown>;
+    Snapshot: (id: string) => Promise<unknown>;
+  };
+  dialogs?: {
+    OpenFile: (options: Record<string, unknown>) => Promise<string | string[]>;
+    SaveFile: (options: Record<string, unknown>) => Promise<string>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -94,6 +108,8 @@ const defaultBindings: WailsBindingDeps = {
   sftp: sftpService as unknown as WailsBindingDeps["sftp"],
   window: wailsWindow,
   settings: settingsWindowService as unknown as WailsBindingDeps["settings"],
+  forward: forwardService as unknown as WailsBindingDeps["forward"],
+  dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
 };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -134,6 +150,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       args.port,
       args.username,
       args.password,
+      args.privateKey,
+      args.passphrase,
       args.cols,
       args.rows,
     ).then(async (sessionID) => {
@@ -216,6 +234,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   };
   const closeSftp = (sftpID: string) =>
     bindings.sftp.Close(sftpID) as Promise<void>;
+  const readSftp = (sftpID: string, path: string) => bindings.sftp.Read?.(sftpID, path) as Promise<string>;
+  const writeSftp = (sftpID: string, path: string, content: string) => bindings.sftp.WriteText?.(sftpID, path, content) as Promise<void>;
+  const getSftpHomeDir = (sftpID: string) => bindings.sftp.HomeDir?.(sftpID) as Promise<string>;
 
   const windowMinimize = () => bindings.window?.Minimise();
   const windowMaximize = async () => {
@@ -227,6 +248,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
   const closeSettingsWindow = () => bindings.settings?.Close();
+  const selectFile = async () => {
+    const selected = await bindings.dialogs?.OpenFile({ CanChooseFiles: true, CanChooseDirectories: false });
+    return typeof selected === "string" ? selected : selected?.[0] ?? "";
+  };
+  const selectDirectory = async () => {
+    const selected = await bindings.dialogs?.OpenFile({ CanChooseFiles: false, CanChooseDirectories: true });
+    return typeof selected === "string" ? selected : selected?.[0] ?? "";
+  };
+  const showSaveDialog = async () => bindings.dialogs?.SaveFile({}) ?? "";
+  const startPortForward = (...args: unknown[]) => bindings.forward?.Start(...args);
+  const stopPortForward = (id: string) => bindings.forward?.Stop(id);
+  const listPortForwards = () => bindings.forward?.List();
+  const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
@@ -244,6 +278,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     renameSftp,
     statSftp,
     closeSftp,
+    readSftp,
+    writeSftp,
+    getSftpHomeDir,
+    selectFile,
+    selectDirectory,
+    showSaveDialog,
+    startPortForward,
+    stopPortForward,
+    listPortForwards,
+    getPortForwardSnapshot,
     windowMinimize,
     windowMaximize,
     windowClose,
@@ -288,6 +332,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       renameSftp,
       statSftp,
       closeSftp,
+      readSftp,
+      writeSftp,
+      getSftpHomeDir,
     }),
     sync: unimplemented("sync"),
     system: unimplemented("system"),

@@ -2137,3 +2137,30 @@ capability row, source paths, verification output or CI run.
 - Residual risks: macOS/Linux 非客户区行为待活体验证
 - Next safe slice: 三平台窗口行为证据
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L061 - 2026-09-10 - Batch 1: 对话框、密钥 SSH、SFTP 读写、端口转发接线
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Wails transitionBridge 暴露 selectFile/selectDirectory/showSaveDialog
+  （Wails Dialogs）、SSH Connect 接受 privateKey+passphrase、SFTP Read/WriteText/
+  HomeDir、ForwardService 包 internal/terminal/forward。
+- Go canonical owner: cmd/netcatty/{terminalService,sftpService,forwardService}.go
+- Frontend adapter: wailsRuntimeClient.ts + terminalRoute.ts
+- Electron owner affected: none
+- Preserved invariants: jump/MFA/proxy 仍显式拒绝；未迁移方法保持 undefined
+- Data/schema impact: none
+- Security impact: 私钥经 Wails IPC 传至 Go dial，不落盘
+- Verification: terminalRoute 8 项 + runtime adapter 7 项 + go test cmd/netcatty 与 forward 绿
+- Platforms covered: Windows 10 22H2
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 活体密钥 SSH 与真实转发矩阵后
+- Documentation updated: ledger
+- Residual risks: jump/MFA 未接；转发依赖密码拨号；对话框需本机手动点选
+- Next safe slice: Telnet/Serial 接入同一数据面
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

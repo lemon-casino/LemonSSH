@@ -88,14 +88,14 @@ test("modeToPermissions keeps the last nine characters only", () => {
 test("pickSSHConnectArgs normalizes defaults", () => {
   assert.deepEqual(
     pickSSHConnectArgs({ hostname: "h", username: "u" }),
-    { hostname: "h", username: "u", port: 22, password: "", cols: 80, rows: 24 },
+    { hostname: "h", username: "u", port: 22, password: "", privateKey: "", passphrase: "", cols: 80, rows: 24 },
   );
 });
 
-test("pickSSHConnectArgs fails closed on unmigrated auth shapes", () => {
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", privateKey: "PEM" }),
-    /privateKey/,
+test("pickSSHConnectArgs accepts key auth and fails closed on jump/MFA/proxy", () => {
+  assert.deepEqual(
+    pickSSHConnectArgs({ hostname: "h", username: "u", privateKey: "PEM", passphrase: "pw" }),
+    { hostname: "h", username: "u", port: 22, password: "", privateKey: "PEM", passphrase: "pw", cols: 80, rows: 24 },
   );
   assert.throws(
     () => pickSSHConnectArgs({ hostname: "h", username: "u", requiresMfa: true }),

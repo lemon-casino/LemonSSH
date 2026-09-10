@@ -52,7 +52,7 @@ func NewTerminalService(controller *dataplane.RouteController, dp *dataplane.Ser
 // Connect dials SSH, authenticates, opens a PTY shell and starts streaming
 // output into the data plane. It returns the session ID; call Bootstrap to
 // get the route credentials for the renderer WebSocket.
-func (s *TerminalService) Connect(host string, port uint16, username, password string, cols, rows uint16) (string, error) {
+func (s *TerminalService) Connect(host string, port uint16, username, password, privateKey, passphrase string, cols, rows uint16) (string, error) {
 	if host == "" || username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
@@ -69,7 +69,11 @@ func (s *TerminalService) Connect(host string, port uint16, username, password s
 		Hostname:          host,
 		Port:              port,
 		Username:          username,
-		Auth:              ssh.AuthMethod{Password: password},
+		Auth: ssh.AuthMethod{
+			Password:      password,
+			PrivateKeyPEM: []byte(privateKey),
+			Passphrase:    passphrase,
+		},
 		HostKeyPolicy:     ssh.StrictPolicy(s.knownHosts),
 		Timeout:           15 * time.Second,
 		HandshakeTimeout:  15 * time.Second,

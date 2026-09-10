@@ -47,12 +47,14 @@ export function Close(sessionID) {
  * @param {number} port
  * @param {string} username
  * @param {string} password
+ * @param {string} privateKey
+ * @param {string} passphrase
  * @param {number} cols
  * @param {number} rows
  * @returns {$CancellablePromise<string>}
  */
-export function Connect(host, port, username, password, cols, rows) {
-    return $Call.ByID(4197416449, host, port, username, password, cols, rows);
+export function Connect(host, port, username, password, privateKey, passphrase, cols, rows) {
+    return $Call.ByID(4197416449, host, port, username, password, privateKey, passphrase, cols, rows);
 }
 
 /**

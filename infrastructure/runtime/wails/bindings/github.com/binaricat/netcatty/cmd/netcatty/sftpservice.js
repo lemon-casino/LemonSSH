@@ -39,6 +39,15 @@ export function Download(sessionID, remotePath, localPath) {
 }
 
 /**
+ * HomeDir returns the remote working directory for the SFTP session.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<string>}
+ */
+export function HomeDir(sessionID) {
+    return $Call.ByID(1651492542, sessionID);
+}
+
+/**
  * List returns one directory listing (directories first, name-ordered).
  * @param {string} sessionID
  * @param {string} dir
@@ -70,6 +79,16 @@ export function Mkdir(sessionID, dir) {
  */
 export function Open(host, port, username, password) {
     return $Call.ByID(3618100000, host, port, username, password);
+}
+
+/**
+ * Read returns a remote file as UTF-8 text.
+ * @param {string} sessionID
+ * @param {string} remotePath
+ * @returns {$CancellablePromise<string>}
+ */
+export function Read(sessionID, remotePath) {
+    return $Call.ByID(3756744012, sessionID, remotePath);
 }
 
 /**
@@ -114,6 +133,17 @@ export function Stat(sessionID, target) {
  */
 export function Upload(sessionID, localPath, remotePath) {
     return $Call.ByID(3196629929, sessionID, localPath, remotePath);
+}
+
+/**
+ * WriteText writes UTF-8 text to a remote file, creating or truncating it.
+ * @param {string} sessionID
+ * @param {string} remotePath
+ * @param {string} content
+ * @returns {$CancellablePromise<void>}
+ */
+export function WriteText(sessionID, remotePath, content) {
+    return $Call.ByID(2088554336, sessionID, remotePath, content);
 }
 
 // Private type creation functions

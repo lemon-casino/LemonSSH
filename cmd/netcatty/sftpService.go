@@ -160,6 +160,60 @@ func (s *SFTPService) Rename(sessionID, oldPath, newPath string) error {
 	return client.fs.Rename(from, to)
 }
 
+// Read returns a remote file as UTF-8 text.
+func (s *SFTPService) Read(sessionID, remotePath string) (string, error) {
+	client, done, err := s.acquire(sessionID)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	resolved, err := sftp.NormalizePath(".", remotePath)
+	if err != nil {
+		return "", err
+	}
+	reader, err := client.fs.Open(resolved)
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// WriteText writes UTF-8 text to a remote file, creating or truncating it.
+func (s *SFTPService) WriteText(sessionID, remotePath, content string) error {
+	client, done, err := s.acquire(sessionID)
+	if err != nil {
+		return err
+	}
+	defer done()
+	resolved, err := sftp.NormalizePath(".", remotePath)
+	if err != nil {
+		return err
+	}
+	writer, err := client.fs.Create(resolved)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+	_, err = io.WriteString(writer, content)
+	return err
+}
+
+// HomeDir returns the remote working directory for the SFTP session.
+func (s *SFTPService) HomeDir(sessionID string) (string, error) {
+	s.mu.Lock()
+	client, ok := s.sessions[sessionID]
+	s.mu.Unlock()
+	if !ok {
+		return "", fmt.Errorf("sftp session %q not found", sessionID)
+	}
+	return client.raw.Getwd()
+}
+
 // Download streams a remote file to a local destination path.
 func (s *SFTPService) Download(sessionID, remotePath, localPath string) (int64, error) {
 	client, done, err := s.acquire(sessionID)

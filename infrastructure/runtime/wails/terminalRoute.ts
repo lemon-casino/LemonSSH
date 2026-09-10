@@ -118,11 +118,14 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return Buffer.from(binary, "binary").toString("base64");
 }
 
-/** Arguments the Go TerminalService.Connect binding accepts today. */export interface WailsSSHConnectArgs {
+/** Arguments the Go TerminalService.Connect binding accepts today. */
+export interface WailsSSHConnectArgs {
   hostname: string;
   port: number;
   username: string;
   password: string;
+  privateKey: string;
+  passphrase: string;
   cols: number;
   rows: number;
 }
@@ -147,9 +150,7 @@ export function pickSSHConnectArgs(options: {
   proxy?: unknown;
 }): WailsSSHConnectArgs {
   const unsupported = [
-    ["privateKey", options.privateKey],
     ["certificate", options.certificate],
-    ["passphrase", options.passphrase],
     ["jumpHosts", options.jumpHosts?.length],
     ["proxy", options.proxy],
   ].filter(([, value]) => Boolean(value));
@@ -164,6 +165,8 @@ export function pickSSHConnectArgs(options: {
     username: options.username,
     port: options.port ?? 22,
     password: options.password ?? "",
+    privateKey: options.privateKey ?? "",
+    passphrase: options.passphrase ?? "",
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
   };
