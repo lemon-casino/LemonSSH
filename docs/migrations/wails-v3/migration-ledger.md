@@ -2164,3 +2164,29 @@ capability row, source paths, verification output or CI run.
 - Residual risks: jump/MFA 未接；转发依赖密码拨号；对话框需本机手动点选
 - Next safe slice: Telnet/Serial 接入同一数据面
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L062 - 2026-09-10 - Telnet 接入同一数据面
+
+- Capability rows: `TERM-03.1`
+- Plan task: `P3-08`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: TerminalService.StartTelnet 拨号后把 IAC 解码数据泵入 dataplane；
+  startTelnetSession 走 onSessionData。
+- Go canonical owner: cmd/netcatty/terminalService.go + internal/terminal/telnet
+- Frontend adapter: wailsRuntimeClient.startTelnetSession
+- Electron owner affected: none
+- Preserved invariants: SSH/local 路径未改；urgent 写入 telnet Send
+- Data/schema impact: none
+- Security impact: 明文 Telnet，与既有协议一致
+- Verification: go test telnet + cmd/netcatty；runtime 套件绿
+- Platforms covered: platform-independent Go + Windows adapter tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 活体设备矩阵后
+- Documentation updated: ledger
+- Residual risks: 自动登录 UI 未接；无真实设备证据
+- Next safe slice: Serial
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

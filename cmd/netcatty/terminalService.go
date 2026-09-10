@@ -12,6 +12,7 @@ import (
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/pty"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/netcatty/internal/terminal/telnet"
 )
 
 // TerminalService owns SSH terminal sessions end-to-end: SSH dial → auth →
@@ -31,6 +32,7 @@ type terminalSession struct {
 	transport *ssh.Transport
 	session   *gossh.Session
 	local     *pty.Session
+	telnet    *telnet.Client
 	stdin     io.WriteCloser
 	bootstrap dataplane.RouteBootstrap
 }
@@ -190,10 +192,52 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 			}
 		}
 	}()
-	return sessionID, nil
-}
+		return sessionID, nil
+	}
 
-// Bootstrap returns the route credentials the renderer needs to attach its
+	// StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
+	// data plane as SSH/local PTY.
+	func (s *TerminalService) StartTelnet(host string, port uint16, cols, rows uint16) (string, error) {
+		if host == "" {
+			return "", fmt.Errorf("host is required")
+		}
+		if port == 0 {
+			port = 23
+		}
+		if cols == 0 {
+			cols = 80
+		}
+		if rows == 0 {
+			rows = 24
+		}
+		s.mu.Lock()
+		s.counter++
+		sessionID := fmt.Sprintf("telnet-%d", s.counter)
+		s.mu.Unlock()
+		bootstrap, err := s.controller.Open(sessionID)
+		if err != nil {
+			return "", fmt.Errorf("open route: %w", err)
+		}
+		client, err := telnet.Connect(context.Background(), fmt.Sprintf("%s:%d", host, port), func(event telnet.Event) {
+			if event.Kind == telnet.EventData && len(event.Data) > 0 {
+				s.dp.Publish(sessionID, event.Data)
+			}
+			if event.Kind == telnet.EventClosed {
+				s.Close(sessionID)
+			}
+		})
+		if err != nil {
+			_ = s.controller.Close(sessionID)
+			return "", err
+		}
+		_ = client.Resize(cols, rows)
+		s.mu.Lock()
+		s.sessions[sessionID] = &terminalSession{telnet: client, bootstrap: bootstrap}
+		s.mu.Unlock()
+		return sessionID, nil
+	}
+
+	// Bootstrap returns the route credentials the renderer needs to attach its
 // data/urgent WebSockets for a session.
 func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
 	s.mu.Lock()
@@ -214,11 +258,17 @@ func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 	if !ok {
 		return 0, fmt.Errorf("session %q not found", sessionID)
 	}
-	if term.local != nil {
-		return term.local.Write(term.local.Generation(), data)
+		if term.local != nil {
+			return term.local.Write(term.local.Generation(), data)
+		}
+		if term.telnet != nil {
+			if err := term.telnet.Send(data); err != nil {
+				return 0, err
+			}
+			return len(data), nil
+		}
+		return term.stdin.Write(data)
 	}
-	return term.stdin.Write(data)
-}
 
 // Resize updates the remote PTY window size.
 func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
@@ -226,11 +276,14 @@ func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
-	if term.local != nil {
-		return term.local.Resize(term.local.Generation(), cols, rows)
+		if term.local != nil {
+			return term.local.Resize(term.local.Generation(), cols, rows)
+		}
+		if term.telnet != nil {
+			return term.telnet.Resize(cols, rows)
+		}
+		return term.session.WindowChange(int(rows), int(cols))
 	}
-	return term.session.WindowChange(int(rows), int(cols))
-}
 
 // Signal delivers a POSIX signal name (e.g. "KILL") to the remote shell.
 func (s *TerminalService) Signal(sessionID, signal string) error {
@@ -238,10 +291,13 @@ func (s *TerminalService) Signal(sessionID, signal string) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
-	if term.local != nil {
-		return term.local.Interrupt(term.local.Generation())
-	}
-	_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
+		if term.local != nil {
+			return term.local.Interrupt(term.local.Generation())
+		}
+		if term.telnet != nil {
+			return term.telnet.Send([]byte{3})
+		}
+		_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
 	return err
 }
 
@@ -254,10 +310,13 @@ func (s *TerminalService) Close(sessionID string) error {
 	if !ok {
 		return nil
 	}
-	if term.local != nil {
-		_ = term.local.Close()
-	}
-	if term.session != nil {
+		if term.local != nil {
+			_ = term.local.Close()
+		}
+		if term.telnet != nil {
+			_ = term.telnet.Close()
+		}
+		if term.session != nil {
 		term.session.Close()
 	}
 	if term.transport != nil {
@@ -281,12 +340,18 @@ func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte 
 	if !ok {
 		return nil
 	}
-	if term.local != nil {
-		if _, err := term.local.Write(term.local.Generation(), payload); err != nil {
-			return nil
+		if term.local != nil {
+			if _, err := term.local.Write(term.local.Generation(), payload); err != nil {
+				return nil
+			}
+			return []byte("ok")
 		}
-		return []byte("ok")
-	}
+		if term.telnet != nil {
+			if err := term.telnet.Send(payload); err != nil {
+				return nil
+			}
+			return []byte("ok")
+		}
 	if term.stdin == nil {
 		return nil
 	}

@@ -99,6 +99,19 @@ export function StartLocal(shell, cwd, cols, rows) {
 }
 
 /**
+ * StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
+ * data plane as SSH/local PTY.
+ * @param {string} host
+ * @param {number} port
+ * @param {number} cols
+ * @param {number} rows
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartTelnet(host, port, cols, rows) {
+    return $Call.ByID(3093898707, host, port, cols, rows);
+}
+
+/**
  * Write sends raw stdin bytes to the remote shell.
  * @param {string} sessionID
  * @param {string} data

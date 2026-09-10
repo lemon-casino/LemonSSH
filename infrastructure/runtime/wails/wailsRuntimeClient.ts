@@ -60,6 +60,7 @@ export interface WailsBindingDeps {
   terminal: {
     Connect: (...args: unknown[]) => Promise<string>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
+    StartTelnet?: (host: string, port: number, cols: number, rows: number) => Promise<string>;
     Write: (...args: unknown[]) => unknown;
     Resize: (...args: unknown[]) => unknown;
     Signal: (...args: unknown[]) => unknown;
@@ -175,6 +176,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await attachDataPlane(sessionID);
     return sessionID;
   };
+  const startTelnetSession = async (options: {
+    hostname: string;
+    port?: number;
+    cols?: number;
+    rows?: number;
+  }) => {
+    if (!bindings.terminal.StartTelnet) missingBridgeMethod("startTelnetSession");
+    const sessionID = await bindings.terminal.StartTelnet(
+      options.hostname,
+      options.port ?? 23,
+      options.cols ?? 80,
+      options.rows ?? 24,
+    );
+    await attachDataPlane(sessionID);
+    return sessionID;
+  };
   const writeToSession = (sessionID: string, data: string) =>
     bindings.terminal.Write(sessionID, bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
   const resizeSession = (sessionID: string, cols: number, rows: number) =>
@@ -265,6 +282,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
     startLocalSession,
+    startTelnetSession,
     writeToSession,
     resizeSession,
     interruptSession,
@@ -317,6 +335,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     terminal: portWith("terminal", {
       startSSHSession,
       startLocalSession,
+      startTelnetSession,
       writeToSession,
       resizeSession,
       interruptSession,
