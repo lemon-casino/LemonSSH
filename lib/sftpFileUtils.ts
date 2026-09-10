@@ -296,8 +296,9 @@ export interface MaterializeDropOptions {
 }
 
 export const getDropEntryLocalPath = (entry: DropEntry): string | undefined => {
-  // File handles re-query the bridge: WebView2 File.path is not openable, but
-  // callers still snapshot it onto localPath. Path-only drops keep file: null.
+  // File handles re-query getPathForFile. Under Wails that is always undefined
+  // so WebView2 File.path cannot leak into the upload. Path-only drops keep
+  // file: null and still use localPath (clipboard / native tree).
   if (entry.file) return getPathForFile(entry.file);
   return entry.localPath;
 };
@@ -478,11 +479,15 @@ async function processEntriesIteratively(
   return results;
 }
 
+function isWailsShell(): boolean {
+  return typeof window !== "undefined" && "_wails" in window;
+}
+
 /**
  * Get the local file path for a File object using Electron's webUtils API.
- * When the active bridge owns this decision (Wails), its verdict is final:
- * WebView2 populates File.path but the path cannot be opened, so returning
- * undefined routes the upload through staged File content instead.
+ * Under Wails, WebView2 fills File.path with an un-openable path
+ * (e.g. C:\Users\damao\...). Never fall back to that property, even when
+ * the Wails bridge has not installed getPathForFile yet.
  */
 export function getPathForFile(file: File): string | undefined {
   try {
@@ -490,6 +495,7 @@ export function getPathForFile(file: File): string | undefined {
     if (bridge?.getPathForFile) {
       return bridge.getPathForFile(file);
     }
+    if (isWailsShell()) return undefined;
     // Electron without the bridge method: legacy file.path property.
     return (file as File & { path?: string }).path;
   } catch {

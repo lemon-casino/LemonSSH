@@ -480,6 +480,65 @@ test("WebView2 File.path is not used as the stream source when the bridge declin
   assert.equal(results[0]?.success, true);
 });
 
+test("Wails File-backed drops stage content even when File.path looks real", async (t) => {
+  const previousWindow = globalThis.window;
+  const nextWindow = { _wails: {} } as Window & typeof globalThis;
+  Object.defineProperty(globalThis, "window", {
+    value: nextWindow,
+    writable: true,
+    configurable: true,
+  });
+  t.after(() => {
+    if (previousWindow) {
+      Object.defineProperty(globalThis, "window", {
+        value: previousWindow,
+        writable: true,
+        configurable: true,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+
+  const poisonPath = "C:\\Users\\damao\\Documents\\report.pdf";
+  const file = new File(["pdf"], "report.pdf");
+  Object.defineProperty(file, "path", { value: poisonPath });
+  const transfers: string[] = [];
+  let stagedFiles = 0;
+
+  const results = await uploadEntriesDirect(
+    [{
+      file,
+      localPath: poisonPath,
+      relativePath: "report.pdf",
+      isDirectory: false,
+    }],
+    {
+      targetPath: "/target",
+      sftpId: "sftp-1",
+      isLocal: false,
+      bridge: {
+        mkdirSftp: async () => {},
+        stageUploadFile: async (stagedFile) => {
+          assert.equal(stagedFile, file);
+          stagedFiles += 1;
+          return "/tmp/lemonssh-stage-report.pdf";
+        },
+        deleteTempFile: async () => {},
+        startStreamTransfer: async (payload) => {
+          transfers.push(payload.sourcePath);
+          return { transferId: payload.transferId };
+        },
+      },
+      joinPath: (base, name) => `${base}/${name}`,
+    },
+  );
+
+  assert.equal(stagedFiles, 1);
+  assert.deepEqual(transfers, ["/tmp/lemonssh-stage-report.pdf"]);
+  assert.equal(results[0]?.success, true);
+});
+
 test("cancelling while a pathless file is being staged aborts before stream transfer", async () => {
   const controller = new UploadController();
   let rejectStage: ((error: Error) => void) | undefined;

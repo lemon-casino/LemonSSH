@@ -131,6 +131,40 @@ test("getPathForFile treats a declining bridge verdict as final even when File.p
   );
 });
 
+test("getPathForFile ignores File.path under Wails even when the bridge is missing", (t) => {
+  const previousWindow = globalThis.window;
+  const nextWindow = { _wails: {} } as Window & typeof globalThis;
+  Object.defineProperty(globalThis, "window", {
+    value: nextWindow,
+    writable: true,
+    configurable: true,
+  });
+  t.after(() => {
+    if (previousWindow) {
+      Object.defineProperty(globalThis, "window", {
+        value: previousWindow,
+        writable: true,
+        configurable: true,
+      });
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+
+  const file = new File(["x"], "report.pdf");
+  Object.defineProperty(file, "path", { value: "C:\\Users\\damao\\Documents\\report.pdf" });
+  assert.equal(getPathForFile(file), undefined);
+  assert.equal(
+    getDropEntryLocalPath({
+      file,
+      localPath: "C:\\Users\\damao\\Documents\\report.pdf",
+      relativePath: "report.pdf",
+      isDirectory: false,
+    }),
+    undefined,
+  );
+});
+
 test("materializeDropEntries prefers listLocalTree for directory roots with paths", async () => {
   const progress: Array<{ fileCount: number; directoryCount: number }> = [];
   const tree: LocalTreeListEntry[] = [

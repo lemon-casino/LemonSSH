@@ -766,9 +766,10 @@ async function uploadEntries(
   ): Promise<{ cancelled?: boolean; error?: string }> => {
     let localFilePath = getDropEntryLocalPath(entry);
     let ownedTempPath: string | undefined;
+    const wailsFileDrop = typeof window !== "undefined" && "_wails" in window && !!entry.file;
 
     if (
-      !localFilePath
+      (!localFilePath || wailsFileDrop)
       && !isLocal
       && entry.file
       && bridge.stageUploadFile
