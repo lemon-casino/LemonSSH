@@ -59,16 +59,20 @@ func (s *ProfileService) DomainKeys(domain string) ([]string, error) {
 	return s.store.DomainKeys(domain)
 }
 
+// baseProfileDir reports the profile data directory (env override supported).
+func baseProfileDir() string {
+	if dir := os.Getenv("NETCATTY_PROFILE_DIR"); dir != "" {
+		return dir
+	}
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "."
+	}
+	return filepath.Join(base, "netcatty")
+}
+
 // openProfileStore opens the host-owned profile store. The directory can be
 // overridden with NETCATTY_PROFILE_DIR for tests and portable layouts.
 func openProfileStore() (*store.Store, error) {
-	dir := os.Getenv("NETCATTY_PROFILE_DIR")
-	if dir == "" {
-		base, err := os.UserConfigDir()
-		if err != nil {
-			return nil, err
-		}
-		dir = filepath.Join(base, "netcatty")
-	}
-	return store.Open(filepath.Join(dir, "profile.db"), nil)
+	return store.Open(filepath.Join(baseProfileDir(), "profile.db"), nil)
 }

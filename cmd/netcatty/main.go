@@ -17,9 +17,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
-	"github.com/binaricat/netcatty/internal/app"
-	"github.com/binaricat/netcatty/internal/platform/applock"
-	"github.com/binaricat/netcatty/internal/platform/credentials"
+		"github.com/binaricat/netcatty/internal/app"
+		"github.com/binaricat/netcatty/internal/platform/applog"
+		"github.com/binaricat/netcatty/internal/platform/applock"
+		"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
@@ -76,6 +77,18 @@ func mainWindowOptions() application.WebviewWindowOptions {
 }
 
 func main() {
+	// Runtime log: next to the exe when writable, profile dir as fallback.
+	if exePath, exeErr := os.Executable(); exeErr == nil {
+		if err := applog.Init(filepath.Join(filepath.Dir(exePath), "logs")); err != nil {
+			_ = applog.Init(filepath.Join(baseProfileDir(), "logs"))
+		}
+	} else {
+		_ = applog.Init(filepath.Join(baseProfileDir(), "logs"))
+	}
+	log.SetOutput(applog.Writer())
+	defer applog.Close()
+	applog.Infof("LemonSSH %s starting", version)
+
 	deepLinkService := newDeepLinkService()
 	for _, rawURL := range deepLinkURLsFromArgs(os.Args) {
 		_ = deepLinkService.Enqueue(rawURL)
@@ -139,7 +152,7 @@ func main() {
 		transferService := newTransferService()
 		shortcutService := newShortcutService()
 		syncService := newSyncService()
-		diagnosticLogService := newDiagnosticLogService(filepath.Dir(profileStore.Path()))
+		diagnosticLogService := newDiagnosticLogService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()

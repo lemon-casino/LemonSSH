@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/binaricat/netcatty/internal/platform/applog"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
@@ -252,6 +253,7 @@ func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, er
 		// the path one short retry before failing.
 		reader, err := openLocalForUpload(localPath)
 		if err != nil {
+			applog.Errorf("sftp upload open failed path=%q err=%v", localPath, err)
 			return 0, fmt.Errorf("upload open %q: %w", localPath, err)
 		}
 	defer reader.Close()
