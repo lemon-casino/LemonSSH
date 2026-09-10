@@ -73,6 +73,39 @@ func mainWindowOptions() application.WebviewWindowOptions {
 }
 
 func main() {
+	// Acquire the single-instance lock FIRST: bbolt blocks on the profile
+	// store's file lock while another instance runs, which would otherwise
+	// hang a second launch before Wails could forward it to the first.
+	wailsApp := application.New(application.Options{
+		Name:        "LemonSSH",
+		Description: "LemonSSH",
+		Icon:        appIcon,
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "app.lemonssh.desktop",
+			ExitCode: 0,
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				app := application.Get()
+				if app == nil {
+					return
+				}
+				win, ok := app.Window.GetByName("main")
+				if !ok {
+					return
+				}
+				if win.IsMinimised() {
+					win.UnMinimise()
+				}
+				win.Show()
+				win.Focus()
+			},
+		},
+		Assets: application.AssetOptions{
+			Handler: application.AssetFileServerFS(assets),
+		},
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
+		},
+	})
 	core := app.New("LemonSSH", version)
 	service := newNetcattyService(core)
 
@@ -105,50 +138,18 @@ func main() {
 	sftpService := NewSFTPService(sshPool, knownHosts)
 	forwardService := NewForwardService(sshPool, knownHosts)
 
-	wailsApp := application.New(application.Options{
-		Name:        "LemonSSH",
-		Description: "LemonSSH",
-		Icon:        appIcon,
-		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "app.lemonssh.desktop",
-			ExitCode: 0,
-			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
-				app := application.Get()
-				if app == nil {
-					return
-				}
-				win, ok := app.Window.GetByName("main")
-				if !ok {
-					return
-				}
-				if win.IsMinimised() {
-					win.UnMinimise()
-				}
-				win.Show()
-				win.Focus()
-			},
-		},
-		Services: []application.Service{
-			application.NewService(service),
-			application.NewService(profileService),
-			application.NewService(credentialService),
-			application.NewService(migrationService),
-			application.NewService(ptyService),
-			application.NewService(upgradeService),
-			application.NewService(appLockService),
-			application.NewService(deepLinkService),
-			application.NewService(pluginService),
-			application.NewService(terminalSvc),
-			application.NewService(sftpService),
-			application.NewService(forwardService),
-		},
-		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
-		},
-		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: false,
-		},
-	})
+	wailsApp.RegisterService(application.NewService(service))
+	wailsApp.RegisterService(application.NewService(profileService))
+	wailsApp.RegisterService(application.NewService(credentialService))
+	wailsApp.RegisterService(application.NewService(migrationService))
+	wailsApp.RegisterService(application.NewService(ptyService))
+	wailsApp.RegisterService(application.NewService(upgradeService))
+	wailsApp.RegisterService(application.NewService(appLockService))
+	wailsApp.RegisterService(application.NewService(deepLinkService))
+	wailsApp.RegisterService(application.NewService(pluginService))
+	wailsApp.RegisterService(application.NewService(terminalSvc))
+	wailsApp.RegisterService(application.NewService(sftpService))
+	wailsApp.RegisterService(application.NewService(forwardService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	settingsWindowService := newSettingsWindowService(wailsApp)

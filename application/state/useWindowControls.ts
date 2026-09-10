@@ -20,6 +20,15 @@ export const useWindowControls = () => {
     }
   }, []);
 
+  const notifySettingsPainted = useCallback(() => {
+    try {
+      void (netcattyBridge.get() as { notifySettingsPainted?: () => Promise<unknown> } | undefined)
+        ?.notifySettingsPainted?.();
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const closeSettingsWindow = useCallback(async () => {
     const bridge = netcattyBridge.get();
     await bridge?.closeSettingsWindow?.();
@@ -64,6 +73,7 @@ export const useWindowControls = () => {
 
   return {
     notifyRendererReady,
+    notifySettingsPainted,
     closeSettingsWindow,
     openSettingsWindow,
     minimize,

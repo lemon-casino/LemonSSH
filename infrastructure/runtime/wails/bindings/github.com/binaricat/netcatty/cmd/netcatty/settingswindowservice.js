@@ -7,6 +7,7 @@
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 /**
+ * Close hides the window; the loaded page is kept for the next open.
  * @returns {$CancellablePromise<void>}
  */
 export function Close() {
@@ -14,6 +15,9 @@ export function Close() {
 }
 
 /**
+ * Open shows the settings window. If its first paint has not happened yet
+ * (WebView2 renders nothing while hidden), the show is deferred until
+ * PaintReady so the user never sees an empty black/white frame.
  * @returns {$CancellablePromise<boolean>}
  */
 export function Open() {
@@ -21,6 +25,23 @@ export function Open() {
 }
 
 /**
+ * PaintReady is called by the settings page after its first render.
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function PaintReady() {
+    return $Call.ByID(2750603191);
+}
+
+/**
+ * Preload creates the hidden settings window off the boot path.
+ * @returns {$CancellablePromise<void>}
+ */
+export function Preload() {
+    return $Call.ByID(612480889);
+}
+
+/**
+ * Show force-shows the window (explicit request path).
  * @returns {$CancellablePromise<void>}
  */
 export function Show() {

@@ -306,7 +306,7 @@ const SettingsSyncTabWithVault: React.FC<{ onSettingsApplied?: () => void }> = (
 const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLockState }> = ({ settings, appLock }) => {
     const { t } = useI18n();
     const { request, clearFocus, openSearch } = useSettingsFocus();
-    const { notifyRendererReady, closeSettingsWindow, onWindowCommandCloseRequested } = useWindowControls();
+    const { notifyRendererReady, notifySettingsPainted, closeSettingsWindow, onWindowCommandCloseRequested } = useWindowControls();
     const { updateState, checkNow, installUpdate, openReleasePage, startDownload, isUpdateDemoMode } = useUpdateCheck({
         autoUpdateEnabled: settings.autoUpdateEnabled,
         // Install blocked by unsaved editors in the main window — surface a toast
@@ -326,7 +326,10 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
 
     useEffect(() => {
         notifyRendererReady();
-    }, [notifyRendererReady]);
+        // Reveal the preloaded hidden window only after this page painted,
+        // so the user never sees an empty black/white frame.
+        notifySettingsPainted();
+    }, [notifyRendererReady, notifySettingsPainted]);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {

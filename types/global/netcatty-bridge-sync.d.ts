@@ -70,6 +70,8 @@ declare global {
 
     // Settings window
     openSettingsWindow?(): Promise<boolean>;
+    /** Wails-only: the settings window reports its first paint so the shell can reveal it. */
+    notifySettingsPainted?(): Promise<boolean>;
     closeSettingsWindow?(): Promise<void>;
 
     // Cross-window settings sync
