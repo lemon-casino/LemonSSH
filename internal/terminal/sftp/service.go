@@ -98,12 +98,27 @@ func NormalizePath(base, relative string) (string, error) {
 	if strings.Contains(relative, "\\") {
 		return "", fmt.Errorf("%w: %q", ErrNameInvalid, relative)
 	}
+	if path.IsAbs(relative) {
+		if containsDotDot(relative) {
+			return "", fmt.Errorf("%w: %q escapes the base", ErrNameInvalid, relative)
+		}
+		return path.Clean(relative), nil
+	}
 	cleaned := path.Clean(path.Join(base, relative))
 	baseCleaned := path.Clean(base)
 	if cleaned != baseCleaned && !strings.HasPrefix(cleaned, baseCleaned+"/") {
 		return "", fmt.Errorf("%w: %q escapes the base", ErrNameInvalid, relative)
 	}
 	return cleaned, nil
+}
+
+func containsDotDot(value string) bool {
+	for _, segment := range strings.Split(value, "/") {
+		if segment == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 // SortEntries orders entries directories-first then by name (matches the

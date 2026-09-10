@@ -463,6 +463,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     // port types gain Wails-specific variants.
     getSftpHomeDir: ((sftpID: string) =>
       bindings.sftp.HomeDir?.(sftpID).then((homeDir) => ({ success: true, homeDir }))) as unknown as NetcattyBridge["getSftpHomeDir"],
+    getPathForFile: ((file: File) => {
+      const path = (file as File & { path?: string }).path;
+      return path || undefined;
+    }) as unknown as NetcattyBridge["getPathForFile"],
     startStreamTransfer: (async (options: {
       sourceType: "local" | "sftp";
       targetType: "local" | "sftp";

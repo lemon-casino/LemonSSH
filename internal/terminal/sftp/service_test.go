@@ -209,6 +209,23 @@ func TestNormalizePath(t *testing.T) {
 	}
 }
 
+func TestNormalizePathAcceptsAbsoluteUnixPaths(t *testing.T) {
+	got, err := NormalizePath(".", "/root")
+	if err != nil {
+		t.Fatalf("/root against dot base must succeed: %v", err)
+	}
+	if got != "/root" {
+		t.Fatalf("got %q", got)
+	}
+	got, err = NormalizePath(".", "/root/file.txt")
+	if err != nil || got != "/root/file.txt" {
+		t.Fatalf("absolute child: %q %v", got, err)
+	}
+	if _, err := NormalizePath(".", "/root/../etc/passwd"); err == nil {
+		t.Fatal("absolute paths must still refuse parent escape")
+	}
+}
+
 func TestReadPartialThenFull(t *testing.T) {
 	remoteFS, _ := inProcessServer(t)
 	reader, err := remoteFS.Open("alpha.txt")

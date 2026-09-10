@@ -164,6 +164,12 @@ test("onKeyboardInteractive fans Wails events to the existing modal queue", asyn
   assert.equal(result?.success, true);
 });
 
+test("getPathForFile reads the WebView2 path property", () => {
+  const client = createWailsRuntimeClient(stubBindings());
+  const file = { name: "a.txt", path: "C:\\Users\\Lemon\\a.txt" } as File & { path: string };
+  assert.equal(client.transitionBridge.getPathForFile?.(file), "C:\\Users\\Lemon\\a.txt");
+});
+
 test("extractLocalArchive fails closed when filesystem ExtractArchive is missing", async () => {
   const client = createWailsRuntimeClient(stubBindings());
   const result = await client.transitionBridge.extractLocalArchive?.("/tmp/a.zip");
