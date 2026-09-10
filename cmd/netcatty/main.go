@@ -11,8 +11,10 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
@@ -84,10 +86,10 @@ func main() {
 	credentialService := newCredentialService(credentialProvider)
 	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 	ptyService := newPTYService()
-		upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
-		appLockService := newAppLockService()
-		deepLinkService := newDeepLinkService()
-		pluginService := newPluginService()
+	upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
+	appLockService := newAppLockService()
+	deepLinkService := newDeepLinkService()
+	pluginService := newPluginService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -100,26 +102,45 @@ func main() {
 	sshPool := sshpool.New(ssh.Dial)
 	defer sshPool.Shutdown()
 	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
-		sftpService := NewSFTPService(sshPool, knownHosts)
-		forwardService := NewForwardService(sshPool, knownHosts)
+	sftpService := NewSFTPService(sshPool, knownHosts)
+	forwardService := NewForwardService(sshPool, knownHosts)
 
-		wailsApp := application.New(application.Options{
+	wailsApp := application.New(application.Options{
 		Name:        "LemonSSH",
 		Description: "LemonSSH",
 		Icon:        appIcon,
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "app.lemonssh.desktop",
+			ExitCode: 0,
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				app := application.Get()
+				if app == nil {
+					return
+				}
+				win, ok := app.Window.GetByName("main")
+				if !ok {
+					return
+				}
+				if win.IsMinimised() {
+					win.UnMinimise()
+				}
+				win.Show()
+				win.Focus()
+			},
+		},
 		Services: []application.Service{
 			application.NewService(service),
 			application.NewService(profileService),
 			application.NewService(credentialService),
 			application.NewService(migrationService),
 			application.NewService(ptyService),
-				application.NewService(upgradeService),
-				application.NewService(appLockService),
-				application.NewService(deepLinkService),
-				application.NewService(pluginService),
+			application.NewService(upgradeService),
+			application.NewService(appLockService),
+			application.NewService(deepLinkService),
+			application.NewService(pluginService),
 			application.NewService(terminalSvc),
-				application.NewService(sftpService),
-				application.NewService(forwardService),
+			application.NewService(sftpService),
+			application.NewService(forwardService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -129,27 +150,31 @@ func main() {
 		},
 	})
 
-		wailsApp.Window.NewWithOptions(mainWindowOptions())
-		settingsWindowService := newSettingsWindowService(wailsApp)
-		wailsApp.RegisterService(application.NewService(settingsWindowService))
-		settingsWindowService.Preload()
+	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
+	settingsWindowService := newSettingsWindowService(wailsApp)
+	wailsApp.RegisterService(application.NewService(settingsWindowService))
+	// Preload the hidden settings window off the boot path: a second
+	// WebView during startup delays first paint noticeably.
+	mainWindow.RegisterHook(events.Common.WindowRuntimeReady, func(*application.WindowEvent) {
+		time.AfterFunc(2*time.Second, settingsWindowService.Preload)
+	})
 
-		// System Tray (P4-03)
+	// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()
-		tray.SetIcon(appIcon)
-		tray.SetTooltip("LemonSSH")
-		trayMenu := wailsApp.NewMenu()
-		trayMenu.Add("Show LemonSSH").OnClick(func(*application.Context) {
-			if win, ok := wailsApp.Window.GetByName("main"); ok {
-				win.Show()
-				win.Focus()
-			}
-		})
-		trayMenu.Add("Settings").OnClick(func(*application.Context) {
-			_, _ = settingsWindowService.Open()
-		})
-		trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
-		tray.SetMenu(trayMenu)
+	tray.SetIcon(appIcon)
+	tray.SetTooltip("LemonSSH")
+	trayMenu := wailsApp.NewMenu()
+	trayMenu.Add("Show LemonSSH").OnClick(func(*application.Context) {
+		if win, ok := wailsApp.Window.GetByName("main"); ok {
+			win.Show()
+			win.Focus()
+		}
+	})
+	trayMenu.Add("Settings").OnClick(func(*application.Context) {
+		_, _ = settingsWindowService.Open()
+	})
+	trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
+	tray.SetMenu(trayMenu)
 
 	if err := wailsApp.Run(); err != nil {
 		log.Fatal(err)
