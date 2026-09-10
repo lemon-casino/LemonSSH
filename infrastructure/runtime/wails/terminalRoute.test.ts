@@ -95,6 +95,7 @@ test("pickSSHConnectArgs normalizes defaults", () => {
       password: "",
       privateKey: "",
       passphrase: "",
+      certificate: "",
       proxyUrl: "",
       enableMfa: false,
       useAgent: false,
@@ -124,6 +125,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       password: "",
       privateKey: "PEM",
       passphrase: "pw",
+      certificate: "",
       proxyUrl: "socks5://127.0.0.1:1080",
       enableMfa: true,
       useAgent: false,
@@ -137,6 +139,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
         password: "jpw",
         privateKey: "",
         passphrase: "",
+        certificate: "",
         proxyUrl: "",
         enableMfa: false,
         useAgent: false,
@@ -149,11 +152,9 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
   );
 });
 
-test("pickSSHConnectArgs fails closed on certificate and command proxy", () => {
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", certificate: "CERT" }),
-    /certificate/,
-  );
+test("pickSSHConnectArgs maps certificates and fails closed on command proxy", () => {
+  const args = pickSSHConnectArgs({ hostname: "h", username: "u", certificate: "ssh-rsa-cert AAAA", privateKey: "PEM" });
+  assert.equal(args.certificate, "ssh-rsa-cert AAAA");
   assert.throws(
     () => pickSSHConnectArgs({ hostname: "h", username: "u", proxy: { type: "command", command: "nc", host: "x", port: 1 } }),
     /proxy/,

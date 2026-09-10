@@ -25,6 +25,8 @@ type AuthMethod struct {
 	Challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)
 	// UseAgent adds the local SSH agent as an auth method when reachable.
 	UseAgent bool
+	// Certificate is an OpenSSH user certificate; requires PrivateKeyPEM.
+	Certificate []byte
 }
 
 var ErrNoAuthMethod = errors.New("no ssh auth method configured")
@@ -42,7 +44,9 @@ func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 	if len(method.PrivateKeyPEM) > 0 {
 		var signer ssh.Signer
 		var err error
-		if method.Passphrase != "" {
+		if len(method.Certificate) > 0 {
+			signer, err = ParseCertificateSigner(method.PrivateKeyPEM, method.Passphrase, method.Certificate)
+		} else if method.Passphrase != "" {
 			signer, err = ssh.ParsePrivateKeyWithPassphrase(method.PrivateKeyPEM, []byte(method.Passphrase))
 		} else {
 			signer, err = ssh.ParsePrivateKey(method.PrivateKeyPEM)

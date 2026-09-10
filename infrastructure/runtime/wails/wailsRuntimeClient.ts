@@ -91,6 +91,8 @@ export interface WailsBindingDeps {
     Read?: (sftpID: string, path: string) => Promise<string>;
     WriteText?: (sftpID: string, path: string, content: string) => Promise<unknown>;
     HomeDir?: (sftpID: string) => Promise<string>;
+    ExtractArchive?: (sftpID: string, remotePath: string) => Promise<number>;
+    UploadCompressedFolder?: (sftpID: string, localFolder: string, remoteZipPath: string) => Promise<number>;
   };
   window?: {
     Minimise: () => Promise<void>;
@@ -586,9 +588,20 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     cancelTransfer: ((transferId: string) =>
       bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
     cancelZmodem: (async () => ({ success: false, error: "zmodem session engine is not wired yet" })) as unknown as NetcattyBridge["cancelZmodem"],
-    extractSftpArchive: (async () => ({ success: false })) as unknown as NetcattyBridge["extractSftpArchive"],
-    startCompressedUpload: (async () => ({ success: false, error: "compressed upload is not wired on the Wails runtime yet" })) as unknown as NetcattyBridge["startCompressedUpload"],
-    checkCompressedUploadSupport: (async () => ({ supported: false, localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
+    extractSftpArchive: (async (sftpId: string, remotePath: string) => {
+      if (!bindings.sftp.ExtractArchive) return { success: false };
+      await bindings.sftp.ExtractArchive(sftpId, remotePath);
+      return { success: true };
+    }) as unknown as NetcattyBridge["extractSftpArchive"],
+    startCompressedUpload: (async (options: { sftpId: string; folderPath: string; targetPath: string; folderName: string; compressionId: string }) => {
+      if (!bindings.sftp.UploadCompressedFolder) {
+        return { success: false, error: "compressed upload is not wired on the Wails runtime yet", compressionId: options.compressionId };
+      }
+      const remoteZip = `${options.targetPath.replace(/\/$/, "")}/${options.folderName}.zip`;
+      await bindings.sftp.UploadCompressedFolder(options.sftpId, options.folderPath, remoteZip);
+      return { success: true, compressionId: options.compressionId };
+    }) as unknown as NetcattyBridge["startCompressedUpload"],
+    checkCompressedUploadSupport: (async () => ({ supported: Boolean(bindings.sftp.UploadCompressedFolder), localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
     registerGlobalHotkey: (async (hotkey: string) => {
       if (!bindings.shortcuts?.Register) return { success: false, error: "registerGlobalHotkey unavailable" };
       return bindings.shortcuts.Register(hotkey);

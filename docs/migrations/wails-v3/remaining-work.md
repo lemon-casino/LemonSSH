@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L088`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L093`。矩阵 34 行：implemented 6 / probe 19 / not-started 9 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -37,6 +37,7 @@
 | --- | --- | --- | --- |
 | SSH MFA / keyboard-interactive | Wails Connect 现把挑战发到现有渲染层弹窗；活体 MFA 服务器仍缺 | SSH-01 | 已处理 |
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
+| SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
 | Mosh / ET | 监督 runner 仍在；产品路径诚实失败，reconnect 协议未接 | TERM-03.3 | 已处理 |
 | ZMODEM 完整 rz/sz 会话 | 取消入口已接到失败关闭；会话引擎未实现 | TERM-03.4 | 已处理 |
@@ -46,9 +47,9 @@
 ### SFTP / 传输
 - 下载/上传经 `startStreamTransfer` 接到现有 ClientFS；本地 zip 解压接到 `ExtractArchive`（SFTP-01）— 已处理
 - filesystem/transfer 绑定已进入 defaultBindings；缺 ExtractArchive 时失败关闭，不再假成功 — 已处理
-- 调度器 pause/resume/cancel 接到 Wails TransferService；startCompressedUpload 诚实失败关闭（SFTP-02）— 已处理
+- 调度器 pause/resume/cancel 接到 Wails TransferService；startCompressedUpload 走本地 zip 再 Upload（SFTP-02）— 已处理
 - sudo SFTP、非 UTF-8 文件名矩阵未验证 — pending
-- 远程压缩包提取诚实失败关闭（extractSftpArchive 返回 success false）；完整远程解压 owner 仍未接 — 已处理
+- 远程 zip 解压：下载到临时目录、zip-slip 提取、再上传（SFTP-01）— 已处理
 
 ### 系统能力
 - App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；生物识别未接（SYS-04）— 已处理
@@ -58,11 +59,12 @@
 
 ### 数据与同步
 - 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05；读取仍同步（SYNC-01）— 已处理
-- 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
+- 云同步：SyncService 暴露 Merge/Fingerprint；OAuth/S3/WebDAV 提供方仍未接（SYNC-02）— 已处理
 
 ### 插件
-- Install/SetEnabled 元数据门面已接，不执行 WASM/native（PLUG-01）— 已处理
-- WASM runtime / native 进程仍未接（PLUG-02/03）— pending
+- Install/SetEnabled 元数据门面已接（PLUG-01）— 已处理
+- WASM Instantiate 接到 wazero runtime，无 host import / WASI（PLUG-02）— 已处理
+- native 进程运行时仍未接到 Wails 壳（PLUG-03）— pending
 
 ### AI（全部）
 - P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、

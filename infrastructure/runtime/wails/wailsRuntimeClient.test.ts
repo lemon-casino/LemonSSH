@@ -230,10 +230,43 @@ test("startCompressedUpload fails closed until a compressed-upload owner exists"
   assert.equal(result?.success, false);
 });
 
+test("startCompressedUpload calls UploadCompressedFolder", async () => {
+  const seen: string[] = [];
+  const bindings = stubBindings();
+  bindings.sftp.UploadCompressedFolder = async (sftpID, localFolder, remoteZipPath) => {
+    seen.push(sftpID, localFolder, remoteZipPath);
+    return 12;
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.startCompressedUpload?.({
+    compressionId: "c1",
+    folderPath: "/tmp/dir",
+    targetPath: "/remote",
+    sftpId: "sftp-1",
+    folderName: "dir",
+    totalBytes: 1,
+  });
+  assert.equal(result?.success, true);
+  assert.deepEqual(seen, ["sftp-1", "/tmp/dir", "/remote/dir.zip"]);
+});
+
 test("extractSftpArchive fails closed until a remote extract owner exists", async () => {
   const client = createWailsRuntimeClient(stubBindings());
   const result = await client.transitionBridge.extractSftpArchive?.("sftp-1", "/tmp/a.zip");
   assert.equal(result?.success, false);
+});
+
+test("extractSftpArchive calls SFTP ExtractArchive", async () => {
+  const seen: string[] = [];
+  const bindings = stubBindings();
+  bindings.sftp.ExtractArchive = async (sftpID, remotePath) => {
+    seen.push(sftpID, remotePath);
+    return 1;
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.extractSftpArchive?.("sftp-1", "/opt/a.zip");
+  assert.equal(result?.success, true);
+  assert.deepEqual(seen, ["sftp-1", "/opt/a.zip"]);
 });
 
 test("registerGlobalHotkey reaches ShortcutService", async () => {

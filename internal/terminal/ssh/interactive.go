@@ -134,6 +134,7 @@ type ConnectInput struct {
 	Password          string
 	PrivateKey        string
 	Passphrase        string
+	Certificate       string
 	ProxyURL          string
 	EnableMFA         bool
 	UseAgent          bool
@@ -185,6 +186,7 @@ func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func
 		PrivateKeyPEM: privateKey,
 		Passphrase:    input.Passphrase,
 		UseAgent:      input.UseAgent,
+		Certificate:   []byte(input.Certificate),
 	}
 	if input.EnableMFA && challenge != nil {
 		auth.Challenge = challenge

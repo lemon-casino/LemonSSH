@@ -137,6 +137,7 @@ func main() {
 	filesystemService := newFilesystemService()
 	transferService := newTransferService()
 	shortcutService := newShortcutService()
+	syncService := newSyncService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -170,6 +171,7 @@ func main() {
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
+	wailsApp.RegisterService(application.NewService(syncService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	settingsWindowService := newSettingsWindowService(wailsApp)

@@ -1,13 +1,22 @@
 package main
 
-import pluginstore "github.com/binaricat/netcatty/internal/plugin/store"
+import (
+	"context"
+	"sync"
+
+	pluginstore "github.com/binaricat/netcatty/internal/plugin/store"
+	"github.com/binaricat/netcatty/internal/plugin/wasm"
+)
 
 type PluginService struct {
-	store *pluginstore.Store
+	mu      sync.Mutex
+	store   *pluginstore.Store
+	runtime *wasm.Runtime
 }
 
 func newPluginService() *PluginService {
-	return &PluginService{store: pluginstore.New()}
+	runtime, _ := wasm.NewRuntime(context.Background())
+	return &PluginService{store: pluginstore.New(), runtime: runtime}
 }
 
 func (s *PluginService) List() []*pluginstore.PackageRecord {
@@ -24,4 +33,17 @@ func (s *PluginService) SetEnabled(pluginID string, enabled bool) error {
 		state = pluginstore.StateEnabled
 	}
 	return s.store.SetState(pluginID, state)
+}
+
+func (s *PluginService) InstantiateWASM(pluginID string, wasmBytes []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.runtime == nil {
+		runtime, err := wasm.NewRuntime(context.Background())
+		if err != nil {
+			return err
+		}
+		s.runtime = runtime
+	}
+	return s.runtime.Instantiate(context.Background(), pluginID, wasmBytes)
 }

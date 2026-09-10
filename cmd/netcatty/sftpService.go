@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
 	"fmt"
 	"io"
@@ -256,6 +257,102 @@ func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, er
 	}
 	defer writer.Close()
 	return io.Copy(writer, reader)
+}
+
+// ExtractArchive downloads a remote zip, extracts it locally with zip-slip
+// protection, and uploads the files next to the archive.
+func (s *SFTPService) ExtractArchive(sessionID, remotePath string) (int, error) {
+	tempDir, err := os.MkdirTemp("", "lemonssh-extract-")
+	if err != nil {
+		return 0, err
+	}
+	defer os.RemoveAll(tempDir)
+	localZip := filepath.Join(tempDir, "archive.zip")
+	if _, err := s.Download(sessionID, remotePath, localZip); err != nil {
+		return 0, err
+	}
+	outDir := filepath.Join(tempDir, "out")
+	count, err := sftp.ExtractZipArchive(localZip, outDir)
+	if err != nil {
+		return 0, err
+	}
+	parent := filepath.ToSlash(filepath.Dir(remotePath))
+	if parent == "." || parent == "" {
+		parent = "/"
+	}
+	if walkErr := filepath.Walk(outDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(outDir, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		remote := parent + "/" + filepath.ToSlash(rel)
+		if info.IsDir() {
+			return s.Mkdir(sessionID, remote)
+		}
+		_, err = s.Upload(sessionID, path, remote)
+		return err
+	}); walkErr != nil {
+		return count, walkErr
+	}
+	return count, nil
+}
+
+// UploadCompressedFolder zips a local folder and uploads the archive.
+func (s *SFTPService) UploadCompressedFolder(sessionID, localFolder, remoteZipPath string) (int64, error) {
+	temp, err := os.CreateTemp("", "lemonssh-upload-*.zip")
+	if err != nil {
+		return 0, err
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	zipWriter := zip.NewWriter(temp)
+	err = filepath.Walk(localFolder, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(localFolder, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		name := filepath.ToSlash(rel)
+		if info.IsDir() {
+			_, err := zipWriter.Create(name + "/")
+			return err
+		}
+		writer, err := zipWriter.Create(name)
+		if err != nil {
+			return err
+		}
+		reader, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer reader.Close()
+		_, err = io.Copy(writer, reader)
+		return err
+	})
+	if err != nil {
+		_ = zipWriter.Close()
+		_ = temp.Close()
+		return 0, err
+	}
+	if err := zipWriter.Close(); err != nil {
+		_ = temp.Close()
+		return 0, err
+	}
+	if err := temp.Close(); err != nil {
+		return 0, err
+	}
+	return s.Upload(sessionID, tempPath, remoteZipPath)
 }
 
 // Close releases the SFTP client and returns the transport to the pool.

@@ -104,7 +104,9 @@ func (f *ClientFS) removeTree(dir string) error {
 }
 
 // Rename moves or renames a path.
-func (f *ClientFS) Rename(oldPath, newPath string) error { return f.client.PosixRename(oldPath, newPath) }
+func (f *ClientFS) Rename(oldPath, newPath string) error {
+	return f.client.PosixRename(oldPath, newPath)
+}
 
 // Open opens a remote file for reading.
 func (f *ClientFS) Open(target string) (io.ReadCloser, error) {

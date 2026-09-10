@@ -41,6 +41,7 @@ type SSHConnectRequest struct {
 	Password          string              `json:"password"`
 	PrivateKey        string              `json:"privateKey"`
 	Passphrase        string              `json:"passphrase"`
+	Certificate       string              `json:"certificate"`
 	ProxyURL          string              `json:"proxyUrl"`
 	EnableMFA         bool                `json:"enableMfa"`
 	UseAgent          bool                `json:"useAgent"`
@@ -97,6 +98,7 @@ func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
 		Password:          request.Password,
 		PrivateKey:        request.PrivateKey,
 		Passphrase:        request.Passphrase,
+		Certificate:       request.Certificate,
 		ProxyURL:          request.ProxyURL,
 		EnableMFA:         request.EnableMFA,
 		UseAgent:          request.UseAgent,

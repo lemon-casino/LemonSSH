@@ -126,6 +126,7 @@ export interface WailsSSHConnectArgs {
   password: string;
   privateKey: string;
   passphrase: string;
+  certificate: string;
   proxyUrl: string;
   enableMfa: boolean;
   useAgent: boolean;
@@ -182,9 +183,6 @@ export function formatProxyUrl(proxy?: WailsProxyConfig): string {
  * degrading to password auth.
  */
 export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHConnectArgs {
-  if (options.certificate) {
-    throw new Error("SSH options not migrated to the Wails Connect binding yet: certificate");
-  }
   return {
     hostname: options.hostname,
     username: options.username,
@@ -192,6 +190,7 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     password: options.password ?? "",
     privateKey: options.privateKey ?? "",
     passphrase: options.passphrase ?? "",
+    certificate: options.certificate ?? "",
     proxyUrl: formatProxyUrl(options.proxy),
     enableMfa: Boolean(options.requiresMfa),
     useAgent: Boolean(options.useSshAgent),

@@ -2843,3 +2843,128 @@ capability row, source paths, verification output or CI run.
 - Residual risks: AI 存储与读取仍是 localStorage
 - Next safe slice: 活体 MFA 服务器矩阵
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L089 - 2026-09-10 - SSH 用户证书接到 Connect
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Connect 透出 certificate；ParseCertificateSigner 用私钥加 OpenSSH 用户证书构建 signer。command 代理仍拒绝。
+- Go canonical owner: internal/terminal/ssh/certificate.go
+- Frontend adapter: terminalRoute.pickSSHConnectArgs
+- Electron owner affected: none
+- Preserved invariants: 无私钥的证书失败关闭
+- Data/schema impact: none
+- Security impact: 证书只用于用户认证，不改 host-key 策略
+- Verification: go test ssh TestParseCertificateSigner；node mapper certificate
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 活体证书服务器矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无真实 CA 活体证据
+- Next safe slice: 远程 zip 解压
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L090 - 2026-09-10 - 远程 SFTP zip 解压
+
+- Capability rows: `SFTP-01`
+- Plan task: `P3-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: SFTPService.ExtractArchive 下载远程 zip，经 zip-slip ExtractArchive 解压后再上传。extractSftpArchive 接到 transitionBridge。
+- Go canonical owner: cmd/netcatty/sftpService.go + internal/terminal/sftp/extract.go
+- Frontend adapter: wailsRuntimeClient extractSftpArchive
+- Electron owner affected: none
+- Preserved invariants: 解压拒绝 zip-slip；非 zip 失败关闭
+- Data/schema impact: none
+- Security impact: 不解压到调用方指定路径之外
+- Verification: go test sftp TestExtractZipToDir；runtime extractSftpArchive 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真实 SFTP 服务器解压矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: tar.gz 仍未接；大文件经临时目录
+- Next safe slice: 压缩上传
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L091 - 2026-09-10 - 本地文件夹压缩上传
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: UploadCompressedFolder 把本地目录打成 zip 再 Upload；startCompressedUpload 接到该路径。
+- Go canonical owner: cmd/netcatty/sftpService.go
+- Frontend adapter: wailsRuntimeClient startCompressedUpload
+- Electron owner affected: none
+- Preserved invariants: 缺绑定时仍失败关闭
+- Data/schema impact: none
+- Security impact: 压缩只读调用方给出的本地目录
+- Verification: runtime startCompressedUpload 套件；go test cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 高 RTT 压缩上传实验室后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 远程 tar 提取仍未做
+- Next safe slice: SyncService merge
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L092 - 2026-09-10 - SyncService 暴露 LWW merge
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: SyncService.Merge/Fingerprint 暴露既有 syncengine LWW 合并。OAuth 与云提供方仍未接。
+- Go canonical owner: cmd/netcatty/syncService.go + internal/syncengine
+- Frontend adapter: bindings only
+- Electron owner affected: none
+- Preserved invariants: 不假装 S3/WebDAV/Google 完成
+- Data/schema impact: none
+- Security impact: merge 不接触明文密钥
+- Verification: go test syncengine + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: OAuth 提供方与加密夹具对等后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无云提供方、无密钥轮换
+- Next safe slice: WASM instantiate
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L093 - 2026-09-10 - 插件 WASM instantiate 接到 wazero
+
+- Capability rows: `PLUG-02`
+- Plan task: `P5-03`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: PluginService.InstantiateWASM 用 wazero 实例化模块，WASI 关闭、无 host import。UI schema 与资源限额仍未接。
+- Go canonical owner: cmd/netcatty/pluginService.go + internal/plugin/wasm
+- Frontend adapter: bindings only
+- Electron owner affected: none
+- Preserved invariants: 不依赖 Agent catalog；native 进程仍未接
+- Data/schema impact: none
+- Security impact: 无文件系统/网络 host import
+- Verification: go test plugin/wasm + cmd/netcatty
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 资源限额与 UI 贡献模型后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 无 host function；无 declarative UI
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
