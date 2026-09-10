@@ -2,7 +2,7 @@ import { useSyncExternalStore, useCallback } from 'react';
 import { TerminalTheme } from '../../domain/models';
 import { TERMINAL_THEMES } from '../../infrastructure/config/terminalThemes';
 import { STORAGE_KEY_CUSTOM_THEMES } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 // Access the Electron bridge for cross-window IPC
 type NetcattyBridge = {

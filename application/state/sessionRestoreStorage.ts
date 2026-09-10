@@ -1,7 +1,7 @@
 import {
   STORAGE_KEY_SESSION_RESTORE,
 } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import {
   SESSION_RESTORE_VERSION,
   sanitizeSessionRestorePayload,

@@ -10,10 +10,8 @@ import {
   STORAGE_KEY_PF_VIEW_MODE,
   STORAGE_KEY_PORT_FORWARDING,
 } from "../../infrastructure/config/storageKeys";
-import {
-  LOCAL_STORAGE_ADAPTER_CHANGED_EVENT,
-  localStorageAdapter,
-} from "../../infrastructure/persistence/localStorageAdapter";
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 import {
   clearReconnectTimer,

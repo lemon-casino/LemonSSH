@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { usePortForwardingAutoStart } from '../state/usePortForwardingAutoStart';
 import { editorTabStore } from '../state/editorTabStore';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { toast } from '../../components/ui/toast';
 import { sftpTransferCenterStore } from '../state/sftpTransferCenterStore';
 import { resumeTransferWithDedicatedSession } from '../state/sftp/dedicatedTransferResume';

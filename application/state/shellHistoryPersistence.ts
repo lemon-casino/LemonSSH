@@ -1,7 +1,7 @@
 import type { ShellHistoryEntry } from '../../domain/models';
 import { sanitizeGlobalHistoryEntries } from '../../domain/globalHistory';
 import { STORAGE_KEY_SHELL_HISTORY } from '../../infrastructure/config/storageKeys';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
 type ShellHistoryStorage = {
   read<T>(key: string): T | null;

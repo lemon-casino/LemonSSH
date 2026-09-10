@@ -11,7 +11,7 @@ import {
   normalizeHttpNetworkProxySettings,
   type HttpNetworkProxySettings,
 } from '../../domain/httpNetworkProxy';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import {
   parseWindowOpacityRecord,

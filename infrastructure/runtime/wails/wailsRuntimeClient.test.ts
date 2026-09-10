@@ -217,6 +217,19 @@ test("drainDeepLinks Ready then Drain", async () => {
   assert.equal((actions?.[0] as { Host?: string }).Host, "lab");
 });
 
+test("startCompressedUpload fails closed until a compressed-upload owner exists", async () => {
+  const client = createWailsRuntimeClient(stubBindings());
+  const result = await client.transitionBridge.startCompressedUpload?.({
+    compressionId: "c1",
+    folderPath: "/tmp/dir",
+    targetPath: "/remote",
+    sftpId: "sftp-1",
+    folderName: "dir",
+    totalBytes: 1,
+  });
+  assert.equal(result?.success, false);
+});
+
 test("extractSftpArchive fails closed until a remote extract owner exists", async () => {
   const client = createWailsRuntimeClient(stubBindings());
   const result = await client.transitionBridge.extractSftpArchive?.("sftp-1", "/tmp/a.zip");

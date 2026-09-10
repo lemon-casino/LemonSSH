@@ -2768,3 +2768,53 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 读取仍是 localStorage；无多窗口 CAS 证据
 - Next safe slice: 活体 MFA 服务器矩阵
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L086 - 2026-09-10 - session restore 镜像与压缩上传失败关闭
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: session restore、port forwarding、shell history、settings defaults 写入走 hostStorageAdapter；startCompressedUpload 返回 success false。读取仍同步。
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: sessionRestoreStorage.ts + usePortForwardingState.ts + wailsRuntimeClient startCompressedUpload
+- Electron owner affected: none
+- Preserved invariants: Electron 无 profileClient 时只写 localStorage；不假装压缩上传完成
+- Data/schema impact: sessions 域开始接收 restore payload
+- Security impact: none
+- Verification: node profileDomain 与 startCompressedUpload 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 渲染层改读 Go canonical 后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 压缩上传仍不可用；读取仍是 localStorage
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L087 - 2026-09-10 - 压缩上传诚实失败关闭
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: startCompressedUpload 与 checkCompressedUploadSupport 返回不支持/失败，避免 UI 以为压缩上传已接线。
+- Go canonical owner: none; fail-closed adapter only
+- Frontend adapter: wailsRuntimeClient startCompressedUpload
+- Electron owner affected: none
+- Preserved invariants: pause/resume/cancel 路径未改
+- Data/schema impact: none
+- Security impact: 不在远程执行未接线的 tar 上传
+- Verification: runtime startCompressedUpload 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 压缩上传 owner 与高 RTT 实验室后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 压缩上传 UI 仍可见但会失败
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

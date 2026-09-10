@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L085`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L087`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -46,7 +46,7 @@
 ### SFTP / 传输
 - 下载/上传经 `startStreamTransfer` 接到现有 ClientFS；本地 zip 解压接到 `ExtractArchive`（SFTP-01）— 已处理
 - filesystem/transfer 绑定已进入 defaultBindings；缺 ExtractArchive 时失败关闭，不再假成功 — 已处理
-- 调度器 pause/resume/cancel 接到 Wails TransferService；压缩上传仍未接（SFTP-02）— 已处理
+- 调度器 pause/resume/cancel 接到 Wails TransferService；startCompressedUpload 诚实失败关闭（SFTP-02）— 已处理
 - sudo SFTP、非 UTF-8 文件名矩阵未验证 — pending
 - 远程压缩包提取诚实失败关闭（extractSftpArchive 返回 success false）；完整远程解压 owner 仍未接 — 已处理
 
@@ -57,7 +57,7 @@
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- Vault/settings 启动等待 hydrateReady；写入经 hostStorageAdapter 按域镜像到 Go vault/settings/sessions；hooks 仍同步读 localStorage（SYNC-01）— 已处理
+- Vault/settings/session restore/port forwarding 写入经 hostStorageAdapter 按域镜像；启动等待 hydrateReady；读取仍同步（SYNC-01）— 已处理
 - 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件

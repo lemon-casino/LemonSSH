@@ -7,7 +7,7 @@ import {
 import { DARK_UI_THEMES, LIGHT_UI_THEMES, type UiThemeTokens } from '../../infrastructure/config/uiThemes';
 import { UI_FONTS } from '../../infrastructure/config/uiFonts';
 import { uiFontStore } from './uiFontStore';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import { resolveReadableForegroundForHsl } from '../../domain/colorContrast';
 

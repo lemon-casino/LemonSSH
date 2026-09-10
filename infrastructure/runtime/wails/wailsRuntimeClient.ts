@@ -587,6 +587,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
     cancelZmodem: (async () => ({ success: false, error: "zmodem session engine is not wired yet" })) as unknown as NetcattyBridge["cancelZmodem"],
     extractSftpArchive: (async () => ({ success: false })) as unknown as NetcattyBridge["extractSftpArchive"],
+    startCompressedUpload: (async () => ({ success: false, error: "compressed upload is not wired on the Wails runtime yet" })) as unknown as NetcattyBridge["startCompressedUpload"],
+    checkCompressedUploadSupport: (async () => ({ supported: false, localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
     registerGlobalHotkey: (async (hotkey: string) => {
       if (!bindings.shortcuts?.Register) return { success: false, error: "registerGlobalHotkey unavailable" };
       return bindings.shortcuts.Register(hotkey);
