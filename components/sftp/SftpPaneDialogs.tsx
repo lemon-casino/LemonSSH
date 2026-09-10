@@ -354,15 +354,17 @@ export const SftpPaneDialogs: React.FC<SftpPaneDialogsProps> = ({
         </div>
         <DialogFooter>
           <Button
+            type="button"
             variant="outline"
             onClick={() => setShowDeleteConfirm(false)}
           >
             {t("common.cancel")}
           </Button>
           <Button
+            type="button"
             ref={deleteConfirmButtonRef}
             variant="destructive"
-            onClick={handleDelete}
+            onClick={() => { void handleDelete(); }}
             disabled={isDeleting}
           >
             {isDeleting && (

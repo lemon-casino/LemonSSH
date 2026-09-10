@@ -3,6 +3,7 @@ import type { SftpPaneCallbacks } from "../SftpContext";
 import type { SftpPane } from "../../../application/state/sftp/types";
 import { getFileName, getParentPath } from "../../../application/state/sftp/utils";
 import { logger } from "../../../lib/logger";
+import { toast } from "../../ui/toast";
 
 const INVALID_FILENAME_CHARS = /[/\\:*?"<>|]/;
 const RESERVED_NAMES = new Set([
@@ -285,6 +286,7 @@ export const useSftpPaneDialogs = ({
       onClearSelection();
     } catch (err) {
       logger.warn("Failed to delete files", err);
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setIsDeleting(false);
     }
