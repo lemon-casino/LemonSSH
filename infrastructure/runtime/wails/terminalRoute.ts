@@ -128,6 +128,8 @@ export interface WailsSSHConnectArgs {
   passphrase: string;
   proxyUrl: string;
   enableMfa: boolean;
+  useAgent: boolean;
+  identityFilePaths: string[];
   cols: number;
   rows: number;
   jumpHosts: WailsSSHConnectArgs[];
@@ -183,12 +185,6 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
   if (options.certificate) {
     throw new Error("SSH options not migrated to the Wails Connect binding yet: certificate");
   }
-  if (options.useSshAgent) {
-    throw new Error("SSH options not migrated to the Wails Connect binding yet: useSshAgent");
-  }
-  if (options.identityFilePaths?.length) {
-    throw new Error("SSH options not migrated to the Wails Connect binding yet: identityFilePaths");
-  }
   return {
     hostname: options.hostname,
     username: options.username,
@@ -198,6 +194,8 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     passphrase: options.passphrase ?? "",
     proxyUrl: formatProxyUrl(options.proxy),
     enableMfa: Boolean(options.requiresMfa),
+    useAgent: Boolean(options.useSshAgent),
+    identityFilePaths: options.identityFilePaths ?? [],
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
     jumpHosts: (options.jumpHosts ?? []).map((hop) => pickSSHConnectArgs(hop)),

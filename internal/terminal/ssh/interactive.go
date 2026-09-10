@@ -128,15 +128,17 @@ func (b *InteractiveBroker) PendingRequestID() string {
 
 // ConnectInput is the shell-neutral dial request used by Wails facades.
 type ConnectInput struct {
-	Hostname   string
-	Port       uint16
-	Username   string
-	Password   string
-	PrivateKey string
-	Passphrase string
-	ProxyURL   string
-	EnableMFA  bool
-	JumpHosts  []ConnectInput
+	Hostname          string
+	Port              uint16
+	Username          string
+	Password          string
+	PrivateKey        string
+	Passphrase        string
+	ProxyURL          string
+	EnableMFA         bool
+	UseAgent          bool
+	IdentityFilePaths []string
+	JumpHosts         []ConnectInput
 }
 
 // FormatProxyURL builds a socks5:// or http:// URL. Command proxies fail closed.
@@ -162,10 +164,27 @@ func FormatProxyURL(kind, host string, port int, username, password string) (str
 // BuildDialConfig maps a ConnectInput onto DialConfig. Every hop receives the
 // same host-key policy. MFA uses Challenge when enableMFA is set.
 func BuildDialConfig(input ConnectInput, policy HostKeyPolicy, challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)) DialConfig {
+	config, err := BuildDialConfigErr(input, policy, challenge)
+	if err != nil {
+		return DialConfig{}
+	}
+	return config
+}
+
+func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)) (DialConfig, error) {
+	privateKey := []byte(input.PrivateKey)
+	if len(privateKey) == 0 && len(input.IdentityFilePaths) > 0 {
+		loaded, err := LoadIdentityFilePEMs(input.IdentityFilePaths)
+		if err != nil {
+			return DialConfig{}, err
+		}
+		privateKey = loaded
+	}
 	auth := AuthMethod{
 		Password:      input.Password,
-		PrivateKeyPEM: []byte(input.PrivateKey),
+		PrivateKeyPEM: privateKey,
 		Passphrase:    input.Passphrase,
+		UseAgent:      input.UseAgent,
 	}
 	if input.EnableMFA && challenge != nil {
 		auth.Challenge = challenge
@@ -188,8 +207,12 @@ func BuildDialConfig(input ConnectInput, policy HostKeyPolicy, challenge func(na
 			if !hop.EnableMFA {
 				hopChallenge = nil
 			}
-			config.JumpHosts = append(config.JumpHosts, BuildDialConfig(hop, policy, hopChallenge))
+			child, err := BuildDialConfigErr(hop, policy, hopChallenge)
+			if err != nil {
+				return DialConfig{}, err
+			}
+			config.JumpHosts = append(config.JumpHosts, child)
 		}
 	}
-	return config
+	return config, nil
 }

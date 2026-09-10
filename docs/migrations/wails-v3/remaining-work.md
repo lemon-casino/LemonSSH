@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L083`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
+当前台账头：`WV3-L085`。矩阵 34 行：implemented 6 / probe 17 / not-started 11 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -37,6 +37,7 @@
 | --- | --- | --- | --- |
 | SSH MFA / keyboard-interactive | Wails Connect 现把挑战发到现有渲染层弹窗；活体 MFA 服务器仍缺 | SSH-01 | 已处理 |
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
+| SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
 | Mosh / ET | 监督 runner 仍在；产品路径诚实失败，reconnect 协议未接 | TERM-03.3 | 已处理 |
 | ZMODEM 完整 rz/sz 会话 | 取消入口已接到失败关闭；会话引擎未实现 | TERM-03.4 | 已处理 |
 | 串口 YMODEM | SendSerialYmodem 诚实失败关闭 | TERM-03.2 | 已处理 |
@@ -56,7 +57,7 @@
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- Vault/settings 启动等待 hydrateReady 后再 renderApp；空键从 Go DomainKeys 回填，本地已有值优先；hooks 仍直读 localStorage（SYNC-01）— 已处理
+- Vault/settings 启动等待 hydrateReady；写入经 hostStorageAdapter 按域镜像到 Go vault/settings/sessions；hooks 仍同步读 localStorage（SYNC-01）— 已处理
 - 云同步（S3/WebDAV/Google/OneDrive/CRDT）完全未接（SYNC-02）— pending
 
 ### 插件

@@ -23,6 +23,8 @@ type AuthMethod struct {
 	// Challenge answers a full keyboard-interactive round (name, instruction,
 	// all prompts) so the renderer can show one MFA modal per round.
 	Challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)
+	// UseAgent adds the local SSH agent as an auth method when reachable.
+	UseAgent bool
 }
 
 var ErrNoAuthMethod = errors.New("no ssh auth method configured")
@@ -32,7 +34,7 @@ var ErrNoAuthMethod = errors.New("no ssh auth method configured")
 // turn and accepts partial-success MFA flows.
 func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 	var result []ssh.AuthMethod
-	if strings.TrimSpace(method.Password) != "" || len(method.PrivateKeyPEM) > 0 || method.Interactive != nil || method.Challenge != nil {
+	if strings.TrimSpace(method.Password) != "" || len(method.PrivateKeyPEM) > 0 || method.Interactive != nil || method.Challenge != nil || method.UseAgent {
 		// at least one strategy present
 	} else {
 		return nil, ErrNoAuthMethod
@@ -49,6 +51,13 @@ func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 			return nil, fmt.Errorf("invalid private key: %w", err)
 		}
 		result = append(result, ssh.PublicKeys(signer))
+	}
+	if method.UseAgent {
+		agentMethod, err := AgentAuthMethod("")
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, agentMethod)
 	}
 	if method.Password != "" {
 		result = append(result, ssh.Password(method.Password))

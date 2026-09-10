@@ -50,7 +50,10 @@ func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
 	if request.Port == 0 {
 		request.Port = 22
 	}
-	config := netcattyssh.BuildDialConfig(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
+	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
+	if err != nil {
+		return "", err
+	}
 	lease, err := s.pool.Get(context.Background(), config, sshpool.KindSFTP)
 	if err != nil {
 		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)

@@ -35,17 +35,19 @@ type TerminalService struct {
 // SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
 // command proxies and certificates remain fail-closed in the renderer mapper.
 type SSHConnectRequest struct {
-	Hostname   string              `json:"hostname"`
-	Port       uint16              `json:"port"`
-	Username   string              `json:"username"`
-	Password   string              `json:"password"`
-	PrivateKey string              `json:"privateKey"`
-	Passphrase string              `json:"passphrase"`
-	ProxyURL   string              `json:"proxyUrl"`
-	EnableMFA  bool                `json:"enableMfa"`
-	Cols       uint16              `json:"cols"`
-	Rows       uint16              `json:"rows"`
-	JumpHosts  []SSHConnectRequest `json:"jumpHosts"`
+	Hostname          string              `json:"hostname"`
+	Port              uint16              `json:"port"`
+	Username          string              `json:"username"`
+	Password          string              `json:"password"`
+	PrivateKey        string              `json:"privateKey"`
+	Passphrase        string              `json:"passphrase"`
+	ProxyURL          string              `json:"proxyUrl"`
+	EnableMFA         bool                `json:"enableMfa"`
+	UseAgent          bool                `json:"useAgent"`
+	IdentityFilePaths []string            `json:"identityFilePaths"`
+	Cols              uint16              `json:"cols"`
+	Rows              uint16              `json:"rows"`
+	JumpHosts         []SSHConnectRequest `json:"jumpHosts"`
 }
 
 type terminalSession struct {
@@ -89,14 +91,16 @@ func (s *TerminalService) RespondKeyboardInteractive(requestID string, responses
 
 func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
 	input := ssh.ConnectInput{
-		Hostname:   request.Hostname,
-		Port:       request.Port,
-		Username:   request.Username,
-		Password:   request.Password,
-		PrivateKey: request.PrivateKey,
-		Passphrase: request.Passphrase,
-		ProxyURL:   request.ProxyURL,
-		EnableMFA:  request.EnableMFA,
+		Hostname:          request.Hostname,
+		Port:              request.Port,
+		Username:          request.Username,
+		Password:          request.Password,
+		PrivateKey:        request.PrivateKey,
+		Passphrase:        request.Passphrase,
+		ProxyURL:          request.ProxyURL,
+		EnableMFA:         request.EnableMFA,
+		UseAgent:          request.UseAgent,
+		IdentityFilePaths: request.IdentityFilePaths,
 	}
 	if len(request.JumpHosts) > 0 {
 		input.JumpHosts = make([]ssh.ConnectInput, 0, len(request.JumpHosts))
@@ -124,7 +128,10 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 		request.Rows = 24
 	}
 	policy := ssh.StrictPolicy(s.knownHosts)
-	config := ssh.BuildDialConfig(sshConnectToInput(request), policy, s.interactive.Handler(request.Hostname))
+	config, err := ssh.BuildDialConfigErr(sshConnectToInput(request), policy, s.interactive.Handler(request.Hostname))
+	if err != nil {
+		return "", err
+	}
 	transport, err := ssh.Dial(context.Background(), config)
 	if err != nil {
 		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)

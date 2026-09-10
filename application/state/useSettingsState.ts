@@ -98,7 +98,7 @@ import { DEFAULT_FONT_SIZE, TERMINAL_FONT_AUTO } from '../../infrastructure/conf
 import { getUiThemeById } from '../../infrastructure/config/uiThemes';
 import { DEFAULT_UI_FONT_ID, withWindowsEmojiFallback } from '../../infrastructure/config/uiFonts';
 import { uiFontStore, useUIFontsLoaded } from './uiFontStore';
-import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import {
   resolveSftpTransferConcurrency,

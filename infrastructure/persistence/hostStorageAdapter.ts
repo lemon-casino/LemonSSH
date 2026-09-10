@@ -1,5 +1,6 @@
 import { localStorageAdapter } from "./localStorageAdapter";
 import type { ProfileClient } from "../runtime/profile/profileClient";
+import { profileDomainForKey } from "./profileDomain";
 
 // P2-07 transition adapter. Reads remain synchronous so existing hooks keep
 // their render-time contract. The local cache is canonical during Electron
@@ -24,9 +25,10 @@ export function configureHostProfileClient(client: ProfileClient | undefined): v
 
 function mirror(key: string, value: string | null): void {
   if (!profileClient) return;
+  const domain = profileDomainForKey(key);
   const operation = value === null
-    ? profileClient.deleteRaw("settings", key)
-    : profileClient.setRawBase64("settings", key, encodeBase64(value));
+    ? profileClient.deleteRaw(domain, key)
+    : profileClient.setRawBase64(domain, key, encodeBase64(value));
   pendingWrites.set(key, operation.catch((error) => {
     console.warn(`[hostStorageAdapter] failed to persist ${key}:`, error);
   }).then(() => undefined));

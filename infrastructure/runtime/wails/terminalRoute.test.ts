@@ -97,6 +97,8 @@ test("pickSSHConnectArgs normalizes defaults", () => {
       passphrase: "",
       proxyUrl: "",
       enableMfa: false,
+      useAgent: false,
+      identityFilePaths: [],
       cols: 80,
       rows: 24,
       jumpHosts: [],
@@ -124,6 +126,8 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       passphrase: "pw",
       proxyUrl: "socks5://127.0.0.1:1080",
       enableMfa: true,
+      useAgent: false,
+      identityFilePaths: [],
       cols: 80,
       rows: 24,
       jumpHosts: [{
@@ -135,6 +139,8 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
         passphrase: "",
         proxyUrl: "",
         enableMfa: false,
+        useAgent: false,
+        identityFilePaths: [],
         cols: 80,
         rows: 24,
         jumpHosts: [],
@@ -154,13 +160,13 @@ test("pickSSHConnectArgs fails closed on certificate and command proxy", () => {
   );
 });
 
-test("pickSSHConnectArgs fails closed on agent and identity files", () => {
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", useSshAgent: true } as never),
-    /useSshAgent/,
-  );
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", identityFilePaths: ["~/.ssh/id"] } as never),
-    /identityFilePaths/,
-  );
+test("pickSSHConnectArgs maps agent and identity files onto Connect", () => {
+  const args = pickSSHConnectArgs({
+    hostname: "h",
+    username: "u",
+    useSshAgent: true,
+    identityFilePaths: ["~/.ssh/id"],
+  });
+  assert.equal(args.useAgent, true);
+  assert.deepEqual(args.identityFilePaths, ["~/.ssh/id"]);
 });

@@ -50,7 +50,8 @@ import {
   STORAGE_KEY_SNIPPETS,
   STORAGE_KEY_TERM_SETTINGS,
 } from "../../infrastructure/config/storageKeys";
-import { localStorageAdapter, LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
+import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import {
   mergeGlobalHistoryOnAppend,
   removeGlobalHistoryEntry,

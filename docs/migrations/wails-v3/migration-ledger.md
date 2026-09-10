@@ -2718,3 +2718,53 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 仅文件/agent 的主机在 Wails 下无法连接
 - Next safe slice: Vault canonical 读通
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L084 - 2026-09-10 - SSH agent 与 IdentityFile 接到 Connect
+
+- Capability rows: `SSH-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Connect 透出 useAgent 与 identityFilePaths；LoadIdentityFilePEMs 读第一个存在的 PEM；缺文件失败关闭；agent 不可达失败关闭。证书与 command 代理仍拒绝。
+- Go canonical owner: internal/terminal/ssh + cmd/netcatty/terminalService.go
+- Frontend adapter: terminalRoute.pickSSHConnectArgs
+- Electron owner affected: none
+- Preserved invariants: PEM 内存私钥路径未改；缺文件不退化成密码
+- Data/schema impact: none
+- Security impact: IdentityFile 仅读调用方给出的路径
+- Verification: go test ssh LoadIdentityFilePEMs 与 UseAgent；node mapper agent/identityFile
+- Platforms covered: Windows 契约；无活体 agent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 活体 agent 与 IdentityFile 矩阵后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: Windows named pipe agent 仍依赖本机 OpenSSH
+- Next safe slice: settings/vault 按域镜像
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L085 - 2026-09-10 - settings/vault 写入按域镜像到 Go profile
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: useSettingsState 与 useVaultState 写入走 hostStorageAdapter；profileDomainForKey 把 hosts/keys 写入 vault 域、session restore 写入 sessions 域。读取仍同步 localStorage。
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: hostStorageAdapter.ts + profileDomain.ts
+- Electron owner affected: none
+- Preserved invariants: Electron 无 profileClient 时只写 localStorage
+- Data/schema impact: Go profile 开始按域接收 vault 键
+- Security impact: 密钥仍先经现有加密路径再镜像
+- Verification: node profileDomain.test.ts；既有 hydrate 套件
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 渲染层改读 Go canonical 后
+- Documentation updated: remaining-work, capability matrix, ledger
+- Residual risks: 读取仍是 localStorage；无多窗口 CAS 证据
+- Next safe slice: 活体 MFA 服务器矩阵
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
