@@ -135,10 +135,11 @@ func main() {
 		profileStore,
 	)
 	pluginService := newPluginService()
-	filesystemService := newFilesystemService()
-	transferService := newTransferService()
-	shortcutService := newShortcutService()
-	syncService := newSyncService()
+		filesystemService := newFilesystemService()
+		transferService := newTransferService()
+		shortcutService := newShortcutService()
+		syncService := newSyncService()
+		diagnosticLogService := newDiagnosticLogService(filepath.Dir(profileStore.Path()))
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -172,7 +173,8 @@ func main() {
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
-	wailsApp.RegisterService(application.NewService(syncService))
+		wailsApp.RegisterService(application.NewService(syncService))
+		wailsApp.RegisterService(application.NewService(diagnosticLogService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	settingsWindowService := newSettingsWindowService(wailsApp)

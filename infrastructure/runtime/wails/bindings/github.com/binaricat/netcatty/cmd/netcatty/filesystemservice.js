@@ -20,6 +20,38 @@ export function ExtractArchive(archivePath, destinationRoot) {
 }
 
 /**
+ * StageAppend writes one base64-decoded chunk at offset. []byte bindings
+ * arrive base64-encoded through the Wails transport.
+ * @param {string} tempPath
+ * @param {number} offset
+ * @param {string} data
+ * @returns {$CancellablePromise<void>}
+ */
+export function StageAppend(tempPath, offset, data) {
+    return $Call.ByID(398939544, tempPath, offset, data);
+}
+
+/**
+ * StageBegin creates a temp file for a renderer-staged upload and returns
+ * its path. The renderer streams chunks via StageAppend.
+ * @param {string} fileName
+ * @returns {$CancellablePromise<string>}
+ */
+export function StageBegin(fileName) {
+    return $Call.ByID(3961908005, fileName);
+}
+
+/**
+ * StageDiscard removes a staged temp file. Only LemonSSH staging files are
+ * eligible so a renderer cannot delete arbitrary paths.
+ * @param {string} tempPath
+ * @returns {$CancellablePromise<void>}
+ */
+export function StageDiscard(tempPath) {
+    return $Call.ByID(3485451546, tempPath);
+}
+
+/**
  * StatPath stats one local path (read-only) so dropped files can be
  * classified before upload.
  * @param {string} path

@@ -19,9 +19,7 @@ import { uploadLocalFoldersProgressively } from "../../../lib/progressiveFolderU
 import {
   captureDropPayload,
   formatDropScanLabel,
-  getPathForFile,
   isDropScanCancelledError,
-  normalizeDroppedLocalPath,
   localTreeToDropEntries,
   materializeDropEntries,
   type DropEntry,
@@ -930,7 +928,9 @@ export const useSftpExternalOperations = (
                       skipAdmission: true as const,
                     };
 
+                    b.appendDiagnosticLog?.(`stream-start src=${JSON.stringify(transferOptions.sourcePath)} dst=${JSON.stringify(transferOptions.targetPath)} sftp=${resolvedTarget.sftpId}`);
                     const result = await b.startStreamTransfer!(transferOptions);
+                    b.appendDiagnosticLog?.(`stream-done src=${JSON.stringify(transferOptions.sourcePath)} result=${JSON.stringify(result)}`);
 
                     // Dead session → drop from pool so the next file opens fresh.
                     if (result?.error && isSessionError(new Error(result.error))) {
@@ -968,16 +968,6 @@ export const useSftpExternalOperations = (
       // Native tree expansion (listLocalTree) happens after the scanning UI is up.
       const dropPayload = captureDropPayload(dataTransfer);
       if (dropPayload.roots.length === 0 && dropPayload.filesFallback.length === 0) {
-        return [];
-      }
-
-      // Wails owns OS file drops via the native FilesDropped pipeline (real
-      // paths). WebView2 File objects carry no path, so a path-less HTML5 drop
-      // here would only create a duplicate task that fails on stream upload.
-      const hasPathBackedEntry =
-        dropPayload.roots.some((root) => !!root.localPath)
-        || dropPayload.filesFallback.some((file) => !!getPathForFile(file));
-      if (!hasPathBackedEntry && netcattyBridge.get()?.onFilesDropped) {
         return [];
       }
 
@@ -1885,7 +1875,9 @@ export const useSftpExternalOperations = (
       const entries: DropEntry[] = [];
       for (const droppedPath of paths) {
         const localPath = normalizeDroppedLocalPath(droppedPath);
+        bridge.appendDiagnosticLog?.(`drop-stat path=${JSON.stringify(localPath)}`);
         const stat = await bridge.statLocalPath(localPath);
+        bridge.appendDiagnosticLog?.(`drop-stat-ok size=${stat.size} isDir=${stat.isDir}`);
         entries.push({
           file: null,
           localPath,

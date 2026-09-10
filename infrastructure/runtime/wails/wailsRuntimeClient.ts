@@ -16,6 +16,7 @@ import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd
 import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/transferservice";
 import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
 import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
+import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -148,6 +149,9 @@ export interface WailsBindingDeps {
   filesystem?: {
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
     StatPath?: (path: string) => Promise<{ name: string; isDir: boolean; size: number }>;
+    StageBegin?: (fileName: string) => Promise<string>;
+    StageAppend?: (tempPath: string, offset: number, data: string) => Promise<unknown>;
+    StageDiscard?: (tempPath: string) => Promise<unknown>;
   };
   transfer?: {
     Enqueue?: (spec: unknown) => Promise<unknown>;
@@ -165,6 +169,9 @@ export interface WailsBindingDeps {
     Register?: (raw: string) => Promise<{ success: boolean; enabled?: boolean; error?: string; accelerator?: string }>;
     Unregister?: () => Promise<{ success: boolean }>;
     Status?: () => Promise<{ enabled: boolean; hotkey: string | null }>;
+  };
+  diagnosticLog?: {
+    Append?: (line: string) => Promise<unknown>;
   };
   openDataPlane?: typeof openDataPlaneSession;
 }
@@ -184,6 +191,7 @@ export interface WailsBindingDeps {
     transfer: transferService as unknown as WailsBindingDeps["transfer"],
     popup: popupWindowService as unknown as WailsBindingDeps["popup"],
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
+    diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -404,6 +412,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
+  const appendDiagnosticLog = (line: string) => {
+    try {
+      void bindings.diagnosticLog?.Append?.(line)?.catch(() => undefined);
+    } catch {
+      // diagnostics must never break the flow
+    }
+  };
   type FilesDroppedCallback = (payload: {
     filenames: string[];
     x: number;
@@ -505,6 +520,29 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return path || undefined;
     }) as unknown as NetcattyBridge["getPathForFile"],
     statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
+    appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
+    stageUploadFile: (async (file: File, transferId: string) => {
+      if (!bindings.filesystem?.StageBegin || !bindings.filesystem?.StageAppend || !bindings.filesystem?.StageDiscard) {
+        throw new Error("staged uploads are not available");
+      }
+      const tempPath = await bindings.filesystem.StageBegin(file.name || "upload.bin");
+      try {
+        const chunkSize = 4 * 1024 * 1024;
+        for (let offset = 0; offset < file.size; offset += chunkSize) {
+          const slice = file.slice(offset, offset + chunkSize);
+          const bytes = new Uint8Array(await slice.arrayBuffer());
+          await bindings.filesystem.StageAppend(tempPath, offset, bytesToBase64(bytes));
+        }
+        return tempPath;
+      } catch (error) {
+        await bindings.filesystem.StageDiscard(tempPath).catch(() => undefined);
+        throw error;
+      }
+    }) as unknown as NetcattyBridge["stageUploadFile"],
+    deleteTempFile: (async (filePath: string) => {
+      await bindings.filesystem?.StageDiscard?.(filePath);
+      return { success: true };
+    }) as unknown as NetcattyBridge["deleteTempFile"],
     onFilesDropped,
     startStreamTransfer: (async (options: {
       sourceType: "local" | "sftp";

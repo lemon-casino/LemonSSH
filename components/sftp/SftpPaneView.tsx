@@ -36,7 +36,6 @@ import { useSftpHostViewMode } from "../../application/state/sftp/sftpHostViewMo
 import { sftpListOrderStore } from "./hooks/useSftpListOrderStore";
 import { sftpTreeSelectionStore } from "../../application/state/sftp/sftpTreeSelectionStore";
 import { sftpClipboardUploadStore } from "./clipboardUpload";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 
 interface TreeReloadRequest {
   token: number;
@@ -507,20 +506,6 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
     }
   }, [callbacks, pane.connection, pane.id, pane.transferMutationToken, requestTreeReload, viewMode]);
 
-  // Wails native OS file drop: Go resolves real paths and emits the drop event
-  // with the element under the cursor. Only this pane's drop target handles it.
-  useEffect(() => {
-    const bridge = netcattyBridge.get();
-    if (!bridge?.onFilesDropped) return;
-    return bridge.onFilesDropped((payload) => {
-      if (payload.elementDetails?.attributes?.["data-drop-pane-id"] !== pane.id) return;
-      if (!pane.connection || pane.connection.isLocal) return;
-      const dropPath = payload.elementDetails.attributes?.["data-drop-path"];
-      const targetPath = dropPath || pane.connection.currentPath;
-      void callbacks.onUploadExternalPaths?.(payload.filenames, targetPath);
-    });
-  }, [callbacks, pane.connection, pane.id]);
-
   if (!pane.connection) {
     return (
       <SftpPaneEmptyState
@@ -541,9 +526,6 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
   return (
     <div
       ref={paneContainerRef}
-      id={`sftp-pane-drop-${pane.id}`}
-      data-file-drop-target="true"
-      data-drop-pane-id={pane.id}
       data-section="terminal-sftp-pane"
       data-sftp-pane-side={side}
       data-sftp-view-mode={viewMode}

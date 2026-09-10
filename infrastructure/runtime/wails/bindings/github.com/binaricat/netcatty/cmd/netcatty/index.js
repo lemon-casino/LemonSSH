@@ -5,6 +5,7 @@
 import * as AppLockService from "./applockservice.js";
 import * as CredentialService from "./credentialservice.js";
 import * as DeepLinkService from "./deeplinkservice.js";
+import * as DiagnosticLogService from "./diagnosticlogservice.js";
 import * as FilesystemService from "./filesystemservice.js";
 import * as ForwardService from "./forwardservice.js";
 import * as NetcattyService from "./netcattyservice.js";
@@ -24,6 +25,7 @@ export {
     AppLockService,
     CredentialService,
     DeepLinkService,
+    DiagnosticLogService,
     FilesystemService,
     ForwardService,
     NetcattyService,
