@@ -2190,3 +2190,29 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 自动登录 UI 未接；无真实设备证据
 - Next safe slice: Serial
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L063 - 2026-09-10 - Serial 接入同一数据面
+
+- Capability rows: `TERM-03.2`
+- Plan task: `P3-08`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: ListSerialPorts + StartSerial 打开端口并把读循环泵入 dataplane；
+  startSerialSession/listSerialPorts 接到 transitionBridge。
+- Go canonical owner: cmd/netcatty/terminalService.go + internal/terminal/serialport
+- Frontend adapter: wailsRuntimeClient
+- Electron owner affected: none
+- Preserved invariants: 配置校验 fail-closed；SSH/telnet/local 路径未改
+- Data/schema impact: none
+- Security impact: 仅本机串口设备
+- Verification: go test serialport + cmd/netcatty；runtimeSelection 绿
+- Platforms covered: Windows 10 22H2 枚举路径
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 真实设备矩阵后
+- Documentation updated: ledger
+- Residual risks: 无真实硬件证据；YMODEM 未接
+- Next safe slice: App Lock 最小 Go owner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

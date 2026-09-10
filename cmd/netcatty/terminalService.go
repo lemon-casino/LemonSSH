@@ -11,6 +11,7 @@ import (
 
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"github.com/binaricat/netcatty/internal/terminal/serialport"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/telnet"
 )
@@ -33,6 +34,8 @@ type terminalSession struct {
 	session   *gossh.Session
 	local     *pty.Session
 	telnet    *telnet.Client
+	serial    *serialport.Session
+	serialID  string
 	stdin     io.WriteCloser
 	bootstrap dataplane.RouteBootstrap
 }
@@ -237,6 +240,52 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 		return sessionID, nil
 	}
 
+	// ListSerialPorts enumerates OS serial devices.
+	func (s *TerminalService) ListSerialPorts() ([]serialport.Info, error) {
+		return serialport.NewOSBackend().List()
+	}
+
+	// StartSerial opens a serial port and streams bytes onto the data plane.
+	func (s *TerminalService) StartSerial(path string, baudRate int) (string, error) {
+		if path == "" {
+			return "", fmt.Errorf("serial path is required")
+		}
+		backend := serialport.NewOSBackend()
+		config := serialport.DefaultConfig(path)
+		if baudRate > 0 {
+			config.BaudRate = baudRate
+		}
+		if err := backend.Open(config); err != nil {
+			return "", err
+		}
+		s.mu.Lock()
+		s.counter++
+		sessionID := fmt.Sprintf("serial-%d", s.counter)
+		s.mu.Unlock()
+		bootstrap, err := s.controller.Open(sessionID)
+		if err != nil {
+			_ = backend.Close(path)
+			return "", err
+		}
+		s.mu.Lock()
+		s.sessions[sessionID] = &terminalSession{serial: backend, serialID: path, bootstrap: bootstrap}
+		s.mu.Unlock()
+		go func() {
+			buf := make([]byte, 4096)
+			for {
+				n, readErr := backend.Read(path, buf)
+				if n > 0 {
+					s.dp.Publish(sessionID, buf[:n])
+				}
+				if readErr != nil {
+					s.Close(sessionID)
+					return
+				}
+			}
+		}()
+		return sessionID, nil
+	}
+
 	// Bootstrap returns the route credentials the renderer needs to attach its
 // data/urgent WebSockets for a session.
 func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
@@ -266,6 +315,9 @@ func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 				return 0, err
 			}
 			return len(data), nil
+		}
+		if term.serial != nil {
+			return term.serial.Write(term.serialID, data)
 		}
 		return term.stdin.Write(data)
 	}
@@ -316,6 +368,9 @@ func (s *TerminalService) Close(sessionID string) error {
 		if term.telnet != nil {
 			_ = term.telnet.Close()
 		}
+		if term.serial != nil {
+			_ = term.serial.Close(term.serialID)
+		}
 		if term.session != nil {
 		term.session.Close()
 	}
@@ -348,6 +403,12 @@ func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte 
 		}
 		if term.telnet != nil {
 			if err := term.telnet.Send(payload); err != nil {
+				return nil
+			}
+			return []byte("ok")
+		}
+		if term.serial != nil {
+			if _, err := term.serial.Write(term.serialID, payload); err != nil {
 				return nil
 			}
 			return []byte("ok")

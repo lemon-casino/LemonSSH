@@ -27,8 +27,9 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
   // Electron-owned capabilities of the same ports still fail closed.
   assert.equal(typeof client.terminal.startLocalSession, "function");
   assert.equal(typeof client.terminal.startTelnetSession, "function");
+  assert.equal(typeof client.terminal.startSerialSession, "function");
   assert.throws(
-    () => (client.terminal as unknown as Record<string, unknown>).startSerialSession,
+    () => (client.terminal as unknown as Record<string, unknown>).startMoshSession,
     /not migrated to the Wails runtime yet/,
   );
   assert.throws(() => client.files.readClipboardText);
@@ -38,7 +39,7 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
 test("wails transition bridge leaves unmigrated methods undefined for optional chaining", () => {
   const client = createWailsRuntimeClient();
   const bridge = client.transitionBridge as unknown as Record<string, unknown>;
-  assert.equal(bridge.startSerialSession, undefined);
+  assert.equal(bridge.startMoshSession, undefined);
   assert.equal(bridge.setLanguage, undefined);
   assert.doesNotThrow(() => (bridge.setLanguage as undefined)?.("en"));
 });

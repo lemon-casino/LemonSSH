@@ -119,6 +119,15 @@ func (s *Session) Open(config Config) error {
 	return nil
 }
 
+// Read reads from an open port.
+func (s *Session) Read(portName string, data []byte) (int, error) {
+	port, err := s.get(portName)
+	if err != nil {
+		return 0, err
+	}
+	return port.Read(data)
+}
+
 // Write sends data to an open port.
 func (s *Session) Write(portName string, data []byte) (int, error) {
 	port, err := s.get(portName)

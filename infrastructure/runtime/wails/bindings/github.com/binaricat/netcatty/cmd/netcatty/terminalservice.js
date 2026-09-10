@@ -17,6 +17,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as dataplane$0 from "../../internal/terminal/dataplane/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as serialport$0 from "../../internal/terminal/serialport/models.js";
 
 /**
  * Bootstrap returns the route credentials the renderer needs to attach its
@@ -55,6 +58,16 @@ export function Close(sessionID) {
  */
 export function Connect(host, port, username, password, privateKey, passphrase, cols, rows) {
     return $Call.ByID(4197416449, host, port, username, password, privateKey, passphrase, cols, rows);
+}
+
+/**
+ * ListSerialPorts enumerates OS serial devices.
+ * @returns {$CancellablePromise<serialport$0.Info[]>}
+ */
+export function ListSerialPorts() {
+    return $Call.ByID(663993127).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
 }
 
 /**
@@ -99,6 +112,16 @@ export function StartLocal(shell, cwd, cols, rows) {
 }
 
 /**
+ * StartSerial opens a serial port and streams bytes onto the data plane.
+ * @param {string} path
+ * @param {number} baudRate
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartSerial(path, baudRate) {
+    return $Call.ByID(2462094395, path, baudRate);
+}
+
+/**
  * StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
  * data plane as SSH/local PTY.
  * @param {string} host
@@ -123,3 +146,5 @@ export function Write(sessionID, data) {
 
 // Private type creation functions
 const $$createType0 = dataplane$0.RouteBootstrap.createFrom;
+const $$createType1 = serialport$0.Info.createFrom;
+const $$createType2 = $Create.Array($$createType1);
