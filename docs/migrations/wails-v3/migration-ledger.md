@@ -2080,3 +2080,32 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无活体 SSH 绘制证据；urgent 通道未接到 UI
 - Next safe slice: 活体 SSH 证据（不可伪造 verified）
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L059 - 2026-09-10 - 本地 PTY 接入同一数据面
+
+- Capability rows: `TERM-02`
+- Plan task: `P3-02`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: TerminalService.StartLocal 启动本机 ConPTY/Unix PTY，输出泵入与
+  SSH 相同的 loopback 数据面；Write/Resize/Signal/Close/urgent 按会话类型
+  分派；前端 startLocalSession 走同一套 onSessionData 附着。
+- Go canonical owner: `cmd/netcatty/terminalService.go` + `internal/terminal/pty`
+- Frontend adapter: wailsRuntimeClient.startLocalSession
+- Electron owner affected: none
+- Preserved invariants: generation fencing 仍由 pty.Session 执行；数据面
+  路由令牌一次性；SSH 会话路径未改
+- Data/schema impact: none
+- Security impact: 本地 PTY 不走网络；urgent 仍只写 stdin
+- Verification: `go test -race ./internal/terminal/pty/` 绿；runtime 套件
+  覆盖 startLocalSession 附着数据面
+- Platforms covered: Windows 10 22H2（本机编译）；Unix 后端已有既有测试
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: 三平台 shell 矩阵后才能 verified
+- Documentation updated: capability matrix (TERM-02 row)
+- Residual risks: 无 Unicode/reload 广度矩阵；cmd.exe 活体绘制未单独记录
+- Next safe slice: 活体 SSH/SFTP 证据（不可伪造 verified）
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

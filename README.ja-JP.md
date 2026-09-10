@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Electron から Go + Wails v3 ランタイムへ移行中の、美しく高機能な SSH ワークスペース。<br/>
+  Go + Wails v3 と React/TypeScript フロントエンドで動く SSH ワークスペース。<br/>
   🔥 AI エージェント内蔵 · 画面分割ターミナル · Vault ビュー · SFTP ワークフロー · カスタムテーマ —— すべて揃っています。
 </p>
 
@@ -17,33 +17,11 @@
   <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=for-the-badge"></a>
   &nbsp;
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-green?style=for-the-badge"></a>
-  &nbsp;
-  <a href="docs/migrations/wails-v3/README.md"><img alt="Migration" src="https://img.shields.io/badge/Migration-Wails%20v3%20%2B%20Go-informational?style=for-the-badge&logo=go"></a>
 </p>
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · 日本語 · <a href="README.md">English</a>
 </p>
-
----
-
-## 移行状況（Electron → Go + Wails v3）
-
-このリポジトリは Netcatty プロジェクトの後継です。React/TypeScript フロントエンド、
-ユーザーデータ、機能セットを維持したまま、ランタイムを Electron/Node.js から
-**Go + Wails v3** へ移行しています。
-
-| 領域 | 状態 |
-| --- | --- |
-| 移行ガバナンス（ドキュメント・レジャー・CI エビデンスワークフロー） | ✅ 整備済み |
-| シェル非依存フロントエンドポート + Wails スケルトン + 基本コントラクト | ✅ 完了 |
-| Go トランザクション プロファイルストア・ライターリース・資格情報プロバイダー | ✅ コア完了 |
-| 暗号化マイグレーションバンドル（エクスポート/インポート/ロールバック） | ✅ コア完了 |
-| ターミナル バイナリデータプレーン・ローカル PTY・SSH ダイヤル/プール・SFTP・転送 | ✅ コア完了 |
-| 3 プラットフォーム実機エビデンス・ドメイン別永続化切り替え | 🚧 収集中 |
-| Telnet/Serial/Mosh/ET/ZMODEM・システム機能・プラグイン v2・同期・AI | ⏳ 順番待ち |
-
-権威あるステータス：[capability-matrix.md](docs/migrations/wails-v3/capability-matrix.md) · レジャー：[migration-ledger.md](docs/migrations/wails-v3/migration-ledger.md) · 計画：[implementation-plan.md](docs/migrations/wails-v3/implementation-plan.md)。
 
 ---
 
@@ -79,9 +57,18 @@
 ドラッグ & ドロップ、転送センター、一時停止/再開、ディレクトリアップロード、アーカイブ展開、
 内蔵コードエディターに対応したデュアルペインブラウザー。
 
+### 🔌 ポートフォワーディング
+
+ローカル・リモート・ダイナミック（SOCKS5）トンネル。ルール単位のライフサイクル、
+ステータススナップショット、トレイからのワンクリック切替。
+
 ### 🤖 AI エージェント（Catty）
 
 自然言語によるサーバー管理、リアルタイム診断、マルチホストオーケストレーション、ワンクリックの複雑な操作。
+
+### 🧩 プラグインシステム
+
+サンドボックスプラグイン、宣言的 UI スキーマ、パーミッションブローカー、ターミナル/SFTP 拡張点。
 
 ### 🎨 パーソナライズ
 
@@ -116,36 +103,23 @@
 | macOS | macOS 12 Monterey+（Intel と Apple Silicon） |
 | Linux | GTK 4.14+ / WebKitGTK（Ubuntu 22.04+、Debian 12+、Fedora 38+）、X11/Wayland |
 
-対応ターゲットは [release-target-matrix.md](docs/migrations/wails-v3/release-target-matrix.md)
-の決定 `WV3-011`–`WV3-013` により凍結されています。
-
 ---
 
 <a name="はじめに"></a>
 # はじめに
 
-現在の安定リリースキャリアは Electron ビルドです。Wails/Go シェルは機能単位で段階的に展開中です。
-
 ### 前提条件
 
 - Node.js 22+ と npm
-- Go 1.25+（Wails シェルに必要）
+- Go 1.25+
 - Windows 10 22H2+ / macOS 12+ / GTK 4.14+ の Linux デスクトップ
 
 ### 開発
 
 ```bash
-# リポジトリをクローン
 git clone git@github.com:lemon-casino/LemonSSH.git
 cd LemonSSH
-
-# 依存関係をインストール
 npm install
-
-# 開発モードを起動（Vite + Electron —— 安定シェル）
-npm run dev
-
-# または Wails/Go シェルを実行（同じフロントエンドを読み込み）
 npm run wails:dev
 ```
 
@@ -155,22 +129,10 @@ npm run wails:dev
 # ビルドとパッケージ
 
 ```bash
-# Electron 本番ビルド（安定シェル）
-npm run build
-npm run pack:win     # Windows（NSIS インストーラー）
-npm run pack:mac     # macOS（DMG + ZIP）
-npm run pack:linux   # Linux（AppImage + DEB + RPM）
-
-# Wails/Go シェル：フロントエンドを Go バイナリに組み込む
-npm run wails:build  # 出力：bin/netcatty-wails.exe
-
-# 移行と Go のチェック
-npm run check:migration-docs          # 移行ガバナンス
-npm run check:migration-electron-baseline
-npm run check:contracts               # Go 基本コントラクト + TS コード生成ドリフト
-npm run check:profile-store           # トランザクション プロファイルストア（race）
-npm run check:credentials             # プラットフォームキーリングプロバイダー
-npm run check:terminal-dataplane-core # ターミナル フレームコーデック + ルートコントローラー
+npm run wails:build
+node scripts/package-wails.mjs
+npm test
+go test ./...
 ```
 
 ---
@@ -178,31 +140,22 @@ npm run check:terminal-dataplane-core # ターミナル フレームコーデッ
 <a name="技術スタック"></a>
 # 技術スタック
 
-| カテゴリ | 安定ベースライン（Electron） | 目標ランタイム（Wails v3 + Go） |
-|----------|---------------------------|--------------------------------|
-| シェル | Electron 40 | Wails v3 (beta.12) |
-| フロントエンド | React 19, TypeScript, Vite 7 | React 19, TypeScript, Vite 7（変更なし） |
-| ターミナル | xterm.js 5, node-pty, MessagePort | xterm.js 5, Go ConPTY/Unix PTY, バイナリループバック WebSocket データプレーン |
-| SSH/SFTP | ssh2, ssh2-sftp-client | golang.org/x/crypto/ssh, pkg/sftp |
-| 永続化 | localStorage | Go トランザクション プロファイルストア（bbolt） |
-| 資格情報 | Electron safeStorage | OS キーリング（Windows 資格情報マネージャー / macOS Keychain / Linux Secret Service） |
-| スタイリング | Tailwind CSS 4 | Tailwind CSS 4（変更なし） |
+| カテゴリ | 技術 |
+|----------|------------|
+| シェル | Wails v3 + Go |
+| フロントエンド | React 19, TypeScript, Vite 7 |
+| ターミナル | xterm.js 5, Go ConPTY/Unix PTY, バイナリループバック WebSocket データプレーン |
+| SSH/SFTP | golang.org/x/crypto/ssh, pkg/sftp |
+| 永続化 | Go トランザクション プロファイルストア（bbolt） |
+| 資格情報 | OS キーリング（Windows 資格情報マネージャー / macOS Keychain / Linux Secret Service） |
+| スタイリング | Tailwind CSS 4 |
 
 ---
 
 <a name="コントリビューション"></a>
 # コントリビューション
 
-コントリビューションを歓迎します！Pull Request をお気軽にどうぞ。
-
-1. リポジトリをフォーク
-2. フィーチャーブランチを作成（`git checkout -b feature/amazing-feature`）
-3. 変更をコミット（`git commit -m 'Add some amazing feature'`）
-4. ブランチをプッシュ（`git push origin feature/amazing-feature`）
-5. Pull Request を作成
-
-アーキテクチャの概要とコーディング規約は [AGENTS.md](AGENTS.md)、
-移行ワークフローは [docs/migrations/wails-v3/README.md](docs/migrations/wails-v3/README.md) を参照してください。
+コントリビューションを歓迎します。アーキテクチャ規約は [AGENTS.md](AGENTS.md) を参照してください。
 
 ---
 

@@ -25,8 +25,9 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
   assert.equal(typeof client.transitionBridge.startSSHSession, "function");
   assert.equal(typeof client.transitionBridge.onSessionData, "function");
   // Electron-owned capabilities of the same ports still fail closed.
+  assert.equal(typeof client.terminal.startLocalSession, "function");
   assert.throws(
-    () => (client.terminal as unknown as Record<string, unknown>).startLocalSession,
+    () => (client.terminal as unknown as Record<string, unknown>).startTelnetSession,
     /not migrated to the Wails runtime yet/,
   );
   assert.throws(() => client.files.readClipboardText);
@@ -36,7 +37,7 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
 test("wails transition bridge fails closed on call, not on access", () => {
   const client = createWailsRuntimeClient();
   const bridge = client.transitionBridge;
-  const method = (bridge as unknown as Record<string, () => unknown>).startLocalSession;
+  const method = (bridge as unknown as Record<string, () => unknown>).startTelnetSession;
   assert.equal(typeof method, "function");
   assert.throws(() => method());
 });

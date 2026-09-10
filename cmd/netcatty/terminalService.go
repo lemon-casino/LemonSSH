@@ -10,6 +10,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/netcatty/internal/terminal/pty"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 )
 
@@ -29,6 +30,7 @@ type TerminalService struct {
 type terminalSession struct {
 	transport *ssh.Transport
 	session   *gossh.Session
+	local     *pty.Session
 	stdin     io.WriteCloser
 	bootstrap dataplane.RouteBootstrap
 }
@@ -144,6 +146,49 @@ func (s *TerminalService) Connect(host string, port uint16, username, password s
 	return sessionID, nil
 }
 
+// StartLocal launches a local PTY and streams it on the same data plane as SSH.
+func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (string, error) {
+	if cols == 0 {
+		cols = 80
+	}
+	if rows == 0 {
+		rows = 24
+	}
+	s.mu.Lock()
+	s.counter++
+	sessionID := fmt.Sprintf("local-%d", s.counter)
+	s.mu.Unlock()
+
+	local := pty.NewSession(pty.BuildConfig(sessionID, shell, cwd, nil, nil, cols, rows))
+	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
+		return "", fmt.Errorf("local pty: %w", err)
+	}
+	bootstrap, err := s.controller.Open(sessionID)
+	if err != nil {
+		_ = local.Close()
+		return "", fmt.Errorf("open route: %w", err)
+	}
+
+	s.mu.Lock()
+	s.sessions[sessionID] = &terminalSession{local: local, bootstrap: bootstrap}
+	s.mu.Unlock()
+
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := local.ReadOnce(buf)
+			if n > 0 {
+				s.dp.Publish(sessionID, buf[:n])
+			}
+			if readErr != nil {
+				s.Close(sessionID)
+				return
+			}
+		}
+	}()
+	return sessionID, nil
+}
+
 // Bootstrap returns the route credentials the renderer needs to attach its
 // data/urgent WebSockets for a session.
 func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
@@ -165,6 +210,9 @@ func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 	if !ok {
 		return 0, fmt.Errorf("session %q not found", sessionID)
 	}
+	if term.local != nil {
+		return term.local.Write(term.local.Generation(), data)
+	}
 	return term.stdin.Write(data)
 }
 
@@ -174,6 +222,9 @@ func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
+	if term.local != nil {
+		return term.local.Resize(term.local.Generation(), cols, rows)
+	}
 	return term.session.WindowChange(int(rows), int(cols))
 }
 
@@ -182,6 +233,9 @@ func (s *TerminalService) Signal(sessionID, signal string) error {
 	term, ok := s.lookup(sessionID)
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
+	}
+	if term.local != nil {
+		return term.local.Interrupt(term.local.Generation())
 	}
 	_, err := term.session.SendRequest("signal", false, gossh.Marshal(struct{ Name string }{signal}))
 	return err
@@ -196,8 +250,15 @@ func (s *TerminalService) Close(sessionID string) error {
 	if !ok {
 		return nil
 	}
-	term.session.Close()
-	term.transport.Close()
+	if term.local != nil {
+		_ = term.local.Close()
+	}
+	if term.session != nil {
+		term.session.Close()
+	}
+	if term.transport != nil {
+		term.transport.Close()
+	}
 	_ = s.controller.Close(sessionID)
 	s.dp.DropOutput(sessionID)
 	return nil
@@ -214,6 +275,15 @@ func (s *TerminalService) lookup(sessionID string) (*terminalSession, bool) {
 func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte {
 	term, ok := s.lookup(sessionID)
 	if !ok {
+		return nil
+	}
+	if term.local != nil {
+		if _, err := term.local.Write(term.local.Generation(), payload); err != nil {
+			return nil
+		}
+		return []byte("ok")
+	}
+	if term.stdin == nil {
 		return nil
 	}
 	if _, err := term.stdin.Write(payload); err != nil {

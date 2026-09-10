@@ -10,6 +10,7 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
   return {
     terminal: {
       Connect: async () => "term-1",
+      StartLocal: async () => "local-1",
       Write: () => 0,
       Resize: () => undefined,
       Signal: () => undefined,
@@ -66,6 +67,13 @@ test("transitionBridge closeSession disposes the data plane", async () => {
   await client.transitionBridge.startSSHSession({ hostname: "h", username: "u" });
   await client.transitionBridge.closeSession("term-1");
   assert.equal(disposed, true);
+});
+
+test("startLocalSession attaches the data plane", async () => {
+  const bindings = stubBindings();
+  const client = createWailsRuntimeClient(bindings);
+  const id = await client.transitionBridge.startLocalSession?.({ shell: "cmd.exe" });
+  assert.equal(id, "local-1");
 });
 
 test("onSessionData fans out chunks from the data plane", async () => {

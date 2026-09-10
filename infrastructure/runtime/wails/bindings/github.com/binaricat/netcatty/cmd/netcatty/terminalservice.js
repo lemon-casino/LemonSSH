@@ -85,6 +85,18 @@ export function Signal(sessionID, signal) {
 }
 
 /**
+ * StartLocal launches a local PTY and streams it on the same data plane as SSH.
+ * @param {string} shell
+ * @param {string} cwd
+ * @param {number} cols
+ * @param {number} rows
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartLocal(shell, cwd, cols, rows) {
+    return $Call.ByID(3430581078, shell, cwd, cols, rows);
+}
+
+/**
  * Write sends raw stdin bytes to the remote shell.
  * @param {string} sessionID
  * @param {string} data

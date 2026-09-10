@@ -56,6 +56,7 @@ function missingBridgeMethod(property: string | symbol): never {
 export interface WailsBindingDeps {
   terminal: {
     Connect: (...args: unknown[]) => Promise<string>;
+    StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
     Write: (...args: unknown[]) => unknown;
     Resize: (...args: unknown[]) => unknown;
     Signal: (...args: unknown[]) => unknown;
@@ -125,6 +126,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return sessionID;
     });
   };
+  const startLocalSession = async (options: {
+    shell?: string;
+    cwd?: string;
+    cols?: number;
+    rows?: number;
+  } = {}) => {
+    if (!bindings.terminal.StartLocal) missingBridgeMethod("startLocalSession");
+    const sessionID = await bindings.terminal.StartLocal(
+      options.shell ?? "",
+      options.cwd ?? "",
+      options.cols ?? 80,
+      options.rows ?? 24,
+    );
+    await attachDataPlane(sessionID);
+    return sessionID;
+  };
   const writeToSession = (sessionID: string, data: string) =>
     bindings.terminal.Write(sessionID, bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
   const resizeSession = (sessionID: string, cols: number, rows: number) =>
@@ -187,6 +204,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
+    startLocalSession,
     writeToSession,
     resizeSession,
     interruptSession,
@@ -219,6 +237,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     script: unimplemented("script"),
     terminal: portWith("terminal", {
       startSSHSession,
+      startLocalSession,
       writeToSession,
       resizeSession,
       interruptSession,

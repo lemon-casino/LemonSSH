@@ -156,6 +156,9 @@ func (s *Session) readOnce(buf []byte) (int, error) {
 	return process.Read(buf)
 }
 
+// ReadOnce is the exported form of readOnce for the Wails facade pump.
+func (s *Session) ReadOnce(buf []byte) (int, error) { return s.readOnce(buf) }
+
 func (s *Session) Close() error {
 	s.mu.Lock()
 	if s.closed {
