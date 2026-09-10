@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"github.com/wailsapp/wails/v3/pkg/icons"
 
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
@@ -24,6 +23,9 @@ import (
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+//go:embed frontend/dist/icon.png
+var appIcon []byte
 
 // version is injected at build time via -ldflags once a release pipeline
 // exists (P6-02). Until then it reports the skeleton version.
@@ -101,9 +103,10 @@ func main() {
 		sftpService := NewSFTPService(sshPool, knownHosts)
 		forwardService := NewForwardService(sshPool, knownHosts)
 
-	wailsApp := application.New(application.Options{
+		wailsApp := application.New(application.Options{
 		Name:        "LemonSSH",
 		Description: "LemonSSH",
+		Icon:        appIcon,
 		Services: []application.Service{
 			application.NewService(service),
 			application.NewService(profileService),
@@ -132,7 +135,7 @@ func main() {
 
 		// System Tray (P4-03)
 	tray := wailsApp.SystemTray.New()
-	tray.SetIcon(icons.SystrayLight)
+		tray.SetIcon(appIcon)
 		tray.SetTooltip("LemonSSH")
 		trayMenu := wailsApp.NewMenu()
 		trayMenu.Add("Show LemonSSH").OnClick(func(*application.Context) {
