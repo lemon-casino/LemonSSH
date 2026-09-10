@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
@@ -242,13 +243,15 @@ func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, er
 		return 0, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
-	if err != nil {
-		return 0, err
-	}
-		reader, err := os.Open(localPath)
+		resolved, err := sftp.NormalizePath(".", remotePath)
 		if err != nil {
-			// %q exposes invisible characters that a plain %s path hides.
+			return 0, err
+		}
+		// Transient drag sources (chat apps, browser download popups, archive
+		// previews) can delete or rename the file between drop and read; give
+		// the path one short retry before failing.
+		reader, err := openLocalForUpload(localPath)
+		if err != nil {
 			return 0, fmt.Errorf("upload open %q: %w", localPath, err)
 		}
 	defer reader.Close()
@@ -258,6 +261,22 @@ func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, er
 	}
 	defer writer.Close()
 	return io.Copy(writer, reader)
+}
+
+// openLocalForUpload opens the local source, retrying once after a short
+// delay because transient drag sources race the upload pipeline.
+func openLocalForUpload(localPath string) (*os.File, error) {
+	reader, err := os.Open(localPath)
+	if err == nil {
+		return reader, nil
+	}
+	time.Sleep(400 * time.Millisecond)
+	reader, retryErr := os.Open(localPath)
+	if retryErr != nil {
+		// %q exposes invisible characters that a plain %s path hides.
+		return nil, err
+	}
+	return reader, nil
 }
 
 // ExtractArchive downloads a remote zip, extracts it locally with zip-slip
