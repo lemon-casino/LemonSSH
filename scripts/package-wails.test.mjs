@@ -11,6 +11,7 @@ import {
   helperResourcePath,
   parseArgs,
   purityInventory,
+  shouldUseShell,
   windowsGuiLdflags,
 } from "./package-wails.mjs";
 
@@ -80,6 +81,13 @@ test("purityInventory never claims a signed installer", () => {
   assert.deepEqual(inventory.installerFormats, []);
   assert.ok(inventory.electronMarkers.includes("electron"));
   assert.ok(inventory.notes.some((note) => note.includes("P8-01")));
+});
+
+test("shouldUseShell runs npm through the shell on Windows", () => {
+  assert.equal(shouldUseShell("npm", "win32"), true);
+  assert.equal(shouldUseShell("npm", "linux"), true);
+  assert.equal(shouldUseShell("go", "linux"), false);
+  assert.equal(shouldUseShell("go", "win32"), true);
 });
 
 test("helperResourcePath follows the fetch-mosh layout", () => {

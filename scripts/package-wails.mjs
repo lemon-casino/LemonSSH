@@ -106,10 +106,15 @@ export function hostTarget() {
   return { goos, goarch };
 }
 
+export function shouldUseShell(command, platform = process.platform) {
+  // npm is npm.cmd on Windows; spawnSync without a shell returns status null.
+  return command === "npm" || platform === "win32";
+}
+
 function run(command, args, options = {}) {
   // npm needs the shell on Windows (npm.cmd); string commands are always run
   // through the shell so quoting stays explicit and verbatim.
-  const { shell = command !== "npm", ...rest } = options;
+  const { shell = shouldUseShell(command), ...rest } = options;
   const result = Array.isArray(args)
     ? spawnSync(command, args, { stdio: "inherit", shell, ...rest })
     : spawnSync(command, { stdio: "inherit", shell: true, ...rest });
