@@ -61,6 +61,7 @@
     "wails:winres": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate syso -icon build/lemonssh.ico -manifest build/windows/lemonssh.manifest -arch amd64 -out cmd/netcatty/rsrc_windows_amd64.syso",
     "wails:build": "node scripts/wails-build.mjs",
     "package:wails": "node scripts/package-wails.mjs",
+    "package:installers": "node scripts/package-installer.mjs",
     "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",
     "check:migration-docs": "node scripts/migration/check-wails-migration-docs.mjs && node --test scripts/migration/check-wails-migration-docs.test.mjs",
     "check:wails-shell-probe": "npm --prefix experiments/wails-shell-probe/frontend ci && npm --prefix experiments/wails-shell-probe/frontend run build && go -C experiments/wails-shell-probe test ./...",
