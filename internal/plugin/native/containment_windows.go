@@ -11,7 +11,7 @@ import (
 )
 
 // applyContainment creates a new process group so CTRL_BREAK can target the
-// tree, and prepares a job object that kills every descendant on close.
+// tree. The job object that kills descendants is assigned after Start.
 func applyContainment(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: windows.CREATE_NEW_PROCESS_GROUP,
@@ -32,13 +32,17 @@ func killTree(cmd *exec.Cmd) error {
 	return cmd.Process.Kill()
 }
 
-func assignJob(cmd *exec.Cmd) error {
+// assignJob puts the child in a job with KILL_ON_JOB_CLOSE and returns a
+// cleanup that closes the job handle. Closing the handle is what reaps
+// descendants; leaking it would leave them alive after Stop.
+func assignJob(cmd *exec.Cmd) (func() error, error) {
+	noop := func() error { return nil }
 	if cmd.Process == nil {
-		return nil
+		return noop, nil
 	}
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var info windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION
 	info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
@@ -49,28 +53,17 @@ func assignJob(cmd *exec.Cmd) error {
 		uint32(unsafe.Sizeof(info)),
 	); err != nil {
 		_ = windows.CloseHandle(job)
-		return err
+		return nil, err
 	}
 	process, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(cmd.Process.Pid))
 	if err != nil {
 		_ = windows.CloseHandle(job)
-		return err
+		return nil, err
 	}
 	defer windows.CloseHandle(process)
 	if err := windows.AssignProcessToJobObject(job, process); err != nil {
 		_ = windows.CloseHandle(job)
-		return err
+		return nil, err
 	}
-	// The job handle is intentionally leaked to the process lifetime: closing
-	// it would kill the child via KILL_ON_JOB_CLOSE. Stop/killTree still
-	// terminate the root; the job reaps descendants when the last handle dies
-	// with the host process.
-	runtimeKeepJob(job)
-	return nil
-}
-
-var keptJobs []windows.Handle
-
-func runtimeKeepJob(job windows.Handle) {
-	keptJobs = append(keptJobs, job)
+	return func() error { return windows.CloseHandle(job) }, nil
 }

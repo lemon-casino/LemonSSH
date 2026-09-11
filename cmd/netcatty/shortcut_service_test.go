@@ -28,3 +28,23 @@ func TestShortcutRegisterFailsClosedWithoutNativeHotkeys(t *testing.T) {
 		t.Fatal("failure must explain that native hotkeys are unavailable")
 	}
 }
+
+func TestOSProtocolRegistrationFailsClosed(t *testing.T) {
+	result := newDeepLinkService().RegisterOSProtocol()
+	if result.Success {
+		t.Fatal("must not claim OS protocol ownership without a signed installer")
+	}
+	if result.Error == "" {
+		t.Fatal("failure must name the missing installer hook")
+	}
+}
+
+func TestBiometricUnlockFailsClosed(t *testing.T) {
+	result := newAppLockService().UnlockWithBiometrics()
+	if result.Success {
+		t.Fatal("must not claim Hello or Touch ID success")
+	}
+	if result.Error == "" {
+		t.Fatal("failure must name the missing biometric owner")
+	}
+}

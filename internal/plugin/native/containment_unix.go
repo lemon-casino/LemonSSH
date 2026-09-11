@@ -30,4 +30,6 @@ func killTree(cmd *exec.Cmd) error {
 	return nil
 }
 
-func assignJob(*exec.Cmd) error { return nil }
+func assignJob(*exec.Cmd) (func() error, error) {
+	return func() error { return nil }, nil
+}

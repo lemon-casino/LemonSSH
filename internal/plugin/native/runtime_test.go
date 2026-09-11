@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
@@ -261,4 +262,87 @@ func TestCallOnMissingProcess(t *testing.T) {
 	if !errors.Is(err, ErrNotRunning) {
 		t.Fatalf("got %v", err)
 	}
+}
+
+const descendantHelper = `package main
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"time"
+)
+func main() {
+	if os.Getenv("NETCATTY_DESCENDANT") == "1" {
+		time.Sleep(30 * time.Second)
+		return
+	}
+	child := exec.Command(os.Args[0])
+	child.Env = append(os.Environ(), "NETCATTY_DESCENDANT=1")
+	if err := child.Start(); err != nil {
+		os.Exit(1)
+	}
+	_ = os.WriteFile(filepath.Join(os.Getenv("NETCATTY_PID_FILE"), "child.pid"), []byte(strconv.Itoa(child.Process.Pid)), 0600)
+	time.Sleep(30 * time.Second)
+}
+`
+
+func TestStopReapsDescendant(t *testing.T) {
+	path, digest := helperBinary(t, descendantHelper)
+	pidDir := t.TempDir()
+	r := NewRuntime(nil, 4)
+	if err := r.Start(context.Background(), Spec{
+		PluginID:   "p1",
+		BinaryPath: path,
+		SHA256:     digest,
+		Env:        map[string]string{"NETCATTY_PID_FILE": pidDir},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var childPID int
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		data, err := os.ReadFile(filepath.Join(pidDir, "child.pid"))
+		if err == nil && len(data) > 0 {
+			for _, c := range data {
+				if c >= '0' && c <= '9' {
+					childPID = childPID*10 + int(c-'0')
+				}
+			}
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if childPID == 0 {
+		t.Fatal("descendant pid was not recorded")
+	}
+	if err := r.Stop("p1"); err != nil && !errors.Is(err, ErrNotRunning) {
+		t.Log(err)
+	}
+	deadline = time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if !processAlive(childPID) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("descendant %d still alive after Stop", childPID)
+}
+
+func processAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("tasklist", "/FI", "PID eq "+strconv.Itoa(pid), "/NH").Output()
+		if err != nil {
+			return false
+		}
+		return bytes.Contains(out, []byte(strconv.Itoa(pid)))
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return proc.Signal(os.Interrupt) == nil
 }

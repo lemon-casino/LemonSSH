@@ -8,6 +8,7 @@ import {
   artifactBasename,
   buildLdflags,
   checksumEntries,
+  helperResourcePath,
   parseArgs,
   purityInventory,
   windowsGuiLdflags,
@@ -79,4 +80,10 @@ test("purityInventory never claims a signed installer", () => {
   assert.deepEqual(inventory.installerFormats, []);
   assert.ok(inventory.electronMarkers.includes("electron"));
   assert.ok(inventory.notes.some((note) => note.includes("P8-01")));
+});
+
+test("helperResourcePath follows the fetch-mosh layout", () => {
+  assert.equal(helperResourcePath("windows", "amd64", "mosh"), path.join("resources", "mosh", "win32-x64", "mosh-client.exe"));
+  assert.equal(helperResourcePath("darwin", "arm64", "mosh"), path.join("resources", "mosh", "darwin-universal", "mosh-client"));
+  assert.equal(helperResourcePath("linux", "arm64", "et"), path.join("resources", "et", "linux-arm64", "et"));
 });

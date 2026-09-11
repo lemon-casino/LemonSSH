@@ -4,7 +4,8 @@
 // release-evidence workflow. Native builds keep the platform default CGO
 // setting; cross builds are qualification binaries only (CGO disabled).
 import { createHash } from "node:crypto";
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { copyFile, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -86,6 +87,17 @@ export async function checksumEntries(paths) {
   return entries;
 }
 
+export function helperResourcePath(goos, goarch, kind = "mosh") {
+  const name = kind === "et"
+    ? (goos === "windows" ? "et.exe" : "et")
+    : (goos === "windows" ? "mosh-client.exe" : "mosh-client");
+  let platformDir;
+  if (goos === "windows") platformDir = goarch === "arm64" ? "win32-arm64" : "win32-x64";
+  else if (goos === "darwin") platformDir = "darwin-universal";
+  else platformDir = goarch === "arm64" ? "linux-arm64" : "linux-x64";
+  return path.join("resources", kind, platformDir, name);
+}
+
 export function hostTarget() {
   const osMap = { win32: "windows", darwin: "darwin", linux: "linux" };
   const goos = osMap[process.platform];
@@ -136,6 +148,14 @@ async function main() {
     console.warn(`[package-wails] cross build for ${target.goos}/${target.goarch}: CGO disabled (qualification binary only)`);
   }
   run(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
+
+  for (const kind of ["mosh", "et"]) {
+    const helper = helperResourcePath(target.goos, target.goarch, kind);
+    if (existsSync(helper)) {
+      const dest = path.join(args.outDir, path.basename(helper));
+      await copyFile(helper, dest);
+    }
+  }
 
   const files = (await readdir(args.outDir))
     .filter((name) => name !== "checksums.txt" && name !== "artifact-manifest.json")

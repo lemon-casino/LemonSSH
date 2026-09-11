@@ -253,37 +253,35 @@ type MoshStartRequest struct {
 	Rows       uint16 `json:"rows"`
 }
 
-// moshResourceRootEnv names the environment variable that points at the
-// directory holding helper binaries (mosh-client / et). The launcher sets it;
-// without it StartMosh fails closed rather than guessing a path.
-const moshResourceRootEnv = "NETCATTY_HELPER_ROOT"
-
 // StartMosh runs the mosh bootstrap over SSH and supervises the local
 // mosh-client. The remote handshake scrapes the MOSH CONNECT line, then the
 // client process streams through the same data plane as other sessions.
 func (s *TerminalService) StartMosh(request MoshStartRequest) (string, error) {
-	return s.startSupervisedTerminal(request, "mosh", "mosh-client")
+	return s.startSupervisedTerminal(request, "mosh")
 }
 
 // StartEt runs the Eternal Terminal bootstrap. ET uses the same supervised
 // process model; the remote command differs but the local supervision and
 // data-plane wiring are identical to Mosh.
 func (s *TerminalService) StartEt(request MoshStartRequest) (string, error) {
-	return s.startSupervisedTerminal(request, "et", "et")
+	return s.startSupervisedTerminal(request, "et")
 }
 
 // startSupervisedTerminal performs the shared handshake/supervision sequence.
-func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind, binaryName string) (string, error) {
+func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind string) (string, error) {
 	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
-	resourceRoot := os.Getenv(moshResourceRootEnv)
-	if resourceRoot == "" {
-		return "", fmt.Errorf("%s: %s is not set, refusing to guess a helper path", kind, moshResourceRootEnv)
+	exeDir := ""
+	if exePath, exeErr := os.Executable(); exeErr == nil {
+		exeDir = filepath.Dir(exePath)
 	}
-	if request.ClientPath == "" {
-		request.ClientPath = filepath.Join(resourceRoot, binaryName)
+	repoRoot, _ := os.Getwd()
+	resolved, err := resolveHelperBinary(kind, request.ClientPath, os.Getenv(helperRootEnv), exeDir, repoRoot)
+	if err != nil {
+		return "", err
 	}
+	request.ClientPath = resolved
 	s.mu.Lock()
 	s.counter++
 	sessionID := fmt.Sprintf("%s-%d", kind, s.counter)
@@ -317,7 +315,7 @@ func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind
 		return "", fmt.Errorf("%s: hash client binary: %w", kind, err)
 	}
 	manifest := supervised.Manifest{
-		Name:   binaryName,
+		Name:   filepath.Base(request.ClientPath),
 		Path:   filepath.Base(request.ClientPath),
 		SHA256: digest,
 		OS:     runtime.GOOS,

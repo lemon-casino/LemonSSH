@@ -34,6 +34,21 @@ func (s *DeepLinkService) Drain() []*deeplink.Action {
 	return s.queue.Drain()
 }
 
+// ProtocolRegistrationResult is the honest OS-protocol status. Wails v3 has
+// no installer hook here, so registration fails closed instead of claiming
+// ssh:// ownership.
+type ProtocolRegistrationResult struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+func (s *DeepLinkService) RegisterOSProtocol() ProtocolRegistrationResult {
+	return ProtocolRegistrationResult{
+		Success: false,
+		Error:   "OS protocol registration is not available until a signed installer owns ssh, telnet, and netcatty URL schemes",
+	}
+}
+
 func deepLinkURLsFromArgs(args []string) []string {
 	var urls []string
 	for _, arg := range args {

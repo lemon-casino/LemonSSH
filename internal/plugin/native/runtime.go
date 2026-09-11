@@ -66,6 +66,7 @@ type NativeProcess struct {
 	cmd      *exec.Cmd
 	stdin    io.WriteCloser
 	stdout   io.ReadCloser
+	cleanup  func() error
 	mu       sync.Mutex
 	nextID   uint64
 	pending  map[uint64]chan rpcResponse
@@ -407,7 +408,8 @@ func spawnContained(ctx context.Context, spec Spec) (*NativeProcess, error) {
 		_ = stdin.Close()
 		return nil, err
 	}
-	if err := assignJob(cmd); err != nil {
+	cleanup, err := assignJob(cmd)
+	if err != nil {
 		_ = killTree(cmd)
 		_ = stdin.Close()
 		return nil, err
@@ -417,6 +419,7 @@ func spawnContained(ctx context.Context, spec Spec) (*NativeProcess, error) {
 		cmd:      cmd,
 		stdin:    stdin,
 		stdout:   stdout,
+		cleanup:  cleanup,
 		pending:  make(map[uint64]chan rpcResponse),
 		exited:   make(chan struct{}),
 	}
@@ -455,6 +458,10 @@ func minimalEnv(extra map[string]string) []string {
 
 func stopProcess(process *NativeProcess) error {
 	_ = process.stdin.Close()
+	if process.cleanup != nil {
+		_ = process.cleanup()
+		process.cleanup = nil
+	}
 	if process.cmd.Process == nil {
 		return nil
 	}

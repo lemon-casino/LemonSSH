@@ -159,6 +159,18 @@ func (s *AppLockService) Disable(password string) error {
 	return nil
 }
 
+type BiometricUnlockResult struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+func (s *AppLockService) UnlockWithBiometrics() BiometricUnlockResult {
+	return BiometricUnlockResult{
+		Success: false,
+		Error:   "Windows Hello and Touch ID are not wired on the Wails App Lock owner yet",
+	}
+}
+
 func newAppLockServiceForTest(t interface{ Fatal(...any) }) *AppLockService {
 	return newAppLockServiceWithDeps(applock.New(&memoryCredentials{blobs: map[string][]byte{}}), nil)
 }

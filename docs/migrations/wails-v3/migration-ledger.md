@@ -3218,3 +3218,53 @@ capability row, source paths, verification output or CI run.
 - Residual risks: no msi, pkg, AppImage, deb, or rpm; no Authenticode or notarization; macOS and Linux package evidence still absent
 - Next safe slice: do not advance REL-03.1 until a signed P8-01 RC exists
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L104 - 2026-09-11 - Helper resolution and descendant process reap
+
+- Capability rows: `TERM-03.3`, `PLUG-03.1`
+- Plan task: `P3-08`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: Resolve bundled mosh/et helpers without guessing PATH, and close Windows job handles so Stop reaps descendants.
+- Go canonical owner: `cmd/netcatty/helperPaths.go`, `internal/plugin/native`
+- Frontend adapter: none
+- Electron owner affected: fetch-mosh layout remains the bundled helper contract
+- Preserved invariants: missing helpers fail closed; helper search never consults PATH; Stop closes the job handle
+- Data/schema impact: none
+- Security impact: job-object cleanup no longer leaks the handle
+- Verification: `go test -count=1 ./cmd/netcatty/ ./internal/plugin/native/` including helper path order and TestStopReapsDescendant; local `npm run fetch:mosh:dev` wrote moshcatty-0.1.8 win32-x64
+- Platforms covered: Windows 10 22H2 x64 local tests; helper fetch for win32-x64 only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement; live helper and process-tree matrices still required for verified
+- Documentation updated: remaining-work, ledger
+- Residual risks: no roaming reconnect, no macOS/Linux helper fetch in this slice, no signed native plugin variants
+- Next safe slice: fail-closed OS protocol and biometric hooks
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L105 - 2026-09-11 - Fail-closed OS protocol and biometric hooks
+
+- Capability rows: `SYS-03`, `SYS-04`, `REL-01`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Fail closed for OS protocol registration and biometric unlock, and copy fetched helpers next to qualification binaries without claiming a signed installer.
+- Go canonical owner: `cmd/netcatty/deepLinkService.go`, `cmd/netcatty/appLockService.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: signed stays false; no Hello/Touch ID success claim; no ssh:// ownership claim
+- Data/schema impact: none
+- Security impact: installer-owned URL schemes and biometrics remain unavailable rather than silently succeeding
+- Verification: RegisterOSProtocol and UnlockWithBiometrics fail closed; `node --test scripts/package-wails.test.mjs` 8 pass including helperResourcePath
+- Platforms covered: Windows 10 22H2 x64 local tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement
+- Documentation updated: remaining-work, ledger
+- Residual risks: no signed msi/pkg/AppImage, no OAuth/S3/WebDAV, no Wails GlobalShortcut
+- Next safe slice: gather grade A live evidence; do not record verified
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

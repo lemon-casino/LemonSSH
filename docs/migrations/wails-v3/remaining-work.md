@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L103`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
+当前台账头：`WV3-L105`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -39,7 +39,7 @@
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
 | SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
-| Mosh / ET | StartMosh/StartEt 已做 SSH 握手、MOSH CONNECT 解析和本地 client 监督；打包 helper 与 roaming reconnect 仍缺 | TERM-03.3 | 已处理 |
+| Mosh / ET | StartMosh/StartEt 解析 bundled/dev helper 路径（NETCATTY_HELPER_ROOT、exe 旁 Resources、resources/mosh/win32-x64）；本机已 fetch moshcatty-0.1.8 win32-x64；roaming reconnect 与三平台打包 helper 仍缺 | TERM-03.3 | 已处理 |
 | ZMODEM 完整 rz/sz 会话 | 长度前缀会话引擎和 YMODEM 已接；原始 lrzsz 对端仍缺 | TERM-03.4 | 已处理 |
 | 串口 YMODEM | SendSerialYmodem/ReceiveSerialYmodem 接到打开的串口会话 | TERM-03.2 | 已处理 |
 | Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1, TERM-03.2 | pending |
@@ -53,8 +53,8 @@
 - 远程 zip 解压：下载到临时目录、zip-slip 提取、再上传（SFTP-01）— 已处理
 
 ### 系统能力
-- App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；生物识别未接（SYS-04）— 已处理
-- deep link 二次启动 argv 入队；渲染层 drainDeepLinks + onSshDeepLink 已接；OS 协议注册未做（SYS-03）— 已处理
+- App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；UnlockWithBiometrics 诚实失败关闭（SYS-04）— 已处理
+- deep link 二次启动 argv 入队；渲染层 drainDeepLinks + onSshDeepLink 已接；RegisterOSProtocol 诚实失败关闭，直到签名安装包拥有 ssh/telnet/netcatty 协议（SYS-03）— 已处理
 - 快捷键 Register 接到 ShortcutService；Wails alpha.63 无 GlobalShortcut，原生注册诚实失败关闭（SYS-02）— 已处理
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
@@ -65,7 +65,7 @@
 ### 插件
 - Install/SetEnabled 元数据门面已接（PLUG-01）— 已处理
 - WASM Instantiate 接到 wazero runtime，无 host import / WASI（PLUG-02）— 已处理
-- native 进程运行时已接到 PluginService（GrantNative/StartNative/StopNative/CallNative）；签名变体和活体子孙进程回收仍 pending（PLUG-03）— 已处理
+- native 进程运行时已接到 PluginService；Stop 关闭 Windows job handle 以回收子孙；本机 TestStopReapsDescendant 通过；签名变体和 macOS/Linux 活体树仍 pending（PLUG-03）— 已处理
 
 ### AI（全部）
 - P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
