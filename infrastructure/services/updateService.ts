@@ -12,8 +12,8 @@ import { netcattyBridge } from "./netcattyBridge";
 // Part 1: GitHub API Version Check
 // ================================
 
-const GITHUB_API_URL = 'https://api.github.com/repos/binaricat/Netcatty/releases/latest';
-const RELEASES_PAGE_URL = 'https://github.com/binaricat/Netcatty/releases';
+const GITHUB_API_URL = 'https://api.github.com/repos/lemon-casino/LemonSSH/releases/latest';
+const RELEASES_PAGE_URL = 'https://github.com/lemon-casino/LemonSSH/releases';
 
 export interface ReleaseInfo {
   version: string;       // e.g. "1.0.0" (without 'v' prefix)

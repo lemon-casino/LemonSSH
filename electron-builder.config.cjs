@@ -319,8 +319,8 @@ module.exports = {
     publish: [
         {
             provider: 'github',
-            owner: 'binaricat',
-            repo: 'Netcatty',
+            owner: 'lemon-casino',
+            repo: 'LemonSSH',
             releaseType: 'release'
         }
     ]

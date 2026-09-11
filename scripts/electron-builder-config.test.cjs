@@ -5,6 +5,17 @@ const path = require("node:path");
 
 const config = require("../electron-builder.config.cjs");
 
+test("update publish target is LemonSSH", () => {
+  assert.deepEqual(config.publish, [
+    {
+      provider: "github",
+      owner: "lemon-casino",
+      repo: "LemonSSH",
+      releaseType: "release",
+    },
+  ]);
+});
+
 test("unpacked MCP server includes its shared CommonJS dependencies", () => {
   assert.ok(
     config.asarUnpack.includes("electron/mcp/**/*"),
