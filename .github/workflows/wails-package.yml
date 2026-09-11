@@ -1,0 +1,76 @@
+name: wails-package
+
+# Unsigned Wails qualification binaries only. No Authenticode, notarization,
+# or installer formats. The operator self-signs later.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: wails-package-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  package:
+    name: Unsigned Wails binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux WebKit
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Fetch host mosh-client
+        continue-on-error: true
+        run: npm run fetch:mosh:dev
+
+      - name: Package unsigned Wails binary
+        run: node scripts/package-wails.mjs
+
+      - name: Record unsigned Authenticode status
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          artifact=$(ls dist/wails/LemonSSH-*.exe | head -1)
+          node scripts/sign-wails-probe.mjs --artifact "$artifact"
+
+      - name: Upload unsigned artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: lemonssh-unsigned-${{ matrix.os }}
+          path: dist/wails/**
+          if-no-files-found: error
+          retention-days: 14

@@ -106,6 +106,15 @@ test("PR validation runs once per commit and includes a production build", () =>
   assert.doesNotMatch(testWorkflow, /\n  mosh-windows-conpty:/);
 });
 
+test("Wails package workflow uploads unsigned binaries only", () => {
+  const workflow = readWorkflow("wails-package.yml");
+  assert.match(workflow, /node scripts\/package-wails\.mjs/);
+  assert.match(workflow, /sign-wails-probe\.mjs/);
+  assert.match(workflow, /lemonssh-unsigned-/);
+  assert.doesNotMatch(workflow, /signtool/);
+  assert.doesNotMatch(workflow, /notarytool|altool|APPLE_ID|WINDOWS_CERT/);
+});
+
 test("package release concurrency is isolated per tag", () => {
   assert.match(buildWorkflow, /format\('release-\{0\}', github\.ref\)/);
   assert.doesNotMatch(buildWorkflow, /&& 'release' \|\| github\.ref/);

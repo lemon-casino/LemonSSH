@@ -59,6 +59,7 @@
     "check:terminal-dataplane-core": "go test -count=1 ./internal/terminal/dataplane/... && go test -race -count=1 ./internal/terminal/dataplane/... && go vet ./internal/terminal/dataplane/... && node --test scripts/migration/terminal-data-plane-contract.test.mjs",
     "wails:prepare-frontend": "node scripts/wails-prepare-frontend.mjs",
     "wails:build": "npm run build && node scripts/wails-prepare-frontend.mjs && go build -ldflags=\"-H windowsgui\" -o bin/LemonSSH.exe ./cmd/netcatty",
+    "package:wails": "node scripts/package-wails.mjs",
     "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",
     "check:migration-docs": "node scripts/migration/check-wails-migration-docs.mjs && node --test scripts/migration/check-wails-migration-docs.test.mjs",
     "check:wails-shell-probe": "npm --prefix experiments/wails-shell-probe/frontend ci && npm --prefix experiments/wails-shell-probe/frontend run build && go -C experiments/wails-shell-probe test ./...",
