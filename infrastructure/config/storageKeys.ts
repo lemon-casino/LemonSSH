@@ -171,6 +171,7 @@ export const STORAGE_KEY_TOGGLE_WINDOW_HOTKEY = 'netcatty_toggle_window_hotkey_v
 export const STORAGE_KEY_CLOSE_TO_TRAY = 'netcatty_close_to_tray_v1';
 export const STORAGE_KEY_CLOSE_BEHAVIOR = 'lemonssh_close_behavior_v1';
 export const STORAGE_KEY_LAYOUT_MODE = 'netcatty_layout_mode_v1';
+export const STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED = 'netcatty_workbench_session_tree_expanded_v1';
 /** App-level HTTP(S) proxy for cloud sync / AI (not SSH ProxyJump). */
 export const STORAGE_KEY_HTTP_NETWORK_PROXY = 'netcatty_http_network_proxy_v1';
 export const STORAGE_KEY_GLOBAL_HOTKEY_ENABLED = 'netcatty_global_hotkey_enabled_v1';
