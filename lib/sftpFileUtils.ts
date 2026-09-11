@@ -592,6 +592,26 @@ export function captureDropPayload(dataTransfer: DataTransfer): CapturedDropPayl
   return { roots, filesFallback };
 }
 
+export async function captureNativeDropPayload(paths: string[]): Promise<CapturedDropPayload> {
+  const bridge = netcattyBridge.require();
+  if (!bridge.statLocalPath) throw new Error("Native file drop metadata is unavailable");
+  const roots = await Promise.all(paths.map(async (path) => {
+    const localPath = normalizeDroppedLocalPath(path);
+    const stat = await bridge.statLocalPath!(localPath);
+    return { name: stat.name, localPath, isDirectory: stat.isDir, size: stat.size, file: null };
+  }));
+  return { roots, filesFallback: [] };
+}
+
+export async function extractNativeDropEntries(paths: string[]): Promise<DropEntry[]> {
+  const payload = await captureNativeDropPayload(paths);
+  const bridge = netcattyBridge.require();
+  if (payload.roots.some((root) => root.isDirectory) && !bridge.listLocalTree) {
+    throw new Error("Native folder drop scanning is unavailable");
+  }
+  return materializeDropEntries(payload, { listLocalTree: bridge.listLocalTree });
+}
+
 /** Map main-process local tree rows into upload DropEntry records. */
 export function localTreeToDropEntries(tree: readonly LocalTreeListEntry[]): DropEntry[] {
   return tree.map((entry) => {

@@ -35,6 +35,7 @@ import type { RuntimeClient } from "../runtimeClient";
 import type { RemoteFile } from "../../../domain/models/workspace";
 import { openDataPlaneSession } from "./dataPlaneSession";
 import type { DataPlaneSessionHandle } from "./dataPlaneSession";
+import { readLocalTree } from "./localTree";
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -147,6 +148,8 @@ export interface WailsBindingDeps {
     Drain?: () => Promise<unknown[]>;
   };
   filesystem?: {
+    HomeDir?: () => Promise<string>;
+    ListDir?: (path: string) => Promise<RemoteFile[]>;
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
     StatPath?: (path: string) => Promise<{ name: string; isDir: boolean; size: number }>;
     StageFromLocalPath?: (path: string) => Promise<{ stagedPath: string; name: string; size: number }>;
@@ -413,6 +416,30 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
+  const getHomeDir = async () => {
+    if (!bindings.filesystem?.HomeDir) missingBridgeMethod("getHomeDir");
+    return bindings.filesystem.HomeDir();
+  };
+  const listLocalDir = async (path: string) => {
+    if (!bindings.filesystem?.ListDir) missingBridgeMethod("listLocalDir");
+    return bindings.filesystem.ListDir(path);
+  };
+  const localTreeScans = new Map<string, AbortController>();
+  const listLocalTree: NonNullable<NetcattyBridge["listLocalTree"]> = async (path, options = {}) => {
+    const scanId = options.scanId ?? crypto.randomUUID();
+    if (localTreeScans.has(scanId)) throw new Error("Local tree scan already running");
+    const controller = new AbortController();
+    localTreeScans.set(scanId, controller);
+    try {
+      return await readLocalTree(path, listLocalDir, options, controller.signal);
+    } finally {
+      localTreeScans.delete(scanId);
+    }
+  };
+  const cancelLocalTreeScan = async (scanId: string) => {
+    const error = Object.assign(new Error("Drop scan cancelled"), { code: "ERR_DROP_SCAN_CANCELLED" });
+    localTreeScans.get(scanId)?.abort(error);
+  };
   const appendDiagnosticLog = (line: string) => {
     try {
       void bindings.diagnosticLog?.Append?.(line)?.catch(() => undefined);
@@ -426,6 +453,27 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     y: number;
     elementDetails?: { id?: string; classList?: string[]; attributes?: Record<string, string> };
   }) => void;
+  const normalizeFilesDroppedPayload = (event: { data?: unknown } | unknown): Parameters<FilesDroppedCallback>[0] | null => {
+    const raw = (event as { data?: unknown } | null)?.data ?? event;
+    const candidate = Array.isArray(raw) ? raw[0] : raw;
+    if (!candidate || typeof candidate !== "object") return null;
+    const record = candidate as Record<string, unknown>;
+    const filenames = (record.filenames ?? record.Filenames) as unknown;
+    if (!Array.isArray(filenames) || filenames.length === 0) return null;
+    const details = (record.elementDetails ?? record.ElementDetails ?? record) as Record<string, unknown>;
+    const attributes = (details.attributes ?? details.Attributes) as Record<string, string> | undefined;
+    return {
+      filenames: filenames.map(String),
+      x: Number(record.x ?? record.X ?? details.x ?? details.X ?? 0),
+      y: Number(record.y ?? record.Y ?? details.y ?? details.Y ?? 0),
+      elementDetails: {
+        id: typeof details.id === "string" ? details.id : typeof details.ID === "string" ? details.ID : undefined,
+        classList: Array.isArray(details.classList) ? details.classList as string[]
+          : Array.isArray(details.ClassList) ? details.ClassList as string[] : undefined,
+        attributes,
+      },
+    };
+  };
   const filesDroppedListeners = new Set<FilesDroppedCallback>();
   let filesDroppedSubscribed = false;
   const subscribeFilesDropped = () => {
@@ -433,8 +481,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const eventsOn = bindings.events?.On ?? Events.On;
     if (typeof eventsOn !== "function") return;
     filesDroppedSubscribed = true;
-    eventsOn("common:WindowFilesDropped", (event) => {
-      const payload = (event?.data ?? event) as Parameters<FilesDroppedCallback>[0];
+    eventsOn("netcatty:files-dropped", (event) => {
+      const payload = normalizeFilesDroppedPayload(event);
+      if (!payload) return;
       for (const listener of filesDroppedListeners) listener(payload);
     });
   };
@@ -523,6 +572,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return undefined;
     }) as unknown as NetcattyBridge["getPathForFile"],
     statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
+    getHomeDir,
+    listLocalDir,
+    listLocalTree,
+    cancelLocalTreeScan,
     stageFromLocalPath: ((path: string) =>
       bindings.filesystem?.StageFromLocalPath?.(path) as Promise<{ stagedPath: string; name: string; size: number }>) as unknown as NetcattyBridge["stageFromLocalPath"],
     appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
@@ -739,6 +792,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       onSessionExit,
     }),
     sftp: portWith("sftp", {
+      getHomeDir,
+      listLocalDir,
+      listLocalTree,
+      cancelLocalTreeScan,
       openSftp,
       listSftp,
       mkdirSftp,
@@ -793,6 +850,12 @@ export { netcattyService };
 
 export function installWailsRuntimeClient(): boolean {
   if (!isWailsRuntime()) return false;
+  // Go alpha.63 calls this global after resolving native file paths. The npm
+  // runtime only installs _wails.handlePlatformFileDrop; reuse its Window here.
+  // Remove the alias once Go uses that newer entry point too.
+  const host = window as typeof window & { wails?: { Window?: typeof wailsWindow } };
+  host.wails ??= {};
+  host.wails.Window = wailsWindow;
   setActiveRuntimeClient(createWailsRuntimeClient());
   return true;
 }

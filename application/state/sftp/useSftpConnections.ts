@@ -287,7 +287,7 @@ export const useSftpConnections = ({
     if (sftpId) onRemoteSessionClosedRef.current?.(sftpId);
   }, []);
   const getHostCredentials = useSftpHostCredentials({ hosts, keys, identities, knownHosts, terminalSettings });
-  const { listLocalFiles, listRemoteFiles } = useSftpDirectoryListing();
+  const { getLocalHomeDir, listLocalFiles, listRemoteFiles } = useSftpDirectoryListing();
   const [hostKeyVerification, setHostKeyVerification] = useState<SftpHostKeyVerificationState | null>(null);
   const hostKeyVerificationRef = useRef<(SftpHostKeyVerificationState & { requestId: string; sessionId: string }) | null>(null);
   const activeHostKeySessionsRef = useRef<Map<string, { side: "left" | "right"; tabId: string }>>(new Map());
@@ -554,10 +554,21 @@ export const useSftpConnections = ({
       }
 
       if (host === "local") {
-        let homeDir = await netcattyBridge.get()?.getHomeDir?.();
-        if (!homeDir) {
-          const isWindows = navigator.platform.toLowerCase().includes("win");
-          homeDir = isWindows ? "C:\\Users\\damao" : "/Users/damao";
+        let homeDir: string;
+        try {
+          homeDir = await getLocalHomeDir();
+        } catch (err) {
+          if (navSeqRef.current[resolveTargetSide()] !== connectRequestId) return;
+          clearSideReconnecting();
+          updateTargetTab((prev) => ({
+            ...prev,
+            connection: null,
+            files: [],
+            loading: false,
+            reconnecting: false,
+            error: err instanceof Error ? err.message : "Failed to get home directory",
+          }));
+          return;
         }
 
         const startPath = normalizeSftpPaneNavigationPath(
@@ -925,6 +936,7 @@ export const useSftpConnections = ({
       clearCacheForConnection,
       createEmptyPane,
       makeCacheKey,
+      getLocalHomeDir,
       listLocalFiles,
       listRemoteFiles,
       setPendingHostKeyVerification,

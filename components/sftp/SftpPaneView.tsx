@@ -320,6 +320,11 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
     }
   }, [callbacks, pane.connection?.currentPath, requestTreeReload]);
 
+  const handleUploadExternalPaths = useCallback(async (paths: string[], targetPath?: string) => {
+    await callbacks.onUploadExternalPaths?.(paths, targetPath);
+    if (targetPath && targetPath !== pane.connection?.currentPath) requestTreeReload([targetPath]);
+  }, [callbacks, pane.connection?.currentPath, requestTreeReload]);
+
   const handleUploadExternalFolder = useCallback(async (targetPath?: string) => {
     await callbacks.onUploadExternalFolder?.(targetPath);
     const affectedPath = targetPath ?? pane.connection?.currentPath;
@@ -361,6 +366,7 @@ const SftpPaneViewInner: React.FC<SftpPaneViewProps> = ({
     onReceiveFromOtherPane: callbacks.onReceiveFromOtherPane,
     onMoveEntriesToPath: callbacks.onMoveEntriesToPath,
     onUploadExternalFiles: handleUploadExternalFiles,
+    onUploadExternalPaths: handleUploadExternalPaths,
     onOpenEntry: callbacks.onOpenEntry,
     onRangeSelect: callbacks.onRangeSelect,
     onToggleSelection: callbacks.onToggleSelection,

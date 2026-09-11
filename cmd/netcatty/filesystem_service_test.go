@@ -1,10 +1,53 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestLocalBrowseReturnsRealUploadSources(t *testing.T) {
+	service := newFilesystemService()
+	home, err := service.HomeDir()
+	if err != nil || home == "" {
+		t.Fatalf("home directory: %q, %v", home, err)
+	}
+	wantHome, err := os.UserHomeDir()
+	if err != nil || home != wantHome {
+		t.Fatalf("home = %q, want %q, %v", home, wantHome, err)
+	}
+	dir := t.TempDir()
+	empty, err := service.ListDir(dir)
+	if err != nil || empty == nil || len(empty) != 0 {
+		t.Fatalf("empty directory must return [], got %+v, %v", empty, err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "Documents"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "report.pdf"), []byte("PDFDATA"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	files, err := service.ListDir(dir)
+	if err != nil || len(files) != 2 {
+		t.Fatalf("directory: %+v, %v", files, err)
+	}
+	if files[0].Name != "Documents" || files[0].Type != "directory" || files[1].Name != "report.pdf" || files[1].Type != "file" || files[1].Size != "7" || files[1].LastModified == "" {
+		t.Fatalf("listing: %+v", files)
+	}
+	reader, err := openLocalForUpload(filepath.Join(dir, files[1].Name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	data, err := io.ReadAll(reader)
+	if err != nil || string(data) != "PDFDATA" {
+		t.Fatalf("upload source: %q, %v", data, err)
+	}
+		if _, err := service.ListDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
+			t.Fatalf("missing directory must report its error, got %v", err)
+		}
+	}
 
 func TestStatPathClassifiesFilesAndDirectories(t *testing.T) {
 	service := newFilesystemService()

@@ -8,6 +8,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as filesystem$0 from "../../internal/platform/filesystem/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
@@ -17,6 +21,23 @@ import * as $models from "./models.js";
  */
 export function ExtractArchive(archivePath, destinationRoot) {
     return $Call.ByID(3240863779, archivePath, destinationRoot);
+}
+
+/**
+ * @returns {$CancellablePromise<string>}
+ */
+export function HomeDir() {
+    return $Call.ByID(1121754232);
+}
+
+/**
+ * @param {string} path
+ * @returns {$CancellablePromise<filesystem$0.LocalEntry[]>}
+ */
+export function ListDir(path) {
+    return $Call.ByID(729165017, path).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
 
 /**
@@ -71,9 +92,11 @@ export function StageFromLocalPath(path) {
  */
 export function StatPath(path) {
     return $Call.ByID(1999196219, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType2($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = $models.LocalPathStat.createFrom;
+const $$createType0 = filesystem$0.LocalEntry.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = $models.LocalPathStat.createFrom;

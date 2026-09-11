@@ -2968,3 +2968,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: 无 host function；无 declarative UI
 - Next safe slice: 活体 MFA 服务器矩阵
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L094 - 2026-09-11 - Native local browsing instead of preview upload sources
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Stop the Wails local SFTP pane from listing synthetic damao files that fail when opened for upload.
+- Go canonical owner: `internal/platform/filesystem/local.go`, exposed by `cmd/netcatty/filesystemService.go` HomeDir/ListDir
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts`, regenerated bindings, `useSftpDirectoryListing` and `useSftpConnections`
+- Electron owner affected: `electron/bridges/localFsBridge.cjs` retained unchanged
+- Preserved invariants: native home directory; real entry metadata; file/directory/broken symlinks; Windows hidden attribute; empty directories stay empty; native errors propagate; preview data requires no desktop bridge
+- Data/schema impact: no persisted schema or profile changes
+- Security impact: read-only local browsing; no upload retry or path-rewriting workaround
+- Verification: 76 related Node tests; Go filesystem and cmd/netcatty suites including Windows hidden attributes, symlinks and real browse-to-upload-open regression; npm run wails:build; targeted ESLint has no errors; TypeScript baseline comparison: 704 errors before and after, zero added
+- Platforms covered: Windows local filesystem and build; Node adapter/hook regression
+- Evidence grade: `B`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: local filesystem platform parity and rollback gates; browser-only preview retained for development
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: real remote SFTP upload and macOS/Linux live matrix not rerun; full-repository TypeScript check has existing errors
+- Next safe slice: retry local-pane uploads from the rebuilt LemonSSH executable on the reported host
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

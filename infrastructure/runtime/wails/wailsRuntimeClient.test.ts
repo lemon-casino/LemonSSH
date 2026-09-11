@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
+import { useSftpDirectoryListing } from "../../../application/state/sftp/useSftpDirectoryListing";
+import { getActiveRuntimeClient, setActiveRuntimeClient } from "../runtimeClient";
+import { createElectronRuntimeClient } from "../electron/electronRuntimeClient";
+import { useSftpExternalOperations } from "../../../application/state/sftp/useSftpExternalOperations";
+import { sftpTransferCenterStore } from "../../../application/state/sftpTransferCenterStore";
+import type { SftpPane } from "../../../application/state/sftp/types";
+import { hostStorageAdapter } from "../../persistence/hostStorageAdapter";
 import { createWailsRuntimeClient } from "./wailsRuntimeClient";
 import type { WailsBindingDeps } from "./wailsRuntimeClient";
 import { RECEIVE_WINDOW_BYTES } from "../../terminal/dataplane/frame";
@@ -45,6 +54,63 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
     },
   };
 }
+
+test("local browsing uses native paths through the bridge and fails without filesystem bindings", async () => {
+  let listing!: ReturnType<typeof useSftpDirectoryListing>;
+  function Probe() {
+    listing = useSftpDirectoryListing();
+    return null;
+  }
+  renderToStaticMarkup(createElement(Probe));
+  const previousClient = getActiveRuntimeClient();
+  try {
+    const bindings = stubBindings();
+    const home = "C:\\Users\\actual-user";
+    const uploads: string[] = [];
+    bindings.filesystem = {
+      HomeDir: async () => home,
+      ListDir: async (path) => {
+        assert.equal(path, home);
+        return [{ name: "real.pdf", type: "file", size: "7", lastModified: "2026-09-11T00:00:00Z" }];
+      },
+    };
+    bindings.sftp.Upload = async (_sessionId, path) => { uploads.push(path); return 7; };
+    const client = createWailsRuntimeClient(bindings);
+    setActiveRuntimeClient(client);
+    assert.equal(await client.sftp.getHomeDir!(), home);
+    assert.equal((await client.sftp.listLocalDir!(home))[0].name, "real.pdf");
+    const localHome = await listing.getLocalHomeDir();
+    assert.equal(localHome, home);
+    const files = await listing.listLocalFiles(localHome);
+    assert.equal(files.length, 1);
+    assert.equal(files[0].size, 7);
+    await client.transitionBridge.startStreamTransfer!({
+      transferId: "upload-1", sourceType: "local", targetType: "sftp",
+      sourcePath: `${localHome}\\${files[0].name}`, targetPath: "/real.pdf", targetSftpId: "sftp-1",
+    });
+    assert.deepEqual(uploads, [`${home}\\real.pdf`]);
+
+    bindings.filesystem.ListDir = async () => [];
+    assert.deepEqual(await listing.listLocalFiles(home), []);
+    bindings.filesystem.ListDir = async () => { throw new Error("directory inaccessible"); };
+    await assert.rejects(listing.listLocalFiles(home), /directory inaccessible/);
+    bindings.filesystem.HomeDir = async () => "";
+    await assert.rejects(listing.getLocalHomeDir(), /home directory unavailable/);
+
+    setActiveRuntimeClient(createWailsRuntimeClient(stubBindings()));
+    await assert.rejects(listing.getLocalHomeDir(), /getHomeDir.*not available/);
+    await assert.rejects(listing.listLocalFiles(home), /listLocalDir.*not available/);
+
+    // An installed but incomplete desktop bridge must never enable preview data.
+    setActiveRuntimeClient(createElectronRuntimeClient({} as NetcattyBridge));
+    await assert.rejects(listing.getLocalHomeDir(), /getHomeDir unavailable/);
+    await assert.rejects(listing.listLocalFiles(home), /listLocalDir unavailable/);
+    setActiveRuntimeClient(undefined);
+    assert.ok((await listing.listLocalFiles("C:/Users/damao/Documents")).some((file) => file.name === "report.pdf"));
+  } finally {
+    setActiveRuntimeClient(previousClient);
+  }
+});
 
 test("transitionBridge startSSHSession attaches the data plane", async () => {
   const bindings = stubBindings();
@@ -195,10 +261,96 @@ test("onFilesDropped fans the Wails drop event to listeners", async () => {
   const client = createWailsRuntimeClient(bindings);
   const seen: Array<{ filenames: string[] }> = [];
   client.transitionBridge.onFilesDropped?.((payload) => seen.push({ filenames: payload.filenames }));
-  listeners.get("common:WindowFilesDropped")?.[0]({
+  listeners.get("netcatty:files-dropped")?.[0]({
     data: { filenames: ["C:\\a.txt"], x: 1, y: 2, elementDetails: { id: "pane" } },
   });
-  assert.deepEqual(seen, [{ filenames: ["C:\\a.txt"] }]);
+  listeners.get("netcatty:files-dropped")?.[0]({
+    data: [{ Filenames: ["C:\\b.txt"], X: 3, Y: 4 }],
+  });
+  assert.deepEqual(seen, [{ filenames: ["C:\\a.txt"] }, { filenames: ["C:\\b.txt"] }]);
+});
+
+test("native file and folder drops upload to the original tab and complete without lifecycle events", async (t) => {
+  t.mock.method(hostStorageAdapter, "readNumber", () => null);
+  const previous = getActiveRuntimeClient();
+  const bindings = stubBindings();
+  const uploaded: string[] = [];
+  const directories: string[] = [];
+  const pane = { id: "drop-tab", connection: {
+    id: "drop-connection", isLocal: false, hostId: "drop-host", hostLabel: "Drop", currentPath: "/srv",
+  } } as SftpPane;
+  let activePane = pane;
+  bindings.filesystem = {
+    StatPath: async (path) => {
+      // Simulate a tab switch during native metadata lookup.
+      activePane = { ...pane, id: "other-tab", connection: { ...pane.connection!, id: "other-connection", currentPath: "/other" } };
+      return { name: path.split("\\").pop()!, isDir: path.endsWith("folder"), size: 3 };
+    },
+    ListDir: async (path) => path.endsWith("empty") ? [] : [
+      { name: "nested.txt", type: "file", size: "3", lastModified: "2026-09-11T00:00:00Z" },
+      { name: "empty", type: "directory", size: "0", lastModified: "2026-09-11T00:00:00Z" },
+    ],
+  };
+  bindings.sftp.Stat = async () => { throw new Error("no such file"); };
+  bindings.sftp.Upload = async (id, source, target) => {
+    assert.equal(id, "original-sftp");
+    uploaded.push(`${source} -> ${target}`);
+    return 3;
+  };
+  bindings.sftp.Mkdir = async (_id, path) => { directories.push(path); };
+  let operations!: ReturnType<typeof useSftpExternalOperations>;
+  function Probe() {
+    operations = useSftpExternalOperations({
+      ownerId: "native-drop-regression", getActivePane: () => activePane,
+      getPaneByTabId: (id) => id === pane.id ? pane : activePane,
+      getPaneByConnectionId: () => pane, refresh: async () => {},
+      sftpSessionsRef: { current: new Map([["drop-connection", "original-sftp"]]) },
+      connectionCacheKeyMapRef: { current: new Map([["drop-connection", "original-endpoint"]]) },
+    });
+    return null;
+  }
+  try {
+    setActiveRuntimeClient(createWailsRuntimeClient(bindings));
+    renderToStaticMarkup(createElement(Probe));
+    const results = await operations.uploadExternalPaths("left", ["C:\\drop\\one.txt", "C:\\drop\\folder"]);
+    assert.ok(results.length >= 2 && results.every((result) => result.success), JSON.stringify(results));
+    assert.deepEqual(uploaded, [
+      "C:\\drop\\one.txt -> /srv/one.txt",
+      "C:\\drop\\folder\\nested.txt -> /srv/folder/nested.txt",
+    ]);
+    assert.ok(directories.includes("/srv/folder/empty"));
+    const tasks = sftpTransferCenterStore.getSnapshot().tasks.filter((task) => task.ownerId === "native-drop-regression");
+    assert.ok(tasks.length >= 2);
+    assert.ok(tasks.every((task) => task.status === "completed"), JSON.stringify(tasks.map((task) => [task.fileName, task.status])));
+  } finally {
+    for (const task of sftpTransferCenterStore.getSnapshot().tasks) {
+      if (task.ownerId === "native-drop-regression") sftpTransferCenterStore.dismiss(task.id);
+    }
+    setActiveRuntimeClient(previous);
+  }
+});
+
+test("native folder scanning preserves empty folders, skips directory links, and enforces cancellation and limits", async () => {
+  const bindings = stubBindings();
+  const reads: string[] = [];
+  bindings.filesystem = {
+    ListDir: async (path) => {
+      reads.push(path);
+      return path === "C:\\folder" ? [
+        { name: "empty", type: "directory", size: "0", lastModified: "2026-09-11T00:00:00Z" },
+        { name: "loop", type: "symlink", linkTarget: "directory", size: "0", lastModified: "2026-09-11T00:00:00Z" },
+      ] : [];
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const tree = await client.sftp.listLocalTree!("C:\\folder");
+  assert.deepEqual(tree.map((row) => row.relativePath), ["folder", "folder/empty"]);
+  assert.deepEqual(reads, ["C:\\folder", "C:\\folder\\empty"]);
+  await assert.rejects(client.sftp.listLocalTree!("C:\\folder", { limits: { maxEntries: 1 } }), /limit exceeded/);
+  await assert.rejects(client.sftp.listLocalTree!("C:\\folder", {
+    scanId: "cancel-scan", onEntries: () => { void client.sftp.cancelLocalTreeScan!("cancel-scan"); },
+  }), /Drop scan cancelled/);
+  assert.equal((await client.sftp.listLocalTree!("C:\\folder", { scanId: "cancel-scan" })).length, 2);
 });
 
 test("getPathForFile ignores the WebView2 path property", () => {

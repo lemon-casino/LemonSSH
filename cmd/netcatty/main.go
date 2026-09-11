@@ -190,6 +190,7 @@ func main() {
 		wailsApp.RegisterService(application.NewService(diagnosticLogService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
+	registerFileDrops(mainWindow)
 	settingsWindowService := newSettingsWindowService(wailsApp)
 	popupWindowService := newPopupWindowService(wailsApp)
 	wailsApp.RegisterService(application.NewService(settingsWindowService))

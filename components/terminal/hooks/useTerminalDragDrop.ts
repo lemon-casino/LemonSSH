@@ -12,7 +12,9 @@ import {
   supportsZmodemTerminalDragDrop,
   type ZmodemDragDropFile,
 } from "../../../lib/zmodemDragDrop";
-import { extractDropEntries, type DropEntry } from "../../../lib/sftpFileUtils";
+import { extractDropEntries, extractNativeDropEntries, type DropEntry } from "../../../lib/sftpFileUtils";
+import { isNativeFileDrop, useNativeFileDrop } from "../../../application/state/useNativeFileDrop";
+import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
 import type { Host, TerminalSession } from "../../../types";
 import { toast } from "../../ui/toast";
 import {
@@ -21,6 +23,7 @@ import {
 } from "../terminalHelpers";
 
 interface UseTerminalDragDropOptions {
+  containerRef: React.RefObject<HTMLDivElement | null>;
   host: Host;
   isLocalConnection: boolean;
   isNetworkDevice?: boolean;
@@ -169,7 +172,7 @@ export async function handleTerminalDropEntries({
   ));
 
   if (
-    requiresSftpForDirectoryDrop
+    (requiresSftpForDirectoryDrop || !terminalBackend.startZmodemDragDropUpload)
     && onOpenSftp
     && supportsZmodemDragDropSftpFallback(host)
   ) {
@@ -231,6 +234,7 @@ export async function handleTerminalDropEntries({
 }
 
 export function useTerminalDragDrop({
+  containerRef,
   host,
   isLocalConnection,
   isNetworkDevice = false,
@@ -275,15 +279,9 @@ export function useTerminalDragDrop({
     }
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const receiveFiles = async (readEntries: () => Promise<DropEntry[]>) => {
     dragCounterRef.current = 0;
     setIsDraggingOver(false);
-
-    if (!e.dataTransfer.types.includes("Files")) {
-      return;
-    }
 
     if (status !== "connected") {
       toast.error(t("terminal.dragDrop.notConnected"), t("terminal.dragDrop.errorTitle"));
@@ -291,7 +289,7 @@ export function useTerminalDragDrop({
     }
 
     try {
-      const dropEntries = await extractDropEntries(e.dataTransfer);
+      const dropEntries = await readEntries();
       await handleTerminalDropEntries({
         dropEntries,
         host,
@@ -302,7 +300,12 @@ export function useTerminalDragDrop({
         scrollToBottomAfterProgrammaticInput,
         sessionId,
         sessionRef,
-        terminalBackend,
+        terminalBackend: {
+          ...terminalBackend,
+          startZmodemDragDropUpload: netcattyBridge.get()?.startZmodemDragDropUpload
+            ? terminalBackend.startZmodemDragDropUpload
+            : undefined,
+        },
         isSensitiveInput,
         rzMissingFallbackTimeoutMs,
         termRef,
@@ -314,6 +317,21 @@ export function useTerminalDragDrop({
         : t("terminal.dragDrop.errorMessage");
       toast.error(message, t("terminal.dragDrop.errorTitle"));
     }
+  };
+
+  useNativeFileDrop(containerRef, status === "connected" ? sessionId : undefined, async (paths) => {
+    await receiveFiles(() => extractNativeDropEntries(paths));
+  });
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDraggingOver(false);
+    // The Wails document listener must receive the original drop to resolve OS paths.
+    if (isNativeFileDrop(e.dataTransfer) && status === "connected") return;
+    e.stopPropagation();
+    if (!e.dataTransfer.types.includes("Files")) return;
+    await receiveFiles(() => extractDropEntries(e.dataTransfer));
   };
 
   return {

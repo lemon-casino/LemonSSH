@@ -34,6 +34,7 @@ func popupWindowOptions(name string) application.WebviewWindowOptions {
 		MinWidth:         640,
 		MinHeight:        400,
 		Frameless:        true,
+		EnableFileDrop:   true,
 		BackgroundColour: application.NewRGB(20, 23, 28),
 		URL:              popupRoute,
 	}
@@ -48,6 +49,7 @@ func (s *PopupWindowService) Open(payload map[string]any) PopupOpenResult {
 	s.counter++
 	popupID := fmt.Sprintf("popup-%d", s.counter)
 	win := s.app.Window.NewWithOptions(popupWindowOptions(popupID))
+	registerFileDrops(win)
 	if payload == nil {
 		payload = map[string]any{}
 	}

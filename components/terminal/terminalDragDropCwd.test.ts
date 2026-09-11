@@ -23,6 +23,19 @@ const dropEntries: DropEntry[] = [
   },
 ];
 
+test("remote file drop uses SFTP when the runtime has no ZMODEM upload", async () => {
+  const opened: unknown[] = [];
+  await handleTerminalDropEntries({
+    dropEntries, host, isLocalConnection: false,
+    onOpenSftp: (...args) => { opened.push(args); },
+    resolveSftpInitialPath: async () => "/srv/current",
+    scrollToBottomAfterProgrammaticInput() {},
+    sessionId: "session-1", sessionRef: { current: "session-1" },
+    terminalBackend: { writeToSession() {} }, termRef: { current: null },
+  });
+  assert.deepEqual(opened, [[host, "/srv/current", dropEntries, "session-1"]]);
+});
+
 test("remote SSH terminal drop triggers ZMODEM drag-drop upload", async () => {
   let uploadedFiles: unknown;
   let uploadedSessionId: string | undefined;

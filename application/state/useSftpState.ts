@@ -561,6 +561,7 @@ export const useSftpState = (
     uploadExternalFileList,
     uploadExternalFolderPath,
     uploadExternalEntries,
+    uploadExternalPaths,
     cancelExternalUpload,
     selectApplication,
     activeFileWatchCountRef,
@@ -788,6 +789,7 @@ export const useSftpState = (
     uploadExternalFileList,
     uploadExternalFolderPath,
     uploadExternalEntries,
+    uploadExternalPaths,
     cancelExternalUpload,
     selectApplication,
     releaseExternalFileWatches,
@@ -869,6 +871,8 @@ export const useSftpState = (
       methodsRef.current.uploadExternalFolderPath(...args),
     uploadExternalEntries: (...args: Parameters<typeof uploadExternalEntries>) =>
       methodsRef.current.uploadExternalEntries(...args),
+    uploadExternalPaths: (...args: Parameters<typeof uploadExternalPaths>) =>
+      methodsRef.current.uploadExternalPaths(...args),
     cancelExternalUpload: (taskId?: string) => methodsRef.current.cancelExternalUpload(taskId),
     selectApplication: () => methodsRef.current.selectApplication(),
     releaseExternalFileWatches: (...args: Parameters<typeof releaseExternalFileWatches>) =>

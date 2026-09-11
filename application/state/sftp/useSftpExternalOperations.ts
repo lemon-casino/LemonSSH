@@ -18,6 +18,7 @@ import {
 import { uploadLocalFoldersProgressively } from "../../../lib/progressiveFolderUpload";
 import {
   captureDropPayload,
+  captureNativeDropPayload,
   formatDropScanLabel,
   isDropScanCancelledError,
   localTreeToDropEntries,
@@ -837,7 +838,7 @@ export const useSftpExternalOperations = (
     const bridge = netcattyBridge.get();
     return {
       managesTransferLifecycle: Boolean(
-        bridge?.startStreamTransfer,
+        bridge?.startStreamTransfer && bridge.onGlobalSftpTransferEvent,
       ),
       writeLocalFile: bridge?.writeLocalFile,
       mkdirLocal: bridge?.mkdirLocal,
@@ -1868,28 +1869,28 @@ export const useSftpExternalOperations = (
 
   const uploadExternalPaths = useCallback(
     async (side: "left" | "right", paths: string[], targetPath?: string): Promise<UploadResult[]> => {
-      const bridge = netcattyBridge.get();
-      if (!bridge?.stageFromLocalPath) {
-        throw new Error("Native drop staging is not available");
+      const pane = getActivePane(side);
+      if (!pane?.connection) throw new Error("No active connection");
+      const options = {
+        tabId: pane.id,
+        targetPath: targetPath || pane.connection.currentPath,
+        endpointPin: captureUploadEndpoint(pane.connection, connectionCacheKeyMapRef.current),
+      };
+      const { roots } = await captureNativeDropPayload(paths);
+      const results: UploadResult[] = [];
+      for (const root of roots) {
+        const uploaded = root.isDirectory
+          ? await uploadExternalFolderPath(side, root.localPath!, options.targetPath, options)
+          : await uploadExternalEntries(side, [{
+            file: null, localPath: root.localPath, relativePath: root.name,
+            isDirectory: false, size: root.size,
+          }], options);
+        results.push(...uploaded);
+        if (uploaded.some((result) => result.cancelled)) break;
       }
-      const entries: DropEntry[] = [];
-      for (const droppedPath of paths) {
-        const localPath = normalizeDroppedLocalPath(droppedPath);
-        // Stat + open + copy to the LemonSSH staging dir in ONE Go call: the
-        // original path is only read here, never during the upload itself.
-        const staged = await bridge.stageFromLocalPath(localPath);
-        entries.push({
-          file: null,
-          localPath: staged.stagedPath,
-          relativePath: staged.name,
-          isDirectory: false,
-          size: staged.size,
-        });
-      }
-      if (entries.length === 0) return [];
-      return uploadExternalEntries(side, entries, { targetPath });
+      return results;
     },
-    [uploadExternalEntries],
+    [getActivePane, connectionCacheKeyMapRef, uploadExternalEntries, uploadExternalFolderPath],
   );
 
   return {

@@ -5,16 +5,23 @@ import { buildMockLocalFiles } from "./mockLocalFiles";
 import { formatFileSize, formatDate } from "./utils";
 
 export const useSftpDirectoryListing = () => {
-  const getMockLocalFiles = useCallback((path: string): SftpFileEntry[] => {
-    return buildMockLocalFiles(path);
+  const getLocalHomeDir = useCallback(async (): Promise<string> => {
+    const bridge = netcattyBridge.get();
+    if (!bridge) {
+      return navigator.platform.toLowerCase().includes("win") ? "C:\\Users\\damao" : "/Users/damao";
+    }
+    if (!bridge.getHomeDir) throw new Error("getHomeDir unavailable");
+    const homeDir = await bridge.getHomeDir();
+    if (!homeDir) throw new Error("Local home directory unavailable");
+    return homeDir;
   }, []);
 
   const listLocalFiles = useCallback(
     async (path: string): Promise<SftpFileEntry[]> => {
-      const rawFiles = await netcattyBridge.get()?.listLocalDir?.(path);
-      if (!rawFiles) {
-        return getMockLocalFiles(path);
-      }
+      const bridge = netcattyBridge.get();
+      if (!bridge) return buildMockLocalFiles(path);
+      if (!bridge.listLocalDir) throw new Error("listLocalDir unavailable");
+      const rawFiles = await bridge.listLocalDir(path);
 
       return rawFiles.map((f) => {
         const size = parseInt(f.size) || 0;
@@ -32,7 +39,7 @@ export const useSftpDirectoryListing = () => {
         };
       });
     },
-    [getMockLocalFiles],
+    [],
   );
 
   const listRemoteFiles = useCallback(
@@ -60,6 +67,7 @@ export const useSftpDirectoryListing = () => {
   );
 
   return {
+    getLocalHomeDir,
     listLocalFiles,
     listRemoteFiles,
   };

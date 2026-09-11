@@ -18,6 +18,14 @@ func newFilesystemService() *FilesystemService {
 	return &FilesystemService{}
 }
 
+func (s *FilesystemService) HomeDir() (string, error) {
+	return os.UserHomeDir()
+}
+
+func (s *FilesystemService) ListDir(path string) ([]filesystem.LocalEntry, error) {
+	return filesystem.ListDirectory(path)
+}
+
 func (s *FilesystemService) ExtractArchive(archivePath, destinationRoot string) (int, error) {
 	return filesystem.ExtractArchive(archivePath, destinationRoot)
 }

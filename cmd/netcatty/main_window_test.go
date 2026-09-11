@@ -11,3 +11,9 @@ func TestMainWindowIsFrameless(t *testing.T) {
 		t.Fatal("frameless main window must remain resizable")
 	}
 }
+
+func TestTerminalWindowsAcceptNativeFileDrops(t *testing.T) {
+	if !mainWindowOptions().EnableFileDrop || !popupWindowOptions("popup").EnableFileDrop {
+		t.Fatal("main and popup terminals must accept native file drops")
+	}
+}

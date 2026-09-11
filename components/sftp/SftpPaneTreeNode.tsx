@@ -55,6 +55,7 @@ export const TreeNode = React.memo<TreeNodeProps>(({
     <div
       data-section="terminal-sftp-tree-row"
       data-entry-name={entry.name}
+      data-entry-path={entryPath}
       data-entry-type={isDir ? 'directory' : entry.type}
       data-selected={isSelected ? 'true' : 'false'}
       data-expanded={isDir ? (isExpanded ? 'true' : 'false') : undefined}

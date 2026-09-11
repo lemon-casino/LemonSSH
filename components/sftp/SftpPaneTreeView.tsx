@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { isNativeFileDrop } from "../../application/state/useNativeFileDrop";
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '../ui/context-menu';
@@ -818,6 +819,7 @@ export const SftpPaneTreeView = React.memo<SftpPaneTreeViewProps>(({
     }
   }, [getSamePaneDragPaths]);
   const handleNodeDrop = useCallback((entryPath: string, e: React.DragEvent) => {
+    if (!draggedFilesRef.current?.length && isNativeFileDrop(e.dataTransfer)) return;
     const entry = entryByPathRef.current.get(entryPath);
     if (!entry) return;
     const isDir = isNavigableDirectory(entry);

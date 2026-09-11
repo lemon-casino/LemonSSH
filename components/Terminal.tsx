@@ -3708,6 +3708,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     handleDrop,
     isDraggingOver,
   } = useTerminalDragDrop({
+    containerRef,
     host,
     isLocalConnection,
     isNetworkDevice,

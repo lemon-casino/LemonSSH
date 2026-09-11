@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L093`。矩阵 34 行：implemented 6 / probe 19 / not-started 9 /
+当前台账头：`WV3-L094`。矩阵 34 行：implemented 6 / probe 19 / not-started 9 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -45,6 +45,7 @@
 | Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1/2 | pending |
 
 ### SFTP / 传输
+- 本地面板 HomeDir/ListDir 接到真实文件系统；桌面桥缺失能力时报错，演示文件仅用于无后端浏览器预览（SYS-01 / WV3-L094）— 已处理；真实远端上传复验仍 pending
 - 下载/上传经 `startStreamTransfer` 接到现有 ClientFS；本地 zip 解压接到 `ExtractArchive`（SFTP-01）— 已处理
 - filesystem/transfer 绑定已进入 defaultBindings；缺 ExtractArchive 时失败关闭，不再假成功 — 已处理
 - 调度器 pause/resume/cancel 接到 Wails TransferService；startCompressedUpload 走本地 zip 再 Upload（SFTP-02）— 已处理
