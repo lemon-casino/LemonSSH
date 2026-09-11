@@ -102,6 +102,18 @@ test('two-pane magnification keeps the dormant pane geometry unchanged', () => {
   });
 });
 
+test('wide two-pane layout follows a dragged left split percent', () => {
+  assert.deepEqual(resolveTwoPaneMagnificationStyle('left', true, false, 35), {
+    left: '0%', top: '0%', width: '35%', height: '100%', zIndex: 10,
+  });
+  assert.deepEqual(resolveTwoPaneMagnificationStyle('right', true, false, 35), {
+    left: '35%', top: '0%', width: '65%', height: '100%', zIndex: 10,
+  });
+  assert.deepEqual(resolveTwoPaneMagnificationStyle('right', false, false, 35), {
+    left: '0%', top: '50%', width: '100%', height: '50%', zIndex: 10,
+  });
+});
+
 test('resolves the last interacted pane without borrowing another tab target', () => {
   const sidePane = { id: 'pane-sftp', tool: 'sftp' };
   const current = {

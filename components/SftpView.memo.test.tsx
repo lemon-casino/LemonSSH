@@ -24,6 +24,14 @@ test("SFTP magnification overlays one side while preserving the original two-pan
   });
 });
 
+test("SFTP split can be dragged to resize the left and right panes", () => {
+  const source = readFileSync(new URL("./SftpView.tsx", import.meta.url), "utf8");
+  assert.match(source, /data-section="sftp-split-resize"/);
+  assert.match(source, /cursor-col-resize/);
+  assert.match(source, /clampSftpSplitPercent/);
+  assert.match(source, /leftSplitPercent/);
+});
+
 test("SFTP keyboard focus tracks the active side and blocks the covered sibling", () => {
   const source = readFileSync(new URL("./SftpView.tsx", import.meta.url), "utf8");
 

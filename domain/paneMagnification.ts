@@ -117,10 +117,20 @@ export function resolvePaneMagnificationStyle(
   };
 }
 
+export const SFTP_SPLIT_MIN_PERCENT = 20;
+export const SFTP_SPLIT_MAX_PERCENT = 80;
+export const SFTP_SPLIT_DEFAULT_PERCENT = 50;
+
+export function clampSftpSplitPercent(percent: number): number {
+  if (!Number.isFinite(percent)) return SFTP_SPLIT_DEFAULT_PERCENT;
+  return Math.min(SFTP_SPLIT_MAX_PERCENT, Math.max(SFTP_SPLIT_MIN_PERCENT, percent));
+}
+
 export function resolveTwoPaneMagnificationStyle(
   side: 'left' | 'right',
   wide: boolean,
   magnified: boolean,
+  leftPercent = SFTP_SPLIT_DEFAULT_PERCENT,
 ): React.CSSProperties {
   if (magnified) {
     return {
@@ -132,10 +142,11 @@ export function resolveTwoPaneMagnificationStyle(
     };
   }
   if (wide) {
+    const left = clampSftpSplitPercent(leftPercent);
     return {
-      left: side === 'left' ? '0%' : '50%',
+      left: side === 'left' ? '0%' : `${left}%`,
       top: '0%',
-      width: '50%',
+      width: side === 'left' ? `${left}%` : `${100 - left}%`,
       height: '100%',
       zIndex: 10,
     };

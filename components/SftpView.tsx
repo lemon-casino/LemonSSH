@@ -22,8 +22,10 @@ import { useSftpBackend } from "../application/state/useSftpBackend";
 import { getParentPath, isConcreteTransferTargetPath } from "../application/state/sftp/utils";
 import { HotkeyScheme, KeyBinding, TerminalSession } from "../domain/models";
 import {
+  clampSftpSplitPercent,
   getPaneMagnificationShortcutLabel,
   resolveTwoPaneMagnificationStyle,
+  SFTP_SPLIT_DEFAULT_PERCENT,
   type PaneMagnificationController,
 } from "../domain/paneMagnification";
 import { listSftpConnectedHosts, resolveSftpTransferSourceSessionId, sftpPickerSessionsEqual } from "../domain/sftpConnectedHosts";
@@ -236,6 +238,8 @@ const SftpViewInner: React.FC<SftpViewProps> = ({
   focusedSideRef.current = focusedSide;
   magnifiedSideRef.current = magnifiedSide;
   const [isWideSplit, setIsWideSplit] = useState(true);
+  const [leftSplitPercent, setLeftSplitPercent] = useState(SFTP_SPLIT_DEFAULT_PERCENT);
+  const [isSplitResizing, setIsSplitResizing] = useState(false);
   const [showMagnificationHint, setShowMagnificationHint] = useState(false);
   const splitSurfaceRef = useRef<HTMLDivElement>(null);
 
@@ -249,6 +253,31 @@ const SftpViewInner: React.FC<SftpViewProps> = ({
     observer.observe(surface);
     return () => observer.disconnect();
   }, []);
+
+  const handleSplitResizeStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isWideSplit || magnifiedSide) return;
+    event.preventDefault();
+    const surface = splitSurfaceRef.current;
+    if (!surface) return;
+    const startX = event.clientX;
+    const startPercent = leftSplitPercent;
+    const width = surface.clientWidth;
+    if (width <= 0) return;
+    const pointerId = event.pointerId;
+    event.currentTarget.setPointerCapture(pointerId);
+    setIsSplitResizing(true);
+    const onMove = (moveEvent: PointerEvent) => {
+      const delta = ((moveEvent.clientX - startX) / width) * 100;
+      setLeftSplitPercent(clampSftpSplitPercent(startPercent + delta));
+    };
+    const onUp = () => {
+      setIsSplitResizing(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [isWideSplit, leftSplitPercent, magnifiedSide]);
 
   useEffect(() => {
     if (!magnifiedSide) {
@@ -563,7 +592,7 @@ const SftpViewInner: React.FC<SftpViewProps> = ({
           )}
           <div
             className="absolute min-w-0 border-r border-border/70 bg-background flex flex-col transition-[left,top,width,height] duration-150 ease-out"
-            style={resolveTwoPaneMagnificationStyle('left', isWideSplit, magnifiedSide === 'left')}
+            style={resolveTwoPaneMagnificationStyle('left', isWideSplit, magnifiedSide === 'left', leftSplitPercent)}
             data-sftp-pane-side="left"
             inert={magnifiedSide === 'right' ? true : undefined}
             onClick={() => handlePaneFocus("left")}
@@ -628,7 +657,7 @@ const SftpViewInner: React.FC<SftpViewProps> = ({
           </div>
           <div
             className="absolute min-w-0 bg-background flex flex-col transition-[left,top,width,height] duration-150 ease-out"
-            style={resolveTwoPaneMagnificationStyle('right', isWideSplit, magnifiedSide === 'right')}
+            style={resolveTwoPaneMagnificationStyle('right', isWideSplit, magnifiedSide === 'right', leftSplitPercent)}
             data-sftp-pane-side="right"
             inert={magnifiedSide === 'left' ? true : undefined}
             onClick={() => handlePaneFocus("right")}
@@ -691,6 +720,22 @@ const SftpViewInner: React.FC<SftpViewProps> = ({
               )}
             </div>
           </div>
+          {isWideSplit && !magnifiedSide && (
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("sftp.split.resize")}
+              data-section="sftp-split-resize"
+              className={cn(
+                "app-no-drag absolute top-0 z-30 h-full w-2 -translate-x-1/2 cursor-col-resize",
+                "after:absolute after:left-1/2 after:top-2 after:h-[calc(100%-16px)] after:w-px after:-translate-x-1/2 after:bg-border/0 after:transition-colors",
+                "hover:after:bg-border/70",
+                isSplitResizing && "after:bg-primary/70",
+              )}
+              style={{ left: `${leftSplitPercent}%` }}
+              onPointerDown={handleSplitResizeStart}
+            />
+          )}
           {magnifiedSide && showMagnificationHint && (
             <div
               className="pointer-events-none absolute bottom-4 right-4 z-[60] rounded border border-border/70 bg-background/90 px-2 py-1 text-[10px] text-muted-foreground shadow-sm animate-in fade-in duration-150"
