@@ -119,8 +119,6 @@ interface SettingsSystemTabProps {
   setStartupLanding: (landing: "vault" | "local-terminal") => void;
   toggleWindowHotkey: string;
   setToggleWindowHotkey: (hotkey: string) => void;
-  closeToTray: boolean;
-  setCloseToTray: (enabled: boolean) => void;
   httpNetworkProxy: HttpNetworkProxySettings;
   setHttpNetworkProxy: (settings: HttpNetworkProxySettings | ((prev: HttpNetworkProxySettings) => HttpNetworkProxySettings)) => void;
   hotkeyRegistrationError: string | null;
@@ -168,8 +166,6 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   setStartupLanding,
   toggleWindowHotkey,
   setToggleWindowHotkey,
-  closeToTray,
-  setCloseToTray,
   httpNetworkProxy,
   setHttpNetworkProxy,
   hotkeyRegistrationError,
@@ -592,16 +588,12 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
                 />
               </SettingRow>
             </SettingCard>
-            <SettingHint>
-              {updateState.lastCheckedAt && (
-                <span>
-                  {t('settings.update.lastCheckedPrefix')}
-                  {formatLastChecked(updateState.lastCheckedAt, t)}
-                  {'　'}
-                </span>
-              )}
-              {t('settings.update.hint')}
-            </SettingHint>
+            {updateState.lastCheckedAt && (
+              <SettingHint>
+                {t('settings.update.lastCheckedPrefix')}
+                {formatLastChecked(updateState.lastCheckedAt, t)}
+              </SettingHint>
+            )}
 
           <SectionHeader title={t("settings.system.networkProxy.title")} />
             <SettingCard className="space-y-4 py-4">
@@ -1277,17 +1269,6 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
                 )}
               </div>
 
-              {/* Close to Tray */}
-              <SettingRow
-                anchorId="system-close-to-tray"
-                label={t("settings.globalHotkey.closeToTray")}
-                description={t("settings.globalHotkey.closeToTrayDesc")}
-              >
-                <Toggle
-                  checked={closeToTray}
-                  onChange={setCloseToTray}
-                />
-              </SettingRow>
             </SettingCard>
 
             <SettingHint>

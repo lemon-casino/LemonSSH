@@ -51,6 +51,7 @@ import {
   STORAGE_KEY_UI_LANGUAGE,
   STORAGE_KEY_WORKSPACE_FOCUS_STYLE,
   STORAGE_KEY_WINDOW_OPACITY,
+  STORAGE_KEY_CLOSE_BEHAVIOR,
 } from '../../infrastructure/config/storageKeys';
 import { resolveAppearanceStorageEvent } from './appearanceSync';
 import {
@@ -110,6 +111,7 @@ interface UseSettingsStorageSyncParams {
   globalHotkeyEnabled: boolean;
   autoUpdateEnabled: boolean;
   windowOpacity: number;
+  closeBehavior: "minimize" | "quit" | null;
   setTheme: Dispatch<SetStateAction<'dark' | 'light' | 'system'>>;
   setLightUiThemeId: Dispatch<SetStateAction<string>>;
   setDarkUiThemeId: Dispatch<SetStateAction<string>>;
@@ -157,6 +159,7 @@ interface UseSettingsStorageSyncParams {
   setExplorerContextMenuEnabledState: (enabled: boolean) => void;
   setGlobalHotkeyEnabled: Dispatch<SetStateAction<boolean>>;
   setWindowOpacity: (raw: unknown) => void;
+  setCloseBehavior: (raw: unknown) => void;
   setAutoUpdateEnabled: Dispatch<SetStateAction<boolean>>;
   setWorkspaceFocusStyleState: Dispatch<SetStateAction<'dim' | 'border'>>;
   setSftpTransferConcurrencyState: Dispatch<SetStateAction<number>>;
@@ -174,7 +177,7 @@ export function useSettingsStorageSync({
   sftpUseCompressedUpload, sftpSkipUnchanged, sftpAutoOpenSidebar, sftpFollowTerminalCwd, sftpDefaultViewMode,
   showRecentHosts, hostClickBehavior, showOnlyUngroupedHostsInRoot, showSftpTab, showHostTreeSidebar, terminalSidePanelAutoOpen, terminalSidePanelAutoOpenTab, shellOnlyTabNumberShortcuts, showTabNumberBadges, disableTerminalFontZoom, restorePreviousSession, restoreTerminalCwd, startupLanding,
   editorWordWrap, sessionLogsEnabled, sessionLogsDir, sessionLogsFormat, sessionLogsTimestampsEnabled, sshDebugLogsEnabled, sshDeepLinkEnabled, jmsDeepLinkEnabled, explorerContextMenuEnabled,
-  globalHotkeyEnabled, autoUpdateEnabled, windowOpacity,
+  globalHotkeyEnabled, autoUpdateEnabled, windowOpacity, closeBehavior,
   setTheme, setLightUiThemeId, setDarkUiThemeId, setAccentMode, applyIncomingCustomAccent,
   setCustomCSS, setUiFontFamilyId, setHotkeyScheme, setUiLanguage,
   setTerminalThemeId, setTerminalThemeDarkId, setTerminalThemeLightId,
@@ -183,7 +186,7 @@ export function useSettingsStorageSync({
   setSftpUseCompressedUpload, setSftpSkipUnchanged, setSftpAutoOpenSidebar, setSftpFollowTerminalCwd, setSftpDefaultViewMode,
   setShowRecentHostsState, setHostClickBehaviorState, setShowOnlyUngroupedHostsInRootState, setShowSftpTabState, setShowHostTreeSidebarState, setTerminalSidePanelAutoOpenState, setTerminalSidePanelAutoOpenTabState, setShellOnlyTabNumberShortcutsState, setShowTabNumberBadgesState, setDisableTerminalFontZoomState, setRestorePreviousSessionState, setRestoreTerminalCwdState, setStartupLandingState,
   setEditorWordWrapState, setSessionLogsEnabled, setSessionLogsDir, setSessionLogsFormat, setSessionLogsTimestampsEnabled, setSshDebugLogsEnabled, setSshDeepLinkEnabledState, setJmsDeepLinkEnabledState, setExplorerContextMenuEnabledState,
-  setGlobalHotkeyEnabled, setWindowOpacity, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
+  setGlobalHotkeyEnabled, setWindowOpacity, setCloseBehavior, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
   setSftpTransferConcurrencyState, setSshTransportIdleTtlMsState,
   applyIncomingCustomKeyBindings, mergeIncomingTerminalSettings,
 }: UseSettingsStorageSyncParams) {
@@ -198,7 +201,7 @@ export function useSettingsStorageSync({
     sftpUseCompressedUpload, sftpSkipUnchanged, sftpAutoOpenSidebar, sftpFollowTerminalCwd, sftpDefaultViewMode,
     showRecentHosts, hostClickBehavior, showOnlyUngroupedHostsInRoot, showSftpTab, showHostTreeSidebar, terminalSidePanelAutoOpen, terminalSidePanelAutoOpenTab, shellOnlyTabNumberShortcuts, showTabNumberBadges, disableTerminalFontZoom, restorePreviousSession, restoreTerminalCwd, startupLanding,
     editorWordWrap, sessionLogsEnabled, sessionLogsDir, sessionLogsFormat, sessionLogsTimestampsEnabled, sshDebugLogsEnabled, sshDeepLinkEnabled, jmsDeepLinkEnabled, explorerContextMenuEnabled,
-    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity,
+    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity, closeBehavior,
   });
   settingsSnapshotRef.current = {
     theme, lightUiThemeId, darkUiThemeId, accentMode, customAccent, customAccentVersion,
@@ -208,7 +211,7 @@ export function useSettingsStorageSync({
     sftpUseCompressedUpload, sftpSkipUnchanged, sftpAutoOpenSidebar, sftpFollowTerminalCwd, sftpDefaultViewMode,
     showRecentHosts, hostClickBehavior, showOnlyUngroupedHostsInRoot, showSftpTab, showHostTreeSidebar, terminalSidePanelAutoOpen, terminalSidePanelAutoOpenTab, shellOnlyTabNumberShortcuts, showTabNumberBadges, disableTerminalFontZoom, restorePreviousSession, restoreTerminalCwd, startupLanding,
     editorWordWrap, sessionLogsEnabled, sessionLogsDir, sessionLogsFormat, sessionLogsTimestampsEnabled, sshDebugLogsEnabled, sshDeepLinkEnabled, jmsDeepLinkEnabled, explorerContextMenuEnabled,
-    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity,
+    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity, closeBehavior,
   };
 
   // Listen for storage changes from other windows (cross-window sync)
@@ -502,6 +505,14 @@ export function useSettingsStorageSync({
       if (e.key === STORAGE_KEY_WINDOW_OPACITY && e.newValue !== null) {
         setWindowOpacity(e.newValue);
       }
+      // Sync close behavior (Habits) from other windows. A null newValue means
+      // the habit was cleared back to "ask each time".
+      if (e.key === STORAGE_KEY_CLOSE_BEHAVIOR) {
+        const next = e.newValue === 'minimize' || e.newValue === 'quit' ? e.newValue : null;
+        if (next !== s.closeBehavior) {
+          setCloseBehavior(e.newValue);
+        }
+      }
       // Sync workspace focus style from other windows
       if (e.key === STORAGE_KEY_WORKSPACE_FOCUS_STYLE && e.newValue !== null) {
         if (e.newValue === 'dim' || e.newValue === 'border') {
@@ -539,6 +550,7 @@ export function useSettingsStorageSync({
     setGlobalHotkeyEnabled,
     setHostClickBehaviorState,
     setWindowOpacity,
+    setCloseBehavior,
     setHotkeyScheme,
     setLightUiThemeId,
     setSessionLogsDir,

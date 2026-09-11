@@ -55,6 +55,34 @@ test("settings search catalog has unique ids", () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
+test("every settings search entry resolves to a real zh-CN label", () => {
+  const unresolved = SETTINGS_SEARCH_CATALOG
+    .filter((entry) => !(entry.labelKey in zhCN))
+    .map((entry) => entry.id);
+  assert.deepEqual(unresolved, [], `Missing zh-CN label keys for: ${unresolved.join(", ")}`);
+});
+
+test("appearance search no longer advertises the removed app-icon option", () => {
+  assert.equal(
+    SETTINGS_SEARCH_CATALOG.some((entry) => entry.id === "appearance-app-icon"),
+    false,
+  );
+});
+
+test("settings search catalog keeps only update and feedback on the application tab", () => {
+  const applicationIds = SETTINGS_SEARCH_CATALOG
+    .filter((entry) => entry.tab === "application")
+    .map((entry) => entry.id);
+  assert.deepEqual(applicationIds, [
+    "application-check-updates",
+    "application-report-problem",
+  ]);
+  assert.equal(
+    SETTINGS_SEARCH_CATALOG.some((entry) => entry.id === "appearance-window-opacity"),
+    false,
+  );
+});
+
 test("filterSettingsSearchCatalog matches English labels", () => {
   const hits = filterSettingsSearchCatalog("copy on select", tEn);
   assert.ok(hits.some((hit) => hit.entry.id === "terminal-copy-on-select"));

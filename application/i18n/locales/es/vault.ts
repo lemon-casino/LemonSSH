@@ -587,6 +587,7 @@ export const esVaultMessages: Messages = {
   'settings.sftp.defaultViewMode.tree': 'Vista de árbol',
   'settings.sftp.defaultViewMode.treeDesc': 'Muestra los archivos en una estructura de árbol jerárquica',
 
+  'sftp.split.resize': 'Cambiar el tamaño de los paneles izquierdo y derecho',
   'sftp.autoSync.success': 'Archivo sincronizado con el remoto: {fileName}',
   'sftp.autoSync.error': 'No se pudo sincronizar el archivo: {error}',
 

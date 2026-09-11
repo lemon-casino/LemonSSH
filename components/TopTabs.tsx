@@ -152,8 +152,6 @@ interface TopTabsProps {
   externalMcpEnabled: boolean;
   onToggleExternalMcp: (enabled: boolean) => void;
   showExternalMcpToggle?: boolean;
-  windowOpacity: number;
-  setWindowOpacity: (opacity: number) => void;
   onSyncNow?: () => Promise<void>;
   onStartSessionDrag: (sessionId: string) => void;
   onEndSessionDrag: () => void;
@@ -203,8 +201,6 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
   externalMcpEnabled,
   onToggleExternalMcp,
   showExternalMcpToggle = true,
-  windowOpacity,
-  setWindowOpacity,
   onSyncNow,
   onStartSessionDrag,
   onEndSessionDrag,
@@ -1225,8 +1221,6 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
             externalMcpEnabled={externalMcpEnabled}
             onToggleExternalMcp={onToggleExternalMcp}
             showExternalMcpToggle={showExternalMcpToggle}
-            windowOpacity={windowOpacity}
-            setWindowOpacity={setWindowOpacity}
             style={{ color: 'var(--top-tabs-muted, hsl(var(--muted-foreground)))' }}
           />
 
@@ -1285,8 +1279,6 @@ export const topTabsAreEqual = (prev: TopTabsProps, next: TopTabsProps): boolean
     prev.externalMcpEnabled === next.externalMcpEnabled &&
     prev.onToggleExternalMcp === next.onToggleExternalMcp &&
     prev.showExternalMcpToggle === next.showExternalMcpToggle &&
-    prev.windowOpacity === next.windowOpacity &&
-    prev.setWindowOpacity === next.setWindowOpacity &&
     prev.onSyncNow === next.onSyncNow &&
     prev.themePreference === next.themePreference &&
     prev.onThemeChange === next.onThemeChange &&

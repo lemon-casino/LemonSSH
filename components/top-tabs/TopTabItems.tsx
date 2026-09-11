@@ -12,6 +12,8 @@ import {
 } from '../../application/state/editorTabStore';
 import type { LogView } from '../../application/state/logViewState';
 import { useWindowControls } from '../../application/state/useWindowControls';
+import { useSettingsChromeActions, useSettingsChromeStore } from '../../application/state/settingsChromeStore';
+import { resolveCloseAction, type CloseBehavior } from '../../domain/closeBehavior';
 import { terminalReconnectRegistry } from '../../application/state/terminalReconnectRegistry';
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { getEffectiveHostDistro } from '../../domain/host';
@@ -29,6 +31,14 @@ import { getShellIconPath, isMonochromeShellIcon } from '../../lib/useDiscovered
 import { handleTabMiddleClickClose, handleTabMiddleMouseDown } from '../../lib/tabInteractions';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '../ui/context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Button } from '../ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 import { SessionTabContextMenuContent } from './SessionTabContextMenuContent';
 import { renderHostIconGlyph } from '../hostIconRenderer';
 import type { PluginViewTab } from '../../application/state/pluginViewTabStore';
@@ -254,8 +264,12 @@ export const stopCloseButtonDoubleClickPropagation = (
 
 // Custom window controls for Windows/Linux (frameless window)
 export const WindowControls: React.FC = memo(() => {
-  const { minimize, maximize, close, isMaximized: fetchIsMaximized } = useWindowControls();
+  const { t } = useI18n();
+  const { minimize, maximize, close, quit, isMaximized: fetchIsMaximized } = useWindowControls();
+  const { closeBehavior } = useSettingsChromeStore();
+  const { setCloseBehavior } = useSettingsChromeActions();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [closeBehaviorPrompt, setCloseBehaviorPrompt] = useState(false);
 
   useEffect(() => {
     // Check initial maximized state
@@ -285,8 +299,27 @@ export const WindowControls: React.FC = memo(() => {
     setIsMaximized(!!result);
   };
 
+  const applyCloseBehavior = (behavior: CloseBehavior) => {
+    if (behavior === 'quit') {
+      void quit();
+      return;
+    }
+    void close();
+  };
+
   const handleClose = () => {
-    close();
+    const action = resolveCloseAction(closeBehavior);
+    if (action === 'prompt') {
+      setCloseBehaviorPrompt(true);
+      return;
+    }
+    applyCloseBehavior(action);
+  };
+
+  const chooseCloseBehavior = (behavior: CloseBehavior) => {
+    setCloseBehavior(behavior);
+    setCloseBehaviorPrompt(false);
+    applyCloseBehavior(behavior);
   };
 
   const controlClassName = 'window-control-btn app-no-drag';
@@ -303,6 +336,22 @@ export const WindowControls: React.FC = memo(() => {
       <button type="button" className={closeControlClassName} onClick={handleClose}>
         <X size={16} />
       </button>
+      <Dialog open={closeBehaviorPrompt} onOpenChange={setCloseBehaviorPrompt}>
+        <DialogContent hideCloseButton className="max-w-[calc(100vw-2rem)] sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>{t('closeBehavior.title')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('closeBehavior.message')}</p>
+          <DialogFooter className="sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => chooseCloseBehavior('minimize')}>
+              {t('closeBehavior.minimize')}
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => chooseCloseBehavior('quit')}>
+              {t('closeBehavior.quit')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

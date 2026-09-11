@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowUpCircle, Bug, Check, Github, Loader2, MessageCircle, Newspaper, RefreshCcw } from "lucide-react";
+import { ArrowUpCircle, Bug, Check, Loader2, RefreshCcw } from "lucide-react";
 import AppLogo from "./AppLogo";
 import AppWordmark from "./AppWordmark";
 import { Button } from "./ui/button";
@@ -164,8 +164,6 @@ export default function SettingsApplicationTab({ updateState, checkNow, openRele
   };
 
   const issueUrl = useMemo(() => buildIssueUrl(appInfo), [appInfo]);
-  const releasesUrl = `${REPO_URL}/releases`;
-  const discussionsUrl = `${REPO_URL}/discussions`;
 
   return (
     <SettingsTabContent value="application">
@@ -234,30 +232,6 @@ export default function SettingsApplicationTab({ updateState, checkNow, openRele
                 title={t("settings.application.reportProblem")}
                 subtitle={t("settings.application.reportProblem.subtitle")}
                 onClick={() => void handleOpenExternal(issueUrl)}
-              />
-            </SettingsAnchor>
-            <SettingsAnchor anchorId="application-community">
-              <ActionRow
-                icon={<MessageCircle size={18} />}
-                title={t("settings.application.community")}
-                subtitle={t("settings.application.community.subtitle")}
-                onClick={() => void handleOpenExternal(discussionsUrl)}
-              />
-            </SettingsAnchor>
-            <SettingsAnchor anchorId="application-github">
-              <ActionRow
-                icon={<Github size={18} />}
-                title="GitHub"
-                subtitle={t("settings.application.github.subtitle")}
-                onClick={() => void handleOpenExternal(REPO_URL)}
-              />
-            </SettingsAnchor>
-            <SettingsAnchor anchorId="application-whats-new">
-              <ActionRow
-                icon={<Newspaper size={18} />}
-                title={t("settings.application.whatsNew")}
-                subtitle={t("settings.application.whatsNew.subtitle")}
-                onClick={() => void handleOpenExternal(releasesUrl)}
               />
             </SettingsAnchor>
           </div>

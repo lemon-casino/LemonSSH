@@ -54,6 +54,11 @@ export const useWindowControls = () => {
     await bridge?.windowClose?.();
   }, []);
 
+  const quit = useCallback(async () => {
+    const bridge = netcattyBridge.get();
+    await bridge?.quitApp?.();
+  }, []);
+
   const isMaximized = useCallback(async () => {
     const bridge = netcattyBridge.get();
     return bridge?.windowIsMaximized?.();
@@ -79,6 +84,7 @@ export const useWindowControls = () => {
     minimize,
     maximize,
     close,
+    quit,
     isMaximized,
     isFullscreen,
     onFullscreenChanged,

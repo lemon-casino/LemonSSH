@@ -36,6 +36,7 @@ export type SettingsChromeSnapshot = {
   restoreTerminalCwd: boolean;
   terminalSidePanelAutoOpen: boolean;
   terminalSidePanelAutoOpenTab: TerminalSidePanelAutoOpenTab;
+  closeBehavior: "minimize" | "quit" | null;
 };
 
 /**
@@ -46,6 +47,7 @@ export type SettingsChromeSnapshot = {
 export type SettingsChromeActions = {
   setTheme: (theme: SettingsChromeTheme) => void;
   setWindowOpacity: (opacity: number) => void;
+  setCloseBehavior: (behavior: "minimize" | "quit" | null) => void;
 };
 
 export const DEFAULT_SETTINGS_CHROME_SNAPSHOT: SettingsChromeSnapshot = Object.freeze({
@@ -68,6 +70,7 @@ export const DEFAULT_SETTINGS_CHROME_SNAPSHOT: SettingsChromeSnapshot = Object.f
   restoreTerminalCwd: true,
   terminalSidePanelAutoOpen: false,
   terminalSidePanelAutoOpenTab: 'ai',
+  closeBehavior: 'minimize',
 } satisfies SettingsChromeSnapshot);
 
 export function settingsChromeSnapshotsEqual(
@@ -92,7 +95,8 @@ export function settingsChromeSnapshotsEqual(
     && a.showTabNumberBadges === b.showTabNumberBadges
     && a.restoreTerminalCwd === b.restoreTerminalCwd
     && a.terminalSidePanelAutoOpen === b.terminalSidePanelAutoOpen
-    && a.terminalSidePanelAutoOpenTab === b.terminalSidePanelAutoOpenTab;
+    && a.terminalSidePanelAutoOpenTab === b.terminalSidePanelAutoOpenTab
+    && a.closeBehavior === b.closeBehavior;
 }
 
 class SettingsChromeStore {
@@ -176,6 +180,7 @@ export function useSettingsChromeStore(): SettingsChromeSnapshot {
 
 const noopSetTheme: SettingsChromeActions['setTheme'] = () => {};
 const noopSetWindowOpacity: SettingsChromeActions['setWindowOpacity'] = () => {};
+const noopSetCloseBehavior: SettingsChromeActions['setCloseBehavior'] = () => {};
 
 /** Chrome setters, safe to call before `useSettingsState` has registered. */
 export function useSettingsChromeActions(): SettingsChromeActions {
@@ -187,5 +192,6 @@ export function useSettingsChromeActions(): SettingsChromeActions {
   return {
     setTheme: actions?.setTheme ?? noopSetTheme,
     setWindowOpacity: actions?.setWindowOpacity ?? noopSetWindowOpacity,
+    setCloseBehavior: actions?.setCloseBehavior ?? noopSetCloseBehavior,
   };
 }

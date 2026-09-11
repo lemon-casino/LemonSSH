@@ -17,10 +17,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
-		"github.com/binaricat/netcatty/internal/app"
-		"github.com/binaricat/netcatty/internal/platform/applog"
-		"github.com/binaricat/netcatty/internal/platform/applock"
-		"github.com/binaricat/netcatty/internal/platform/credentials"
+	"github.com/binaricat/netcatty/internal/app"
+	"github.com/binaricat/netcatty/internal/platform/applock"
+	"github.com/binaricat/netcatty/internal/platform/applog"
+	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
@@ -115,11 +115,7 @@ func main() {
 				if !ok {
 					return
 				}
-				if win.IsMinimised() {
-					win.UnMinimise()
-				}
-				win.Show()
-				win.Focus()
+				restoreMainWindow(appRestoreWindow{win})
 			},
 		},
 		Assets: application.AssetOptions{
@@ -148,11 +144,11 @@ func main() {
 		profileStore,
 	)
 	pluginService := newPluginService()
-		filesystemService := newFilesystemService()
-		transferService := newTransferService()
-		shortcutService := newShortcutService()
-		syncService := newSyncService()
-		diagnosticLogService := newDiagnosticLogService()
+	filesystemService := newFilesystemService()
+	transferService := newTransferService()
+	shortcutService := newShortcutService()
+	syncService := newSyncService()
+	diagnosticLogService := newDiagnosticLogService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
 	routeController := dataplane.NewRouteController()
@@ -189,10 +185,11 @@ func main() {
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
-		wailsApp.RegisterService(application.NewService(syncService))
-		wailsApp.RegisterService(application.NewService(diagnosticLogService))
+	wailsApp.RegisterService(application.NewService(syncService))
+	wailsApp.RegisterService(application.NewService(diagnosticLogService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
+	setTaskbarIcon(mainWindow)
 	registerFileDrops(mainWindow)
 	settingsWindowService := newSettingsWindowService(wailsApp)
 	popupWindowService := newPopupWindowService(wailsApp)
@@ -204,22 +201,23 @@ func main() {
 		time.AfterFunc(2*time.Second, settingsWindowService.Preload)
 	})
 
-	// System Tray (P4-03)
+	// System Tray (P4-03). The context menu follows the Appearance language:
+	// the renderer reports locale changes through TrayService.SetLanguage.
 	tray := wailsApp.SystemTray.New()
 	tray.SetIcon(appIcon)
 	tray.SetTooltip("LemonSSH")
-	trayMenu := wailsApp.NewMenu()
-	trayMenu.Add("Show LemonSSH").OnClick(func(*application.Context) {
-		if win, ok := wailsApp.Window.GetByName("main"); ok {
-			win.Show()
-			win.Focus()
-		}
+	trayService := newTrayService(wailsApp, tray, TrayActions{
+		ShowMain: func() {
+			if win, ok := wailsApp.Window.GetByName("main"); ok {
+				restoreMainWindow(appRestoreWindow{win})
+			}
+		},
+		OpenSettings: func() {
+			_, _ = settingsWindowService.Open()
+		},
 	})
-	trayMenu.Add("Settings").OnClick(func(*application.Context) {
-		_, _ = settingsWindowService.Open()
-	})
-	trayMenu.Add("Quit").OnClick(func(*application.Context) { wailsApp.Quit() })
-	tray.SetMenu(trayMenu)
+	tray.SetMenu(trayService.initialMenu())
+	wailsApp.RegisterService(application.NewService(trayService))
 
 	if err := wailsApp.Run(); err != nil {
 		log.Fatal(err)

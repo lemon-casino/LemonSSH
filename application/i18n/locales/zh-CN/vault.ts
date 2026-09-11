@@ -959,6 +959,7 @@ export const zhCNVaultMessages: Messages = {
   'sftp.pane.selectHost': '选择主机',
   'sftp.pane.selectHostToStart': '先选择一个主机',
   'sftp.pane.chooseFilesystem': '选择要浏览的本地或远端文件系统',
+  'sftp.split.resize': '调整左右布局宽度',
   'sftp.tabs.addTab': '新建标签页',
   'sftp.tabs.closeTab': '关闭标签页',
   'sftp.tabs.newTab': '新标签页',

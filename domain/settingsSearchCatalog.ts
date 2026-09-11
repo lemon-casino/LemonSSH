@@ -12,6 +12,7 @@ export const SETTINGS_TAB_IDS = [
   "ai",
   "sync",
   "system",
+  "habits",
   "plugins",
 ] as const;
 
@@ -64,26 +65,6 @@ export const SETTINGS_SEARCH_CATALOG: readonly SettingsSearchEntry[] = [
     descriptionKey: "settings.application.reportProblem.subtitle",
     keywords: ["bug", "issue", "反馈"],
   },
-  {
-    id: "application-community",
-    tab: "application",
-    labelKey: "settings.application.community",
-    descriptionKey: "settings.application.community.subtitle",
-  },
-  {
-    id: "application-github",
-    tab: "application",
-    labelKey: "settings.application.github",
-    descriptionKey: "settings.application.github.subtitle",
-    keywords: ["github", "repo"],
-  },
-  {
-    id: "application-whats-new",
-    tab: "application",
-    labelKey: "settings.application.whatsNew",
-    descriptionKey: "settings.application.whatsNew.subtitle",
-    keywords: ["changelog", "release"],
-  },
 
   // Appearance
   {
@@ -100,13 +81,6 @@ export const SETTINGS_SEARCH_CATALOG: readonly SettingsSearchEntry[] = [
     labelKey: "settings.appearance.uiFont",
     descriptionKey: "settings.appearance.uiFont.desc",
     sectionKey: "settings.appearance.language",
-  },
-  {
-    id: "appearance-window-opacity",
-    tab: "appearance",
-    labelKey: "settings.appearance.windowOpacity",
-    descriptionKey: "settings.appearance.windowOpacity.desc",
-    keywords: ["transparency", "透明"],
   },
   {
     id: "appearance-theme",
@@ -793,7 +767,6 @@ export const SETTINGS_SEARCH_CATALOG: readonly SettingsSearchEntry[] = [
     id: "system-update",
     tab: "system",
     labelKey: "settings.update.title",
-    descriptionKey: "settings.update.hint",
     keywords: ["update", "升级"],
   },
   {
@@ -909,11 +882,12 @@ export const SETTINGS_SEARCH_CATALOG: readonly SettingsSearchEntry[] = [
     sectionKey: "settings.globalHotkey.title",
   },
   {
-    id: "system-close-to-tray",
-    tab: "system",
-    labelKey: "settings.globalHotkey.closeToTray",
-    descriptionKey: "settings.globalHotkey.closeToTrayDesc",
-    sectionKey: "settings.globalHotkey.title",
+    id: "habits-close-behavior",
+    tab: "habits",
+    labelKey: "settings.habits.closeBehavior",
+    descriptionKey: "settings.habits.closeBehavior.desc",
+    sectionKey: "settings.habits.title",
+    keywords: ["close", "quit", "tray", "关闭", "习惯"],
   },
 
   // Plugins

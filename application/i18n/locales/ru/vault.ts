@@ -623,6 +623,7 @@ export const ruVaultMessages: Messages = {
   'settings.sftp.defaultViewMode.tree': 'Дерево',
   'settings.sftp.defaultViewMode.treeDesc': 'Показывать файлы в иерархической древовидной структуре',
 
+  'sftp.split.resize': 'Изменить ширину левой и правой панелей',
   'sftp.autoSync.success': 'Файл синхронизирован с удалённым сервером: {fileName}',
   'sftp.autoSync.error': 'Не удалось синхронизировать файл: {error}',
 

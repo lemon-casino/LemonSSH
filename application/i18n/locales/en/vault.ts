@@ -587,6 +587,7 @@ export const enVaultMessages: Messages = {
   'settings.sftp.defaultViewMode.tree': 'Tree View',
   'settings.sftp.defaultViewMode.treeDesc': 'Display files in a hierarchical tree structure',
 
+  'sftp.split.resize': 'Resize left and right panes',
   'sftp.autoSync.success': 'File synced to remote: {fileName}',
   'sftp.autoSync.error': 'Failed to sync file: {error}',
 

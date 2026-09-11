@@ -62,8 +62,6 @@ function SettingsAppearanceTab(props: {
   setShowSftpTab: (enabled: boolean) => void;
   showHostTreeSidebar: boolean;
   setShowHostTreeSidebar: (enabled: boolean) => void;
-  windowOpacity: number;
-  setWindowOpacity: (opacity: number) => void;
 }) {
   const { t } = useI18n();
   const availableUIFonts = useAvailableUIFonts();
@@ -129,15 +127,7 @@ function SettingsAppearanceTab(props: {
     setShowSftpTab,
     showHostTreeSidebar,
     setShowHostTreeSidebar,
-    windowOpacity,
-    setWindowOpacity,
   } = props;
-
-  const WINDOW_OPACITY_PRESETS = [
-    { label: '100%', value: 1 },
-    { label: '85%', value: 0.85 },
-    { label: '70%', value: 0.7 },
-  ] as const;
 
   const getHslStyle = useCallback((hsl: string) => ({ backgroundColor: `hsl(${hsl})` }), []);
 
@@ -255,49 +245,6 @@ function SettingsAppearanceTab(props: {
             className="w-48"
             ariaLabel={t("settings.appearance.uiFont")}
           />
-        </SettingRow>
-      </div>
-
-      <SectionHeader title={t("settings.appearance.windowOpacity")} />
-      <div className="space-y-0 divide-y divide-border rounded-lg border bg-card px-4">
-        <SettingRow
-          anchorId="appearance-window-opacity"
-          label={t("settings.appearance.windowOpacity")}
-          description={t("settings.appearance.windowOpacity.desc")}
-        >
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={50}
-                max={100}
-                step={1}
-                value={Math.round(windowOpacity * 100)}
-                onChange={(e) => setWindowOpacity(Number(e.target.value) / 100)}
-                className="w-28 accent-primary"
-              />
-              <span className="text-sm text-muted-foreground w-10 text-right tabular-nums">
-                {Math.round(windowOpacity * 100)}%
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {WINDOW_OPACITY_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setWindowOpacity(preset.value)}
-                  className={cn(
-                    "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
-                    windowOpacity === preset.value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted/50 text-muted-foreground border-border hover:text-foreground",
-                  )}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </SettingRow>
       </div>
 

@@ -132,7 +132,7 @@ test("top tabs keep cloud sync separate from quick controls", () => {
   assert.match(topTabsSource, /themePreference=\{themePreference\}/);
   assert.match(topTabsSource, /onThemeChange=\{onThemeChange\}/);
   assert.match(topTabsSource, /externalMcpEnabled=\{externalMcpEnabled\}/);
-  assert.match(topTabsSource, /windowOpacity=\{windowOpacity\}/);
+  assert.doesNotMatch(topTabsSource, /windowOpacity=\{windowOpacity\}/);
   assert.match(topTabsSource, /showExternalMcpToggle=\{showExternalMcpToggle\}/);
   assert.doesNotMatch(topTabsSource, /WindowOpacityButton/);
   assert.doesNotMatch(topTabsSource, /onToggleTheme/);
@@ -147,25 +147,24 @@ test("top tabs keep cloud sync separate from quick controls", () => {
   assert.match(quickControlsUsage[0], /externalMcpEnabled=\{externalMcpEnabled\}/);
 });
 
-test("quick controls panel hosts External MCP, opacity, and theme", () => {
+test("quick controls panel hosts External MCP and theme without opacity", () => {
   assert.match(topTabsQuickControlsSource, /data-section="top-tabs-quick-controls"/);
   assert.match(topTabsQuickControlsSource, /className="w-72 p-0 app-no-drag"/);
   assert.match(topTabsQuickControlsSource, /topTabs\.controlPanel/);
   assert.doesNotMatch(topTabsQuickControlsSource, /topTabs\.controlPanel\.description/);
   assert.match(topTabsQuickControlsSource, /externalMcpEnabled/);
   assert.match(topTabsQuickControlsSource, /onToggleExternalMcp/);
-  assert.match(topTabsQuickControlsSource, /windowOpacity/);
-  assert.match(topTabsQuickControlsSource, /setWindowOpacity/);
+  assert.doesNotMatch(topTabsQuickControlsSource, /windowOpacity/);
+  assert.doesNotMatch(topTabsQuickControlsSource, /setWindowOpacity/);
   assert.match(topTabsQuickControlsSource, /themePreference/);
   assert.match(topTabsQuickControlsSource, /onThemeChange/);
   assert.match(topTabsQuickControlsSource, /topTabs\.controlPanel\.theme\.system/);
   assert.match(topTabsQuickControlsSource, /aria-pressed=\{themePreference === option\.value\}/);
   assert.match(topTabsQuickControlsSource, /onClick=\{\(\) => onThemeChange\(option\.value\)\}/);
   assert.match(topTabsQuickControlsSource, /<Plug size=\{14\}/);
-  assert.match(topTabsQuickControlsSource, /OPACITY_PRESETS/);
-  assert.match(topTabsQuickControlsSource, /isOpacityExpanded/);
-  assert.match(topTabsQuickControlsSource, /isPresetActive/);
-  assert.match(topTabsQuickControlsSource, /type="range"/);
+  assert.doesNotMatch(topTabsQuickControlsSource, /OPACITY_PRESETS/);
+  assert.doesNotMatch(topTabsQuickControlsSource, /isOpacityExpanded/);
+  assert.doesNotMatch(topTabsQuickControlsSource, /type="range"/);
   assert.match(topTabsQuickControlsSource, /aria-labelledby=\{externalMcpLabelId\}/);
   assert.doesNotMatch(topTabsQuickControlsSource, /onOpenAutoFocus/);
   assert.match(topTabsQuickControlsSource, /mt-1 border-t border-border\/60 pt-1/);

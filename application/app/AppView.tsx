@@ -289,7 +289,6 @@ function AppViewInner({ domains }: AppViewProps) {
   const {
     theme: themePreference,
     resolvedTheme,
-    windowOpacity,
     showSftpTab,
     showHostTreeSidebar,
     showRecentHosts,
@@ -301,7 +300,7 @@ function AppViewInner({ domains }: AppViewProps) {
     terminalSidePanelAutoOpen,
     terminalSidePanelAutoOpenTab,
   } = useSettingsChromeStore();
-  const { setTheme, setWindowOpacity } = useSettingsChromeActions();
+  const { setTheme } = useSettingsChromeActions();
 
   const paneMagnificationController = getAvailablePaneMagnificationController([
     sftpPaneMagnificationRef?.current,
@@ -518,8 +517,6 @@ function AppViewInner({ domains }: AppViewProps) {
         externalMcpEnabled={externalMcpToggle.enabled}
         onToggleExternalMcp={externalMcpToggle.setEnabled}
         showExternalMcpToggle={!isPeerSessionWindow}
-        windowOpacity={windowOpacity}
-        setWindowOpacity={setWindowOpacity}
         onSyncNow={handleSyncNowManual}
         onStartSessionDrag={setDraggingSessionId}
         onEndSessionDrag={handleEndSessionDrag}

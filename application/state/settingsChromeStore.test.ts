@@ -137,6 +137,7 @@ test('registerSettingsChromeActions exposes the theme and opacity setters', () =
   registerSettingsChromeActions({
     setTheme: () => calls.push('theme'),
     setWindowOpacity: () => calls.push('opacity'),
+    setCloseBehavior: () => calls.push('close'),
   });
 
   const actions = getSettingsChromeActions();
@@ -161,8 +162,8 @@ test('setter churn never invalidates the chrome value snapshot', () => {
     valueEvents += 1;
   });
 
-  registerSettingsChromeActions({ setTheme: () => {}, setWindowOpacity: () => {} });
-  registerSettingsChromeActions({ setTheme: () => {}, setWindowOpacity: () => {} });
+  registerSettingsChromeActions({ setTheme: () => {}, setWindowOpacity: () => {}, setCloseBehavior: () => {} });
+  registerSettingsChromeActions({ setTheme: () => {}, setWindowOpacity: () => {}, setCloseBehavior: () => {} });
   assert.equal(valueEvents, 0);
 
   registerSettingsChromeActions(null);

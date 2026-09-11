@@ -33,7 +33,8 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
     /not migrated to the Wails runtime yet/,
   );
   assert.throws(() => client.files.readClipboardText);
-  assert.throws(() => client.app.quitApp());
+  // quitApp is migrated: the Go TrayService owns process termination.
+  assert.equal(typeof client.app.quitApp, "function");
 });
 
 test("wails transition bridge leaves unmigrated methods undefined for optional chaining", () => {
@@ -41,8 +42,9 @@ test("wails transition bridge leaves unmigrated methods undefined for optional c
   const bridge = client.transitionBridge as unknown as Record<string, unknown>;
   assert.equal(typeof bridge.startMoshSession, "function");
   assert.equal(typeof bridge.startEtSession, "function");
-  assert.equal(bridge.setLanguage, undefined);
-  assert.doesNotThrow(() => (bridge.setLanguage as undefined)?.("en"));
+  // Tray language switching is migrated: the Appearance language drives the
+  // Go tray menu through TrayService.SetLanguage.
+  assert.equal(typeof bridge.setLanguage, "function");
 });
 
 test("generated wails bindings expose the skeleton service surface", async () => {

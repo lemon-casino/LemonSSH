@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ChevronDown,
-  Droplets,
   Monitor,
   Moon,
   Plug,
@@ -15,12 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Switch } from './ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-const OPACITY_PRESETS = [
-  { label: '100%', value: 1 },
-  { label: '85%', value: 0.85 },
-  { label: '70%', value: 0.7 },
-] as const;
-
 export interface TopTabsQuickControlsProps {
   theme: 'dark' | 'light';
   themePreference: 'dark' | 'light' | 'system';
@@ -28,8 +20,6 @@ export interface TopTabsQuickControlsProps {
   externalMcpEnabled: boolean;
   onToggleExternalMcp: (enabled: boolean) => void;
   showExternalMcpToggle?: boolean;
-  windowOpacity: number;
-  setWindowOpacity: (opacity: number) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -41,16 +31,11 @@ export const TopTabsQuickControls: React.FC<TopTabsQuickControlsProps> = ({
   externalMcpEnabled,
   onToggleExternalMcp,
   showExternalMcpToggle = true,
-  windowOpacity,
-  setWindowOpacity,
   className,
   style,
 }) => {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
-  const [isOpacityExpanded, setIsOpacityExpanded] = useState(false);
-  const opacityPercent = Math.round(windowOpacity * 100);
-  const isPresetActive = (value: number) => Math.round(value * 100) === opacityPercent;
   const isDark = theme === 'dark';
   const externalMcpLabelId = React.useId();
   const themeOptions = [
@@ -62,10 +47,7 @@ export const TopTabsQuickControls: React.FC<TopTabsQuickControlsProps> = ({
   return (
     <Popover
       open={isOpen}
-      onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open) setIsOpacityExpanded(false);
-      }}
+      onOpenChange={setIsOpen}
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -99,65 +81,6 @@ export const TopTabsQuickControls: React.FC<TopTabsQuickControlsProps> = ({
 
         <div className="p-2">
           <div>
-            <div className="rounded-md">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left hover:bg-muted/40"
-                aria-expanded={isOpacityExpanded}
-                onClick={() => setIsOpacityExpanded((current) => !current)}
-              >
-                <div className="flex min-w-0 items-center gap-2 text-sm">
-                  <Droplets size={14} className="shrink-0 text-muted-foreground" />
-                  <span className="truncate">{t('topTabs.windowOpacity')}</span>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-xs tabular-nums text-muted-foreground">{opacityPercent}%</span>
-                  <ChevronDown
-                    size={14}
-                    className={cn(
-                      'text-muted-foreground transition-transform',
-                      isOpacityExpanded && 'rotate-180',
-                    )}
-                  />
-                </div>
-              </button>
-
-              {isOpacityExpanded ? (
-                <div className="space-y-2 px-2 pb-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min={50}
-                      max={100}
-                      step={1}
-                      value={opacityPercent}
-                      onChange={(event) => setWindowOpacity(Number(event.target.value) / 100)}
-                      className="w-full accent-primary"
-                      aria-label={t('topTabs.windowOpacity')}
-                    />
-                  </div>
-                  <div className="flex items-center gap-1" role="group" aria-label={t('topTabs.windowOpacity')}>
-                    {OPACITY_PRESETS.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setWindowOpacity(preset.value)}
-                        aria-pressed={isPresetActive(preset.value)}
-                        className={cn(
-                          'h-6 flex-1 rounded-md text-[11px] font-medium transition-colors',
-                          isPresetActive(preset.value)
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground',
-                        )}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
             <div className="flex items-center justify-between gap-3 rounded-md px-2 py-2 hover:bg-muted/40">
               <div className="flex min-w-0 items-center gap-2 text-sm">
                 {themePreference === 'system'

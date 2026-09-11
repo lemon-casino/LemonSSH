@@ -47,6 +47,7 @@ import {
   STORAGE_KEY_TERMINAL_SIDE_PANEL_AUTO_OPEN_TAB,
   STORAGE_KEY_WINDOW_OPACITY,
   STORAGE_KEY_HTTP_NETWORK_PROXY,
+  STORAGE_KEY_CLOSE_BEHAVIOR,
 } from '../../infrastructure/config/storageKeys';
 import {
   areHttpNetworkProxySettingsEqual,
@@ -89,6 +90,7 @@ interface UseSettingsIpcSyncParams {
   setIsHotkeyRecordingState: Dispatch<SetStateAction<boolean>>;
   setGlobalHotkeyEnabled: Dispatch<SetStateAction<boolean>>;
   setWindowOpacity: (raw: unknown) => void;
+  setCloseBehavior: (raw: unknown) => void;
   setAutoUpdateEnabled: Dispatch<SetStateAction<boolean>>;
   setHttpNetworkProxy: Dispatch<SetStateAction<HttpNetworkProxySettings>>;
   setSftpAutoOpenSidebar: Dispatch<SetStateAction<boolean>>;
@@ -133,6 +135,7 @@ export function useSettingsIpcSync({
   setIsHotkeyRecordingState,
   setGlobalHotkeyEnabled,
   setWindowOpacity,
+  setCloseBehavior,
   setAutoUpdateEnabled,
   setHttpNetworkProxy,
   setSftpAutoOpenSidebar,
@@ -259,6 +262,9 @@ export function useSettingsIpcSync({
       if (key === STORAGE_KEY_WINDOW_OPACITY) {
         setWindowOpacity(value);
       }
+      if (key === STORAGE_KEY_CLOSE_BEHAVIOR) {
+        setCloseBehavior(value);
+      }
       if (key === STORAGE_KEY_AUTO_UPDATE_ENABLED && typeof value === 'boolean') {
         setAutoUpdateEnabled((prev) => (prev === value ? prev : value));
       }
@@ -327,6 +333,7 @@ export function useSettingsIpcSync({
     setFollowAppTerminalThemeState,
     setGlobalHotkeyEnabled,
     setWindowOpacity,
+    setCloseBehavior,
     setHotkeyScheme,
     setIsHotkeyRecordingState,
     setSessionLogsDir,

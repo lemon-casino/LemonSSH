@@ -6,6 +6,11 @@ const readAppLockSectionSource = () => (
   readFileSync(new URL("./AppLockSettingsSection.tsx", import.meta.url), "utf8")
 );
 
+test("system update section drops the legacy GitHub Releases hint copy", () => {
+  const source = readFileSync(new URL("./SettingsSystemTab.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /settings\.update\.hint/);
+});
+
 test("disabling app lock does not trigger a second renderer-side unlock request", () => {
   const source = readAppLockSectionSource();
 

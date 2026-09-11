@@ -2,7 +2,7 @@
  * Settings Page - Standalone settings window content
  * This component is rendered in a separate Electron window
  */
-import { AppWindow, Cloud, FileType, HardDrive, Keyboard, Palette, Puzzle, Sparkles, TerminalSquare, X } from "lucide-react";
+import { AppWindow, Cloud, FileType, HardDrive, HeartHandshake, Keyboard, Palette, Puzzle, Sparkles, TerminalSquare, X } from "lucide-react";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useAISettingsState } from "../application/state/useAISettingsState";
 import { useAvailableFonts } from "../application/state/fontStore";
@@ -36,6 +36,7 @@ const LazySettingsAITab = lazy(() => import("./settings/tabs/SettingsAITab"));
 const LazySettingsSyncTab = lazy(() => import("./settings/tabs/SettingsSyncTab"));
 const LazySettingsTerminalTab = lazy(() => import("./settings/tabs/SettingsTerminalTab"));
 const LazySettingsSystemTab = lazy(() => import("./settings/tabs/SettingsSystemTab"));
+const LazySettingsHabitsTab = lazy(() => import("./settings/tabs/SettingsHabitsTab"));
 const LazySettingsPluginsTab = lazy(() => import("./settings/tabs/SettingsPluginsTab"));
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -505,6 +506,13 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                             <HardDrive size={14} className={settingsTabIconClassName} />
                             <span className={settingsTabLabelClassName}>{t("settings.tab.system")}</span>
                         </TabsTrigger>
+                        <TabsTrigger
+                            value="habits"
+                            className={settingsTabTriggerClassName}
+                        >
+                            <HeartHandshake size={14} className={settingsTabIconClassName} />
+                            <span className={settingsTabLabelClassName}>{t("settings.tab.habits")}</span>
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -552,8 +560,6 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                                 setShowSftpTab={settings.setShowSftpTab}
                                 showHostTreeSidebar={settings.showHostTreeSidebar}
                                 setShowHostTreeSidebar={settings.setShowHostTreeSidebar}
-                                windowOpacity={settings.windowOpacity}
-                                setWindowOpacity={settings.setWindowOpacity}
                             />
                         </SettingsLazyTab>
                     )}
@@ -660,8 +666,6 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                                 setStartupLanding={settings.setStartupLanding}
                                 toggleWindowHotkey={settings.toggleWindowHotkey}
                                 setToggleWindowHotkey={settings.setToggleWindowHotkey}
-                                closeToTray={settings.closeToTray}
-                                setCloseToTray={settings.setCloseToTray}
                                 httpNetworkProxy={settings.httpNetworkProxy}
                                 setHttpNetworkProxy={settings.setHttpNetworkProxy}
                                 hotkeyRegistrationError={settings.hotkeyRegistrationError}
@@ -674,6 +678,14 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                                 installUpdate={installUpdate}
                                 openReleasePage={openReleasePage}
                                 startDownload={startDownload}
+                            />
+                        </SettingsLazyTab>
+                    )}
+                    {mountedTabs.has("habits") && (
+                        <SettingsLazyTab value="habits">
+                            <LazySettingsHabitsTab
+                                closeBehavior={settings.closeBehavior}
+                                setCloseBehavior={settings.setCloseBehavior}
                             />
                         </SettingsLazyTab>
                     )}

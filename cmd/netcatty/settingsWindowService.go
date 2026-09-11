@@ -43,6 +43,7 @@ func (s *SettingsWindowService) ensureCreated() {
 		}
 	}
 	win := s.app.Window.NewWithOptions(settingsWindowOptions())
+	setTaskbarIcon(win)
 	win.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		event.Cancel()
 		win.Hide()

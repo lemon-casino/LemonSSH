@@ -17,6 +17,7 @@ import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/n
 import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
 import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
 import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
+import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -205,6 +206,10 @@ export interface WailsBindingDeps {
   diagnosticLog?: {
     Append?: (line: string) => Promise<unknown>;
   };
+  tray?: {
+    SetLanguage?: (language: string) => Promise<boolean>;
+    Quit?: () => Promise<void>;
+  };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
@@ -224,6 +229,7 @@ export interface WailsBindingDeps {
     popup: popupWindowService as unknown as WailsBindingDeps["popup"],
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
+    tray: trayService as unknown as WailsBindingDeps["tray"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -718,6 +724,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       return { success: true };
     }) as unknown as NetcattyBridge["deleteTempFile"],
     onFilesDropped,
+    setLanguage: (async (language: string) => {
+      const changed = await bindings.tray?.SetLanguage?.(language);
+      return changed ?? false;
+    }) as unknown as NetcattyBridge["setLanguage"],
     startStreamTransfer: (async (options: {
       sourceType: "local" | "sftp";
       targetType: "local" | "sftp";
@@ -970,8 +980,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   return {
     app: portWith("app", {
-      quitApp: () => {
-        throw new Error("quitApp is not migrated to the Wails runtime yet");
+      quitApp: async () => {
+        await bindings.tray?.Quit?.();
       },
     }),
     agent: unimplemented("agent"),

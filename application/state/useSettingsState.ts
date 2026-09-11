@@ -67,6 +67,7 @@ import {
   STORAGE_KEY_EXPLORER_CONTEXT_MENU_ENABLED,
   STORAGE_KEY_TOGGLE_WINDOW_HOTKEY,
   STORAGE_KEY_CLOSE_TO_TRAY,
+  STORAGE_KEY_CLOSE_BEHAVIOR,
   STORAGE_KEY_HTTP_NETWORK_PROXY,
   STORAGE_KEY_GLOBAL_HOTKEY_ENABLED,
   STORAGE_KEY_WINDOW_OPACITY,
@@ -536,6 +537,19 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     if (stored === null) return true;
     return stored === 'true';
   });
+  const [closeBehavior, setCloseBehaviorState] = useState<"minimize" | "quit" | null>(() => {
+    const stored = readStoredString(STORAGE_KEY_CLOSE_BEHAVIOR);
+    if (stored === "minimize" || stored === "quit") return stored;
+    return null;
+  });
+  const setCloseBehavior = useCallback((behavior: "minimize" | "quit" | null) => {
+    setCloseBehaviorState(behavior);
+    if (behavior === "quit") setCloseToTray(false);
+    if (behavior === "minimize") setCloseToTray(true);
+  }, []);
+  const applyIncomingCloseBehavior = useCallback((raw: unknown) => {
+    setCloseBehaviorState(raw === "minimize" || raw === "quit" ? raw : null);
+  }, []);
   const [httpNetworkProxy, setHttpNetworkProxyState] = useState<HttpNetworkProxySettings>(() => {
     const stored = localStorageAdapter.read<unknown>(STORAGE_KEY_HTTP_NETWORK_PROXY);
     return normalizeHttpNetworkProxySettings(stored ?? DEFAULT_HTTP_NETWORK_PROXY);
@@ -1167,6 +1181,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setIsHotkeyRecordingState,
     setGlobalHotkeyEnabled,
     setWindowOpacity: applyIncomingWindowOpacity,
+    setCloseBehavior: applyIncomingCloseBehavior,
     setAutoUpdateEnabled,
     setHttpNetworkProxy,
     setSftpAutoOpenSidebar,
@@ -1231,7 +1246,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     sftpUseCompressedUpload, sftpSkipUnchanged, sftpAutoOpenSidebar, sftpFollowTerminalCwd, sftpDefaultViewMode,
     showRecentHosts, hostClickBehavior, showOnlyUngroupedHostsInRoot, showSftpTab, showHostTreeSidebar, terminalSidePanelAutoOpen, terminalSidePanelAutoOpenTab, shellOnlyTabNumberShortcuts, showTabNumberBadges, disableTerminalFontZoom, restorePreviousSession, restoreTerminalCwd, startupLanding,
     editorWordWrap, sessionLogsEnabled, sessionLogsDir, sessionLogsFormat, sessionLogsTimestampsEnabled, sshDebugLogsEnabled, sshDeepLinkEnabled, jmsDeepLinkEnabled, explorerContextMenuEnabled,
-    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity,
+    globalHotkeyEnabled, autoUpdateEnabled, windowOpacity, closeBehavior,
     setTheme, setLightUiThemeId, setDarkUiThemeId, setAccentMode,
     applyIncomingCustomAccent,
     setCustomCSS, setUiFontFamilyId, setHotkeyScheme, setUiLanguage,
@@ -1241,7 +1256,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setSftpUseCompressedUpload, setSftpSkipUnchanged, setSftpAutoOpenSidebar, setSftpFollowTerminalCwd, setSftpDefaultViewMode,
     setShowRecentHostsState, setHostClickBehaviorState, setShowOnlyUngroupedHostsInRootState, setShowSftpTabState, setShowHostTreeSidebarState, setTerminalSidePanelAutoOpenState, setTerminalSidePanelAutoOpenTabState, setShellOnlyTabNumberShortcutsState, setShowTabNumberBadgesState, setDisableTerminalFontZoomState, setRestorePreviousSessionState, setRestoreTerminalCwdState, setStartupLandingState,
     setEditorWordWrapState, setSessionLogsEnabled, setSessionLogsDir, setSessionLogsFormat, setSessionLogsTimestampsEnabled, setSshDebugLogsEnabled, setSshDeepLinkEnabledState: applyIncomingSshDeepLinkEnabled, setJmsDeepLinkEnabledState: applyIncomingJmsDeepLinkEnabled, setExplorerContextMenuEnabledState: applyIncomingExplorerContextMenuEnabled,
-    setGlobalHotkeyEnabled, setWindowOpacity: applyIncomingWindowOpacity, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
+    setGlobalHotkeyEnabled, setWindowOpacity: applyIncomingWindowOpacity, setCloseBehavior: applyIncomingCloseBehavior, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
     setSftpTransferConcurrencyState, setSshTransportIdleTtlMsState,
     applyIncomingCustomKeyBindings, mergeIncomingTerminalSettings,
   });
@@ -1731,6 +1746,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     toggleWindowHotkey,
     globalHotkeyEnabled,
     closeToTray,
+    closeBehavior,
     windowOpacityRecord,
     windowOpacityMutationSourceRef,
     autoUpdateEnabled,
@@ -1848,6 +1864,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
       restoreTerminalCwd,
       terminalSidePanelAutoOpen,
       terminalSidePanelAutoOpenTab,
+      closeBehavior,
     });
   }, [
     darkUiThemeId,
@@ -1869,14 +1886,15 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     theme,
     uiLanguage,
     windowOpacity,
+    closeBehavior,
   ]);
 
   useLayoutEffect(() => {
-    registerSettingsChromeActions({ setTheme, setWindowOpacity });
+    registerSettingsChromeActions({ setTheme, setWindowOpacity, setCloseBehavior });
     return () => {
       registerSettingsChromeActions(null);
     };
-  }, [setTheme, setWindowOpacity]);
+  }, [setTheme, setWindowOpacity, setCloseBehavior]);
 
   // TerminalHost / terminal domain bags subscribe here instead of receiving
   // settings through the App mega-subscriber.
@@ -2083,6 +2101,8 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setToggleWindowHotkey,
     closeToTray,
     setCloseToTray,
+    closeBehavior,
+    setCloseBehavior,
     httpNetworkProxy,
     setHttpNetworkProxy,
     autoUpdateEnabled,

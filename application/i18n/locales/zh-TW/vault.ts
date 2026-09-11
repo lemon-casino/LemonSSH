@@ -959,6 +959,7 @@ export const zhTWVaultMessages: Messages = {
   'sftp.pane.selectHost': '選擇主機',
   'sftp.pane.selectHostToStart': '先選擇一個主機',
   'sftp.pane.chooseFilesystem': '選擇要瀏覽的本機或遠端檔案系統',
+  'sftp.split.resize': '調整左右版面寬度',
   'sftp.tabs.addTab': '新增分頁',
   'sftp.tabs.closeTab': '關閉分頁',
   'sftp.tabs.newTab': '新分頁',
