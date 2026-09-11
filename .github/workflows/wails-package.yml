@@ -87,19 +87,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download Windows artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lemonssh-windows-latest
           path: release/lemonssh-windows-latest
 
       - name: Download macOS artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lemonssh-macos-latest
           path: release/lemonssh-macos-latest
 
       - name: Download Ubuntu artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lemonssh-ubuntu-latest
           path: release/lemonssh-ubuntu-latest
