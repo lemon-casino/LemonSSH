@@ -62,9 +62,6 @@ jobs:
       - name: Verify Wails migration documentation
         run: npm run check:migration-docs
 
-      - name: Verify Electron migration baseline and runtime ports
-        run: npm run check:migration-electron-baseline
-
       - name: Verify base contracts and data inventory
         run: |
           npm run check:contracts
@@ -86,21 +83,16 @@ jobs:
       - name: Verify secret migration probe
         run: npm run check:secret-migration-probe
 
+      - name: Test Go owners
+        run: go test ./internal/... ./cmd/...
+
       - name: Test
         run: npm test
 
-      - name: Test terminal keyword highlight performance
-        env:
-          NETCATTY_TERMINAL_PERF_SHOW_WINDOW: "1"
-        # GitHub-hosted runners do not configure Electron's SUID sandbox helper.
-        run: xvfb-run -a ./node_modules/.bin/electron --no-sandbox scripts/xterm-keyword-highlight-performance.live.test.cjs
-
-      - name: Test terminal keyword highlight throughput
-        env:
-          NETCATTY_TERMINAL_PERF_MAIN_REF: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
-          NETCATTY_TERMINAL_PERF_ROUNDS: "3"
-          NETCATTY_TERMINAL_PERF_SHOW_WINDOW: "1"
-        run: xvfb-run -a ./node_modules/.bin/electron --no-sandbox scripts/xterm-keyword-highlight-throughput.live.test.cjs
-
-      - name: Build
+      - name: Build Wails frontend
         run: npm run build
+
+      - name: Embed frontend and build Wails shell
+        run: |
+          node scripts/wails-prepare-frontend.mjs
+          go build -o /tmp/lemonssh-ci ./cmd/netcatty

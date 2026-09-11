@@ -29,7 +29,7 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-//go:embed frontend/dist/icon.png
+//go:embed appicon.png
 var appIcon []byte
 
 // version is injected at build time via -ldflags once a release pipeline
