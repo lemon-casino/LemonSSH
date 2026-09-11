@@ -150,5 +150,26 @@ func (c *WebDAVClient) PutSnapshot(ctx context.Context, data []byte, expectETag 
 	return etag, nil
 }
 
+// DeleteSnapshot removes the remote snapshot. ErrNotFound when absent.
+func (c *WebDAVClient) DeleteSnapshot(ctx context.Context) error {
+	request, err := c.newRequest(ctx, http.MethodDelete, c.snapshotURL(), nil)
+	if err != nil {
+		return err
+	}
+	response, err := c.client.Do(request)
+	if err != nil {
+		return fmt.Errorf("webdav delete: %w", err)
+	}
+	defer response.Body.Close()
+	switch response.StatusCode {
+	case http.StatusOK, http.StatusNoContent, http.StatusNotFound:
+		return nil
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return ErrUnauthorized
+	default:
+		return fmt.Errorf("webdav delete: unexpected status %d", response.StatusCode)
+	}
+}
+
 // maxSnapshotBytes bounds one cloud snapshot (16 MiB).
 const maxSnapshotBytes = 16 << 20

@@ -108,6 +108,12 @@ export const State = {
     StateInstalled: "installed",
     StateEnabled: "enabled",
     StateDisabled: "disabled",
+
+    /**
+     * StateStaged marks a two-phase install awaiting CommitStaged. Staged
+     * records never run; RecoverStaged drops them after a crash.
+     */
+    StateStaged: "staged",
 };
 
 // Private type creation functions

@@ -26,6 +26,17 @@ export function CallNative(pluginID, method, paramsJSON) {
 }
 
 /**
+ * CommitStaged promotes a staged plugin to installed.
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<store$0.PackageRecord | null>}
+ */
+export function CommitStaged(pluginID) {
+    return $Call.ByID(2076715681, pluginID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * GrantNative records a session-scoped companion.execute grant. StartNative
  * remains fail-closed until this grant exists.
  * @param {string} pluginID
@@ -76,12 +87,34 @@ export function NativeRunning(pluginID) {
 }
 
 /**
+ * RecoverStaged drops installs that never committed (interrupted publish).
+ * @returns {$CancellablePromise<number>}
+ */
+export function RecoverStaged() {
+    return $Call.ByID(1700987992);
+}
+
+/**
  * @param {string} pluginID
  * @param {boolean} enabled
  * @returns {$CancellablePromise<void>}
  */
 export function SetEnabled(pluginID, enabled) {
     return $Call.ByID(1774562395, pluginID, enabled);
+}
+
+/**
+ * StageInstall begins a two-phase publish: validate, stage, then commit.
+ * @param {string} pluginID
+ * @param {string} version
+ * @param {string} sha256Hex
+ * @param {string} manifestJSON
+ * @returns {$CancellablePromise<store$0.PackageRecord | null>}
+ */
+export function StageInstall(pluginID, version, sha256Hex, manifestJSON) {
+    return $Call.ByID(3265683011, pluginID, version, sha256Hex, manifestJSON).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
 
 /**
