@@ -97,6 +97,7 @@ test("pickSSHConnectArgs normalizes defaults", () => {
       passphrase: "",
       certificate: "",
       proxyUrl: "",
+      proxyCommand: "",
       enableMfa: false,
       useAgent: false,
       identityFilePaths: [],
@@ -127,6 +128,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       passphrase: "pw",
       certificate: "",
       proxyUrl: "socks5://127.0.0.1:1080",
+      proxyCommand: "",
       enableMfa: true,
       useAgent: false,
       identityFilePaths: [],
@@ -141,6 +143,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
         passphrase: "",
         certificate: "",
         proxyUrl: "",
+        proxyCommand: "",
         enableMfa: false,
         useAgent: false,
         identityFilePaths: [],
@@ -152,13 +155,16 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
   );
 });
 
-test("pickSSHConnectArgs maps certificates and fails closed on command proxy", () => {
+test("pickSSHConnectArgs maps certificates and routes command proxies", () => {
   const args = pickSSHConnectArgs({ hostname: "h", username: "u", certificate: "ssh-rsa-cert AAAA", privateKey: "PEM" });
   assert.equal(args.certificate, "ssh-rsa-cert AAAA");
-  assert.throws(
-    () => pickSSHConnectArgs({ hostname: "h", username: "u", proxy: { type: "command", command: "nc", host: "x", port: 1 } }),
-    /proxy/,
-  );
+  const commandProxy = pickSSHConnectArgs({ hostname: "h", username: "u", proxy: { type: "command", command: "nc -x %h %p" } });
+  assert.equal(commandProxy.proxyCommand, "nc -x %h %p");
+  assert.equal(commandProxy.proxyUrl, "");
+  // Host/port proxies keep the URL form and clear the command.
+  const socks = pickSSHConnectArgs({ hostname: "h", username: "u", proxy: { type: "socks5", host: "x", port: 1 } });
+  assert.equal(socks.proxyCommand, "");
+  assert.equal(socks.proxyUrl, "socks5://x:1");
 });
 
 test("pickSSHConnectArgs maps agent and identity files onto Connect", () => {

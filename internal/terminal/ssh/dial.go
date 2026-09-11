@@ -28,6 +28,9 @@ type DialConfig struct {
 	JumpHosts []DialConfig
 	// ProxyURL optionally routes the TCP dial (socks5:// or http://).
 	ProxyURL string
+	// ProxyCommand optionally routes the transport through a user-supplied
+	// shell command (OpenSSH ProxyCommand semantics, %h/%p tokens).
+	ProxyCommand string
 	// ForwardAgent marks transports that expose the local SSH agent to the
 	// remote host. Such transports are never pooled for reuse (asymmetric
 	// reuse policy, P3-04).
@@ -119,13 +122,20 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 		}
 		connection = proxied
 	}
+	if connection == nil && via == nil && config.ProxyCommand != "" {
+		proxied, proxiedErr := DialCommandProxy(ctx, config.ProxyCommand, address)
+		if proxiedErr != nil {
+			return nil, fmt.Errorf("proxy command dial %s: %w", address, proxiedErr)
+		}
+		connection = proxied
+	}
 	if via != nil {
 		tunnel, tunnelErr := via.Dial("tcp", address)
 		if tunnelErr != nil {
 			return nil, fmt.Errorf("jump tunnel to %s: %w", address, tunnelErr)
 		}
 		connection = tunnel
-	} else {
+	} else if connection == nil {
 		dialer := &net.Dialer{Timeout: timeout}
 		direct, dialErr := dialer.DialContext(ctx, "tcp", address)
 		if dialErr != nil {

@@ -136,6 +136,7 @@ type ConnectInput struct {
 	Passphrase        string
 	Certificate       string
 	ProxyURL          string
+	ProxyCommand      string
 	EnableMFA         bool
 	UseAgent          bool
 	IdentityFilePaths []string
@@ -201,6 +202,7 @@ func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func
 		HandshakeTimeout:  15 * time.Second,
 		KeepaliveInterval: 30 * time.Second,
 		ProxyURL:          input.ProxyURL,
+		ProxyCommand:      input.ProxyCommand,
 	}
 	if len(input.JumpHosts) > 0 {
 		config.JumpHosts = make([]DialConfig, 0, len(input.JumpHosts))

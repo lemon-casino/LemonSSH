@@ -55,7 +55,7 @@ type TelnetStartRequest struct {
 }
 
 // SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
-// command proxies and certificates remain fail-closed in the renderer mapper.
+// proxyCommand carries OpenSSH ProxyCommand semantics (%h/%p tokens).
 type SSHConnectRequest struct {
 	Hostname          string              `json:"hostname"`
 	Port              uint16              `json:"port"`
@@ -65,6 +65,7 @@ type SSHConnectRequest struct {
 	Passphrase        string              `json:"passphrase"`
 	Certificate       string              `json:"certificate"`
 	ProxyURL          string              `json:"proxyUrl"`
+	ProxyCommand      string              `json:"proxyCommand"`
 	EnableMFA         bool                `json:"enableMfa"`
 	UseAgent          bool                `json:"useAgent"`
 	IdentityFilePaths []string            `json:"identityFilePaths"`
@@ -136,6 +137,7 @@ func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
 		Passphrase:        request.Passphrase,
 		Certificate:       request.Certificate,
 		ProxyURL:          request.ProxyURL,
+		ProxyCommand:      request.ProxyCommand,
 		EnableMFA:         request.EnableMFA,
 		UseAgent:          request.UseAgent,
 		IdentityFilePaths: request.IdentityFilePaths,

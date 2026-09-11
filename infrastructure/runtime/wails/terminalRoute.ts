@@ -128,6 +128,8 @@ export interface WailsSSHConnectArgs {
   passphrase: string;
   certificate: string;
   proxyUrl: string;
+  /** OpenSSH ProxyCommand line; %h/%p are substituted by the Go dialer. */
+  proxyCommand: string;
   enableMfa: boolean;
   useAgent: boolean;
   identityFilePaths: string[];
@@ -162,14 +164,14 @@ export interface WailsSSHConnectOptions {
   identityFilePaths?: string[];
 }
 
-/** Builds a socks5:// or http:// URL. Command proxies fail closed. */
+/** Builds a socks5:// or http:// URL. Returns "" for command proxies. */
 export function formatProxyUrl(proxy?: WailsProxyConfig): string {
   if (!proxy) return "";
   if (proxy.command || (proxy.type && proxy.type !== "socks5" && proxy.type !== "http")) {
-    throw new Error(`SSH options not migrated to the Wails Connect binding yet: proxy`);
+    return "";
   }
   if (!proxy.host || !proxy.port) {
-    throw new Error(`SSH options not migrated to the Wails Connect binding yet: proxy`);
+    return "";
   }
   const auth = proxy.username
     ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password ?? "")}@`
@@ -177,12 +179,19 @@ export function formatProxyUrl(proxy?: WailsProxyConfig): string {
   return `${proxy.type ?? "socks5"}://${auth}${proxy.host}:${proxy.port}`;
 }
 
+/** Extracts the OpenSSH ProxyCommand line, or "" for host/port proxies. */
+export function formatProxyCommand(proxy?: WailsProxyConfig): string {
+  const command = typeof proxy?.command === "string" ? proxy.command.trim() : "";
+  return command;
+}
+
 /**
  * Normalizes the Electron NetcattySSHOptions to the Go Connect binding.
- * Certificate and command-proxy shapes fail closed instead of silently
- * degrading to password auth.
+ * Host/port proxies become proxyUrl; command proxies ride ProxyCommand
+ * semantics on the Go dialer.
  */
 export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHConnectArgs {
+  const proxyCommand = formatProxyCommand(options.proxy);
   return {
     hostname: options.hostname,
     username: options.username,
@@ -191,7 +200,8 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     privateKey: options.privateKey ?? "",
     passphrase: options.passphrase ?? "",
     certificate: options.certificate ?? "",
-    proxyUrl: formatProxyUrl(options.proxy),
+    proxyUrl: proxyCommand ? "" : formatProxyUrl(options.proxy),
+    proxyCommand,
     enableMfa: Boolean(options.requiresMfa),
     useAgent: Boolean(options.useSshAgent),
     identityFilePaths: options.identityFilePaths ?? [],
