@@ -728,6 +728,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       const changed = await bindings.tray?.SetLanguage?.(language);
       return changed ?? false;
     }) as unknown as NetcattyBridge["setLanguage"],
+    quitApp: (async () => {
+      await bindings.tray?.Quit?.();
+    }) as unknown as NetcattyBridge["quitApp"],
     startStreamTransfer: (async (options: {
       sourceType: "local" | "sftp";
       targetType: "local" | "sftp";
