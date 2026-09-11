@@ -8,6 +8,7 @@ import { useAISettingsState } from "../application/state/useAISettingsState";
 import { useAvailableFonts } from "../application/state/fontStore";
 import { usePortForwardingState } from "../application/state/usePortForwardingState";
 import { useVaultState } from "../application/state/useVaultState";
+import { useOSProtocolRegistration } from "../application/state/useOSProtocolRegistration";
 import { useWindowControls } from "../application/state/useWindowControls";
 import { useUpdateCheck } from "../application/state/useUpdateCheck";
 import { I18nProvider, useI18n } from "../application/i18n/I18nProvider";
@@ -317,6 +318,7 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
     const [activeTab, setActiveTab] = useState("application");
     const [mountedTabs, setMountedTabs] = useState(() => new Set(["application"]));
     const { available: pluginRuntimeAvailable } = usePluginContributions();
+    const osProtocol = useOSProtocolRegistration();
     const closeTabKeyStr = useMemo(() => {
         if (settings.hotkeyScheme === "disabled") return null;
         const binding = settings.keyBindings.find((item) => item.action === "closeTab");
@@ -653,6 +655,9 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                                 setSshDebugLogsEnabled={settings.setSshDebugLogsEnabled}
                                 sshDeepLinkEnabled={settings.sshDeepLinkEnabled}
                                 setSshDeepLinkEnabled={settings.setSshDeepLinkEnabled}
+                                osProtocolRegistered={osProtocol.registered}
+                                osProtocolBusy={osProtocol.busy}
+                                onSetOSProtocol={(enabled) => { void osProtocol.setEnabled(enabled); }}
                                 jmsDeepLinkEnabled={settings.jmsDeepLinkEnabled}
                                 setJmsDeepLinkEnabled={settings.setJmsDeepLinkEnabled}
                                 explorerContextMenuEnabled={settings.explorerContextMenuEnabled}

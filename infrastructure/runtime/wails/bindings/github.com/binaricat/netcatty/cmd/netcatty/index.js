@@ -20,6 +20,7 @@ import * as ShortcutService from "./shortcutservice.js";
 import * as SyncService from "./syncservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as TransferService from "./transferservice.js";
+import * as TrayService from "./trayservice.js";
 import * as UpgradeService from "./upgradeservice.js";
 export {
     AppLockService,
@@ -40,17 +41,20 @@ export {
     SyncService,
     TerminalService,
     TransferService,
+    TrayService,
     UpgradeService
 };
 
 export {
     AppLockRuntimeState,
+    BiometricUnlockResult,
     HotkeyResult,
     HotkeyStatus,
     LocalPathStat,
     MoshStartRequest,
     NativeStartRequest,
     PopupOpenResult,
+    ProtocolRegistrationResult,
     SSHConnectRequest,
     SerialStartRequest,
     TelnetStartRequest,

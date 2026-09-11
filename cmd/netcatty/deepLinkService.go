@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/binaricat/netcatty/internal/platform/deeplink"
@@ -34,19 +36,39 @@ func (s *DeepLinkService) Drain() []*deeplink.Action {
 	return s.queue.Drain()
 }
 
-// ProtocolRegistrationResult is the honest OS-protocol status. Wails v3 has
-// no installer hook here, so registration fails closed instead of claiming
-// ssh:// ownership.
+// ProtocolRegistrationResult reports the OS handoff state for the URL schemes
+// LemonSSH owns (ssh, telnet, netcatty).
 type ProtocolRegistrationResult struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
+	Success    bool   `json:"success"`
+	Registered bool   `json:"registered"`
+	Error      string `json:"error,omitempty"`
 }
 
-func (s *DeepLinkService) RegisterOSProtocol() ProtocolRegistrationResult {
-	return ProtocolRegistrationResult{
-		Success: false,
-		Error:   "OS protocol registration is not available until a signed installer owns ssh, telnet, and netcatty URL schemes",
+// SetOSProtocol registers or removes the ssh/telnet/netcatty URL schemes.
+// On Windows this writes HKCU\Software\Classes, which needs no elevation;
+// other platforms fail closed until their installer formats own registration.
+func (s *DeepLinkService) SetOSProtocol(enabled bool) ProtocolRegistrationResult {
+	exePath, err := os.Executable()
+	if err != nil {
+		return ProtocolRegistrationResult{Error: fmt.Sprintf("resolve executable: %v", err)}
 	}
+	store := deeplink.NewRegistryStore()
+	if err := deeplink.SetOSProtocols(store, exePath, enabled); err != nil {
+		return ProtocolRegistrationResult{Error: err.Error()}
+	}
+	registered := deeplink.OSProtocolsRegistered(store, exePath)
+	return ProtocolRegistrationResult{Success: true, Registered: registered}
+}
+
+// GetOSProtocolStatus reports whether the schemes currently hand off to this
+// executable. A drift (another tool took over ssh://) reads as unregistered.
+func (s *DeepLinkService) GetOSProtocolStatus() ProtocolRegistrationResult {
+	exePath, err := os.Executable()
+	if err != nil {
+		return ProtocolRegistrationResult{Error: fmt.Sprintf("resolve executable: %v", err)}
+	}
+	registered := deeplink.OSProtocolsRegistered(deeplink.NewRegistryStore(), exePath)
+	return ProtocolRegistrationResult{Success: true, Registered: registered}
 }
 
 func deepLinkURLsFromArgs(args []string) []string {

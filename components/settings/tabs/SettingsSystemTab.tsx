@@ -106,6 +106,10 @@ interface SettingsSystemTabProps {
   setSshDebugLogsEnabled: (enabled: boolean) => void;
   sshDeepLinkEnabled: boolean;
   setSshDeepLinkEnabled: (enabled: boolean) => void;
+  /** SYS-03: whether ssh/telnet/netcatty URL schemes currently open LemonSSH. */
+  osProtocolRegistered: boolean;
+  osProtocolBusy: boolean;
+  onSetOSProtocol: (enabled: boolean) => void;
   jmsDeepLinkEnabled: boolean;
   setJmsDeepLinkEnabled: (enabled: boolean) => void;
   explorerContextMenuEnabled: boolean;
@@ -153,6 +157,9 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   setSshDebugLogsEnabled,
   sshDeepLinkEnabled,
   setSshDeepLinkEnabled,
+  osProtocolRegistered,
+  osProtocolBusy,
+  onSetOSProtocol,
   jmsDeepLinkEnabled,
   setJmsDeepLinkEnabled,
   explorerContextMenuEnabled,
@@ -1107,6 +1114,22 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
                   checked={sshDeepLinkEnabled}
                   onChange={setSshDeepLinkEnabled}
                   ariaLabel={t('settings.sshDeepLink.enable')}
+                />
+              </SettingRow>
+            </SettingCard>
+
+          <SectionHeader title={t('settings.osProtocol.title')} />
+            <SettingCard>
+              <SettingRow
+                anchorId="system-os-protocol"
+                label={t('settings.osProtocol.enable')}
+                description={t('settings.osProtocol.enableDesc')}
+              >
+                <Toggle
+                  checked={osProtocolRegistered}
+                  disabled={osProtocolBusy}
+                  onChange={(enabled) => onSetOSProtocol(enabled)}
+                  ariaLabel={t('settings.osProtocol.enable')}
                 />
               </SettingRow>
             </SettingCard>

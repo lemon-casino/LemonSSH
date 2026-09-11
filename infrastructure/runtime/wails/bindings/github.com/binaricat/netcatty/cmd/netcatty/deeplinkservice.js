@@ -10,6 +10,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as deeplink$0 from "../../internal/platform/deeplink/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @returns {$CancellablePromise<(deeplink$0.Action | null)[]>}
  */
@@ -25,6 +29,17 @@ export function Drain() {
  */
 export function Enqueue(rawURL) {
     return $Call.ByID(978817911, rawURL);
+}
+
+/**
+ * GetOSProtocolStatus reports whether the schemes currently hand off to this
+ * executable. A drift (another tool took over ssh://) reads as unregistered.
+ * @returns {$CancellablePromise<$models.ProtocolRegistrationResult>}
+ */
+export function GetOSProtocolStatus() {
+    return $Call.ByID(614614681).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
 }
 
 /**
@@ -51,7 +66,21 @@ export function Ready() {
     return $Call.ByID(2105832758);
 }
 
+/**
+ * SetOSProtocol registers or removes the ssh/telnet/netcatty URL schemes.
+ * On Windows this writes HKCU\Software\Classes, which needs no elevation;
+ * other platforms fail closed until their installer formats own registration.
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<$models.ProtocolRegistrationResult>}
+ */
+export function SetOSProtocol(enabled) {
+    return $Call.ByID(896377307, enabled).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = deeplink$0.Action.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.ProtocolRegistrationResult.createFrom;

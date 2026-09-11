@@ -39,6 +39,9 @@ declare global {
     onColdStartIntentsSettled?(cb: () => void): () => void;
     setSshDeepLinkEnabled?(enabled: boolean): Promise<boolean | { success: boolean; enabled: boolean }>;
     getSshDeepLinkEnabled?(): Promise<boolean>;
+    /** SYS-03: register/remove the ssh, telnet and netcatty URL schemes (HKCU). */
+    setOSProtocol?(enabled: boolean): Promise<{ success: boolean; registered: boolean; error?: string }>;
+    getOSProtocolStatus?(): Promise<{ success: boolean; registered: boolean; error?: string }>;
     onJmsDeepLink?(cb: (payload: { url?: string }) => void): () => void;
     setJmsDeepLinkEnabled?(enabled: boolean): Promise<boolean | { success: boolean; enabled: boolean }>;
     getJmsDeepLinkEnabled?(): Promise<boolean>;

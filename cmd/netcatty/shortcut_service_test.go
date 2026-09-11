@@ -29,14 +29,13 @@ func TestShortcutRegisterFailsClosedWithoutNativeHotkeys(t *testing.T) {
 	}
 }
 
-func TestOSProtocolRegistrationFailsClosed(t *testing.T) {
-	result := newDeepLinkService().RegisterOSProtocol()
-	if result.Success {
-		t.Fatal("must not claim OS protocol ownership without a signed installer")
+func TestOSProtocolStatusReadable(t *testing.T) {
+	result := newDeepLinkService().GetOSProtocolStatus()
+	if !result.Success {
+		t.Fatalf("status read must succeed, got %q", result.Error)
 	}
-	if result.Error == "" {
-		t.Fatal("failure must name the missing installer hook")
-	}
+	// The value depends on the machine; either state is a valid read.
+	_ = result.Registered
 }
 
 func TestBiometricUnlockFailsClosed(t *testing.T) {

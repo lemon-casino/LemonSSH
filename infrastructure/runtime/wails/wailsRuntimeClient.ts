@@ -175,6 +175,8 @@ export interface WailsBindingDeps {
     Pending?: () => Promise<number>;
     Ready?: () => Promise<unknown>;
     Drain?: () => Promise<unknown[]>;
+    GetOSProtocolStatus?: () => Promise<{ success: boolean; registered: boolean; error?: string }>;
+    SetOSProtocol?: (enabled: boolean) => Promise<{ success: boolean; registered: boolean; error?: string }>;
   };
   filesystem?: {
     HomeDir?: () => Promise<string>;
@@ -764,6 +766,14 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       await bindings.deepLink?.Ready?.();
       return bindings.deepLink?.Drain?.() ?? [];
     }) as unknown as NetcattyBridge["drainDeepLinks"],
+    getOSProtocolStatus: (async () => {
+      const result = await bindings.deepLink?.GetOSProtocolStatus?.();
+      return result ?? { success: false, registered: false, error: "getOSProtocolStatus unavailable" };
+    }) as unknown as NetcattyBridge["getOSProtocolStatus"],
+    setOSProtocol: (async (enabled: boolean) => {
+      const result = await bindings.deepLink?.SetOSProtocol?.(enabled);
+      return result ?? { success: false, registered: false, error: "setOSProtocol unavailable" };
+    }) as unknown as NetcattyBridge["setOSProtocol"],
     onSshDeepLink: ((cb: (payload: { url?: string }) => void) => {
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== "function") return () => undefined;

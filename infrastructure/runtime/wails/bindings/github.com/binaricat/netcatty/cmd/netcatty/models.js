@@ -76,6 +76,41 @@ export class AppLockRuntimeState {
     }
 }
 
+export class BiometricUnlockResult {
+    /**
+     * Creates a new BiometricUnlockResult instance.
+     * @param {Partial<BiometricUnlockResult>} [$$source = {}] - The source object to create the BiometricUnlockResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BiometricUnlockResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {BiometricUnlockResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BiometricUnlockResult(/** @type {Partial<BiometricUnlockResult>} */($$parsedSource));
+    }
+}
+
 export class HotkeyResult {
     /**
      * Creates a new HotkeyResult instance.
@@ -271,6 +306,13 @@ export class MoshStartRequest {
              */
             this["proxyUrl"] = "";
         }
+        if (!("proxyCommand" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyCommand"] = "";
+        }
         if (!("enableMfa" in $$source)) {
             /**
              * @member
@@ -339,14 +381,14 @@ export class MoshStartRequest {
      * @returns {MoshStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField10_0 = $$createType0;
-        const $$createField11_0 = $$createType2;
+        const $$createField11_0 = $$createType0;
+        const $$createField12_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
-            $$parsedSource["identityFilePaths"] = $$createField10_0($$parsedSource["identityFilePaths"]);
+            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
         }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField11_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField12_0($$parsedSource["jumpHosts"]);
         }
         return new MoshStartRequest(/** @type {Partial<MoshStartRequest>} */($$parsedSource));
     }
@@ -469,8 +511,54 @@ export class PopupOpenResult {
 }
 
 /**
+ * ProtocolRegistrationResult reports the OS handoff state for the URL schemes
+ * LemonSSH owns (ssh, telnet, netcatty).
+ */
+export class ProtocolRegistrationResult {
+    /**
+     * Creates a new ProtocolRegistrationResult instance.
+     * @param {Partial<ProtocolRegistrationResult>} [$$source = {}] - The source object to create the ProtocolRegistrationResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("registered" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["registered"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProtocolRegistrationResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProtocolRegistrationResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProtocolRegistrationResult(/** @type {Partial<ProtocolRegistrationResult>} */($$parsedSource));
+    }
+}
+
+/**
  * SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
- * command proxies and certificates remain fail-closed in the renderer mapper.
+ * proxyCommand carries OpenSSH ProxyCommand semantics (%h/%p tokens).
  */
 export class SSHConnectRequest {
     /**
@@ -534,6 +622,13 @@ export class SSHConnectRequest {
              */
             this["proxyUrl"] = "";
         }
+        if (!("proxyCommand" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyCommand"] = "";
+        }
         if (!("enableMfa" in $$source)) {
             /**
              * @member
@@ -586,14 +681,14 @@ export class SSHConnectRequest {
      * @returns {SSHConnectRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField10_0 = $$createType0;
-        const $$createField13_0 = $$createType2;
+        const $$createField11_0 = $$createType0;
+        const $$createField14_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
-            $$parsedSource["identityFilePaths"] = $$createField10_0($$parsedSource["identityFilePaths"]);
+            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
         }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField13_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField14_0($$parsedSource["jumpHosts"]);
         }
         return new SSHConnectRequest(/** @type {Partial<SSHConnectRequest>} */($$parsedSource));
     }
