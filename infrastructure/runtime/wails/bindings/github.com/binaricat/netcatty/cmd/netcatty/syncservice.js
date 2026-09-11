@@ -8,7 +8,106 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as json$0 from "../../../../../encoding/json/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as syncengine$0 from "../../internal/syncengine/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+/**
+ * CloudSyncS3Delete removes the remote snapshot.
+ * @param {json$0.RawMessage} config
+ * @returns {$CancellablePromise<$models.CloudSyncDeleteResult>}
+ */
+export function CloudSyncS3Delete(config) {
+    return $Call.ByID(3082083209, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * CloudSyncS3Download fetches the remote synced file or null.
+ * @param {json$0.RawMessage} config
+ * @returns {$CancellablePromise<$models.CloudSyncDownloadResult>}
+ */
+export function CloudSyncS3Download(config) {
+    return $Call.ByID(3819402278, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
+ * CloudSyncS3Initialize resolves the current remote resource id (the strong
+ * ETag) or null when no snapshot exists yet.
+ * @param {json$0.RawMessage} config
+ * @returns {$CancellablePromise<$models.CloudSyncResource>}
+ */
+export function CloudSyncS3Initialize(config) {
+    return $Call.ByID(2671827412, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * CloudSyncS3Upload stores the synced file in the bucket.
+ * @param {json$0.RawMessage} config
+ * @param {$models.CloudSyncSyncedFile} syncedFile
+ * @returns {$CancellablePromise<$models.CloudSyncResource>}
+ */
+export function CloudSyncS3Upload(config, syncedFile) {
+    return $Call.ByID(1283970227, config, syncedFile).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * CloudSyncWebdavDelete removes the remote snapshot.
+ * @param {$models.CloudSyncWebDAVConfig} config
+ * @returns {$CancellablePromise<$models.CloudSyncDeleteResult>}
+ */
+export function CloudSyncWebdavDelete(config) {
+    return $Call.ByID(2705735630, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * CloudSyncWebdavDownload fetches the remote synced file or null.
+ * @param {$models.CloudSyncWebDAVConfig} config
+ * @returns {$CancellablePromise<$models.CloudSyncDownloadResult>}
+ */
+export function CloudSyncWebdavDownload(config) {
+    return $Call.ByID(666948821, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
+ * CloudSyncWebdavInitialize resolves the current remote resource id (the
+ * strong ETag) or null when no snapshot exists yet.
+ * @param {$models.CloudSyncWebDAVConfig} config
+ * @returns {$CancellablePromise<$models.CloudSyncResource>}
+ */
+export function CloudSyncWebdavInitialize(config) {
+    return $Call.ByID(317520223, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * CloudSyncWebdavUpload stores the synced file (meta + ciphertext) verbatim.
+ * @param {$models.CloudSyncWebDAVConfig} config
+ * @param {$models.CloudSyncSyncedFile} syncedFile
+ * @returns {$CancellablePromise<$models.CloudSyncResource>}
+ */
+export function CloudSyncWebdavUpload(config, syncedFile) {
+    return $Call.ByID(3312783184, config, syncedFile).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
 
 /**
  * @param {{ [_ in string]?: syncengine$0.Entry }} entries
@@ -25,10 +124,13 @@ export function Fingerprint(entries) {
  */
 export function Merge(local, remote) {
     return $Call.ByID(3140789034, local, remote).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType4($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = syncengine$0.Entry.createFrom;
-const $$createType1 = $Create.Map($Create.Any, $$createType0);
+const $$createType0 = $models.CloudSyncDeleteResult.createFrom;
+const $$createType1 = $models.CloudSyncDownloadResult.createFrom;
+const $$createType2 = $models.CloudSyncResource.createFrom;
+const $$createType3 = syncengine$0.Entry.createFrom;
+const $$createType4 = $Create.Map($Create.Any, $$createType3);

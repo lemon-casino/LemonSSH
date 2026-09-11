@@ -6,6 +6,10 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as json$0 from "../../../../../encoding/json/models.js";
+
 export class AppLockRuntimeState {
     /**
      * Creates a new AppLockRuntimeState instance.
@@ -108,6 +112,208 @@ export class BiometricUnlockResult {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new BiometricUnlockResult(/** @type {Partial<BiometricUnlockResult>} */($$parsedSource));
+    }
+}
+
+export class CloudSyncDeleteResult {
+    /**
+     * Creates a new CloudSyncDeleteResult instance.
+     * @param {Partial<CloudSyncDeleteResult>} [$$source = {}] - The source object to create the CloudSyncDeleteResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloudSyncDeleteResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CloudSyncDeleteResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloudSyncDeleteResult(/** @type {Partial<CloudSyncDeleteResult>} */($$parsedSource));
+    }
+}
+
+export class CloudSyncDownloadResult {
+    /**
+     * Creates a new CloudSyncDownloadResult instance.
+     * @param {Partial<CloudSyncDownloadResult>} [$$source = {}] - The source object to create the CloudSyncDownloadResult.
+     */
+    constructor($$source = {}) {
+        if (!("syncedFile" in $$source)) {
+            /**
+             * @member
+             * @type {CloudSyncSyncedFile | null}
+             */
+            this["syncedFile"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloudSyncDownloadResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CloudSyncDownloadResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField0_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("syncedFile" in $$parsedSource) {
+            $$parsedSource["syncedFile"] = $$createField0_0($$parsedSource["syncedFile"]);
+        }
+        return new CloudSyncDownloadResult(/** @type {Partial<CloudSyncDownloadResult>} */($$parsedSource));
+    }
+}
+
+export class CloudSyncResource {
+    /**
+     * Creates a new CloudSyncResource instance.
+     * @param {Partial<CloudSyncResource>} [$$source = {}] - The source object to create the CloudSyncResource.
+     */
+    constructor($$source = {}) {
+        if (!("resourceId" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["resourceId"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloudSyncResource instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CloudSyncResource}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloudSyncResource(/** @type {Partial<CloudSyncResource>} */($$parsedSource));
+    }
+}
+
+/**
+ * CloudSyncSyncedFile mirrors the renderer's SyncedFile: meta is the
+ * encryption envelope, payload is the base64 ciphertext. The pair is stored
+ * verbatim on the remote so download returns it byte-identical.
+ */
+export class CloudSyncSyncedFile {
+    /**
+     * Creates a new CloudSyncSyncedFile instance.
+     * @param {Partial<CloudSyncSyncedFile>} [$$source = {}] - The source object to create the CloudSyncSyncedFile.
+     */
+    constructor($$source = {}) {
+        if (!("meta" in $$source)) {
+            /**
+             * @member
+             * @type {json$0.RawMessage}
+             */
+            this["meta"] = null;
+        }
+        if (!("payload" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["payload"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["etag"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloudSyncSyncedFile instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CloudSyncSyncedFile}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloudSyncSyncedFile(/** @type {Partial<CloudSyncSyncedFile>} */($$parsedSource));
+    }
+}
+
+/**
+ * CloudSyncWebDAVConfig mirrors the renderer's WebDAVConfig. Token-based auth
+ * is fail-closed: the Go WebDAV transport implements basic auth only.
+ */
+export class CloudSyncWebDAVConfig {
+    /**
+     * Creates a new CloudSyncWebDAVConfig instance.
+     * @param {Partial<CloudSyncWebDAVConfig>} [$$source = {}] - The source object to create the CloudSyncWebDAVConfig.
+     */
+    constructor($$source = {}) {
+        if (!("endpoint" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["endpoint"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["authType"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["username"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["password"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["token"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["allowInsecure"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloudSyncWebDAVConfig instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CloudSyncWebDAVConfig}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloudSyncWebDAVConfig(/** @type {Partial<CloudSyncWebDAVConfig>} */($$parsedSource));
     }
 }
 
@@ -381,8 +587,8 @@ export class MoshStartRequest {
      * @returns {MoshStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType0;
-        const $$createField12_0 = $$createType2;
+        const $$createField11_0 = $$createType2;
+        const $$createField12_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
             $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
@@ -455,8 +661,8 @@ export class NativeStartRequest {
      * @returns {NativeStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType0;
-        const $$createField5_0 = $$createType3;
+        const $$createField3_0 = $$createType2;
+        const $$createField5_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("args" in $$parsedSource) {
             $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
@@ -681,8 +887,8 @@ export class SSHConnectRequest {
      * @returns {SSHConnectRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType0;
-        const $$createField14_0 = $$createType2;
+        const $$createField11_0 = $$createType2;
+        const $$createField14_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
             $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
@@ -890,7 +1096,7 @@ export class UpgradeStatus {
      * @returns {UpgradeStatus}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType0;
+        const $$createField3_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("history" in $$parsedSource) {
             $$parsedSource["history"] = $$createField3_0($$parsedSource["history"]);
@@ -900,7 +1106,9 @@ export class UpgradeStatus {
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = SSHConnectRequest.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType0 = CloudSyncSyncedFile.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($Create.Any);
+const $$createType3 = SSHConnectRequest.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);

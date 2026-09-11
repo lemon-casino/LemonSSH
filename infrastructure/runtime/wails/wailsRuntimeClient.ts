@@ -17,6 +17,7 @@ import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/n
 import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
 import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
 import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
+import * as syncServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/syncservice";
 import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
 import {
   buildTerminalSocketUrl,
@@ -188,6 +189,16 @@ export interface WailsBindingDeps {
     StageAppend?: (tempPath: string, offset: number, data: string) => Promise<unknown>;
     StageDiscard?: (tempPath: string) => Promise<unknown>;
   };
+  sync?: {
+    CloudSyncWebdavInitialize?: (config: unknown) => Promise<{ resourceId: string | null }>;
+    CloudSyncWebdavUpload?: (config: unknown, syncedFile: unknown) => Promise<{ resourceId: string }>;
+    CloudSyncWebdavDownload?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
+    CloudSyncWebdavDelete?: (config: unknown) => Promise<{ ok: true }>;
+    CloudSyncS3Initialize?: (config: unknown) => Promise<{ resourceId: string | null }>;
+    CloudSyncS3Upload?: (config: unknown, syncedFile: unknown) => Promise<{ resourceId: string }>;
+    CloudSyncS3Download?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
+    CloudSyncS3Delete?: (config: unknown) => Promise<{ ok: true }>;
+  };
   transfer?: {
     Enqueue?: (spec: unknown) => Promise<unknown>;
     Pause?: (taskID: string) => Promise<unknown>;
@@ -232,6 +243,7 @@ export interface WailsBindingDeps {
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
     tray: trayService as unknown as WailsBindingDeps["tray"],
+    sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -1029,7 +1041,40 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       writeSftp,
       getSftpHomeDir,
     }),
-    sync: unimplemented("sync"),
+    sync: portWith("sync", {
+      cloudSyncWebdavInitialize: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
+        return bindings.sync.CloudSyncWebdavInitialize(config);
+      }) as unknown as NetcattyBridge["cloudSyncWebdavInitialize"],
+      cloudSyncWebdavUpload: (async (config: unknown, syncedFile: unknown) => {
+        if (!bindings.sync?.CloudSyncWebdavUpload) missingBridgeMethod("cloudSyncWebdavUpload");
+        return bindings.sync.CloudSyncWebdavUpload(config, syncedFile);
+      }) as unknown as NetcattyBridge["cloudSyncWebdavUpload"],
+      cloudSyncWebdavDownload: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncWebdavDownload) missingBridgeMethod("cloudSyncWebdavDownload");
+        return bindings.sync.CloudSyncWebdavDownload(config);
+      }) as unknown as NetcattyBridge["cloudSyncWebdavDownload"],
+      cloudSyncWebdavDelete: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncWebdavDelete) missingBridgeMethod("cloudSyncWebdavDelete");
+        return bindings.sync.CloudSyncWebdavDelete(config);
+      }) as unknown as NetcattyBridge["cloudSyncWebdavDelete"],
+      cloudSyncS3Initialize: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncS3Initialize) missingBridgeMethod("cloudSyncS3Initialize");
+        return bindings.sync.CloudSyncS3Initialize(config);
+      }) as unknown as NetcattyBridge["cloudSyncS3Initialize"],
+      cloudSyncS3Upload: (async (config: unknown, syncedFile: unknown) => {
+        if (!bindings.sync?.CloudSyncS3Upload) missingBridgeMethod("cloudSyncS3Upload");
+        return bindings.sync.CloudSyncS3Upload(config, syncedFile);
+      }) as unknown as NetcattyBridge["cloudSyncS3Upload"],
+      cloudSyncS3Download: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncS3Download) missingBridgeMethod("cloudSyncS3Download");
+        return bindings.sync.CloudSyncS3Download(config);
+      }) as unknown as NetcattyBridge["cloudSyncS3Download"],
+      cloudSyncS3Delete: (async (config: unknown) => {
+        if (!bindings.sync?.CloudSyncS3Delete) missingBridgeMethod("cloudSyncS3Delete");
+        return bindings.sync.CloudSyncS3Delete(config);
+      }) as unknown as NetcattyBridge["cloudSyncS3Delete"],
+    }),
     system: unimplemented("system"),
     plugin: unimplemented("plugin"),
     transitionBridge,

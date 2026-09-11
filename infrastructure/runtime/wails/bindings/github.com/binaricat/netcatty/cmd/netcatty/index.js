@@ -48,6 +48,11 @@ export {
 export {
     AppLockRuntimeState,
     BiometricUnlockResult,
+    CloudSyncDeleteResult,
+    CloudSyncDownloadResult,
+    CloudSyncResource,
+    CloudSyncSyncedFile,
+    CloudSyncWebDAVConfig,
     HotkeyResult,
     HotkeyStatus,
     LocalPathStat,
