@@ -1,10 +1,10 @@
-# LemonSSH 剩余工作清单（2026-09-10 快照）
+# LemonSSH 剩余工作清单（2026-09-11 快照）
 
 本文档回答一个问题：**现在还有什么没有做完**。状态权威仍是
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L094`。矩阵 34 行：implemented 6 / probe 19 / not-started 9 /
+当前台账头：`WV3-L103`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -39,10 +39,10 @@
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
 | SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
-| Mosh / ET | 监督 runner 仍在；产品路径诚实失败，reconnect 协议未接 | TERM-03.3 | 已处理 |
-| ZMODEM 完整 rz/sz 会话 | 取消入口已接到失败关闭；会话引擎未实现 | TERM-03.4 | 已处理 |
-| 串口 YMODEM | SendSerialYmodem 诚实失败关闭 | TERM-03.2 | 已处理 |
-| Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1/2 | pending |
+| Mosh / ET | StartMosh/StartEt 已做 SSH 握手、MOSH CONNECT 解析和本地 client 监督；打包 helper 与 roaming reconnect 仍缺 | TERM-03.3 | 已处理 |
+| ZMODEM 完整 rz/sz 会话 | 长度前缀会话引擎和 YMODEM 已接；原始 lrzsz 对端仍缺 | TERM-03.4 | 已处理 |
+| 串口 YMODEM | SendSerialYmodem/ReceiveSerialYmodem 接到打开的串口会话 | TERM-03.2 | 已处理 |
+| Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1, TERM-03.2 | pending |
 
 ### SFTP / 传输
 - 本地面板 HomeDir/ListDir 接到真实文件系统；桌面桥缺失能力时报错，演示文件仅用于无后端浏览器预览（SYS-01 / WV3-L094）— 已处理；真实远端上传复验仍 pending
@@ -65,7 +65,7 @@
 ### 插件
 - Install/SetEnabled 元数据门面已接（PLUG-01）— 已处理
 - WASM Instantiate 接到 wazero runtime，无 host import / WASI（PLUG-02）— 已处理
-- native 进程运行时仍未接到 Wails 壳（PLUG-03）— pending
+- native 进程运行时已接到 PluginService（GrantNative/StartNative/StopNative/CallNative）；签名变体和活体子孙进程回收仍 pending（PLUG-03）— 已处理
 
 ### AI（全部）
 - P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
@@ -81,7 +81,8 @@
    托盘、PTY、数据面配对基准 — pending；CI 已扩 remaining-work 契约测试
 2. **真实服务器矩阵**：SSH MFA/跳板、真实 SFTP 服务器、编码/符号链接 — pending
 3. **签名与安装包**：无代码签名、无 msi/pkg/AppImage/deb/rpm 打包 — pending；
-   `scripts/sign-wails-probe.mjs` 只记录 unsigned 原因，不伪造签名
+   `scripts/sign-wails-probe.mjs` 只记录 unsigned 原因，不伪造签名；
+   `package-wails.mjs` 现在写出 purity inventory，signed 恒为 false（WV3-L103）
 4. **自动更新**：无签名 feed、无 N-1→N 活体演练（REL-02 probe）— pending
 5. **Electron 性能基线**：CI 上 3 个 best-effort 基线 job 抖动失败
    （不阻塞 `test` workflow）— pending
@@ -103,6 +104,9 @@ P8-01 签名 RC 全量 Gate → P8-02 WAILS-CUTOVER → P9 退役 Electron
 - `NONAI-COMPLETE` **不能记录**：verified=0。
 - Phase 7 任何 production 代码在 gate 前禁止开工（WV3-009）。
 - Phase 8/9 切默认发行物、删除 Electron 全部排队。
+- REL-03 是 aggregate，必须保持 not-started。
+- REL-03.1 第一次推进只能走 P8-01；现在还没有签名 RC，所以保持 not-started。
+- REL-03.2 在 WAILS-CUTOVER 和 ROLLBACK-CLOSED 之前不能推进。
 
 ---
 

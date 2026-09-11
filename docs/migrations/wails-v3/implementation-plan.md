@@ -1171,9 +1171,11 @@ Exit：NET-01 `verified`。
 
 ### P3-08 迁移 Telnet、Serial、Mosh、ET 与 ZMODEM/YMODEM
 
-执行状态：decomposition gate 已通过（child rows 登记，实施未开始）。复合行
-TERM-03 拆为 TERM-03.1、TERM-03.2、TERM-03.3、TERM-03.4 四个 stable child
-rows 与 4 张执行卡：
+执行状态：Wails owners 已接到 TerminalService（TERM-03.1 AutoLogin 与 echo
+事件、TERM-03.2 全配置串口与 YMODEM、TERM-03.3 MOSH CONNECT 握手加监督
+client、TERM-03.4 会话引擎）。复合行 TERM-03 拆为 TERM-03.1、TERM-03.2、
+TERM-03.3、TERM-03.4 四个 stable child rows 与 4 张执行卡；verified 仍需
+三平台活体矩阵：
 
 - **P3-08.1（TERM-03.1 Telnet）**：Create `internal/terminal/telnet/`；依赖
   P3-01 route/route-controller 复用；命令 `go test ./internal/telnet/...`；
@@ -1375,6 +1377,16 @@ Exit：普通插件不能向主 WebView 注入 arbitrary HTML/JS/CSS。
 ### P5-05 实现 native child-process runtime
 
 关联：PLUG-03
+
+执行状态：decomposition gate 已通过。复合行 PLUG-03 拆为 PLUG-03.1（spawn/
+hash/containment）与 PLUG-03.2（framed RPC/flood/quarantine/broker）。
+PluginService 暴露 GrantNative、StartNative、StopNative、CallNative、
+NativeRunning；StartNative 在缺少 companion.execute 授权时 fail-closed。
+
+- **P5-05.1（PLUG-03.1）**：Create `internal/plugin/native` spawn path；hash
+  pin、symlink 拒绝、Node shebang 拒绝、Unix Setpgid、Windows job object。
+- **P5-05.2（PLUG-03.2）**：length-prefixed JSON-RPC、stdout flood cap、
+  malformed frame quarantine、broker Check 在 spawn 前默认 deny。
 
 实现 signed/hash-pinned variants、package containment、minimal environment、private
 dir、framed RPC/streams、job object/process group、graceful/forced stop、quarantine。

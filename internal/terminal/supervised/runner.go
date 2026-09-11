@@ -10,9 +10,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 )
@@ -60,6 +62,7 @@ type Process struct {
 	mu      sync.Mutex
 	cmd     *exec.Cmd
 	stdin   *os.File
+	stdout  io.ReadCloser
 	exited  chan struct{}
 	exitErr error
 }
@@ -73,6 +76,7 @@ type Runner struct {
 	mu           sync.Mutex
 	process      *Process
 	restarts     int
+	onOutput     func([]byte)
 }
 
 // NewRunner validates the manifest against the host and returns a runner.
@@ -89,6 +93,14 @@ func NewRunner(manifest Manifest, resourceRoot string, maxRestarts int) (*Runner
 // Start launches the binary with arguments. A dead binary is restarted up to
 // maxRestarts times with a fixed delay before giving up.
 func (r *Runner) Start(ctx context.Context, args []string) error {
+	return r.StartWithEnv(ctx, args, nil)
+}
+
+// StartWithEnv launches the binary with extra environment variables appended to
+// the current process environment. Helpers such as mosh-client take their
+// session key through the environment rather than argv, so it never appears in
+// the process table.
+func (r *Runner) StartWithEnv(ctx context.Context, args []string, env map[string]string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.process != nil {
@@ -103,9 +115,10 @@ func (r *Runner) Start(ctx context.Context, args []string) error {
 		if attempt > r.maxRestarts {
 			return ErrTooManyRestarts
 		}
-		process, startErr := spawn(ctx, r.manifest, r.resourceRoot, args)
+		process, startErr := spawn(ctx, r.manifest, r.resourceRoot, args, env)
 		if startErr == nil {
 			r.process = process
+			r.attachOutput(process, r.onOutput)
 			return nil
 		}
 		if !errors.Is(startErr, errSpawnDied) {
@@ -117,15 +130,24 @@ func (r *Runner) Start(ctx context.Context, args []string) error {
 
 var errSpawnDied = errors.New("spawn died immediately")
 
-func spawn(ctx context.Context, manifest Manifest, resourceRoot string, args []string) (*Process, error) {
+func spawn(ctx context.Context, manifest Manifest, resourceRoot string, args []string, env map[string]string) (*Process, error) {
 	full := resourceRoot + string(os.PathSeparator) + manifest.Path
 	cmd := exec.CommandContext(ctx, full, args...)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), envSlice(env)...)
+	}
 	// Hold a stdin pipe open so interactive helpers do not see EOF and die.
 	stdinRead, stdinWrite, pipeErr := os.Pipe()
 	if pipeErr != nil {
 		return nil, pipeErr
 	}
 	cmd.Stdin = stdinRead
+	stdout, stdoutErr := cmd.StdoutPipe()
+	if stdoutErr != nil {
+		_ = stdinRead.Close()
+		_ = stdinWrite.Close()
+		return nil, stdoutErr
+	}
 	if err := cmd.Start(); err != nil {
 		_ = stdinRead.Close()
 		_ = stdinWrite.Close()
@@ -134,7 +156,7 @@ func spawn(ctx context.Context, manifest Manifest, resourceRoot string, args []s
 	// The parent keeps the write end alive for the process lifetime; the read
 	// end belongs to the child now.
 	_ = stdinRead.Close()
-	process := &Process{cmd: cmd, stdin: stdinWrite, exited: make(chan struct{})}
+	process := &Process{cmd: cmd, stdin: stdinWrite, stdout: stdout, exited: make(chan struct{})}
 	go func() {
 		waitErr := cmd.Wait()
 		process.mu.Lock()
@@ -155,6 +177,60 @@ func spawn(ctx context.Context, manifest Manifest, resourceRoot string, args []s
 	case <-time.After(300 * time.Millisecond):
 		return process, nil
 	}
+}
+
+// attachOutput starts a goroutine that forwards stdout to the output handler.
+// It is a no-op when no handler is registered. The handler is passed in so the
+// caller can invoke it without re-acquiring the runner mutex.
+func (r *Runner) attachOutput(process *Process, handler func([]byte)) {
+	if handler == nil || process.stdout == nil {
+		return
+	}
+	go func() {
+		buffer := make([]byte, 32*1024)
+		for {
+			n, err := process.stdout.Read(buffer)
+			if n > 0 {
+				handler(buffer[:n])
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+}
+
+// envSlice renders a map as KEY=value pairs in a stable order.
+func envSlice(env map[string]string) []string {
+	keys := make([]string, 0, len(env))
+	for key := range env {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	out := make([]string, 0, len(env))
+	for _, key := range keys {
+		out = append(out, key+"="+env[key])
+	}
+	return out
+}
+
+// OnOutput, when set before Start, receives the process's stdout bytes. It
+// runs on the caller's goroutine contract: the callback must not block.
+func (r *Runner) SetOutputHandler(handler func([]byte)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.onOutput = handler
+}
+
+// Writer returns a writer the caller can use to feed the supervised process's
+// stdin (mosh-client reads keyboard input from it).
+func (r *Runner) Writer() io.WriteCloser {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.process == nil {
+		return nil
+	}
+	return r.process.stdin
 }
 
 // Stop terminates the running binary.

@@ -141,3 +141,64 @@ func TestListErrorPropagates(t *testing.T) {
 		t.Fatal("list error must propagate")
 	}
 }
+
+func TestValidateEnforcesFlowControlVocabulary(t *testing.T) {
+	base := DefaultConfig("COM3")
+	if base.FlowControl != "none" {
+		t.Fatalf("default flow control must be none, got %q", base.FlowControl)
+	}
+	for _, valid := range []string{"", "none", "xon/xoff", "rts/cts", "RTS/CTS"} {
+		config := base
+		config.FlowControl = valid
+		if err := Validate(config); err != nil {
+			t.Fatalf("flow control %q must validate: %v", valid, err)
+		}
+	}
+	for _, invalid := range []string{"hardware", "software", "rts", "1"} {
+		config := base
+		config.FlowControl = invalid
+		if err := Validate(config); err == nil {
+			t.Fatalf("flow control %q must be rejected", invalid)
+		}
+	}
+}
+
+func TestNormalizeFlowControl(t *testing.T) {
+	cases := map[string]string{
+		"":         "none",
+		"  ":       "none",
+		"none":     "none",
+		"NONE":     "none",
+		"xon/xoff": "xon/xoff",
+		"RTS/CTS":  "rts/cts",
+	}
+	for input, expected := range cases {
+		if got := NormalizeFlowControl(input); got != expected {
+			t.Fatalf("NormalizeFlowControl(%q) = %q, want %q", input, got, expected)
+		}
+	}
+}
+
+// rejectingBackend records the config it was asked to open so tests can assert
+// the full line configuration survives to the backend unchanged.
+type rejectingBackend struct {
+	opened Config
+}
+
+func (b *rejectingBackend) ListPorts() ([]Info, error) { return nil, nil }
+func (b *rejectingBackend) Open(config Config) (Port, error) {
+	b.opened = config
+	return nil, errors.New("no device in test")
+}
+
+func TestOpenPassesFullConfigToBackend(t *testing.T) {
+	backend := &rejectingBackend{}
+	session := NewSession(backend)
+	config := Config{Port: "COM7", BaudRate: 9600, DataBits: 7, Parity: "even", StopBits: "2", FlowControl: "none"}
+	if err := session.Open(config); err == nil {
+		t.Fatal("open must surface the backend error")
+	}
+	if backend.opened != config {
+		t.Fatalf("backend saw %+v, want %+v", backend.opened, config)
+	}
+}

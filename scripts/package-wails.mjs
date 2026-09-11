@@ -30,6 +30,29 @@ export function windowsGuiLdflags(goos) {
   return goos === "windows" ? " -H windowsgui" : "";
 }
 
+const ELECTRON_MARKERS = Object.freeze(["electron", "node.exe", ".asar", "runtime/node_modules"]);
+
+// purityInventory records what a qualification artifact is, without claiming a
+// signed installer or a Node-free final RC. REL-03.1 still needs P8-01.
+export function purityInventory({ artifactName, sha256, bytes, goos, goarch, cross }) {
+  return {
+    artifactName,
+    sha256,
+    bytes,
+    goos,
+    goarch,
+    cross,
+    signed: false,
+    installerFormats: [],
+    electronMarkers: [...ELECTRON_MARKERS],
+    notes: [
+      "bare Go binary only; no msi, pkg, AppImage, deb, or rpm",
+      "Authenticode/codesign not invoked",
+      "REL-03.1 artifact purity waits on P8-01 signed RC",
+    ],
+  };
+}
+
 export function parseArgs(argv) {
   const args = {
     version: undefined,
@@ -130,6 +153,14 @@ async function main() {
     cross,
     builtAt: new Date().toISOString(),
     artifacts: entries.map((entry) => ({ name: path.basename(entry.path), ...entry })),
+    purity: entries.map((entry) => purityInventory({
+      artifactName: path.basename(entry.path),
+      sha256: entry.sha256,
+      bytes: entry.bytes,
+      goos: target.goos,
+      goarch: target.goarch,
+      cross,
+    })),
   };
   await writeFile(path.join(args.outDir, "artifact-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   console.log(`[package-wails] packaged ${manifest.artifacts.length} artifact(s) for ${target.goos}/${target.goarch} in ${args.outDir}`);

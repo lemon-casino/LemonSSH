@@ -17,19 +17,19 @@ func NewOSBackend() *Session { return NewSession(osBackend{}) }
 
 type osBackend struct{}
 
+// ListPorts returns enriched port metadata where the platform can supply it.
+// listPortInfos is platform-split so Linux/Windows use the cgo-free USB
+// enumerator while macOS falls back to name-only under CGO_ENABLED=0.
 func (osBackend) ListPorts() ([]Info, error) {
-	native, err := serial.GetPortsList()
-	if err != nil {
-		return nil, err
-	}
-	infos := make([]Info, 0, len(native))
-	for _, name := range native {
-		infos = append(infos, Info{Name: name})
-	}
-	return infos, nil
+	return listPortInfos()
 }
 
 func (osBackend) Open(config Config) (Port, error) {
+	if NormalizeFlowControl(config.FlowControl) != "none" {
+		// go.bug.st/serial v1.6.4 hardcodes RTS/CTS off and clears IXON/IXOFF,
+		// so it cannot program either hardware or software flow control.
+		return nil, fmt.Errorf("%w: %s", ErrFlowControlUnsupported, config.FlowControl)
+	}
 	mode := &serial.Mode{
 		BaudRate: config.BaudRate,
 		DataBits: config.DataBits,

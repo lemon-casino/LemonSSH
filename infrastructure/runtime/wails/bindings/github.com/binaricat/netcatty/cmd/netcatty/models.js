@@ -205,6 +205,227 @@ export class LocalPathStat {
     }
 }
 
+/**
+ * MoshStartRequest is the Wails-facing Mosh/ET bootstrap payload. The union of
+ * SSH dial fields lets the handshake reuse the same auth path as Connect.
+ */
+export class MoshStartRequest {
+    /**
+     * Creates a new MoshStartRequest instance.
+     * @param {Partial<MoshStartRequest>} [$$source = {}] - The source object to create the MoshStartRequest.
+     */
+    constructor($$source = {}) {
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("port" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["password"] = "";
+        }
+        if (!("privateKey" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["privateKey"] = "";
+        }
+        if (!("passphrase" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["passphrase"] = "";
+        }
+        if (!("certificate" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["certificate"] = "";
+        }
+        if (!("proxyUrl" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyUrl"] = "";
+        }
+        if (!("enableMfa" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enableMfa"] = false;
+        }
+        if (!("useAgent" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["useAgent"] = false;
+        }
+        if (!("identityFilePaths" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["identityFilePaths"] = [];
+        }
+        if (!("jumpHosts" in $$source)) {
+            /**
+             * @member
+             * @type {SSHConnectRequest[]}
+             */
+            this["jumpHosts"] = [];
+        }
+        if (!("clientPath" in $$source)) {
+            /**
+             * ClientPath is the absolute path to the local mosh-client / et binary.
+             * @member
+             * @type {string}
+             */
+            this["clientPath"] = "";
+        }
+        if (!("serverPath" in $$source)) {
+            /**
+             * ServerPath overrides the remote mosh-server command (empty uses default).
+             * @member
+             * @type {string}
+             */
+            this["serverPath"] = "";
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MoshStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {MoshStartRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField10_0 = $$createType0;
+        const $$createField11_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("identityFilePaths" in $$parsedSource) {
+            $$parsedSource["identityFilePaths"] = $$createField10_0($$parsedSource["identityFilePaths"]);
+        }
+        if ("jumpHosts" in $$parsedSource) {
+            $$parsedSource["jumpHosts"] = $$createField11_0($$parsedSource["jumpHosts"]);
+        }
+        return new MoshStartRequest(/** @type {Partial<MoshStartRequest>} */($$parsedSource));
+    }
+}
+
+/**
+ * NativeStartRequest is the Wails-facing native plugin spawn payload.
+ */
+export class NativeStartRequest {
+    /**
+     * Creates a new NativeStartRequest instance.
+     * @param {Partial<NativeStartRequest>} [$$source = {}] - The source object to create the NativeStartRequest.
+     */
+    constructor($$source = {}) {
+        if (!("pluginId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["pluginId"] = "";
+        }
+        if (!("binaryPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["binaryPath"] = "";
+        }
+        if (!("sha256" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sha256"] = "";
+        }
+        if (!("args" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["args"] = [];
+        }
+        if (!("workDir" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["workDir"] = "";
+        }
+        if (!("env" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string }}
+             */
+            this["env"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NativeStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {NativeStartRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType0;
+        const $$createField5_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("args" in $$parsedSource) {
+            $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
+        }
+        if ("env" in $$parsedSource) {
+            $$parsedSource["env"] = $$createField5_0($$parsedSource["env"]);
+        }
+        return new NativeStartRequest(/** @type {Partial<NativeStartRequest>} */($$parsedSource));
+    }
+}
+
 export class PopupOpenResult {
     /**
      * Creates a new PopupOpenResult instance.
@@ -379,6 +600,155 @@ export class SSHConnectRequest {
 }
 
 /**
+ * SerialStartRequest is the Wails-facing serial open payload. The renderer
+ * forwards the full line configuration; the serial owner validates it and fails
+ * closed on combinations the backend cannot honour.
+ */
+export class SerialStartRequest {
+    /**
+     * Creates a new SerialStartRequest instance.
+     * @param {Partial<SerialStartRequest>} [$$source = {}] - The source object to create the SerialStartRequest.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("baudRate" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["baudRate"] = 0;
+        }
+        if (!("dataBits" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["dataBits"] = 0;
+        }
+        if (!("stopBits" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["stopBits"] = "";
+        }
+        if (!("parity" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["parity"] = "";
+        }
+        if (!("flowControl" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["flowControl"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SerialStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SerialStartRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SerialStartRequest(/** @type {Partial<SerialStartRequest>} */($$parsedSource));
+    }
+}
+
+/**
+ * TelnetStartRequest is the Wails-facing telnet dial payload. Auto-login
+ * credentials are held in memory for the prompt exchange and never persisted.
+ */
+export class TelnetStartRequest {
+    /**
+     * Creates a new TelnetStartRequest instance.
+     * @param {Partial<TelnetStartRequest>} [$$source = {}] - The source object to create the TelnetStartRequest.
+     */
+    constructor($$source = {}) {
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("port" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["port"] = 0;
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["password"] = "";
+        }
+        if (!("autoLogin" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["autoLogin"] = false;
+        }
+        if (!("promptTimeoutSecs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["promptTimeoutSecs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TelnetStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TelnetStartRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TelnetStartRequest(/** @type {Partial<TelnetStartRequest>} */($$parsedSource));
+    }
+}
+
+/**
  * UpgradeStatus is the wire view of the persisted sequence.
  */
 export class UpgradeStatus {
@@ -438,3 +808,4 @@ export class UpgradeStatus {
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = SSHConnectRequest.createFrom;
 const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);

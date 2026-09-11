@@ -168,6 +168,9 @@ func main() {
 	terminalSvc.SetChallengeEmitter(func(challenge ssh.KeyboardChallenge) {
 		wailsApp.Event.Emit("ssh:keyboard-interactive", challenge)
 	})
+	terminalSvc.SetEventEmitter(func(name string, payload any) {
+		wailsApp.Event.Emit(name, payload)
+	})
 	sftpService := NewSFTPService(sshPool, knownHosts)
 	forwardService := NewForwardService(sshPool, knownHosts)
 

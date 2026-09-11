@@ -7,7 +7,9 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Info describes one enumerated port.
+ * Info describes one enumerated port. The USB fields are best-effort: they are
+ * empty when the platform cannot report them (notably macOS without cgo), which
+ * the renderer already treats as "unknown" rather than an error.
  */
 export class Info {
     /**
@@ -21,6 +23,41 @@ export class Info {
              * @type {string}
              */
             this["name"] = "";
+        }
+        if (!("manufacturer" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["manufacturer"] = "";
+        }
+        if (!("serialNumber" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["serialNumber"] = "";
+        }
+        if (!("vendorId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["vendorId"] = "";
+        }
+        if (!("productId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["productId"] = "";
+        }
+        if (!("pnpId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["pnpId"] = "";
         }
 
         Object.assign(this, $$source);

@@ -70,9 +70,36 @@ export interface WailsBindingDeps {
     Connect: (request: unknown) => Promise<string>;
     RespondKeyboardInteractive?: (requestID: string, responses: string[], cancelled: boolean) => Promise<unknown>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
-    StartTelnet?: (host: string, port: number, cols: number, rows: number) => Promise<string>;
-    StartSerial?: (path: string, baudRate: number) => Promise<string>;
-    ListSerialPorts?: () => Promise<Array<{ name: string }>>;
+    StartTelnet?: (request: unknown) => Promise<string>;
+    StartSerial?: (request: unknown) => Promise<string>;
+    StartMosh?: (request: unknown) => Promise<string>;
+    StartEt?: (request: unknown) => Promise<string>;
+    ListSerialPorts?: () => Promise<Array<{
+      name: string;
+      manufacturer?: string;
+      serialNumber?: string;
+      vendorId?: string;
+      productId?: string;
+      pnpId?: string;
+    }>>;
+    CancelZmodem?: (sessionID: string) => Promise<unknown>;
+    SendSerialYmodem?: (sessionID: string, filePath: string) => Promise<{
+      fileName: string;
+      totalBytes: number;
+      writtenBytes: number;
+    }>;
+    ReceiveSerialYmodem?: (sessionID: string, destinationDir: string) => Promise<Array<{
+      fileName: string;
+      filePath: string;
+      totalBytes: number;
+      writtenBytes: number;
+    }>>;
+    GetTelnetEchoMode?: (sessionID: string) => Promise<{
+      success: boolean;
+      sessionId?: string;
+      remoteEcho?: boolean;
+      localEcho?: boolean;
+    }>;
     Write: (...args: unknown[]) => unknown;
     Resize: (...args: unknown[]) => unknown;
     Signal: (...args: unknown[]) => unknown;
@@ -99,6 +126,7 @@ export interface WailsBindingDeps {
   window?: {
     Minimise: () => Promise<void>;
     ToggleMaximise: () => Promise<void>;
+    Hide?: () => Promise<void>;
     Close: () => Promise<void>;
     IsMaximised: () => Promise<boolean>;
     IsFullscreen: () => Promise<boolean>;
@@ -257,20 +285,41 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     port?: number;
     cols?: number;
     rows?: number;
+    username?: string;
+    password?: string;
+    autoLogin?: boolean;
   }) => {
     if (!bindings.terminal.StartTelnet) missingBridgeMethod("startTelnetSession");
-    const sessionID = await bindings.terminal.StartTelnet(
-      options.hostname,
-      options.port ?? 23,
-      options.cols ?? 80,
-      options.rows ?? 24,
-    );
+    const sessionID = await bindings.terminal.StartTelnet({
+      hostname: options.hostname,
+      port: options.port ?? 23,
+      cols: options.cols ?? 80,
+      rows: options.rows ?? 24,
+      username: options.username ?? "",
+      password: options.password ?? "",
+      autoLogin: options.autoLogin ?? false,
+      promptTimeoutSecs: 0,
+    });
     await attachDataPlane(sessionID);
     return sessionID;
   };
-  const startSerialSession = async (options: { path: string; baudRate?: number }) => {
+  const startSerialSession = async (options: {
+    path: string;
+    baudRate?: number;
+    dataBits?: number;
+    stopBits?: string | number;
+    parity?: string;
+    flowControl?: string;
+  }) => {
     if (!bindings.terminal.StartSerial) missingBridgeMethod("startSerialSession");
-    const sessionID = await bindings.terminal.StartSerial(options.path, options.baudRate ?? 115200);
+    const sessionID = await bindings.terminal.StartSerial({
+      path: options.path,
+      baudRate: options.baudRate ?? 115200,
+      dataBits: options.dataBits ?? 8,
+      stopBits: options.stopBits === undefined ? "1" : String(options.stopBits),
+      parity: options.parity ?? "none",
+      flowControl: options.flowControl ?? "none",
+    });
     await attachDataPlane(sessionID);
     return sessionID;
   };
@@ -278,11 +327,11 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const ports = await bindings.terminal.ListSerialPorts?.() ?? [];
     return ports.map((port) => ({
       path: port.name,
-      manufacturer: "",
-      serialNumber: "",
-      vendorId: "",
-      productId: "",
-      pnpId: "",
+      manufacturer: port.manufacturer ?? "",
+      serialNumber: port.serialNumber ?? "",
+      vendorId: port.vendorId ?? "",
+      productId: port.productId ?? "",
+      pnpId: port.pnpId ?? "",
     }));
   };
   const writeToSession = (sessionID: string, data: string) =>
@@ -366,7 +415,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await bindings.window?.ToggleMaximise();
     return bindings.window?.IsMaximised() ?? false;
   };
-  const windowClose = () => bindings.window?.Close();
+  const windowClose = () => bindings.window?.Hide?.() ?? bindings.window?.Close();
   const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
@@ -540,6 +589,76 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
   };
 
+  type TelnetEchoCallback = Parameters<NonNullable<NetcattyBridge["onTelnetEchoMode"]>>[1];
+  type TelnetLoginCallback = Parameters<NonNullable<NetcattyBridge["onTelnetAutoLoginComplete"]>>[1];
+  type MoshReadyCallback = Parameters<NonNullable<NetcattyBridge["onMoshSessionReady"]>>[1];
+  const telnetEchoListeners = new Map<string, Set<TelnetEchoCallback>>();
+  const telnetLoginListeners = new Map<string, Set<TelnetLoginCallback>>();
+  const telnetCancelListeners = new Map<string, Set<TelnetLoginCallback>>();
+  const moshReadyListeners = new Map<string, Set<MoshReadyCallback>>();
+  let terminalEventsSubscribed = false;
+  const subscribeTerminalEvents = () => {
+    if (terminalEventsSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    terminalEventsSubscribed = true;
+    eventsOn("telnet:echo-mode", (event) => {
+      const payload = (event?.data ?? event) as { sessionId?: string; remoteEcho?: boolean; localEcho?: boolean };
+      const sessionId = payload.sessionId ?? "";
+      for (const listener of telnetEchoListeners.get(sessionId) ?? []) {
+        listener({ sessionId, remoteEcho: Boolean(payload.remoteEcho), localEcho: Boolean(payload.localEcho) });
+      }
+    });
+    eventsOn("telnet:auto-login-complete", (event) => {
+      const payload = (event?.data ?? event) as { sessionId?: string };
+      const sessionId = payload.sessionId ?? "";
+      for (const listener of telnetLoginListeners.get(sessionId) ?? []) listener({ sessionId });
+    });
+    eventsOn("telnet:auto-login-cancelled", (event) => {
+      const payload = (event?.data ?? event) as { sessionId?: string };
+      const sessionId = payload.sessionId ?? "";
+      for (const listener of telnetCancelListeners.get(sessionId) ?? []) listener({ sessionId });
+    });
+    eventsOn("mosh:session-ready", (event) => {
+      const payload = (event?.data ?? event) as { sessionId?: string };
+      const sessionId = payload.sessionId ?? "";
+      for (const listener of moshReadyListeners.get(sessionId) ?? []) listener({ sessionId });
+    });
+    eventsOn("et:session-ready", (event) => {
+      const payload = (event?.data ?? event) as { sessionId?: string };
+      const sessionId = payload.sessionId ?? "";
+      for (const listener of moshReadyListeners.get(sessionId) ?? []) listener({ sessionId });
+    });
+  };
+  const onTelnetEchoMode = ((sessionId: string, cb: TelnetEchoCallback) => {
+    subscribeTerminalEvents();
+    const set = telnetEchoListeners.get(sessionId) ?? new Set();
+    set.add(cb);
+    telnetEchoListeners.set(sessionId, set);
+    return () => set.delete(cb);
+  }) as unknown as NetcattyBridge["onTelnetEchoMode"];
+  const onTelnetAutoLoginComplete = ((sessionId: string, cb: TelnetLoginCallback) => {
+    subscribeTerminalEvents();
+    const set = telnetLoginListeners.get(sessionId) ?? new Set();
+    set.add(cb);
+    telnetLoginListeners.set(sessionId, set);
+    return () => set.delete(cb);
+  }) as unknown as NetcattyBridge["onTelnetAutoLoginComplete"];
+  const onTelnetAutoLoginCancelled = ((sessionId: string, cb: TelnetLoginCallback) => {
+    subscribeTerminalEvents();
+    const set = telnetCancelListeners.get(sessionId) ?? new Set();
+    set.add(cb);
+    telnetCancelListeners.set(sessionId, set);
+    return () => set.delete(cb);
+  }) as unknown as NetcattyBridge["onTelnetAutoLoginCancelled"];
+  const onMoshSessionReady = ((sessionId: string, cb: MoshReadyCallback) => {
+    subscribeTerminalEvents();
+    const set = moshReadyListeners.get(sessionId) ?? new Set();
+    set.add(cb);
+    moshReadyListeners.set(sessionId, set);
+    return () => set.delete(cb);
+  }) as unknown as NetcattyBridge["onMoshSessionReady"];
+
   const implementedBridge: Partial<NetcattyBridge> = {
     startSSHSession,
     startLocalSession,
@@ -552,6 +671,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     closeSession,
     onSessionData: onSessionData as NetcattyBridge["onSessionData"],
     onSessionExit: onSessionExit as NetcattyBridge["onSessionExit"],
+    onTelnetEchoMode,
+    onTelnetAutoLoginComplete,
+    onTelnetAutoLoginCancelled,
+    onMoshSessionReady,
     openSftp,
     listSftp,
     mkdirSftp,
@@ -726,7 +849,38 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       bindings.transfer?.Resume?.(transferId)) as unknown as NetcattyBridge["resumeTransfer"],
     cancelTransfer: ((transferId: string) =>
       bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
-    cancelZmodem: (async () => ({ success: false, error: "zmodem session engine is not wired yet" })) as unknown as NetcattyBridge["cancelZmodem"],
+    cancelZmodem: (async (sessionID: string) => {
+      if (!bindings.terminal.CancelZmodem) return { success: false, error: "cancelZmodem unavailable" };
+      await bindings.terminal.CancelZmodem(sessionID);
+      return { success: true };
+    }) as unknown as NetcattyBridge["cancelZmodem"],
+    sendSerialYmodem: (async (sessionId: string, filePath: string) => {
+      if (!bindings.terminal.SendSerialYmodem) return { success: false, error: "sendSerialYmodem unavailable" };
+      try {
+        const result = await bindings.terminal.SendSerialYmodem(sessionId, filePath);
+        return { success: true, fileName: result.fileName, totalBytes: result.totalBytes, writtenBytes: result.writtenBytes };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as NetcattyBridge["sendSerialYmodem"],
+    receiveSerialYmodem: (async (sessionId: string, destinationDir: string) => {
+      if (!bindings.terminal.ReceiveSerialYmodem) return { success: false, error: "receiveSerialYmodem unavailable" };
+      try {
+        const results = await bindings.terminal.ReceiveSerialYmodem(sessionId, destinationDir);
+        return {
+          success: true,
+          files: results.map((file) => ({
+            fileName: file.fileName,
+            filePath: file.filePath,
+            totalBytes: file.totalBytes,
+            writtenBytes: file.writtenBytes,
+          })),
+          fileCount: results.length,
+        };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as NetcattyBridge["receiveSerialYmodem"],
     extractSftpArchive: (async (sftpId: string, remotePath: string) => {
       if (!bindings.sftp.ExtractArchive) return { success: false };
       await bindings.sftp.ExtractArchive(sftpId, remotePath);
@@ -753,12 +907,64 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       if (!bindings.shortcuts?.Status) return { enabled: false, hotkey: null };
       return bindings.shortcuts.Status();
     }) as unknown as NetcattyBridge["getGlobalHotkeyStatus"],
-    startMoshSession: (async () => {
-      throw new Error("mosh reconnect protocol is not wired on the Wails data plane yet");
+    startMoshSession: (async (options: Parameters<NonNullable<NetcattyBridge["startMoshSession"]>>[0]) => {
+      if (!bindings.terminal.StartMosh) missingBridgeMethod("startMoshSession");
+      const ssh = pickSSHConnectArgs({
+        hostname: options.hostname,
+        username: options.username ?? "",
+        port: options.port,
+        password: options.password,
+        privateKey: options.privateKey,
+        certificate: options.certificate,
+        passphrase: options.passphrase,
+        requiresMfa: options.requiresMfa,
+        useSshAgent: options.useSshAgent,
+        identityFilePaths: options.identityFilePaths,
+        cols: options.cols,
+        rows: options.rows,
+      });
+      const sessionID = await bindings.terminal.StartMosh({
+        ...ssh,
+        clientPath: options.moshClientPath ?? "",
+        serverPath: options.moshServerPath ?? "",
+        cols: options.cols ?? 80,
+        rows: options.rows ?? 24,
+      });
+      await attachDataPlane(sessionID);
+      return sessionID;
     }) as unknown as NetcattyBridge["startMoshSession"],
-    startEtSession: (async () => {
-      throw new Error("eternal terminal reconnect protocol is not wired on the Wails data plane yet");
+    startEtSession: (async (options: Parameters<NonNullable<NetcattyBridge["startEtSession"]>>[0]) => {
+      if (!bindings.terminal.StartEt) missingBridgeMethod("startEtSession");
+      const ssh = pickSSHConnectArgs({
+        hostname: options.hostname,
+        username: options.username ?? "",
+        port: options.port,
+        password: options.password,
+        privateKey: options.privateKey,
+        certificate: options.certificate,
+        passphrase: options.passphrase,
+        requiresMfa: options.requiresMfa,
+        useSshAgent: options.useSshAgent,
+        identityFilePaths: options.identityFilePaths,
+        cols: options.cols,
+        rows: options.rows,
+      });
+      const sessionID = await bindings.terminal.StartEt({
+        ...ssh,
+        clientPath: "",
+        serverPath: "",
+        cols: options.cols ?? 80,
+        rows: options.rows ?? 24,
+      });
+      await attachDataPlane(sessionID);
+      return sessionID;
     }) as unknown as NetcattyBridge["startEtSession"],
+    getTelnetEchoMode: (async (sessionId: string) => {
+      if (!bindings.terminal.GetTelnetEchoMode) {
+        return { success: false, error: "getTelnetEchoMode unavailable" };
+      }
+      return bindings.terminal.GetTelnetEchoMode(sessionId);
+    }) as unknown as NetcattyBridge["getTelnetEchoMode"],
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {

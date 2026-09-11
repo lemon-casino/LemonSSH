@@ -20,6 +20,9 @@ import * as dataplane$0 from "../../internal/terminal/dataplane/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as serialport$0 from "../../internal/terminal/serialport/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as ymodem$0 from "../../internal/terminal/ymodem/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -38,11 +41,14 @@ export function Bootstrap(sessionID) {
 }
 
 /**
- * CancelZmodem honours the existing CRC/safety cancellation boundary.
+ * CancelZmodem honours the existing CRC/safety cancellation boundary. A
+ * cancellation is only meaningful for a live receiver, so it is reported as a
+ * no-op success when nothing is in flight rather than as a spurious failure.
+ * @param {string} sessionID
  * @returns {$CancellablePromise<void>}
  */
-export function CancelZmodem() {
-    return $Call.ByID(2146045067);
+export function CancelZmodem(sessionID) {
+    return $Call.ByID(2146045067, sessionID);
 }
 
 /**
@@ -66,12 +72,23 @@ export function Connect(request) {
 }
 
 /**
+ * GetTelnetEchoMode reports whether the server currently echoes input.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function GetTelnetEchoMode(sessionID) {
+    return $Call.ByID(2459092297, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * ListSerialPorts enumerates OS serial devices.
  * @returns {$CancellablePromise<serialport$0.Info[]>}
  */
 export function ListSerialPorts() {
     return $Call.ByID(663993127).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType3($result);
     }));
 }
 
@@ -81,6 +98,18 @@ export function ListSerialPorts() {
  */
 export function ListenAddr() {
     return $Call.ByID(305533821);
+}
+
+/**
+ * ReceiveSerialYmodem downloads files from the serial peer into destinationDir.
+ * @param {string} sessionID
+ * @param {string} destinationDir
+ * @returns {$CancellablePromise<ymodem$0.ReceiveResult[]>}
+ */
+export function ReceiveSerialYmodem(sessionID, destinationDir) {
+    return $Call.ByID(3045917549, sessionID, destinationDir).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType5($result);
+    }));
 }
 
 /**
@@ -106,11 +135,16 @@ export function RespondKeyboardInteractive(requestID, responses, cancelled) {
 }
 
 /**
- * SendSerialYmodem is intentionally fail-closed until a serial session engine lands.
- * @returns {$CancellablePromise<void>}
+ * SendSerialYmodem uploads the file at filePath over the session's serial port
+ * using the YMODEM block protocol.
+ * @param {string} sessionID
+ * @param {string} filePath
+ * @returns {$CancellablePromise<ymodem$0.SendResult>}
  */
-export function SendSerialYmodem() {
-    return $Call.ByID(4074171664);
+export function SendSerialYmodem(sessionID, filePath) {
+    return $Call.ByID(4074171664, sessionID, filePath).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
 }
 
 /**
@@ -119,6 +153,16 @@ export function SendSerialYmodem() {
  */
 export function SetChallengeEmitter(emit) {
     return $Call.ByID(3085412466, emit);
+}
+
+/**
+ * SetEventEmitter wires renderer-visible events (telnet echo mode, auto-login
+ * completion/cancellation) to the Wails event bus.
+ * @param {any} emit
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetEventEmitter(emit) {
+    return $Call.ByID(829485873, emit);
 }
 
 /**
@@ -132,11 +176,14 @@ export function Signal(sessionID, signal) {
 }
 
 /**
- * StartEt is intentionally fail-closed until reconnect protocol lands.
+ * StartEt runs the Eternal Terminal bootstrap. ET uses the same supervised
+ * process model; the remote command differs but the local supervision and
+ * data-plane wiring are identical to Mosh.
+ * @param {$models.MoshStartRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function StartEt() {
-    return $Call.ByID(2928365382);
+export function StartEt(request) {
+    return $Call.ByID(2928365382, request);
 }
 
 /**
@@ -152,34 +199,35 @@ export function StartLocal(shell, cwd, cols, rows) {
 }
 
 /**
- * StartMosh is intentionally fail-closed until reconnect protocol lands.
+ * StartMosh runs the mosh bootstrap over SSH and supervises the local
+ * mosh-client. The remote handshake scrapes the MOSH CONNECT line, then the
+ * client process streams through the same data plane as other sessions.
+ * @param {$models.MoshStartRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function StartMosh() {
-    return $Call.ByID(2465988376);
+export function StartMosh(request) {
+    return $Call.ByID(2465988376, request);
 }
 
 /**
  * StartSerial opens a serial port and streams bytes onto the data plane.
- * @param {string} path
- * @param {number} baudRate
+ * @param {$models.SerialStartRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function StartSerial(path, baudRate) {
-    return $Call.ByID(2462094395, path, baudRate);
+export function StartSerial(request) {
+    return $Call.ByID(2462094395, request);
 }
 
 /**
  * StartTelnet dials a Telnet host and streams IAC-decoded data onto the same
- * data plane as SSH/local PTY.
- * @param {string} host
- * @param {number} port
- * @param {number} cols
- * @param {number} rows
+ * data plane as SSH/local PTY. Echo mode transitions are surfaced as events so
+ * the renderer can disable local echo when the server takes over; when
+ * auto-login is requested the prompt exchange runs against the live stream.
+ * @param {$models.TelnetStartRequest} request
  * @returns {$CancellablePromise<string>}
  */
-export function StartTelnet(host, port, cols, rows) {
-    return $Call.ByID(3093898707, host, port, cols, rows);
+export function StartTelnet(request) {
+    return $Call.ByID(3093898707, request);
 }
 
 /**
@@ -194,5 +242,9 @@ export function Write(sessionID, data) {
 
 // Private type creation functions
 const $$createType0 = dataplane$0.RouteBootstrap.createFrom;
-const $$createType1 = serialport$0.Info.createFrom;
-const $$createType2 = $Create.Array($$createType1);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
+const $$createType2 = serialport$0.Info.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = ymodem$0.ReceiveResult.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = ymodem$0.SendResult.createFrom;

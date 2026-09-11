@@ -3,6 +3,7 @@ package telnet
 import (
 	"bufio"
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"sync"
@@ -209,4 +210,109 @@ func TestAutoLoginAnswersPrompts(t *testing.T) {
 		defer server.mu.Unlock()
 		return strings.Contains(string(server.received), "admin\r\nsecret123\r\n")
 	}, "login answers missing on the wire")
+}
+
+func TestAutoLoginEmitsCompletionEvent(t *testing.T) {
+	server := startScriptedServer(t, func(s *scriptedServer, w *bufio.Writer) {
+		_, _ = w.WriteString("Username: ")
+		_ = w.Flush()
+		time.Sleep(200 * time.Millisecond)
+		_, _ = w.WriteString("Password: ")
+		_ = w.Flush()
+		time.Sleep(200 * time.Millisecond)
+		_, _ = w.WriteString("ok> ")
+		_ = w.Flush()
+	})
+
+	var mu sync.Mutex
+	var done, cancelled int
+	client, err := Connect(context.Background(), server.listener.Addr().String(), func(event Event) {
+		mu.Lock()
+		defer mu.Unlock()
+		switch event.Kind {
+		case EventAutoLoginDone:
+			done++
+		case EventAutoLoginFail:
+			cancelled++
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := AutoLogin(ctx, client, "admin", "secret123", 4*time.Second); err != nil {
+		t.Fatalf("auto login: %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if done != 1 {
+		t.Fatalf("expected exactly one completion event, got %d", done)
+	}
+	if cancelled != 0 {
+		t.Fatalf("unexpected cancellation event: %d", cancelled)
+	}
+}
+
+func TestAutoLoginEmitsCancellationOnTimeout(t *testing.T) {
+	// A server that never prompts: auto-login must time out and report it.
+	server := startScriptedServer(t, func(s *scriptedServer, w *bufio.Writer) {
+		time.Sleep(2 * time.Second)
+	})
+
+	var mu sync.Mutex
+	var cancelled int
+	client, err := Connect(context.Background(), server.listener.Addr().String(), func(event Event) {
+		if event.Kind == EventAutoLoginFail {
+			mu.Lock()
+			cancelled++
+			mu.Unlock()
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	err = AutoLogin(context.Background(), client, "admin", "secret123", 300*time.Millisecond)
+	if !errors.Is(err, ErrPromptTimeout) {
+		t.Fatalf("expected prompt timeout, got %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if cancelled != 1 {
+		t.Fatalf("expected one cancellation event, got %d", cancelled)
+	}
+}
+
+func TestAutoLoginAnswersUsernameAfterLoginStyle(t *testing.T) {
+	// Regression: a naive check matched "login:" twice and never recognised the
+	// "Username:" prompt. Both spellings must be answered exactly once.
+	server := startScriptedServer(t, func(s *scriptedServer, w *bufio.Writer) {
+		_, _ = w.WriteString("login: ")
+		_ = w.Flush()
+		time.Sleep(200 * time.Millisecond)
+		_, _ = w.WriteString("Password: ")
+		_ = w.Flush()
+		time.Sleep(200 * time.Millisecond)
+		_, _ = w.WriteString("shell> ")
+		_ = w.Flush()
+	})
+	client, err := Connect(context.Background(), server.listener.Addr().String(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := AutoLogin(ctx, client, "root", "hunter2", 4*time.Second); err != nil {
+		t.Fatalf("auto login: %v", err)
+	}
+	waitFor(t, 3*time.Second, func() bool {
+		server.mu.Lock()
+		defer server.mu.Unlock()
+		return strings.Contains(string(server.received), "root\r\nhunter2\r\n")
+	}, "credentials missing on the wire")
 }

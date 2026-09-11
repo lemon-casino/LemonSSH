@@ -9,6 +9,7 @@ import {
   buildLdflags,
   checksumEntries,
   parseArgs,
+  purityInventory,
   windowsGuiLdflags,
 } from "./package-wails.mjs";
 
@@ -63,4 +64,19 @@ test("checksumEntries hashes files deterministically", async () => {
   const again = await checksumEntries([fileA]);
   assert.equal(again[0].sha256, entries[0].sha256);
   await readFile(entries[0].path, "utf8"); // still readable after hashing
+});
+
+test("purityInventory never claims a signed installer", () => {
+  const inventory = purityInventory({
+    artifactName: "LemonSSH-1.0.0-windows-amd64.exe",
+    sha256: "a".repeat(64),
+    bytes: 12,
+    goos: "windows",
+    goarch: "amd64",
+    cross: false,
+  });
+  assert.equal(inventory.signed, false);
+  assert.deepEqual(inventory.installerFormats, []);
+  assert.ok(inventory.electronMarkers.includes("electron"));
+  assert.ok(inventory.notes.some((note) => note.includes("P8-01")));
 });

@@ -48,7 +48,11 @@ export {
     HotkeyResult,
     HotkeyStatus,
     LocalPathStat,
+    MoshStartRequest,
+    NativeStartRequest,
     PopupOpenResult,
     SSHConnectRequest,
+    SerialStartRequest,
+    TelnetStartRequest,
     UpgradeStatus
 } from "./models.js";

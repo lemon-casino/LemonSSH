@@ -16,20 +16,33 @@ var (
 	ErrPortInvalid     = errors.New("serial port configuration invalid")
 	ErrPortUnavailable = errors.New("serial port unavailable")
 	ErrNotOpen         = errors.New("serial port not open")
+	// ErrFlowControlUnsupported is returned when a non-default flow-control
+	// mode is requested but the active backend cannot program it. Silently
+	// dropping the setting would leave the operator believing hardware flow
+	// control is engaged when it is not, so the open fails closed instead.
+	ErrFlowControlUnsupported = errors.New("serial flow control unsupported by backend")
 )
 
 // Config is the validated serial port configuration.
 type Config struct {
-	Port     string
-	BaudRate int
-	DataBits int
-	Parity   string // "none", "odd", "even", "mark", "space"
-	StopBits string // "1", "1.5", "2"
+	Port        string
+	BaudRate    int
+	DataBits    int
+	Parity      string // "none", "odd", "even", "mark", "space"
+	StopBits    string // "1", "1.5", "2"
+	FlowControl string // "", "none", "xon/xoff", "rts/cts"
 }
 
-// Info describes one enumerated port.
+// Info describes one enumerated port. The USB fields are best-effort: they are
+// empty when the platform cannot report them (notably macOS without cgo), which
+// the renderer already treats as "unknown" rather than an error.
 type Info struct {
-	Name string `json:"name"`
+	Name         string `json:"name"`
+	Manufacturer string `json:"manufacturer"`
+	SerialNumber string `json:"serialNumber"`
+	VendorID     string `json:"vendorId"`
+	ProductID    string `json:"productId"`
+	PNPID        string `json:"pnpId"`
 }
 
 // Enumerator abstracts OS port discovery (injectable for tests).
@@ -52,6 +65,10 @@ type Port interface {
 var validParities = map[string]bool{"none": true, "odd": true, "even": true, "mark": true, "space": true}
 var validStopBits = map[string]bool{"1": true, "1.5": true, "2": true}
 
+// validFlowControls holds the renderer's serial flow-control vocabulary. The
+// empty string is accepted as "unspecified" and normalised to "none".
+var validFlowControls = map[string]bool{"": true, "none": true, "xon/xoff": true, "rts/cts": true}
+
 // Validate enforces the configuration contract.
 func Validate(config Config) error {
 	if strings.TrimSpace(config.Port) == "" {
@@ -69,12 +86,24 @@ func Validate(config Config) error {
 	if !validStopBits[config.StopBits] {
 		return fmt.Errorf("%w: stop bits %q", ErrPortInvalid, config.StopBits)
 	}
+	if !validFlowControls[strings.ToLower(config.FlowControl)] {
+		return fmt.Errorf("%w: flow control %q", ErrPortInvalid, config.FlowControl)
+	}
 	return nil
 }
 
-// DefaultConfig returns the product default (115200 8N1).
+// DefaultConfig returns the product default (115200 8N1, no flow control).
 func DefaultConfig(port string) Config {
-	return Config{Port: port, BaudRate: 115200, DataBits: 8, Parity: "none", StopBits: "1"}
+	return Config{Port: port, BaudRate: 115200, DataBits: 8, Parity: "none", StopBits: "1", FlowControl: "none"}
+}
+
+// NormalizeFlowControl lowercases and maps the empty string to "none".
+func NormalizeFlowControl(value string) string {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return "none"
+	}
+	return normalized
 }
 
 // Backend combines port discovery and opening.

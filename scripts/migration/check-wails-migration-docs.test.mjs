@@ -256,7 +256,6 @@ function setupNonAiFixture(root) {
   mutate(root, "capability-matrix.md", (source) => {
     const childRows = new Map([
       ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
-      ["PLUG-03", "| PLUG-03.1 | Fixture native child | required | fixture | fixture | fixture | fixture | not-started |"],
     ]);
     for (const [parent, childRow] of childRows) {
       const pattern = new RegExp(`(^\\| ${parent} \\|.*$)`, "m");
@@ -694,7 +693,6 @@ test("checker accepts a complete non-AI gate without mutating mixed capability s
   mutate(root, "capability-matrix.md", (source) => {
     const childRows = new Map([
       ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
-      ["PLUG-03", "| PLUG-03.1 | Fixture native child | required | fixture | fixture | fixture | fixture | not-started |"],
     ]);
     for (const [parent, childRow] of childRows) {
       const pattern = new RegExp(`(^\\| ${parent} \\|.*$)`, "m");

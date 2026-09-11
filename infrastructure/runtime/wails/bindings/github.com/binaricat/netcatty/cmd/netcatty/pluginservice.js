@@ -10,6 +10,31 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as store$0 from "../../internal/plugin/store/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+/**
+ * CallNative sends one framed RPC request to a live native plugin.
+ * @param {string} pluginID
+ * @param {string} method
+ * @param {string} paramsJSON
+ * @returns {$CancellablePromise<string>}
+ */
+export function CallNative(pluginID, method, paramsJSON) {
+    return $Call.ByID(1146344789, pluginID, method, paramsJSON);
+}
+
+/**
+ * GrantNative records a session-scoped companion.execute grant. StartNative
+ * remains fail-closed until this grant exists.
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<void>}
+ */
+export function GrantNative(pluginID) {
+    return $Call.ByID(1628560271, pluginID);
+}
+
 /**
  * @param {string} pluginID
  * @param {string} version
@@ -42,12 +67,39 @@ export function List() {
 }
 
 /**
+ * NativeRunning reports whether a native plugin process is live.
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function NativeRunning(pluginID) {
+    return $Call.ByID(20053096, pluginID);
+}
+
+/**
  * @param {string} pluginID
  * @param {boolean} enabled
  * @returns {$CancellablePromise<void>}
  */
 export function SetEnabled(pluginID, enabled) {
     return $Call.ByID(1774562395, pluginID, enabled);
+}
+
+/**
+ * StartNative verifies, authorizes and spawns a contained native plugin process.
+ * @param {$models.NativeStartRequest} request
+ * @returns {$CancellablePromise<void>}
+ */
+export function StartNative(request) {
+    return $Call.ByID(2573114273, request);
+}
+
+/**
+ * StopNative terminates a native plugin process.
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<void>}
+ */
+export function StopNative(pluginID) {
+    return $Call.ByID(4098639113, pluginID);
 }
 
 // Private type creation functions

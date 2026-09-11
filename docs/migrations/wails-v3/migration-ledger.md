@@ -2993,3 +2993,228 @@ capability row, source paths, verification output or CI run.
 - Residual risks: real remote SFTP upload and macOS/Linux live matrix not rerun; full-repository TypeScript check has existing errors
 - Next safe slice: retry local-pane uploads from the rebuilt LemonSSH executable on the reported host
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L095 - 2026-09-11 - P3-08 Wails wiring for telnet serial mosh zmodem
+
+- Capability rows: `TERM-03.1`, `TERM-03.2`, `TERM-03.3`, `TERM-03.4`
+- Plan task: `P3-08`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: Wire the four TERM-03 child owners through TerminalService and the Wails renderer: telnet AutoLogin plus echo-mode events, full serial line config with fail-closed flow control and YMODEM, MOSH CONNECT handshake plus supervised client, and the ZMODEM session engine.
+- Go canonical owner: `internal/terminal/telnet`, `internal/terminal/serialport`, `internal/terminal/mosh`, `internal/terminal/supervised`, `internal/terminal/zmodem`, `internal/terminal/ymodem`, `cmd/netcatty/terminalService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` and regenerated terminal bindings
+- Electron owner affected: `electron/bridges/terminalBridge.cjs`, `electron/bridges/moshHandshake.cjs`, `electron/bridges/ymodemTransfer.cjs`, `electron/bridges/zmodemHelper.cjs` remain the release-carrier baseline
+- Preserved invariants: IAC never enters the data stream; serial non-none flow control fails closed; MOSH_KEY travels in the environment not argv; ZFILE and YMODEM share one filename and size authority; CancelZmodem only cancels a live serial transfer
+- Data/schema impact: Wails request structs SerialStartRequest, TelnetStartRequest, MoshStartRequest; no profile schema change
+- Security impact: reserved Windows device names including NUL and COM1 now rejected; YMODEM refuses path traversal; helper spawn requires NETCATTY_HELPER_ROOT
+- Verification: `go test -count=1 ./internal/terminal/... ./cmd/netcatty/` pass including telnet auto-login events, ymodem round-trip, zmodem session framing, mosh CONNECT parser, serial flow-control contract
+- Platforms covered: Windows 10 22H2 x64 local Go tests; macOS USB enumerator stays name-only under CGO_ENABLED=0
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: three-platform live device and helper matrices plus P8-01 before terminalBridge telnet, serial, mosh and zmodem paths retire
+- Documentation updated: capability matrix, implementation plan, ledger, remaining-work
+- Residual risks: no live serial hardware, no packaged mosh-client or et binary, no raw lrzsz peer, no telnet reconnect matrix
+- Next safe slice: P5-05 native plugin process runtime decomposition
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L096 - 2026-09-11 - TERM-03 parent probe after child Wails owners
+
+- Capability rows: `TERM-03`
+- Plan task: `P3-08`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Advance the composite TERM-03 parent now that TERM-03.1, TERM-03.2, TERM-03.3 and TERM-03.4 have Wails owners, without skipping the probe state.
+- Go canonical owner: `cmd/netcatty/terminalService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts`
+- Electron owner affected: terminal bridge remains the release carrier
+- Preserved invariants: child rows stay the implementation units; parent does not invent a fifth protocol
+- Data/schema impact: none
+- Security impact: none beyond the child-row owners
+- Verification: child-row Go tests listed in WV3-L095; parent has no extra suite
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: same live-device and helper matrices as the TERM-03 child rows
+- Documentation updated: capability matrix, ledger
+- Residual risks: parent verified still needs every child verified
+- Next safe slice: TERM-03 parent implemented once the probe record exists
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L097 - 2026-09-11 - TERM-03 parent implemented after child Wails owners
+
+- Capability rows: `TERM-03`
+- Plan task: `P3-08`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: Record the composite parent as implemented after the four child Wails owners landed.
+- Go canonical owner: `cmd/netcatty/terminalService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts`
+- Electron owner affected: terminal bridge remains the release carrier
+- Preserved invariants: live device, helper-hash and lrzsz matrices still required for verified
+- Data/schema impact: none
+- Security impact: none beyond the child-row owners
+- Verification: same Go suites as WV3-L095
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: three-platform live protocol matrix plus P8-01 before the Electron terminal protocol owners retire
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: verified remains blocked on hardware and packaged helpers
+- Next safe slice: P5-05 PLUG-03 decomposition
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L098 - 2026-09-11 - P5-05 decomposition gate for PLUG-03
+
+- Capability rows: `PLUG-03`
+- Plan task: `P5-05`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: Split composite PLUG-03 into PLUG-03.1 spawn hash pin and containment and PLUG-03.2 framed RPC flood bound and quarantine before implementation.
+- Go canonical owner: none; decomposition governance only
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: parent PLUG-03 stays required and not-started; child rows start required and not-started; native runtime must not import internal/capability
+- Data/schema impact: none
+- Security impact: none
+- Verification: npm run check:migration-docs after the child rows are registered
+- Platforms covered: platform-independent governance
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: governance only
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: child slices still need spawn RPC tests and live descendant containment
+- Next safe slice: PLUG-03.1 and PLUG-03.2 probe
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L099 - 2026-09-11 - P5-05 native runtime probe
+
+- Capability rows: `PLUG-03.1`, `PLUG-03.2`
+- Plan task: `P5-05`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Land the Go native plugin runtime: hash-pinned spawn, symlink and Node-shebang rejection, Unix process groups, Windows job objects, length-prefixed JSON-RPC, stdout flood quarantine, and fail-closed broker checks.
+- Go canonical owner: `internal/plugin/native`
+- Frontend adapter: none yet; PluginService GrantNative StartNative StopNative CallNative NativeRunning are the Wails facade
+- Electron owner affected: `electron/plugins/companionSupervisor.cjs` remains the release-carrier baseline
+- Preserved invariants: default deny without companion.execute write grant; no in-process Go plugin; Node wrappers rejected before exec
+- Data/schema impact: none
+- Security impact: StartNative does not auto-grant; GrantNative is a separate call; malformed RPC and flood quarantine the plugin
+- Verification: `go test -count=1 ./internal/plugin/native/ ./cmd/netcatty/` pass including hash mismatch, shebang rejection, framed RPC round-trip, flood quarantine, broker gate
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: live descendant containment and signed-variant evidence plus P8-01 before companionSupervisor retires
+- Documentation updated: capability matrix, implementation plan, ledger
+- Residual risks: no signed native variants, no live descendant-reap matrix on macOS or Linux
+- Next safe slice: PLUG-03.1 and PLUG-03.2 implemented
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L100 - 2026-09-11 - P5-05 native runtime implemented
+
+- Capability rows: `PLUG-03.1`, `PLUG-03.2`
+- Plan task: `P5-05`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: Record the native spawn and RPC child rows as implemented after the Go runtime and PluginService facade landed.
+- Go canonical owner: `internal/plugin/native`, `cmd/netcatty/pluginService.go`
+- Frontend adapter: regenerated plugin bindings
+- Electron owner affected: companionSupervisor remains the release carrier
+- Preserved invariants: GrantNative required before StartNative; quarantine blocks later Start
+- Data/schema impact: none
+- Security impact: same as WV3-L099
+- Verification: same Go suites as WV3-L099
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: live descendant containment plus P8-01 before the Electron companion supervisor retires
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: signed variants and three-platform process-tree evidence still missing
+- Next safe slice: PLUG-03 parent probe
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L101 - 2026-09-11 - PLUG-03 parent probe after child owners
+
+- Capability rows: `PLUG-03`
+- Plan task: `P5-05`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Advance the composite PLUG-03 parent now that PLUG-03.1 and PLUG-03.2 have Go owners.
+- Go canonical owner: `internal/plugin/native`
+- Frontend adapter: PluginService native methods
+- Electron owner affected: companionSupervisor remains the release carrier
+- Preserved invariants: parent does not execute plugins in-process
+- Data/schema impact: none
+- Security impact: none beyond the child-row owners
+- Verification: same Go suites as WV3-L099
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: same live containment evidence as the PLUG-03 child rows
+- Documentation updated: capability matrix, ledger
+- Residual risks: parent verified still needs every child verified
+- Next safe slice: PLUG-03 parent implemented
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L102 - 2026-09-11 - PLUG-03 parent implemented after child owners
+
+- Capability rows: `PLUG-03`
+- Plan task: `P5-05`
+- Status change: `probe -> implemented`
+- Scope change: `none`
+- Goal: Record the composite native-plugin parent as implemented after the child owners landed.
+- Go canonical owner: `internal/plugin/native`, `cmd/netcatty/pluginService.go`
+- Frontend adapter: regenerated plugin bindings
+- Electron owner affected: companionSupervisor remains the release carrier
+- Preserved invariants: verified still requires live descendant containment and signed variants
+- Data/schema impact: none
+- Security impact: none beyond the child-row owners
+- Verification: same Go suites as WV3-L099
+- Platforms covered: Windows 10 22H2 x64 local Go tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`, `WV3-010`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: three-platform process-tree evidence plus P8-01 before the Electron native plugin runtime retires
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: REL-03.1 and REL-03.2 remain not-started because P8-01, WAILS-CUTOVER and ROLLBACK-CLOSED have not happened
+- Next safe slice: gather grade A live evidence for implemented non-AI rows; do not advance REL-03.1 before P8-01
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L103 - 2026-09-11 - REL-01 qualification purity inventory without signed packages
+
+- Capability rows: `REL-01`
+- Plan task: `P6-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Record a qualification artifact purity inventory on the Wails package manifest that never claims a signed installer or Node-free final RC.
+- Go canonical owner: none; packaging script only
+- Frontend adapter: none
+- Electron owner affected: none; electron-builder remains the legacy packaging path
+- Preserved invariants: signed stays false; installerFormats stays empty; REL-03.1 remains not-started because the first advancement still requires only P8-01
+- Data/schema impact: artifact-manifest.json gains a purity array; no user profile change
+- Security impact: the inventory lists electron markers as scan targets and does not treat their absence as proof
+- Verification: `node --test scripts/package-wails.test.mjs` 7 pass including purityInventory never claims a signed installer
+- Platforms covered: platform-independent Node tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: qualification inventory only; REL-01 remains probe
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: no msi, pkg, AppImage, deb, or rpm; no Authenticode or notarization; macOS and Linux package evidence still absent
+- Next safe slice: do not advance REL-03.1 until a signed P8-01 RC exists
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

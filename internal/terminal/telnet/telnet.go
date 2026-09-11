@@ -38,10 +38,12 @@ var (
 type EventKind string
 
 const (
-	EventData      EventKind = "data"
-	EventEchoMode  EventKind = "echoMode" // payload: "remote" or "local"
-	EventConnected EventKind = "connected"
-	EventClosed    EventKind = "closed"
+	EventData          EventKind = "data"
+	EventEchoMode      EventKind = "echoMode" // payload: "remote" or "local"
+	EventConnected     EventKind = "connected"
+	EventClosed        EventKind = "closed"
+	EventAutoLoginDone EventKind = "autoLoginComplete"
+	EventAutoLoginFail EventKind = "autoLoginCancelled"
 )
 
 // Event is delivered to the handler on the reader goroutine.
@@ -359,7 +361,9 @@ func containsIAC(data []byte) bool {
 }
 
 // AutoLogin watches the stream for login/password prompts and answers them.
-// It returns once connected data starts flowing after the password step.
+// It returns once connected data starts flowing after the password step, after
+// emitting a completion event. A timeout or abort emits the cancellation event
+// so the renderer can restore the manual prompt state.
 func AutoLogin(ctx context.Context, client *Client, username, password string, timeout time.Duration) error {
 	deadline := time.After(timeout)
 	promptedUser, promptedPass := false, false
@@ -381,26 +385,37 @@ func AutoLogin(ctx context.Context, client *Client, username, password string, t
 		client.handler = previous
 		client.mu.Unlock()
 	}()
+	notify := func(kind EventKind) {
+		if previous != nil {
+			previous(Event{Kind: kind})
+		}
+	}
 	for {
 		select {
 		case <-ctx.Done():
+			notify(EventAutoLoginFail)
 			return ctx.Err()
 		case <-deadline:
+			notify(EventAutoLoginFail)
 			return ErrPromptTimeout
 		case event := <-events:
 			if event.Kind != EventData {
 				continue
 			}
 			text := strings.ToLower(string(event.Data))
+			// The login prompt must be tested before the username prompt:
+			// "login:" also contains the "login" that a naive check would
+			// otherwise match twice, and "password:" must win over "username:".
 			switch {
-			case !promptedUser && strings.Contains(text, "login:") || strings.Contains(text, "username:"):
-				promptedUser = true
-				_ = client.SendLine(username)
 			case !promptedPass && strings.Contains(text, "password:"):
 				promptedPass = true
 				_ = client.SendLine(password)
+			case !promptedUser && (strings.Contains(text, "login:") || strings.Contains(text, "username:")):
+				promptedUser = true
+				_ = client.SendLine(username)
 			}
 			if promptedUser && promptedPass && len(strings.TrimSpace(text)) > 0 && !strings.Contains(text, "password:") {
+				notify(EventAutoLoginDone)
 				return nil
 			}
 		}

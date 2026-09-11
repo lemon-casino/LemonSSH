@@ -90,8 +90,8 @@ func ParseFileMeta(payload []byte, maxBytes int64) (FileMeta, error) {
 			size = size*10 + int64(r-'0')
 		}
 	}
-	if size > maxBytes || size > MaxFileBytes {
-		return FileMeta{}, fmt.Errorf("%w: %d bytes", ErrFileTooLarge, size)
+	if err := ValidateSize(size, maxBytes); err != nil {
+		return FileMeta{}, err
 	}
 	return FileMeta{Name: name, Size: size}, nil
 }
@@ -109,8 +109,33 @@ func validateName(name string) error {
 		}
 	}
 	upper := strings.ToUpper(name)
-	if upper == "." || upper == ".." || strings.HasPrefix(upper, "CON") && len(upper) <= 4 && isReservedDevice(upper) {
+	if upper == "." || upper == ".." {
 		return fmt.Errorf("%w: reserved name", ErrFileUnsafe)
+	}
+	// Windows resolves reserved device names with or without an extension, so
+	// "NUL.txt" is still the NUL device. Check the stem, not the whole name.
+	stem := upper
+	if dot := strings.IndexByte(stem, '.'); dot >= 0 {
+		stem = stem[:dot]
+	}
+	if isReservedDevice(strings.TrimRight(stem, " ")) {
+		return fmt.Errorf("%w: reserved name", ErrFileUnsafe)
+	}
+	return nil
+}
+
+// SafeFileName is the exported entry point to the package's filename safety
+// contract. YMODEM shares this single authority instead of re-deriving the
+// rules, so a name rejected for ZFILE can never slip in through a YMODEM block.
+func SafeFileName(name string) error { return validateName(name) }
+
+// ValidateSize enforces the per-file byte cap shared by ZMODEM and YMODEM.
+func ValidateSize(size, maxBytes int64) error {
+	if size < 0 {
+		return fmt.Errorf("%w: negative size", ErrFileUnsafe)
+	}
+	if size > maxBytes || size > MaxFileBytes {
+		return fmt.Errorf("%w: %d bytes", ErrFileTooLarge, size)
 	}
 	return nil
 }
@@ -191,6 +216,10 @@ type Receiver struct {
 	OnFileStart func(FileMeta) error
 	// OnChunk receives validated data chunks.
 	OnChunk func([]byte) error
+	// state carries per-file routing across streaming Feed calls (session.go).
+	state *feedState
+	// decoder buffers partial framed units across FeedSession calls.
+	decoder *frameDecoder
 }
 
 // Feed processes one transport buffer. Cancellation is checked between
