@@ -115,6 +115,7 @@ export function useSftpPaneTreeRows(props: SftpPaneTreeRowsProps) {
     handleNodeDragLeave,
     handleNodeContextMenu,
     tRef,
+    paneId,
   ]);
 
   return { totalHeight, treeRows, visibleRange };

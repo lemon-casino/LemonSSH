@@ -36,7 +36,7 @@ interface TreeNodeProps {
 export const TREE_ROW_HEIGHT = 28;
 
 export const TreeNode = React.memo<TreeNodeProps>(({
-  entry, entryPath, paneId, depth, columnTemplate, visibleColumns, isSelected,
+  entry, entryPath, paneId: _paneId, depth, columnTemplate, visibleColumns, isSelected,
   isExpanded, isLoading, isDragOver,
   onToggleExpand, onNodeClick, onOpenEntry, onDragStart, onDragEnd,
   onDragOverEntry, onDropEntry, onDragLeaveEntry,

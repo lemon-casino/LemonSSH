@@ -419,7 +419,6 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
-  const showSettingsWindow = () => bindings.settings?.Show?.();
   const notifySettingsPainted = () => bindings.settings?.PaintReady?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
   const selectFile = async () => {
@@ -459,10 +458,6 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       request,
     );
   };
-  const stopPortForward = (id: string) => bindings.forward?.Stop(id);
-  const listPortForwards = () => bindings.forward?.List();
-  const getPortForwardSnapshot = (id: string) => bindings.forward?.Snapshot(id);
-  const getAppLockRuntimeState = () => bindings.appLock?.GetRuntimeState();
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
   const getHomeDir = async () => {
@@ -543,8 +538,6 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       filesDroppedListeners.delete(cb);
     };
   };
-  const reportAppLockActivity = () => bindings.appLock?.ReportActivity?.();
-  const listPlugins = () => bindings.plugins?.List() ?? Promise.resolve([]);
   type KeyboardInteractiveCallback = Parameters<NonNullable<NetcattyBridge["onKeyboardInteractive"]>>[0];
   const keyboardListeners = new Set<KeyboardInteractiveCallback>();
   let keyboardSubscribed = false;
@@ -702,7 +695,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     stageFromLocalPath: ((path: string) =>
       bindings.filesystem?.StageFromLocalPath?.(path) as Promise<{ stagedPath: string; name: string; size: number }>) as unknown as NetcattyBridge["stageFromLocalPath"],
     appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
-    stageUploadFile: (async (file: File, transferId: string) => {
+    stageUploadFile: (async (file: File, _transferId: string) => {
       if (!bindings.filesystem?.StageBegin || !bindings.filesystem?.StageAppend || !bindings.filesystem?.StageDiscard) {
         throw new Error("staged uploads are not available");
       }

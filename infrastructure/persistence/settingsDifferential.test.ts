@@ -11,11 +11,6 @@ import {
 // semantics and its Wails mirror produce byte-identical results, which is the
 // parity evidence the settings cutover requires.
 
-type Recorder = {
-  mirror: Map<string, string>;
-  client: ReturnType<typeof makeRecordingClient>;
-};
-
 function makeRecordingClient(initial: Record<string, string> = {}) {
   const mirror = new Map<string, string>(Object.entries(initial));
   let revision = 1;

@@ -17,7 +17,6 @@ test("profile client surfaces the generated skeleton service surface", async () 
 });
 
 test("absent keys resolve to undefined via the base64 accessor contract", async () => {
-  const client = createProfileClient();
   // In plain Node there is no Wails bridge; the call rejects. We only assert
   // the mapping contract against a stub here.
   const stub = createProfileClient();
