@@ -110,9 +110,22 @@ test("Wails package workflow uploads unsigned binaries only", () => {
   const workflow = readWorkflow("wails-package.yml");
   assert.match(workflow, /node scripts\/package-wails\.mjs/);
   assert.match(workflow, /sign-wails-probe\.mjs/);
-  assert.match(workflow, /lemonssh-unsigned-/);
+  assert.match(workflow, /name: lemonssh-\$\{\{ matrix\.os \}\}/);
+  assert.match(workflow, /lemonssh-windows-latest/);
+  assert.match(workflow, /lemonssh-macos-latest/);
+  assert.match(workflow, /lemonssh-ubuntu-latest/);
+  assert.doesNotMatch(workflow, /lemonssh-unsigned-/);
   assert.doesNotMatch(workflow, /signtool/);
   assert.doesNotMatch(workflow, /notarytool|altool|APPLE_ID|WINDOWS_CERT/);
+});
+
+test("Wails package workflow publishes unsigned GitHub Releases on v tags", () => {
+  const workflow = readWorkflow("wails-package.yml");
+  assert.match(workflow, /tags:\s*\n\s*- v\*/);
+  assert.match(workflow, /softprops\/action-gh-release@/);
+  assert.match(workflow, /startsWith\(github\.ref, 'refs\/tags\/v'\)/);
+  assert.match(workflow, /contents: write/);
+  assert.doesNotMatch(workflow, /signtool|notarytool|APPLE_ID|WINDOWS_CERT/);
 });
 
 test("package release concurrency is isolated per tag", () => {

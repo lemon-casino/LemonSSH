@@ -2,11 +2,15 @@ name: wails-package
 
 # Unsigned Wails qualification binaries only. No Authenticode, notarization,
 # or installer formats. The operator self-signs later.
+# Push to main uploads Actions artifacts. A v* tag also publishes a GitHub
+# Release with the same unsigned zip files.
 
 on:
   push:
     branches:
       - main
+    tags:
+      - v*
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   GOTOOLCHAIN: local
@@ -70,7 +74,51 @@ jobs:
       - name: Upload unsigned artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: lemonssh-unsigned-${{ matrix.os }}
+          name: lemonssh-${{ matrix.os }}
           path: dist/wails/**
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Publish unsigned GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: lemonssh-windows-latest
+          path: release/lemonssh-windows-latest
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: lemonssh-macos-latest
+          path: release/lemonssh-macos-latest
+
+      - name: Download Ubuntu artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: lemonssh-ubuntu-latest
+          path: release/lemonssh-ubuntu-latest
+
+      - name: Zip platform folders
+        run: |
+          cd release
+          zip -r lemonssh-windows-latest.zip lemonssh-windows-latest
+          zip -r lemonssh-macos-latest.zip lemonssh-macos-latest
+          zip -r lemonssh-ubuntu-latest.zip lemonssh-ubuntu-latest
+
+      - name: Publish unsigned GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/lemonssh-windows-latest.zip
+            release/lemonssh-macos-latest.zip
+            release/lemonssh-ubuntu-latest.zip
+          body: |
+            Unsigned Wails qualification binaries. Self-sign before public distribution.
+            No Authenticode, notarization, or installer formats.
