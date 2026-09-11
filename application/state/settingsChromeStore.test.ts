@@ -138,6 +138,7 @@ test('registerSettingsChromeActions exposes the theme and opacity setters', () =
     setTheme: () => calls.push('theme'),
     setWindowOpacity: () => calls.push('opacity'),
     setCloseBehavior: () => calls.push('close'),
+    setLayoutMode: () => calls.push('layout'),
   });
 
   const actions = getSettingsChromeActions();

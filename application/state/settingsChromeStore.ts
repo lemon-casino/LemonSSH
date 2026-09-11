@@ -5,6 +5,7 @@ import type { HotkeyScheme } from '../../domain/models/keyBindings';
 import type { DynamicTabTitleMode } from '../../domain/models/terminal';
 import type { HostClickBehavior } from '../../domain/hostClickBehavior';
 import type { TerminalSidePanelAutoOpenTab } from '../../domain/terminalSidePanelAutoOpen';
+import type { LayoutMode } from '../../domain/layoutMode';
 
 type Listener = () => void;
 
@@ -37,6 +38,7 @@ export type SettingsChromeSnapshot = {
   terminalSidePanelAutoOpen: boolean;
   terminalSidePanelAutoOpenTab: TerminalSidePanelAutoOpenTab;
   closeBehavior: "minimize" | "quit" | null;
+  layoutMode: LayoutMode;
 };
 
 /**
@@ -48,6 +50,7 @@ export type SettingsChromeActions = {
   setTheme: (theme: SettingsChromeTheme) => void;
   setWindowOpacity: (opacity: number) => void;
   setCloseBehavior: (behavior: "minimize" | "quit" | null) => void;
+  setLayoutMode: (mode: LayoutMode) => void;
 };
 
 export const DEFAULT_SETTINGS_CHROME_SNAPSHOT: SettingsChromeSnapshot = Object.freeze({
@@ -71,6 +74,7 @@ export const DEFAULT_SETTINGS_CHROME_SNAPSHOT: SettingsChromeSnapshot = Object.f
   terminalSidePanelAutoOpen: false,
   terminalSidePanelAutoOpenTab: 'ai',
   closeBehavior: 'minimize',
+  layoutMode: 'classic',
 } satisfies SettingsChromeSnapshot);
 
 export function settingsChromeSnapshotsEqual(
@@ -96,7 +100,8 @@ export function settingsChromeSnapshotsEqual(
     && a.restoreTerminalCwd === b.restoreTerminalCwd
     && a.terminalSidePanelAutoOpen === b.terminalSidePanelAutoOpen
     && a.terminalSidePanelAutoOpenTab === b.terminalSidePanelAutoOpenTab
-    && a.closeBehavior === b.closeBehavior;
+    && a.closeBehavior === b.closeBehavior
+  && a.layoutMode === b.layoutMode;
 }
 
 class SettingsChromeStore {
@@ -181,6 +186,7 @@ export function useSettingsChromeStore(): SettingsChromeSnapshot {
 const noopSetTheme: SettingsChromeActions['setTheme'] = () => {};
 const noopSetWindowOpacity: SettingsChromeActions['setWindowOpacity'] = () => {};
 const noopSetCloseBehavior: SettingsChromeActions['setCloseBehavior'] = () => {};
+const noopSetLayoutMode: SettingsChromeActions['setLayoutMode'] = () => {};
 
 /** Chrome setters, safe to call before `useSettingsState` has registered. */
 export function useSettingsChromeActions(): SettingsChromeActions {
@@ -193,5 +199,6 @@ export function useSettingsChromeActions(): SettingsChromeActions {
     setTheme: actions?.setTheme ?? noopSetTheme,
     setWindowOpacity: actions?.setWindowOpacity ?? noopSetWindowOpacity,
     setCloseBehavior: actions?.setCloseBehavior ?? noopSetCloseBehavior,
+    setLayoutMode: actions?.setLayoutMode ?? noopSetLayoutMode,
   };
 }

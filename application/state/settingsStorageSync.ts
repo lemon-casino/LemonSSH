@@ -52,6 +52,7 @@ import {
   STORAGE_KEY_WORKSPACE_FOCUS_STYLE,
   STORAGE_KEY_WINDOW_OPACITY,
   STORAGE_KEY_CLOSE_BEHAVIOR,
+  STORAGE_KEY_LAYOUT_MODE,
 } from '../../infrastructure/config/storageKeys';
 import { resolveAppearanceStorageEvent } from './appearanceSync';
 import {
@@ -112,6 +113,7 @@ interface UseSettingsStorageSyncParams {
   autoUpdateEnabled: boolean;
   windowOpacity: number;
   closeBehavior: "minimize" | "quit" | null;
+  layoutMode: string;
   setTheme: Dispatch<SetStateAction<'dark' | 'light' | 'system'>>;
   setLightUiThemeId: Dispatch<SetStateAction<string>>;
   setDarkUiThemeId: Dispatch<SetStateAction<string>>;
@@ -160,6 +162,7 @@ interface UseSettingsStorageSyncParams {
   setGlobalHotkeyEnabled: Dispatch<SetStateAction<boolean>>;
   setWindowOpacity: (raw: unknown) => void;
   setCloseBehavior: (raw: unknown) => void;
+  setLayoutMode: (raw: unknown) => void;
   setAutoUpdateEnabled: Dispatch<SetStateAction<boolean>>;
   setWorkspaceFocusStyleState: Dispatch<SetStateAction<'dim' | 'border'>>;
   setSftpTransferConcurrencyState: Dispatch<SetStateAction<number>>;
@@ -551,6 +554,7 @@ export function useSettingsStorageSync({
     setHostClickBehaviorState,
     setWindowOpacity,
     setCloseBehavior,
+  setLayoutMode,
     setHotkeyScheme,
     setLightUiThemeId,
     setSessionLogsDir,

@@ -889,6 +889,12 @@ export const SETTINGS_SEARCH_CATALOG: readonly SettingsSearchEntry[] = [
     sectionKey: "settings.habits.title",
     keywords: ["close", "quit", "tray", "关闭", "习惯"],
   },
+  {
+    id: "habits-layout",
+    tab: "habits",
+    labelKey: "settings.habits.layout",
+    descriptionKey: "settings.habits.layout.desc",
+  },
 
   // Plugins
   {

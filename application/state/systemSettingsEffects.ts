@@ -3,6 +3,7 @@ import {
   STORAGE_KEY_AUTO_UPDATE_ENABLED,
   STORAGE_KEY_CLOSE_TO_TRAY,
   STORAGE_KEY_CLOSE_BEHAVIOR,
+  STORAGE_KEY_LAYOUT_MODE,
   STORAGE_KEY_GLOBAL_HOTKEY_ENABLED,
   STORAGE_KEY_TOGGLE_WINDOW_HOTKEY,
   STORAGE_KEY_WINDOW_OPACITY,
@@ -15,6 +16,7 @@ import {
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import {
+import type { LayoutMode } from '../../domain/layoutMode';
   parseWindowOpacityRecord,
   serializeWindowOpacityRecord,
   shouldApplyWindowOpacityRecord,
@@ -29,6 +31,7 @@ interface UseSystemSettingsEffectsParams {
   globalHotkeyEnabled: boolean;
   closeToTray: boolean;
   closeBehavior: "minimize" | "quit" | null;
+  layoutMode: LayoutMode;
   windowOpacityRecord: WindowOpacityRecord;
   windowOpacityMutationSourceRef: MutableRefObject<WindowOpacityMutationSource>;
   autoUpdateEnabled: boolean;
@@ -134,13 +137,15 @@ export function useSystemSettingsEffects({
     } else {
       localStorageAdapter.remove(STORAGE_KEY_CLOSE_BEHAVIOR);
     }
+    localStorageAdapter.writeString(STORAGE_KEY_LAYOUT_MODE, layoutMode);
     // Skip IPC on initial mount
     if (!persistMountedRef.current) return;
     notifySettingsChanged(STORAGE_KEY_CLOSE_TO_TRAY, closeToTray);
     if (closeBehavior === 'minimize' || closeBehavior === 'quit') {
       notifySettingsChanged(STORAGE_KEY_CLOSE_BEHAVIOR, closeBehavior);
     }
-  }, [enabled, closeToTray, closeBehavior, notifySettingsChanged, persistMountedRef]);
+    notifySettingsChanged(STORAGE_KEY_LAYOUT_MODE, layoutMode);
+  }, [enabled, closeToTray, closeBehavior, layoutMode, notifySettingsChanged, persistMountedRef]);
 
   // Persist and apply app-level HTTP(S) network proxy (cloud sync / AI)
   useEffect(() => {

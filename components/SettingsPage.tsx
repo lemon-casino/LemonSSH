@@ -691,6 +691,8 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
                             <LazySettingsHabitsTab
                                 closeBehavior={settings.closeBehavior}
                                 setCloseBehavior={settings.setCloseBehavior}
+                                layoutMode={settings.layoutMode}
+                                setLayoutMode={settings.setLayoutMode}
                             />
                         </SettingsLazyTab>
                     )}

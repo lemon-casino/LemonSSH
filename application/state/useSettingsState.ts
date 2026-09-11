@@ -68,6 +68,7 @@ import {
   STORAGE_KEY_TOGGLE_WINDOW_HOTKEY,
   STORAGE_KEY_CLOSE_TO_TRAY,
   STORAGE_KEY_CLOSE_BEHAVIOR,
+  STORAGE_KEY_LAYOUT_MODE,
   STORAGE_KEY_HTTP_NETWORK_PROXY,
   STORAGE_KEY_GLOBAL_HOTKEY_ENABLED,
   STORAGE_KEY_WINDOW_OPACITY,
@@ -546,6 +547,16 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setCloseBehaviorState(behavior);
     if (behavior === "quit") setCloseToTray(false);
     if (behavior === "minimize") setCloseToTray(true);
+  }, []);
+  const [layoutMode, setLayoutModeState] = useState<LayoutMode>(() => {
+    const stored = readStoredString(STORAGE_KEY_LAYOUT_MODE);
+    return parseLayoutMode(stored) ?? DEFAULT_LAYOUT_MODE;
+  });
+  const setLayoutMode = useCallback((mode: LayoutMode) => {
+    setLayoutModeState(mode);
+  }, []);
+  const applyIncomingLayoutMode = useCallback((raw: unknown) => {
+    setLayoutModeState(parseLayoutMode(raw) ?? DEFAULT_LAYOUT_MODE);
   }, []);
   const applyIncomingCloseBehavior = useCallback((raw: unknown) => {
     setCloseBehaviorState(raw === "minimize" || raw === "quit" ? raw : null);
@@ -1182,6 +1193,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setGlobalHotkeyEnabled,
     setWindowOpacity: applyIncomingWindowOpacity,
     setCloseBehavior: applyIncomingCloseBehavior,
+    setLayoutMode: applyIncomingLayoutMode,
     setAutoUpdateEnabled,
     setHttpNetworkProxy,
     setSftpAutoOpenSidebar,
@@ -1256,7 +1268,8 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setSftpUseCompressedUpload, setSftpSkipUnchanged, setSftpAutoOpenSidebar, setSftpFollowTerminalCwd, setSftpDefaultViewMode,
     setShowRecentHostsState, setHostClickBehaviorState, setShowOnlyUngroupedHostsInRootState, setShowSftpTabState, setShowHostTreeSidebarState, setTerminalSidePanelAutoOpenState, setTerminalSidePanelAutoOpenTabState, setShellOnlyTabNumberShortcutsState, setShowTabNumberBadgesState, setDisableTerminalFontZoomState, setRestorePreviousSessionState, setRestoreTerminalCwdState, setStartupLandingState,
     setEditorWordWrapState, setSessionLogsEnabled, setSessionLogsDir, setSessionLogsFormat, setSessionLogsTimestampsEnabled, setSshDebugLogsEnabled, setSshDeepLinkEnabledState: applyIncomingSshDeepLinkEnabled, setJmsDeepLinkEnabledState: applyIncomingJmsDeepLinkEnabled, setExplorerContextMenuEnabledState: applyIncomingExplorerContextMenuEnabled,
-    setGlobalHotkeyEnabled, setWindowOpacity: applyIncomingWindowOpacity, setCloseBehavior: applyIncomingCloseBehavior, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
+    setGlobalHotkeyEnabled, setWindowOpacity: applyIncomingWindowOpacity, setCloseBehavior: applyIncomingCloseBehavior,
+    setLayoutMode: applyIncomingLayoutMode, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
     setSftpTransferConcurrencyState, setSshTransportIdleTtlMsState,
     applyIncomingCustomKeyBindings, mergeIncomingTerminalSettings,
   });
@@ -1865,6 +1878,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
       terminalSidePanelAutoOpen,
       terminalSidePanelAutoOpenTab,
       closeBehavior,
+      layoutMode,
     });
   }, [
     darkUiThemeId,
@@ -1887,14 +1901,15 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     uiLanguage,
     windowOpacity,
     closeBehavior,
+    layoutMode,
   ]);
 
   useLayoutEffect(() => {
-    registerSettingsChromeActions({ setTheme, setWindowOpacity, setCloseBehavior });
+    registerSettingsChromeActions({ setTheme, setWindowOpacity, setCloseBehavior, setLayoutMode: applyIncomingLayoutMode });
     return () => {
       registerSettingsChromeActions(null);
     };
-  }, [setTheme, setWindowOpacity, setCloseBehavior]);
+  }, [setTheme, setWindowOpacity, setCloseBehavior, applyIncomingLayoutMode]);
 
   // TerminalHost / terminal domain bags subscribe here instead of receiving
   // settings through the App mega-subscriber.
@@ -2103,6 +2118,8 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     setCloseToTray,
     closeBehavior,
     setCloseBehavior,
+    layoutMode,
+    setLayoutMode,
     httpNetworkProxy,
     setHttpNetworkProxy,
     autoUpdateEnabled,
