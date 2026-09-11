@@ -76,13 +76,16 @@ test("PR validation runs once per commit and includes a production build", () =>
   assert.match(testWorkflow, /sudo apt-get install -y fish xvfb libgtk-3-dev libwebkit2gtk-4\.1-dev libgtk-4-dev libwebkitgtk-6\.0-dev/);
   assert.match(
     testWorkflow,
-    /- name: Test terminal keyword highlight performance\s*\n\s*env:\s*\n\s*NETCATTY_TERMINAL_PERF_SHOW_WINDOW: "1"\s*\n\s*# GitHub-hosted runners do not configure Electron's SUID sandbox helper\.\s*\n\s*run: xvfb-run -a \.\/node_modules\/\.bin\/electron --no-sandbox scripts\/xterm-keyword-highlight-performance\.live\.test\.cjs/,
+    /- name: Test Go owners\s*\n\s*run: go test \.\/internal\/\.\.\. \.\/cmd\/\.\.\./,
   );
   assert.match(
     buildWorkflow,
     /- name: Test macOS Option column selection\s*\n\s*if: matrix\.name == 'macos'\s*\n\s*run: npm run test:xterm-macos-selection/,
   );
-  assert.match(testWorkflow, /- name: Build\s*\n\s*run: npm run build/);
+  assert.match(testWorkflow, /- name: Build Wails frontend\s*\n\s*run: npm run build/);
+  assert.match(testWorkflow, /node scripts\/wails-prepare-frontend\.mjs/);
+  assert.doesNotMatch(testWorkflow, /check:migration-electron-baseline/);
+  assert.doesNotMatch(testWorkflow, /xterm-keyword-highlight-performance\.live\.test\.cjs/);
   assert.match(
     testWorkflow,
     /- name: Verify Wails migration documentation\s*\n\s*run: npm run check:migration-docs/,

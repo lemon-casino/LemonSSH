@@ -39,7 +39,8 @@ test("wails adapter routes migrated ports and rejects un-migrated fail-closed", 
 test("wails transition bridge leaves unmigrated methods undefined for optional chaining", () => {
   const client = createWailsRuntimeClient();
   const bridge = client.transitionBridge as unknown as Record<string, unknown>;
-  assert.equal(bridge.startMoshSession, undefined);
+  assert.equal(typeof bridge.startMoshSession, "function");
+  assert.equal(typeof bridge.startEtSession, "function");
   assert.equal(bridge.setLanguage, undefined);
   assert.doesNotThrow(() => (bridge.setLanguage as undefined)?.("en"));
 });

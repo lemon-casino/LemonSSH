@@ -296,11 +296,17 @@ export interface MaterializeDropOptions {
 }
 
 export const getDropEntryLocalPath = (entry: DropEntry): string | undefined => {
-  // File handles re-query getPathForFile. Under Wails that is always undefined
-  // so WebView2 File.path cannot leak into the upload. Path-only drops keep
-  // file: null and still use localPath (clipboard / native tree).
-  if (entry.file) return getPathForFile(entry.file);
-  return entry.localPath;
+  // File handles re-query getPathForFile first. Under Wails that is always
+  // undefined so WebView2 File.path cannot leak into the upload. A reconstructed
+  // DropEntry.localPath from the native bridge is trusted unless it is the same
+  // string as File.path (the leak the SFTP drop path exists to block).
+  // Path-only drops keep file: null and still use localPath.
+  if (!entry.file) return entry.localPath;
+  const fromBridge = getPathForFile(entry.file);
+  if (fromBridge) return fromBridge;
+  const leakedPath = (entry.file as File & { path?: string }).path;
+  if (entry.localPath && entry.localPath !== leakedPath) return entry.localPath;
+  return undefined;
 };
 
 const createDropEntriesFromFiles = (files: FileList | File[]): DropEntry[] => {

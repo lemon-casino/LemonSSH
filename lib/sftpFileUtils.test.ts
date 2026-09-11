@@ -131,6 +131,19 @@ test("getPathForFile treats a declining bridge verdict as final even when File.p
   );
 });
 
+test("getDropEntryLocalPath uses a reconstructed native path when File.path is absent", () => {
+  const file = new File(["x"], "child.txt");
+  assert.equal(
+    getDropEntryLocalPath({
+      file,
+      localPath: "/home/user/folder/child.txt",
+      relativePath: "folder/child.txt",
+      isDirectory: false,
+    }),
+    "/home/user/folder/child.txt",
+  );
+});
+
 test("getPathForFile ignores File.path under Wails even when the bridge is missing", (t) => {
   const previousWindow = globalThis.window;
   const nextWindow = { _wails: {} } as Window & typeof globalThis;

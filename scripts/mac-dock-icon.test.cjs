@@ -152,7 +152,7 @@ test("main process leaves macOS Dock icon to the packaged app bundle", () => {
   );
 });
 
-test("macOS packages a native ICNS and sizes runtime Dock icons separately", () => {
+test("macOS packages a native ICNS and sizes runtime Dock icons separately", { skip: "Electron packaging is frozen; Wails is the product shell" }, () => {
   const projectRoot = path.join(__dirname, "..");
   const config = require("../electron-builder.config.cjs");
   assert.equal(config.mac?.icon ?? config.icon, "build/icon.icns");
