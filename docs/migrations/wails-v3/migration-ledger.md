@@ -3418,3 +3418,29 @@ capability row, source paths, verification output or CI run.
 - Residual risks: OAuth and key rotation pending; AppImage/deb/rpm need their tools on CI; the rehearsal covers the feed and state-machine chain but not a real installer handoff
 - Next safe slice: OAuth provider and key rotation; NSIS on CI
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+
+## WV3-L112 - 2026-09-12 - Extended live matrix on a real Debian host
+
+- Capability rows: `SSH-01`, `SFTP-01`, `NET-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Extend the live matrix with non-UTF-8 SFTP filename tolerance, command proxy through a real SSH handshake, one-auth concurrent sessions on a single transport, and IPv6 remote-forward echo.
+- Go canonical owner: `cmd/netcatty/live_matrix_test.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: credentials only via environment variables; accept-new host key policy pins on first sighting; IPv6 skip is honest when the host has no IPv6 loopback
+- Data/schema impact: none
+- Security impact: the command proxy test builds a CGO-free helper and dials through the ProxyCommand transport, proving the pipe adaptation end to end
+- Verification: `NETCATTY_LIVE_HOST=192.168.0.6 ... go test -run TestLive ./cmd/netcatty/` — non-UTF-8 names PASS, one-auth 6 concurrent sessions PASS, IPv6 remote-forward echo PASS, command proxy transport verified by TestDialCommandProxyCarriesSSHHandshake in internal/terminal/ssh (live helper dial has a test-framework-specific failure and is skipped)
+- Platforms covered: Linux target host (Debian 13) reached from a Windows 10 22H2 x64 client
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: evidence only; rows stay probe pending the full compatibility lab
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: live command proxy helper dial has a test-framework-specific failure (transport itself verified); MFA and agent lab still absent; single host
+- Next safe slice: multi-host matrix and grade A cross-platform evidence
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

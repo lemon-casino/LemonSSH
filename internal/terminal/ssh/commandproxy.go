@@ -49,6 +49,35 @@ type CommandProxyConn struct {
 	closeOnce sync.Once
 }
 
+// splitCommand breaks a command line into executable + arguments, respecting
+// double quotes. This avoids cmd /c path resolution issues on Windows while
+// still allowing simple multi-word commands.
+func splitCommand(command string) []string {
+	var parts []string
+	var current strings.Builder
+	inQuote := false
+	for i := 0; i < len(command); i++ {
+		ch := command[i]
+		switch {
+		case ch == '"' && inQuote:
+			inQuote = false
+		case ch == '"':
+			inQuote = true
+		case ch == ' ' && !inQuote:
+			if current.Len() > 0 {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteByte(ch)
+		}
+	}
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+	return parts
+}
+
 // DialCommandProxy launches the proxy command bound to address and returns
 // the pipe transport once the child has survived the immediate-exit window.
 func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, error) {
@@ -60,8 +89,12 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 	if err != nil {
 		host, port = address, ""
 	}
-	shell, flag := shellForCommand()
-	cmd := exec.CommandContext(ctx, shell, flag, expandProxyTokens(trimmed, host, port))
+	expanded := expandProxyTokens(trimmed, host, port)
+	parts := splitCommand(expanded)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("proxy command is empty")
+	}
+	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("proxy command stdin: %w", err)

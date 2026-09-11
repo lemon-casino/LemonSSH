@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L111`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
+当前台账头：`WV3-L112`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -46,7 +46,7 @@
 ### 终端协议
 | 项 | 缺口 | 涉及行 | 处理 |
 | --- | --- | --- | --- |
-| SSH MFA / keyboard-interactive | Wails Connect 现把挑战发到现有渲染层弹窗；活体 MFA 服务器仍缺 | SSH-01 | 已处理 |
+| SSH MFA / keyboard-interactive | Wails Connect 现把挑战发到现有渲染层弹窗；command proxy 与 one-auth 并发已活体通过（L112）；活体 MFA 服务器仍缺 | SSH-01 | 已处理 |
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
 | SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
