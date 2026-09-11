@@ -3393,3 +3393,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: NSIS/installer formats, signed feed publication and N-1 to N rehearsal pending
 - Next safe slice: gather grade A evidence per row before any verified record
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L111 - 2026-09-12 - S3 transport, installer scaffolds, N-1 rehearsal, sync port
+
+- Capability rows: `SYNC-02`, `REL-01`, `REL-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Add an S3 sigv4 snapshot transport with server-side signature verification in tests, NSIS/deb/rpm/AppImage installer scaffolds that skip honestly when tools are missing, an N-1 to N rehearsal through the signed feed and upgrade state machine, and route the renderer cloudSync WebDAV/S3 ports to the Go SyncService.
+- Go canonical owner: `internal/platform/cloudsync/s3.go`, `cmd/netcatty/syncService.go`, `cmd/updatefeed/rehearsal_test.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` sync port; `scripts/package-installer.mjs`
+- Electron owner affected: cloudSyncBridge remains the frozen baseline
+- Preserved invariants: signed payloads use the real body hash; stale PUT with If-Match mismatch surfaces as ErrConflict; installers never claim success for skipped tools; the tampered artifact refuses activation
+- Data/schema impact: latest.json follows updater.ReleaseManifest; installers.json records per-format outcomes
+- Security impact: sigv4 signs the real payload hash; the rehearsal proves a tampered download cannot pass the feed gate
+- Verification: `go test ./internal/platform/cloudsync/` (sigv4 signing-key vector, server-side signature recomputation, round-trips, conflict/unauthorized mapping); `go test ./cmd/updatefeed/` (sign-verify roundtrip, N-1 to N rehearsal with the full state machine, tamper refusal); `node --test scripts/package-installer.test.mjs` 7 pass; renderer runtime tests 29 pass
+- Platforms covered: Windows 10 22H2 x64 local tests; installer tool probing is platform-dependent at run time
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement; REL-01 and REL-02 stay probe
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: OAuth and key rotation pending; AppImage/deb/rpm need their tools on CI; the rehearsal covers the feed and state-machine chain but not a real installer handoff
+- Next safe slice: OAuth provider and key rotation; NSIS on CI
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

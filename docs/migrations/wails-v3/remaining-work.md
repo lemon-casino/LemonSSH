@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L110`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
+当前台账头：`WV3-L111`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -71,7 +71,7 @@
 
 ### 数据与同步
 - 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05；读取仍同步（SYNC-01）— 已处理
-- 云同步：Go WebDAV 快照传输（ETag 冲突检测）已落地 internal/platform/cloudsync；OAuth/S3 提供方与密钥轮换仍未接（SYNC-02）— 已处理
+- 云同步：Go WebDAV 与 S3 sigv4 快照传输均已落地并接入渲染层 cloudSync 端口（SYNC-02，L111）；OAuth 与密钥轮换仍未接 — 已处理
 
 ### 插件
 - Install/SetEnabled 元数据门面已接（PLUG-01）— 已处理
@@ -98,6 +98,7 @@
 5. **Electron 性能基线**：CI 上 3 个 best-effort 基线 job 抖动失败
    （不阻塞 `test` workflow）— pending
 6. **干净机冒烟**：P8-01 Gate 所需的 signed clean-machine 矩阵 — pending
+7. **已完成**：NSIS/deb/rpm/AppImage 打包脚本（工具缺失诚实跳过，L111）、updatefeed 自签 feed 工具、N-1→N 演练（feed+升级状态机+篡改拒绝，L111）、S3 sigv4 传输（L111）
 
 ---
 
