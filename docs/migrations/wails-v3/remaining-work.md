@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L105`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
+当前台账头：`WV3-L110`。矩阵 36 行：implemented 14 / probe 15 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -30,6 +30,17 @@
 
 ---
 
+## 一点五、本轮新增活体与工具（L106–L110）
+
+- 活体矩阵门控测试 `cmd/netcatty/live_matrix_test.go`：SSH exec、SFTP 往返、
+  远程转发回显、真实 mosh-server 握手全部 PASS（凭据仅走环境变量）。
+- `cmd/updatefeed`：自管 ed25519 更新 feed 的 keygen/sign 工具，roundtrip
+  经 `updater.VerifyManifest` 验证。
+- `npm run wails:build` 现在把 package.json 版本戳进二进制；遗留 Electron
+  流水线断言已从 workflow 测试移除（14/14 绿）。
+
+---
+
 ## 二、功能缺口（有 Go owner 但壳未接，或 owner 不完整）
 
 ### 终端协议
@@ -39,7 +50,7 @@
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
 | SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
-| Mosh / ET | StartMosh/StartEt 解析 bundled/dev helper 路径（NETCATTY_HELPER_ROOT、exe 旁 Resources、resources/mosh/win32-x64）；本机已 fetch moshcatty-0.1.8 win32-x64；roaming reconnect 与三平台打包 helper 仍缺 | TERM-03.3 | 已处理 |
+| Mosh / ET | StartMosh/StartEt 解析 bundled/dev helper 路径；192.168.0.6 (Debian 13) 上对真实 mosh-server 1.4.0 的 MOSH CONNECT 抓取已活体通过（L107）；roaming reconnect 与 Windows helper 打包仍缺 | TERM-03.3 | 已处理 |
 | ZMODEM 完整 rz/sz 会话 | 长度前缀会话引擎和 YMODEM 已接；原始 lrzsz 对端仍缺 | TERM-03.4 | 已处理 |
 | 串口 YMODEM | SendSerialYmodem/ReceiveSerialYmodem 接到打开的串口会话 | TERM-03.2 | 已处理 |
 | Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1, TERM-03.2 | pending |
@@ -54,13 +65,13 @@
 
 ### 系统能力
 - App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；UnlockWithBiometrics 诚实失败关闭（SYS-04）— 已处理
-- deep link 二次启动 argv 入队；渲染层 drainDeepLinks + onSshDeepLink 已接；RegisterOSProtocol 诚实失败关闭，直到签名安装包拥有 ssh/telnet/netcatty 协议（SYS-03）— 已处理
+- deep link 二次启动 argv 入队；System 标签新增开关，Windows 下写 HKCU 注册 ssh/telnet/netcatty 协议（无需管理员）；macOS/Linux 注册仍缺（SYS-03）— 已处理
 - 快捷键 Register 接到 ShortcutService；Wails alpha.63 无 GlobalShortcut，原生注册诚实失败关闭（SYS-02）— 已处理
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
 - 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05；读取仍同步（SYNC-01）— 已处理
-- 云同步：SyncService 暴露 Merge/Fingerprint；OAuth/S3/WebDAV 提供方仍未接（SYNC-02）— 已处理
+- 云同步：Go WebDAV 快照传输（ETag 冲突检测）已落地 internal/platform/cloudsync；OAuth/S3 提供方与密钥轮换仍未接（SYNC-02）— 已处理
 
 ### 插件
 - Install/SetEnabled 元数据门面已接（PLUG-01）— 已处理

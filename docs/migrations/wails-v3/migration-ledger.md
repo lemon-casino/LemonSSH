@@ -3268,3 +3268,128 @@ capability row, source paths, verification output or CI run.
 - Residual risks: no signed msi/pkg/AppImage, no OAuth/S3/WebDAV, no Wails GlobalShortcut
 - Next safe slice: gather grade A live evidence; do not record verified
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L106 - 2026-09-12 - Live SSH SFTP forward evidence on a real host
+
+- Capability rows: `SSH-01`, `SFTP-01`, `NET-01`
+- Plan task: `P3-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Capture C-grade live evidence for password-authenticated SSH, the SFTP subsystem and a remote-forward echo tunnel against one real Debian 13 host (192.168.0.6).
+- Go canonical owner: `cmd/netcatty/live_matrix_test.go` (env-gated live matrix)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: accept-new host key policy pinned into a temp known_hosts; credentials arrive only through environment variables and are never committed
+- Data/schema impact: none
+- Security impact: the live test exercises the strict host-key policy end to end on a first sighting
+- Verification: NETCATTY_LIVE_HOST plus NETCATTY_LIVE_USER/PASSWORD environment gate on `go test -run TestLive ./cmd/netcatty/` — exec echo, SFTP readdir plus write/read/cleanup roundtrip, and remote-forward echo all pass in about 1.2s
+- Platforms covered: Linux target host (Debian 13) reached from a Windows 10 22H2 x64 client
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: evidence only; rows stay probe pending the full compatibility lab
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: single host, single auth method; no MFA, agent, socks5 lab or multi-host matrix
+- Next safe slice: command proxy wiring and SYS-03 registration
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L107 - 2026-09-12 - Live mosh handshake on a real mosh-server
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-08`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: Verify the MOSH CONNECT scrape against a real mosh-server 1.4.0 installed on the live Debian 13 host.
+- Go canonical owner: `internal/terminal/mosh`, `cmd/netcatty/live_matrix_test.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: the CONNECT line is stripped from the user-visible stream; a trailing partial marker is retained across reads
+- Data/schema impact: none
+- Security impact: MOSH_KEY stays in the process environment, never in argv
+- Verification: mosh installed via apt on the host, then the same live matrix command passes TestLiveMoshHandshakeParses in 0.17s
+- Platforms covered: Linux target host (Debian 13) reached from a Windows client
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-006`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: evidence only; roaming reconnect and the UDP session ride remain pending
+- Documentation updated: capability matrix, ledger
+- Residual risks: the UDP mosh-client session itself and Windows helper packaging are still unexercised
+- Next safe slice: SYS-03 registration and SYNC-02 WebDAV transport entries
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L108 - 2026-09-12 - SYS-03 registration and SYNC-02 WebDAV transport
+
+- Capability rows: `SYS-03`, `SYNC-02`
+- Plan task: `P4-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Land Windows user-level registration of the ssh/telnet/netcatty schemes behind a System-tab toggle, and a Go WebDAV snapshot transport with ETag conflict detection.
+- Go canonical owner: `internal/platform/deeplink/protocolreg.go`, `internal/platform/cloudsync/webdav.go`, `cmd/netcatty/deepLinkService.go`
+- Frontend adapter: System-tab toggle plus useOSProtocolRegistration; bindings regenerated
+- Electron owner affected: none
+- Preserved invariants: HKCU writes need no elevation; non-Windows stores fail closed; a stale PUT surfaces as ErrConflict instead of clobbering the remote
+- Data/schema impact: none
+- Security impact: scheme takeover is scoped to the current user and reads back as drifted when another tool owns a scheme
+- Verification: `go test ./internal/platform/deeplink/ ./internal/platform/cloudsync/` including drift, disable-tree, conflict and unauthorized cases; bindings regenerated
+- Platforms covered: Windows 10 22H2 x64 local tests; registry writes are real (HKCU)
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement
+- Documentation updated: capability matrix, ledger, remaining-work
+- Residual risks: macOS/Linux registration, OAuth/S3 providers, key rotation and three-platform delivery pending
+- Next safe slice: PLUG-01/02 hardening and update feed entries
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L109 - 2026-09-12 - Plugin install hardening and WASM memory cap
+
+- Capability rows: `PLUG-01`, `PLUG-02`
+- Plan task: `P5-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Validate manifest v2 on Install, add staged two-phase install with crash recovery, and enforce entrypoint.memoryMB as a per-module wazero memory cap.
+- Go canonical owner: `internal/plugin/store`, `internal/plugin/wasm`, `cmd/netcatty/pluginService.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: invalid v2 manifests never enter the store; staged records never run; capped modules get their own wazero runtime because wazero applies WithMemoryLimitPages per runtime
+- Data/schema impact: store gains a staged state; no user profile change
+- Security impact: a plugin cannot grow past the memoryMB it declared at install time
+- Verification: `go test ./internal/plugin/... ./cmd/netcatty/` pass including staged commit and recovery
+- Platforms covered: Windows 10 22H2 x64 local tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-005`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement
+- Documentation updated: capability matrix, ledger
+- Residual risks: on-disk atomic publish and codegen drift checks still pending
+- Next safe slice: update feed tool and portable packaging
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L110 - 2026-09-12 - Update feed tool and build housekeeping
+
+- Capability rows: `REL-01`, `REL-02`
+- Plan task: `P6-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Add the self-managed ed25519 update-feed producer (keygen plus sign writing latest.json) and stamp the release version into the Windows build; prune legacy Electron workflow assertions.
+- Go canonical owner: `cmd/updatefeed`
+- Frontend adapter: `scripts/wails-build.mjs` stamps the package.json version through main.version
+- Electron owner affected: none
+- Preserved invariants: signed stays false until the operator self-signs a feed; npm test no longer asserts retired Electron/Codex/Nix/ET pipeline internals
+- Data/schema impact: latest.json follows updater.ReleaseManifest JSON
+- Security impact: private keys stay offline; the feed is the only signed artifact and the operator generates it
+- Verification: `go test ./cmd/updatefeed/` keygen-sign-verify roundtrip through updater.VerifyManifest plus tamper rejection; `node --test scripts/github-workflow-ci.test.cjs` 14 pass; wails:build stamps version 0.0.1
+- Platforms covered: Windows 10 22H2 x64 local tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: none: no status advancement; REL-01 and REL-02 stay probe
+- Documentation updated: ledger, remaining-work
+- Residual risks: NSIS/installer formats, signed feed publication and N-1 to N rehearsal pending
+- Next safe slice: gather grade A evidence per row before any verified record
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

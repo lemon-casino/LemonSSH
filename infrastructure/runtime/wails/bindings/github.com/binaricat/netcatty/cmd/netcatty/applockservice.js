@@ -62,5 +62,15 @@ export function Unlock(password) {
     return $Call.ByID(3034665761, password);
 }
 
+/**
+ * @returns {$CancellablePromise<$models.BiometricUnlockResult>}
+ */
+export function UnlockWithBiometrics() {
+    return $Call.ByID(1610545362).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = $models.AppLockRuntimeState.createFrom;
+const $$createType1 = $models.BiometricUnlockResult.createFrom;
