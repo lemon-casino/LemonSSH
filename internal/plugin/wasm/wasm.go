@@ -23,12 +23,28 @@ var (
 type Config struct {
 	PluginID  string
 	WASMBytes []byte
+	// MemoryLimitPages caps linear memory in 64 KiB pages; 0 uses the module's
+	// own declaration. Comes from manifest entrypoint.memoryMB (P5-03). A
+	// capped module gets its own wazero runtime because wazero applies the
+	// limit per runtime, not per module.
+	MemoryLimitPages uint32
 }
 
-// Module wraps one instantiated WASM module.
+// MemoryPagesFromMB converts the manifest's memoryMB into 64 KiB pages.
+func MemoryPagesFromMB(memoryMB int) uint32 {
+	if memoryMB <= 0 {
+		return 0
+	}
+	const pagesPerMB = 1024 * 1024 / 65536 // 16 pages per MiB
+	return uint32(memoryMB) * pagesPerMB
+}
+
+// Module wraps one instantiated WASM module and the runtime that owns it
+// (capped modules live in their own runtime).
 type Module struct {
 	pluginID string
 	closer   api.Closer
+	inner    wazero.Runtime
 }
 
 // Close tears down the module.
@@ -38,8 +54,8 @@ func (m *Module) Close(ctx context.Context) error { return m.closer.Close(ctx) }
 type Runtime struct {
 	mu      sync.Mutex
 	closed  bool
-	inner   wazero.Runtime
-	modules map[string]api.Closer
+	shared  wazero.Runtime
+	modules map[string]*Module
 }
 
 // NewRuntime creates a WASM runtime with WASI disabled and
@@ -47,41 +63,59 @@ type Runtime struct {
 func NewRuntime(ctx context.Context) (*Runtime, error) {
 	config := wazero.NewRuntimeConfig().WithCloseOnContextDone(true)
 	inner := wazero.NewRuntimeWithConfig(ctx, config)
-	return &Runtime{inner: inner, modules: make(map[string]api.Closer)}, nil
+	return &Runtime{shared: inner, modules: make(map[string]*Module)}, nil
 }
 
-// Instantiate compiles and instantiates a WASM module.
-func (r *Runtime) Instantiate(ctx context.Context, pluginID string, wasmBytes []byte) error {
+// InstantiateWithConfig compiles and instantiates a WASM module, applying the
+// memory cap in its own runtime when configured.
+func (r *Runtime) InstantiateWithConfig(ctx context.Context, config Config) error {
 	r.mu.Lock()
 	if r.closed {
 		r.mu.Unlock()
 		return ErrRuntimeClosed
 	}
-	if _, exists := r.modules[pluginID]; exists {
+	if _, exists := r.modules[config.PluginID]; exists {
 		r.mu.Unlock()
 		return ErrAlreadyInstant
 	}
 	r.mu.Unlock()
 
-	compiled, err := r.inner.CompileModule(ctx, wasmBytes)
-	if err != nil {
-		return fmt.Errorf("compile %s: %w", pluginID, err)
+	inner := r.shared
+	if config.MemoryLimitPages > 0 {
+		capped := wazero.NewRuntimeConfig().
+			WithCloseOnContextDone(true).
+			WithMemoryLimitPages(config.MemoryLimitPages)
+		inner = wazero.NewRuntimeWithConfig(ctx, capped)
 	}
-	moduleConfig := wazero.NewModuleConfig().WithStartFunctions("_start")
-	closer, err := r.inner.InstantiateModule(ctx, compiled, moduleConfig)
+	compiled, err := inner.CompileModule(ctx, config.WASMBytes)
 	if err != nil {
-		return fmt.Errorf("instantiate %s: %w", pluginID, err)
+		if inner != r.shared {
+			_ = inner.Close(ctx)
+		}
+		return fmt.Errorf("compile %s: %w", config.PluginID, err)
+	}
+	closer, err := inner.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithStartFunctions("_start"))
+	if err != nil {
+		if inner != r.shared {
+			_ = inner.Close(ctx)
+		}
+		return fmt.Errorf("instantiate %s: %w", config.PluginID, err)
 	}
 	r.mu.Lock()
-	r.modules[pluginID] = closer
+	r.modules[config.PluginID] = &Module{pluginID: config.PluginID, closer: closer, inner: inner}
 	r.mu.Unlock()
 	return nil
+}
+
+// Instantiate compiles and instantiates a WASM module.
+func (r *Runtime) Instantiate(ctx context.Context, pluginID string, wasmBytes []byte) error {
+	return r.InstantiateWithConfig(ctx, Config{PluginID: pluginID, WASMBytes: wasmBytes})
 }
 
 // CloseModule tears down one module instance.
 func (r *Runtime) CloseModule(pluginID string) error {
 	r.mu.Lock()
-	closer, ok := r.modules[pluginID]
+	module, ok := r.modules[pluginID]
 	if ok {
 		delete(r.modules, pluginID)
 	}
@@ -89,7 +123,13 @@ func (r *Runtime) CloseModule(pluginID string) error {
 	if !ok {
 		return ErrModuleNotFound
 	}
-	return closer.Close(context.Background())
+	if err := module.closer.Close(context.Background()); err != nil {
+		return err
+	}
+	if module.inner != r.shared {
+		return module.inner.Close(context.Background())
+	}
+	return nil
 }
 
 // Close tears down the runtime and all modules.
@@ -97,10 +137,22 @@ func (r *Runtime) Close(ctx context.Context) error {
 	r.mu.Lock()
 	r.closed = true
 	modules := r.modules
-	r.modules = make(map[string]api.Closer)
+	r.modules = make(map[string]*Module)
 	r.mu.Unlock()
-	for _, closer := range modules {
-		_ = closer.Close(ctx)
+	var firstErr error
+	closed := map[wazero.Runtime]bool{r.shared: true}
+	for _, module := range modules {
+		if err := module.closer.Close(ctx); err != nil && firstErr == nil {
+			firstErr = err
+		}
+		if !closed[module.inner] {
+			closed[module.inner] = true
+		}
 	}
-	return r.inner.Close(context.Background())
+	for inner := range closed {
+		if err := inner.Close(context.Background()); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
