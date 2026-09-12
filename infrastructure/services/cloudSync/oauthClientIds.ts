@@ -21,7 +21,11 @@ export type OAuthClientIds = Partial<Record<OAuthProvider, string>>;
 
 const STORAGE_KEY = STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS;
 
-let snapshot: OAuthClientIds | null = null;
+// useSyncExternalStore compares getSnapshot results by reference; return the
+// cached object and only replace it when the state actually changes, or React
+// loops into "maximum update depth exceeded" (error #185).
+let snapshot: OAuthClientIds = {};
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function readStorage(): OAuthClientIds {
@@ -41,7 +45,10 @@ function readStorage(): OAuthClientIds {
 }
 
 function current(): OAuthClientIds {
-  if (snapshot === null) snapshot = readStorage();
+  if (!loaded) {
+    snapshot = readStorage();
+    loaded = true;
+  }
   return snapshot;
 }
 
@@ -59,6 +66,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener(LOCAL_STORAGE_ADAPTER_CHANGED_EVENT, ((event: CustomEvent<{ key: string }>) => {
     if (event.detail?.key !== STORAGE_KEY) return;
     snapshot = readStorage();
+    loaded = true;
     emitChange();
   }) as EventListener);
 }
@@ -67,12 +75,18 @@ export function getOAuthClientIds(): OAuthClientIds {
   return { ...current() };
 }
 
+/** Stable snapshot for useSyncExternalStore; same reference until a write. */
+export function getOAuthClientIdsSnapshot(): OAuthClientIds {
+  return current();
+}
+
 export function setOAuthClientId(provider: OAuthProvider, clientId: string): void {
   const trimmed = clientId.trim();
   const next = { ...current() };
   if (trimmed) next[provider] = trimmed;
   else delete next[provider];
   snapshot = next;
+  loaded = true;
   hostStorageAdapter.writeString(STORAGE_KEY, JSON.stringify(next));
   emitChange();
 }

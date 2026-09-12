@@ -5,6 +5,7 @@ import { useI18n } from '../../application/i18n/I18nProvider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useOAuthClientIds } from '../../application/state/useOAuthClientIds';
+import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oauthClientIds';
 
 /**
  * Settings section for the per-provider OAuth client IDs. The IDs are public

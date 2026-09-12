@@ -58,3 +58,17 @@ test("store changes notify subscribers and keep the snapshot immutable", () => {
   setOAuthClientId("onedrive", "");
   assert.equal(notified, 1, "unsubscribed listeners are not called");
 });
+
+test("snapshot reference is stable for useSyncExternalStore (React #185 guard)", async () => {
+  const { getOAuthClientIdsSnapshot } = await import("./oauthClientIds");
+  // Same reference across consecutive reads, across a notifying write, and
+  // after a no-op write — an unstable snapshot loops React into error #185.
+  const first = getOAuthClientIdsSnapshot();
+  assert.equal(getOAuthClientIdsSnapshot(), first);
+  setOAuthClientId("onedrive", "stable-snapshot-check");
+  const second = getOAuthClientIdsSnapshot();
+  assert.notEqual(second, first, "a real write must replace the snapshot");
+  assert.equal(getOAuthClientIdsSnapshot(), second);
+  setOAuthClientId("onedrive", "");
+  assert.equal(getOAuthClientIdsSnapshot(), getOAuthClientIdsSnapshot());
+});

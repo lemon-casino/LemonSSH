@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import {
-  getOAuthClientIds,
+  getOAuthClientIdsSnapshot,
   setOAuthClientId,
   subscribeOAuthClientIds,
   type OAuthClientIds,
@@ -13,6 +13,6 @@ export function useOAuthClientIds(): {
   ids: OAuthClientIds;
   setClientId: (provider: OAuthProvider, clientId: string) => void;
 } {
-  const ids = useSyncExternalStore(subscribeOAuthClientIds, getOAuthClientIds);
+  const ids = useSyncExternalStore(subscribeOAuthClientIds, getOAuthClientIdsSnapshot);
   return { ids, setClientId: setOAuthClientId };
 }
