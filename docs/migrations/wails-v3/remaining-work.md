@@ -70,7 +70,7 @@
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色与崩溃矩阵仍缺（FND-04）— 已处理
 
 ### 数据与同步
-- 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05；读取仍同步（SYNC-01）— 已处理
+- 非 AI 持久化写入经 hostStorageAdapter 按域镜像（含 SFTP 书签/传输中心、session restore、port forwarding）；canonical cutover 已落地：boot 时 legacy localStorage 数据 promote 进 Go store、本地缓存从 Go hydrate、镜像分歧向本地 heal 并记账（WV3-L113，SYNC-01 implemented）；AI 相关存储仍直写 localStorage，硬阻塞于 P6-05 — 已处理
 - 云同步：Go WebDAV 与 S3 sigv4 快照传输均已落地并接入渲染层 cloudSync 端口（SYNC-02，L111）；OAuth 与密钥轮换仍未接 — 已处理
 
 ### 插件

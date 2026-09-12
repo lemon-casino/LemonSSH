@@ -34,16 +34,20 @@
 
 ### Batch A — 关键路径（卡 P6-05 的核心）
 
-#### 任务 A1：Vault canonical cutover（SYNC-01）
+#### 任务 A1：Vault canonical cutover（SYNC-01）— 完成（WV3-L113）
 
-- [ ] 非 AI 域（vault/settings/sessions/SFTP 书签/传输中心）读取从同步
+- [x] 非 AI 域（vault/settings/sessions/SFTP 书签/传输中心）读取从同步
   localStorage 切到 Go profile store：异步 hydrate → 内存层同步读 →
   hydrateReady 门槛（Wails boot 已 await hydrateReady，见 SYNC-01 矩阵行）
-- [ ] differential 对比工具：切换期间 localStorage vs Go store 数据一致性校验
-- [ ] AI 相关存储保持 localStorage 直写（硬阻塞于 P6-05，禁止顺手迁移）
-- [ ] 迁移/回退路径：旧 localStorage 数据在首次 hydrate 时的导入与兜底
-- [ ] 测试：hook 级 hydration 状态机 + lossless 数据等价
-- [ ] ledger：SYNC-01 probe 行补接线证据
+- [x] differential 对比工具：切换期间 localStorage vs Go store 数据一致性校验
+  （`canonicalHydration.ts` diffCanonicalSources + 冲突 heal 计数日志）
+- [x] AI 相关存储保持 localStorage 直写（isAIManagedStorageKey 双向排除，
+  硬阻塞于 P6-05，禁止顺手迁移）
+- [x] 迁移/回退路径：旧 localStorage 数据在首次 hydrate 时 promote 进 Go
+  store；hydrate fail-open（store 损坏时本地缓存兜底，不白屏）
+- [x] 测试：canonicalHydration.test.ts（hydrate/promote/heal/skip 状态机 +
+  三阶段 boot 仿真 + lossless 等价）
+- [x] ledger：SYNC-01 probe → implemented（WV3-L113）
 
 ### Batch B — layout-modes P4 交互（有现成计划）
 

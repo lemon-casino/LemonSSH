@@ -3444,3 +3444,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: live command proxy helper dial has a test-framework-specific failure (transport itself verified); MFA and agent lab still absent; single host
 - Next safe slice: multi-host matrix and grade A cross-platform evidence
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L113 - 2026-09-12 - Vault canonical cutover (SYNC-01)
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Non-AI reads cut over to the Go profile store as the durable owner. One boot convergence pass before React mounts promotes legacy localStorage-only values into the Go store (first-run import and rollback path), hydrates the local read cache from Go for fresh profiles, and heals mirror divergences toward the local value so a failed best-effort write never loses data; divergences are counted and logged. The sessions domain joins settings and vault. AI-managed keys are excluded in every branch and stay localStorage-canonical until P6-05.
+- Go canonical owner: cmd/netcatty/profileService.go (unchanged; DomainKeys and GetRaw/SetRaw already expose the store)
+- Frontend adapter: infrastructure/persistence/canonicalHydration.ts, infrastructure/persistence/profileDomain.ts (CANONICAL_PROFILE_DOMAINS plus isAIManagedStorageKey), infrastructure/runtime/bootstrap.ts hydrateWailsProfile, index.tsx hydrateReady catch
+- Electron owner affected: none; Electron keeps configureHostProfileClient(undefined) and plain localStorage semantics
+- Preserved invariants: hydration is fail-open (a broken profile store boots from the local cache instead of a white screen); reads stay synchronous behind hydrateReady; renderer remains the only writer during a session
+- Data/schema impact: none; no storage keys added or removed
+- Security impact: AI keys (netcatty_ai_ prefix and netcatty.aiDebug) never cross the boundary in either direction, verified by test
+- Verification: node --test --import tsx infrastructure/persistence/*.test.ts 18 pass including the new canonicalHydration suite (hydrate/promote/heal/skip branches, lossless byte equality through promotion, AI boundary, three-phase cutover boot simulation); node scripts/migration/check-wails-migration-docs.mjs consistent
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: the localStorage canonical path retires from the settings/vault/sessions domains once live multi-machine restore evidence lands; AI stores stay until P6-05
+- Documentation updated: capability matrix, ledger, pre-acceptance-backlog
+- Residual risks: conflict policy prefers the local value when both sources diverge, which restores a Go-side external restore only after that restore is also mirrored into localStorage; differential counts are console-level until a diagnostics view exists
+- Next safe slice: layout-modes P4 interactions
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -241,6 +241,10 @@ const renderApp = () => {
 
 void hydrateReady.then(() => {
   renderApp();
+}, (error) => {
+  // Hydration must never block boot: render with whatever the local cache has.
+  console.warn('[bootstrap] profile hydration failed; booting from local cache:', error);
+  renderApp();
 });
 
 // Listen for hash changes
