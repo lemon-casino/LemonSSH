@@ -79,10 +79,16 @@ WV3-L114 保留对 L113 的纠正；L115 在真实 adapter/boot 验证后重新�
   仅上传 ZIP、不隐式解压，沿用 UploadCompressedFolder 语义。
   最终 metric 修正后 npm run wails:build 亦 PASS / exit 0。
   共享 managed temp 已接；ClearTemp 跳过 staged prefixes，孤儿 stage 可能残留（L122）。
-- [x] C5 Windows/macOS helper 供给/打包脚本（TERM-03.3）：
-  `scripts/package-wails.mjs` 实现外部可信 digest + arch 校验、复制及清单生成。
-  实际发布 helper 未交付：本地仅有无 manifest pin 的 win32-x64 mosh-client；
-  其余 Windows/macOS mosh/et binary 和所有对应 pin 均缺，不能算捆绑完成。
+- [x] C5 Mosh/ET helper 可复现供给、可信校验与发布打包（TERM-03.3）— 完成：
+  `scripts/fetch-wails-helpers.mjs` + `fetch-wails-helpers.lock.json` 锁定
+  MoshCatty moshcatty-0.1.8 与 Netcatty et-bin-6.2.10-1（来源/构建/SHA256SUMS/
+  资产 ID 全部入 lock；et 附 BUILD-PROVENANCE 绑定上游 EternalTerminal et-v6.2.10）。
+  8 个目标（mosh/et × win32-x64、linux-x64、linux-arm64、darwin-universal）
+  已下载安装并 `--verify-only --all` 全部通过；`npm run wails:helpers` /
+  `wails:helpers:verify` 接线；package-wails 打包自动经 lock 校验复制 helper
+  + sidecar + 许可证并写入 helper-supply.lock.json 与 artifact-manifest.helpers；
+  遗留 --install-helper 自选 digest 路径已移除（防止写出 lock 拒绝的 sidecar）。
+  运行时 Go 侧仍强制 manifest os/arch/sha256 校验（supervised.Verify）。
 
 ### Batch D — 系统壳
 
@@ -123,7 +129,7 @@ WV3-L114 保留对 L113 的纠正；L115 在真实 adapter/boot 验证后重新�
 - [x] F4 根目录 `.test.ts`/`.test.tsx` 精确放行，真实 git check-ignore 回归防呆
 
 代码勾选仅表示实现及所列本机测试，不表示原始任务中的活体或 GUI 验收通过。
-C5 只交付校验/供给脚本，不表示 Windows/macOS helper 二进制已捆绑；
+C5 供给/校验/打包链路已交付并本机验证；Windows/macOS/Linux 产物安装后的活体连接仍属验收；
 D1 本机 Hello IsSupported=false，成功认证与 Touch ID 真机仍待验证；
 D2/D3 的 macOS/Linux crossbuild 不替代原生运行。E3 保持遗留 Electron 部分证据，不阻塞 Wails 产品构建结论。
 

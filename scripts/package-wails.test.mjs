@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+// macOS /var is a system symlink; tests use the physical temp directory so
+// helper path checks can continue rejecting symlink ancestors.
+const tempRoot = await realpath(tmpdir());
 
 import {
   artifactBasename,
@@ -15,7 +19,6 @@ import {
   windowsGuiLdflags,
   verifyHelper,
   writeProtocolResources,
-  installHelper,
 } from "./package-wails.mjs";
 
 test("artifactBasename applies the platform executable suffix", () => {
@@ -54,7 +57,7 @@ test("parseArgs accepts the documented flags", () => {
 });
 
 test("checksumEntries hashes files deterministically", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "pkg-wails-"));
+  const dir = await mkdtemp(path.join(tempRoot, "pkg-wails-"));
   const fileA = path.join(dir, "a.txt");
   const fileB = path.join(dir, "b.txt");
   await writeFile(fileA, "alpha");
@@ -105,16 +108,23 @@ test("helper verification rejects altered content and wrong machine architecture
   assert.throws(() => verifyHelper(pe, wrong, "windows", "arm64"), /architecture/);
 });
 
-test("helper installation refuses untrusted bytes before publishing", async () => {
- const dir=await mkdtemp(path.join(tmpdir(),"install-helper-"));
- const source=path.join(dir,"source.exe");
- await writeFile(source,"untrusted");
- await assert.rejects(installHelper({source,destination:path.join(dir,"installed.exe"),sha256:"0".repeat(64),goos:"windows",goarch:"amd64",kind:"mosh"}),/hash/);
- await assert.rejects(readFile(path.join(dir,"installed.exe")),/ENOENT/);
+test("ad-hoc helper installation stays removed; the lock gates all provisioning", async () => {
+  // Ad-hoc installs were removed: provisioning goes exclusively through the
+  // reviewed lock flow (scripts/fetch-wails-helpers.mjs), whose digest and
+  // provenance gates run before any byte reaches the cache or resources.
+  const mod = await import("./package-wails.mjs");
+  assert.ok(!("installHelper" in mod), "legacy ad-hoc helper install must stay removed");
+  const { validateLock } = await import("./fetch-wails-helpers.mjs");
+  // A lock without trusted digests and provenance is rejected before any
+  // download or install can start.
+  assert.throws(
+    () => validateLock({ schemaVersion: 1, releases: {}, assets: [{}] }),
+    /invalid helper release|trusted sha256|provenance/i,
+  );
 });
 
 test("protocol resources register all supported schemes", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "protocol-wails-"));
+  const dir = await mkdtemp(path.join(tempRoot, "protocol-wails-"));
   const linux = await writeProtocolResources(dir, "linux", "LemonSSH");
   const desktop = await readFile(linux[0], "utf8");
   assert.match(desktop, /Exec=LemonSSH %u/);

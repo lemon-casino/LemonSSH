@@ -3694,3 +3694,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: ClearTemp skips staged prefixes conservatively; orphan stage cleanup remains limited. UNC/long-path/native dialog and installed platform acceptance pending. D hardening focused race passed separately: no re-enable overwrite, empty-reason unlock rejected, corrupt/read failures fail closed, Disable persists atomically before state. Darwin plist app.lemonssh.desktop is corrected, but bare binary plus plist is not an installed .app and runtime refuses bare-binary registration.
 - Next safe slice: Record final integrated verification when it finishes; retain explicit helper, legacy Electron and native acceptance limits.
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L123 - 2026-09-12 - Locked Mosh/ET helper supply, verification and release packaging
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-03`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Deliver the reproducible Mosh/ET helper supply chain. A committed lock (scripts/fetch-wails-helpers.lock.json) pins MoshCatty moshcatty-0.1.8 and Netcatty et-bin-6.2.10-1 with source/build provenance, pinned SHA256SUMS, per-file digests, GitHub asset IDs and licenses (et adds BUILD-PROVENANCE bound to upstream EternalTerminal et-v6.2.10). scripts/fetch-wails-helpers.mjs downloads pinned HTTPS bytes (fetch or gh transport), verifies archive inventory, per-file digests and PE/Mach-O-universal/ELF machine architecture before anything is published, installs into resources/ with provenance sidecars, and packaging (package-wails) verifies the installed helpers against the lock, bundles helper + sidecar + licenses, writes helper-supply.lock.json and records helper pins in artifact-manifest.json and installer-resources.json. The legacy package-wails --install-helper ad-hoc path was removed so untrusted self-computed pins cannot poison resources. npm scripts: wails:helpers and wails:helpers:verify.
+- Go canonical owner: cmd/netcatty/terminalSupervised.go (runtime enforces manifest os/arch/sha256 via internal/terminal/supervised Verify on every launch and PTY factory)
+- Frontend adapter: scripts/fetch-wails-helpers.mjs, scripts/package-wails.mjs, package.json scripts
+- Electron owner affected: none
+- Preserved invariants: binaries are never committed; supply is lock-only; digest/provenance failures never fall back to another source; sidecars are rewritten only from the trusted lock; runtime refuses os/arch/hash mismatch at launch
+- Data/schema impact: helper-supply.lock.json and sidecar manifests travel with packaged artifacts
+- Security impact: every helper byte is pinned to reviewed upstream releases (MoshCatty CI and Netcatty et-bin CI run IDs recorded); et provenance additionally binds the upstream EternalTerminal commit
+- Verification: node --test scripts/fetch-wails-helpers.test.mjs 20 pass, scripts/package-wails.test.mjs 12 pass, scripts/fetch-mosh-binaries.test.cjs pass; node scripts/fetch-wails-helpers.mjs --verify-only --all verified all eight installed targets (mosh/et x win32-x64, linux-x64, linux-arm64, darwin-universal) against the lock; end-to-end node scripts/package-wails.mjs --skip-frontend for windows/amd64 produced the exe plus helpers, sidecars, 19 license files, helper-supply.lock.json, installer-resources.json and artifact-manifest.helpers pins
+- Platforms covered: Windows 10 22H2 x64 host (supply, verification and packaging); darwin/linux helper bytes verified by header/architecture inspection only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron helper bridges stay until Wails roaming live evidence and installed-package acceptance pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: mosh lock has no upstream build-provenance attestation (et does); real network roaming and installed-package helper launches on macOS/Linux remain acceptance work; helper bytes on other hosts require network access or a populated build/wails-helper-cache
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host; P4/P5 real-machine regression
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

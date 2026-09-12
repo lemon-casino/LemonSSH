@@ -51,14 +51,55 @@ single `et` (`et.exe` on Windows) binary.
 
 The directory is otherwise empty (binaries are gitignored).
 
+### Wails locked supply
+
+Wails uses the shared [helper lock](../../scripts/fetch-wails-helpers.lock.json)
+and [supply script](../../scripts/fetch-wails-helpers.mjs), not latest-release
+resolution. See [Mosh's Wails instructions](../mosh/README.md#wails-locked-supply)
+for fetch, verification, transport and test commands.
+
+The pin is `binaricat/Netcatty-et-bin` release `et-bin-6.2.10-1`, built from
+`MisterTea/EternalTerminal` tag `et-v6.2.10` at
+`f9a584ac06b2f1730b5bdf0a27150f28478368fb`. The published
+[BUILD-PROVENANCE.json](https://github.com/binaricat/Netcatty-et-bin/releases/download/et-bin-6.2.10-1/BUILD-PROVENANCE.json)
+links the [build run](https://github.com/binaricat/Netcatty/actions/runs/26945446872)
+and Netcatty build-script checkout `c39793d592db59da68a1b4d6eaaf001620ad9464`.
+The lock pins that provenance file, `SHA256SUMS`, every archive and each binary.
+Fetching checks provenance fields against the lock as well as verifying hashes.
+This is publisher provenance, not a signed attestation or proof of byte-identical
+source rebuilds.
+
+The actual Windows x64 release archive contains only `et.exe`. Its PE import
+table references `WS2_32`, `SHLWAPI`, `dbghelp`, `CRYPT32`, `KERNEL32`, `USER32`,
+`SHELL32`, `ole32` and `ADVAPI32` system DLLs. No VC++ redistributable or private
+DLL bundle is needed for this pin. If a future reviewed archive includes DLLs,
+each must appear in the locked file inventory with its own digest; Wails copies
+them beside `et.exe` and validates their architecture. Unlisted members fail.
+
+The macOS archive contains an actual universal Mach-O `et`, with x86_64 and
+arm64 slices. Both slices link only `/usr/lib` and `/System/Library` libraries.
+Wails keeps both slices and writes a runtime manifest for the application's
+native GOARCH. Cross-packaging checks bytes and layout; macOS execution and
+session acceptance still require a Mac.
+
+The release archives omit license files. Wails therefore fetches 18 pinned
+source/dependency license texts into its verified cache and packages them under
+`licenses/et/`. URLs pin source commits; SHA256 values live in the shared lock.
+The dependency versions come from upstream's vendored vcpkg ports, including
+protobuf/utf8-range, OpenSSL, libsodium, abseil, zlib, cpp-httplib, cxxopts,
+nlohmann-json, simpleini and brotli. Bundled source notices cover PlatformFolders,
+ThreadPool, UniversalStacktrace, base64, easyloggingpp and sole. Package checksums
+and installer resource mappings include all these files and the runtime sidecar.
+
 ## Licenses
 
 - EternalTerminal is licensed under **Apache-2.0**
   (https://github.com/MisterTea/EternalTerminal).
 - Netcatty is **GPL-3.0**; Apache-2.0 is one-way compatible with GPL-3.0, so
   redistribution as part of the installer is permitted.
-- vcpkg-managed deps (boost Boost-License, libsodium ISC, protobuf
-  BSD-3-Clause, gflags BSD-3-Clause) are compatible with GPL-3.0.
+- vcpkg-managed dependencies include libsodium (ISC), protobuf (BSD-3-Clause),
+  OpenSSL/abseil (Apache-2.0), zlib (Zlib), and the MIT-licensed header libraries.
+  Exact source versions and license-file digests for Wails are in the helper lock.
 
 ## Reproducible build
 
