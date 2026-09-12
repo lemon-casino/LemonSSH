@@ -26,12 +26,14 @@ const host = (overrides: Partial<Host> = {}): Host => ({
 
 const rule = (overrides: Partial<PortForwardingRule> = {}): PortForwardingRule => ({
   id: "rule-1",
-  name: "Rule",
+  label: "Rule",
+  bindAddress: "127.0.0.1",
+  createdAt: 1,
   type: "local",
   localPort: 18080,
   remoteHost: "127.0.0.1",
   remotePort: 8080,
-  enabled: true,
+  autoStart: true,
   status: "inactive",
   ...overrides,
 });

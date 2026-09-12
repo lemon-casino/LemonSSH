@@ -45,6 +45,9 @@
 !tsconfig.migration-electron-baseline.json
 !types.ts
 !vite.config.ts
+# Root regression tests must not be silently excluded by the allowlist.
+!/*.test.ts
+!/*.test.tsx
 
 # --- Layer 2: allowlist root directories ---
 # Un-ignore the directory entry, then everything under it. Git does not

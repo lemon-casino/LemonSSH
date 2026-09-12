@@ -25,7 +25,6 @@ const baseRule: PortForwardingRule = {
   autoStart: false,
   status: "inactive",
   createdAt: Date.now(),
-  updatedAt: Date.now(),
 };
 
 test("buildRuleSummary describes local, remote, and dynamic forwarding directions separately", () => {

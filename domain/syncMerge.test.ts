@@ -536,14 +536,15 @@ test("mergeSyncPayloads treats missing optional arrays as legacy payloads, not d
   };
   const rule = {
     id: "rule-1",
-    name: "Web",
+    label: "Web",
     hostId: "host-1",
     type: "local" as const,
-    localHost: "127.0.0.1",
+    bindAddress: "127.0.0.1",
     localPort: 8080,
     remoteHost: "127.0.0.1",
     remotePort: 80,
-    enabled: true,
+    autoStart: true,
+    status: "inactive" as const,
     createdAt: 1,
   };
 

@@ -51,7 +51,7 @@ function buildRule(
   if ('error' in localPort) return { ok: false, error: localPort.error };
   const hostId = source.hostId === undefined ? existing?.hostId : String(source.hostId).trim();
   const validatedHost = validatePortForwardingHost(hosts, hostId);
-  if (!validatedHost.ok) return validatedHost;
+  if ('error' in validatedHost) return validatedHost;
   const remoteHost = source.remoteHost === undefined ? existing?.remoteHost : String(source.remoteHost).trim();
   let remotePort: number | undefined;
   if (type !== 'dynamic') {
