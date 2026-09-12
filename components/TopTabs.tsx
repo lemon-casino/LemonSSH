@@ -998,15 +998,15 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
       {/* Always-on drag stripe so the window can be moved even when tabs fill the bar */}
       <div className="absolute inset-x-0 top-0 h-1 app-drag pointer-events-auto z-10" style={dragRegionStyle} aria-hidden />
       <div
-        className="h-10 flex items-end gap-0 app-drag overflow-visible"
+        className="h-[45px] flex items-center gap-0 app-drag overflow-visible"
         style={{
           ...dragRegionStyle,
           paddingLeft: isMacClient && !isWindowFullscreen ? 76 : 12,
-          paddingRight: showWindowControls ? 0 : 12,
+          paddingRight: 12,
         }}
       >
         {/* Fixed left tabs: Vaults and SFTP */}
-        <div ref={fixedLeftTabsRef} className="flex items-end gap-0 flex-shrink-0 app-drag">
+        <div ref={fixedLeftTabsRef} className="flex items-center gap-0 flex-shrink-0 app-drag">
           <RootTopTab
             tabId="vault"
             label="Vaults"
@@ -1049,7 +1049,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
           {hasHostTreeToggleSurface && (
             <div
               ref={hostTreeToggleSlotRef}
-              className="top-tab-host-tree-toggle-slot mb-0 flex-shrink-0 self-end app-no-drag"
+              className="top-tab-host-tree-toggle-slot mb-0 flex-shrink-0 self-center app-no-drag"
               data-section="top-tabs-host-tree-toggle"
               data-visible={effectiveShowHostTreeToggle ? 'true' : 'false'}
               style={noDragRegionStyle}
@@ -1106,7 +1106,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
             {/* Scrollable container */}
             <div
               ref={tabsContainerRef}
-              className="flex items-end gap-0 overflow-x-auto scrollbar-none app-drag max-w-full"
+              className="flex items-center gap-0 overflow-x-auto scrollbar-none app-drag max-w-full"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onClick={handleScrollableTabClick}
               onDragOver={(e) => {
@@ -1159,7 +1159,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 flex-shrink-0 app-no-drag self-end rounded-none"
+                  className="h-7 w-7 flex-shrink-0 app-no-drag self-center rounded-none"
                   style={{ color: 'var(--top-tabs-muted, hsl(var(--muted-foreground)))' }}
                   onClick={onOpenQuickSwitcher}
                 >
@@ -1173,7 +1173,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
 
         {/* Fixed right controls — utility icons + window controls share one h-7 row */}
         <div
-          className="flex-shrink-0 flex items-center gap-0.5 app-drag self-end h-7 overflow-visible"
+          className="flex-shrink-0 flex items-center gap-0.5 app-drag self-center h-7 overflow-visible"
           style={dragRegionStyle}
           data-section="top-tabs-toolbar-actions"
         >
@@ -1242,7 +1242,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
         </div>
         {/* Small drag shim to the right edge (macOS only – on Windows the close button should touch the edge) */}
         {isMacClient && !showWindowControls && (
-          <div className="w-2 h-10 app-drag flex-shrink-0 self-end" />
+          <div className="w-2 h-[45px] app-drag flex-shrink-0 self-center" />
         )}
       </div>
     </div>
