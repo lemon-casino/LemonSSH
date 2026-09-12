@@ -36,6 +36,7 @@ export interface OpenDataPlaneSessionOptions {
   bootstrap: WailsRouteBootstrap;
   onData: (chunk: string) => void;
   onComplete?: () => void;
+  onDisconnect?: () => void;
   decoder?: { decode(input: Uint8Array): string };
   openSocket?: (url: string, protocols: string[]) => DataPlaneSocket;
 }
@@ -97,13 +98,17 @@ export function openDataPlaneSession(options: OpenDataPlaneSessionOptions): Data
         dispose();
       }
     }).catch(() => {
-      dispose();
+      disconnect();
     });
   };
-  socket.onerror = () => dispose();
-  socket.onclose = () => {
-    if (!disposed) options.onComplete?.();
-  };
+  socket.onerror = () => disconnect();
+  socket.onclose = () => disconnect();
+
+  function disconnect(): void {
+    if (disposed) return;
+    dispose();
+    options.onDisconnect?.();
+  }
 
   function dispose(): void {
     if (disposed) return;

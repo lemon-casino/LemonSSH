@@ -87,6 +87,22 @@ test("openDataPlaneSession grants the window then delivers output", async () => 
   handle.dispose();
 });
 
+test('socket loss signals disconnect once instead of terminal completion', () => {
+  const socket = fakeSocket();
+  let disconnected = 0;
+  let completed = 0;
+  openDataPlaneSession({
+    listenAddr: '127.0.0.1:9',
+    bootstrap: { SessionID: 's', Generation: 1, DataToken: 'd', UrgentToken: 'u', WindowBytes: RECEIVE_WINDOW_BYTES },
+    onData: () => undefined, onComplete: () => { completed++; }, onDisconnect: () => { disconnected++; },
+    openSocket: () => socket,
+  });
+  socket.onerror?.(undefined);
+  socket.onclose?.(undefined);
+  assert.equal(disconnected, 1);
+  assert.equal(completed, 0);
+});
+
 test("dispose closes the socket and ignores later frames", async () => {
   const socket = fakeSocket();
   const chunks: string[] = [];

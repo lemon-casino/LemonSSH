@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/binaricat/netcatty/internal/platform/applog"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
@@ -29,6 +30,7 @@ type SFTPService struct {
 }
 
 type sftpClient struct {
+	channel io.Closer
 	fs      *sftp.ClientFS
 	lease   *sshpool.Lease
 	raw     *pkgsftp.Client
@@ -44,15 +46,20 @@ func NewSFTPService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *SFT
 	}
 }
 
+type SFTPOpenRequest struct {
+	SSHConnectRequest
+	Sudo bool `json:"sudo"`
+}
+
 // Open dials (or borrows) a transport for host and registers an SFTP session.
-func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
+func (s *SFTPService) Open(request SFTPOpenRequest) (string, error) {
 	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
 	if request.Port == 0 {
 		request.Port = 22
 	}
-	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
+	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request.SSHConnectRequest), netcattyssh.StrictPolicy(s.knownHosts), nil)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +67,15 @@ func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
 	}
-	raw, err := pkgsftp.NewClient(lease.Client())
+	var raw *pkgsftp.Client
+	var channel io.Closer
+	if request.Sudo {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		raw, channel, err = sftp.OpenElevated(ctx, lease.Client())
+	} else {
+		raw, err = pkgsftp.NewClient(lease.Client())
+	}
 	if err != nil {
 		lease.Discard()
 		return "", fmt.Errorf("sftp subsystem: %w", err)
@@ -71,6 +86,7 @@ func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
 	s.counter++
 	id := fmt.Sprintf("sftp-%d", s.counter)
 	s.sessions[id] = &sftpClient{
+		channel: channel,
 		fs:      sftp.NewClientFS(raw),
 		lease:   lease,
 		raw:     raw,
@@ -376,6 +392,9 @@ func (s *SFTPService) Close(sessionID string) error {
 		return nil
 	}
 	_ = client.raw.Close()
+	if client.channel != nil {
+		_ = client.channel.Close()
+	}
 	client.lease.Return()
 	return nil
 }

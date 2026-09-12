@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -75,6 +75,8 @@ type SSHConnectRequest struct {
 }
 
 type terminalSession struct {
+	zmodemPrefix       []byte
+	zmodem             *terminalZmodemStream
 	transport          *ssh.Transport
 	session            *gossh.Session
 	local              *pty.Session
@@ -106,14 +108,40 @@ func NewTerminalService(controller *dataplane.RouteController, dp *dataplane.Ser
 	return service
 }
 
-func (s *TerminalService) SetChallengeEmitter(emit func(ssh.KeyboardChallenge)) {
+func (s *TerminalService) setChallengeEmitter(emit func(ssh.KeyboardChallenge)) {
 	s.emitChallenge = emit
 }
 
-// SetEventEmitter wires renderer-visible events (telnet echo mode, auto-login
+// setEventEmitter wires renderer-visible events (telnet echo mode, auto-login
 // completion/cancellation) to the Wails event bus.
-func (s *TerminalService) SetEventEmitter(emit func(name string, payload any)) {
+func (s *TerminalService) setEventEmitter(emit func(name string, payload any)) {
 	s.emitEvent = emit
+}
+
+func (s *TerminalService) publishOutput(sessionID string, data []byte) bool {
+	s.mu.Lock()
+	var stream *terminalZmodemStream
+	if term := s.sessions[sessionID]; term != nil {
+		stream = term.zmodem
+	}
+	s.mu.Unlock()
+	if stream != nil {
+		_, _ = stream.writer.Write(data)
+		return true
+	}
+	if s.detectZmodem(sessionID, data) {
+		return true
+	}
+	return s.publishTerminalBytes(sessionID, data)
+}
+
+func (s *TerminalService) publishTerminalBytes(sessionID string, data []byte) bool {
+	if err := s.dp.Publish(sessionID, data); err != nil {
+		s.emit("terminal:error", map[string]any{"sessionId": sessionID, "error": err.Error()})
+		_ = s.Close(sessionID)
+		return false
+	}
+	return true
 }
 
 func (s *TerminalService) emit(name string, payload any) {
@@ -226,7 +254,9 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 		for {
 			n, readErr := stdout.Read(buf)
 			if n > 0 {
-				s.dp.Publish(sessionID, buf[:n])
+				if !s.publishOutput(sessionID, buf[:n]) {
+					return
+				}
 			}
 			if readErr != nil {
 				return
@@ -296,10 +326,16 @@ func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind
 
 	// The handshake needs the remote command's stdout, so it runs its own SSH
 	// session rather than reusing the interactive Connect path.
-	connect, err := s.runHandshake(request, kind)
-	if err != nil {
+	var connect mosh.Connect
+	if kind == "mosh" {
+		connect, err = s.runHandshake(request, kind)
+		if err != nil {
+			_ = s.controller.Close(sessionID)
+			return "", err
+		}
+	} else if request.ProxyURL != "" || request.ProxyCommand != "" || len(request.JumpHosts) > 0 || request.PrivateKey != "" || request.Password != "" {
 		_ = s.controller.Close(sessionID)
-		return "", err
+		return "", fmt.Errorf("et: inline credentials and proxy/jump configuration are not supported; configure the native SSH client")
 	}
 
 	info, err := os.Stat(request.ClientPath)
@@ -311,37 +347,51 @@ func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind
 		_ = s.controller.Close(sessionID)
 		return "", fmt.Errorf("%s: client binary %s is a directory", kind, request.ClientPath)
 	}
-	digest, err := hashFile(request.ClientPath)
+	pinBytes, err := os.ReadFile(request.ClientPath + ".manifest.json")
 	if err != nil {
 		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: hash client binary: %w", kind, err)
+		return "", fmt.Errorf("%s: pinned helper manifest: %w", kind, err)
 	}
-	manifest := supervised.Manifest{
-		Name:   filepath.Base(request.ClientPath),
-		Path:   filepath.Base(request.ClientPath),
-		SHA256: digest,
-		OS:     runtime.GOOS,
-		Arch:   runtime.GOARCH,
+	var manifest supervised.Manifest
+	if err := json.Unmarshal(pinBytes, &manifest); err != nil {
+		_ = s.controller.Close(sessionID)
+		return "", err
 	}
-	runner, err := supervised.NewRunner(manifest, filepath.Dir(request.ClientPath), 3)
+	manifest.Path = filepath.Base(request.ClientPath)
+	if err := supervised.Verify(manifest, filepath.Dir(request.ClientPath)); err != nil {
+		_ = s.controller.Close(sessionID)
+		return "", err
+	}
+	args, extraEnv, err := mosh.ClientLaunch(kind, request.Hostname, request.Username, request.Port, connect)
 	if err != nil {
 		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: verify client binary: %w", kind, err)
+		return "", err
 	}
-	runner.SetOutputHandler(func(data []byte) {
-		if len(data) > 0 {
-			s.dp.Publish(sessionID, data)
-		}
-	})
-	env := map[string]string{"MOSH_KEY": connect.Key}
-	if err := runner.StartWithEnv(context.Background(), mosh.ClientArgs(request.Hostname, connect), env); err != nil {
+	env := os.Environ()
+	for key, value := range extraEnv {
+		env = append(env, key+"="+value)
+	}
+	local := pty.NewSession(pty.Config{SessionID: sessionID, Shell: request.ClientPath, Args: args, Env: env, Cols: request.Cols, Rows: request.Rows})
+	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
 		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: start client: %w", kind, err)
+		return "", fmt.Errorf("%s: start PTY client: %w", kind, err)
 	}
-
 	s.mu.Lock()
-	s.sessions[sessionID] = &terminalSession{runner: runner, bootstrap: bootstrap}
+	s.sessions[sessionID] = &terminalSession{local: local, bootstrap: bootstrap}
 	s.mu.Unlock()
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := local.ReadOnce(buf)
+			if n > 0 && !s.publishOutput(sessionID, buf[:n]) {
+				return
+			}
+			if err != nil {
+				_ = s.Close(sessionID)
+				return
+			}
+		}
+	}()
 	s.emit(kind+":session-ready", map[string]any{"sessionId": sessionID})
 	return sessionID, nil
 }
@@ -377,14 +427,17 @@ func (s *TerminalService) runHandshake(request MoshStartRequest, kind string) (m
 	if err := sshSession.Start(mosh.ServerCommand(request.ServerPath)); err != nil {
 		return mosh.Connect{}, fmt.Errorf("start %s-server: %w", kind, err)
 	}
-	connect, err := scanForConnect(stdout, 30*time.Second)
-	// The remote command exits after announcing; a non-zero exit here is still
-	// usable when the announcement already arrived.
-	_ = sshSession.Wait()
+	connect, err := scanConnectDeadline(stdout, 30*time.Second, func() { _ = sshSession.Close() })
 	if err != nil {
 		return mosh.Connect{}, err
 	}
 	return connect, nil
+}
+
+func scanConnectDeadline(source io.Reader, timeout time.Duration, closeChannel func()) (mosh.Connect, error) {
+	timer := time.AfterFunc(timeout, closeChannel)
+	defer timer.Stop()
+	return scanForConnect(source, timeout)
 }
 
 // scanForConnect reads the handshake stream until the MOSH CONNECT line
@@ -439,7 +492,9 @@ func (s *TerminalService) CancelZmodem(sessionID string) error {
 	s.mu.Lock()
 	term, ok := s.sessions[sessionID]
 	var cancel context.CancelFunc
-	if ok && term.serialYmodemCancel != nil {
+	if ok && term.zmodem != nil {
+		cancel = term.zmodem.cancel
+	} else if ok && term.serialYmodemCancel != nil {
 		cancel = term.serialYmodemCancel
 	}
 	s.mu.Unlock()
@@ -447,7 +502,8 @@ func (s *TerminalService) CancelZmodem(sessionID string) error {
 		return nil
 	}
 	cancel()
-	return nil
+	_, err := s.Write(sessionID, []byte{0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08})
+	return err
 }
 
 // SendSerialYmodem uploads the file at filePath over the session's serial port
@@ -561,7 +617,9 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 		for {
 			n, readErr := local.ReadOnce(buf)
 			if n > 0 {
-				s.dp.Publish(sessionID, buf[:n])
+				if !s.publishOutput(sessionID, buf[:n]) {
+					return
+				}
 			}
 			if readErr != nil {
 				s.Close(sessionID)
@@ -605,7 +663,9 @@ func (s *TerminalService) StartTelnet(request TelnetStartRequest) (string, error
 		switch event.Kind {
 		case telnet.EventData:
 			if len(event.Data) > 0 {
-				s.dp.Publish(sessionID, event.Data)
+				if !s.publishOutput(sessionID, event.Data) {
+					return
+				}
 			}
 		case telnet.EventEchoMode:
 			remote := string(event.Data) == "remote"
@@ -721,7 +781,9 @@ func (s *TerminalService) StartSerial(request SerialStartRequest) (string, error
 		for {
 			n, readErr := backend.Read(request.Path, buf)
 			if n > 0 {
-				s.dp.Publish(sessionID, buf[:n])
+				if !s.publishOutput(sessionID, buf[:n]) {
+					return
+				}
 			}
 			if readErr != nil {
 				s.Close(sessionID)
@@ -736,12 +798,29 @@ func (s *TerminalService) StartSerial(request SerialStartRequest) (string, error
 // data/urgent WebSockets for a session.
 func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
-	s.mu.Unlock()
 	if !ok {
 		return dataplane.RouteBootstrap{}, fmt.Errorf("session %q not found", sessionID)
 	}
 	return term.bootstrap, nil
+}
+
+// Reconnect rotates only the renderer route. Native Mosh/ET processes retain
+// their protocol keys and roaming state; no new remote server is bootstrapped.
+func (s *TerminalService) Reconnect(sessionID string) (dataplane.RouteBootstrap, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	term, ok := s.sessions[sessionID]
+	if !ok {
+		return dataplane.RouteBootstrap{}, fmt.Errorf("session not found")
+	}
+	bootstrap, err := s.controller.Open(sessionID)
+	if err != nil {
+		return dataplane.RouteBootstrap{}, err
+	}
+	term.bootstrap = bootstrap
+	return bootstrap, nil
 }
 
 // ListenAddr exposes the bound loopback data plane address (host:port).
@@ -823,6 +902,9 @@ func (s *TerminalService) Close(sessionID string) error {
 	}
 	if term.serial != nil {
 		_ = term.serial.Close(term.serialID)
+	}
+	if term.zmodem != nil {
+		term.zmodem.cancel()
 	}
 	if term.serialYmodemCancel != nil {
 		term.serialYmodemCancel()
