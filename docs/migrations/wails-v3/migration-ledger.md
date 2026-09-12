@@ -3469,3 +3469,228 @@ capability row, source paths, verification output or CI run.
 - Residual risks: conflict policy prefers the local value when both sources diverge, which restores a Go-side external restore only after that restore is also mirrored into localStorage; differential counts are console-level until a diagnostics view exists
 - Next safe slice: layout-modes P4 interactions
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L114 - 2026-09-12 - Correct premature canonical cutover claim
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `implemented -> probe`
+- Scope change: none
+- Goal: Correct WV3-L113: its implementation still reads localStorage, prefers local values over host values, and enumerates only host keys at boot. Those behaviors do not establish the requested canonical memory cache or first-run local-only import.
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: infrastructure/persistence/hostStorageAdapter.ts, infrastructure/persistence/canonicalHydration.ts, infrastructure/runtime/bootstrap.ts
+- Electron owner affected: none
+- Preserved invariants: no verified or Non-AI Completion Gate claim; the prior test results only cover their tested helper behavior
+- Data/schema impact: none in this correction record
+- Security impact: none
+- Verification: source review of c4899a2c; hostStorageAdapter.read delegates to localStorageAdapter.read; boot uses DomainKeys without a local key union
+- Platforms covered: source review on Windows
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain the localStorage rollback carrier until canonical adapter tests and live restore evidence pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: true canonical hydration, deletion fencing, cross-window cache refresh and write error handling are being implemented and must pass their tests before advancement
+- Next safe slice: complete and verify A1 canonical adapter
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L115 - 2026-09-12 - A1 canonical profile adapter after correction
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Go profile hydration now populates the synchronous memory read layer before React mounts; Go wins divergence; first-run local-only import is one-time and deletion fencing prevents legacy resurrection; cross-window refresh and write failures are explicit.
+- Go canonical owner: cmd/netcatty/profileService.go; internal/profile
+- Frontend adapter: infrastructure/persistence/hostStorageAdapter.ts; canonicalHydration.ts; infrastructure/runtime/bootstrap.ts; index.tsx
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: A1 uses existing profile keys and compatible legacy import; no new AI storage owner.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: A owner: 20 core hydration/bootstrap/profile tests and 208 syncPayload/sidecar/cloudsync/port-forward regression tests passed; main independent delayed index boot, adapter and real Go profile checks passed (12 plus 8 adapter tests).
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Live multi-machine restore and three-platform crash/rollback remain pending; AI keys stay localStorage-canonical until P6-05.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L116 - 2026-09-12 - Batch B and D shell code evidence
+
+- Capability rows: `FND-04`, `SYS-02`, `SYS-03`, `SYS-04`
+- Plan task: `P4-02`, `P4-03`, `P4-04`, `P4-05`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Session-tree menus, ordering/workspace drop, numbered switching, reveal, width and menu overflow interactions are implemented; popup role fencing/cleanup and native shortcut, protocol-registration and biometric adapters are wired. Preserve probe pending live platform acceptance.
+- Go canonical owner: internal/window; internal/platform/applock; internal/platform/deeplink; internal/terminal/shortcuts; cmd/netcatty/popupWindowService.go
+- Frontend adapter: components/workbench; application/app/AppWorkbenchSessionLayer.tsx; application/state workbench view state
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: B owner: 98/98 targeted workbench, shell isolation, ordering, view-state, dual-window sync and i18n tests. D owner: go test ./internal/platform/applock ./internal/platform/deeplink ./internal/terminal/shortcuts and focused cmd Test(Biometric|Shortcut|Popup|OSProtocol|WailsAccelerator) passed; Windows RegisterHotKey conflict/release passed; Hello IsSupported returned false on this host; CGO_ENABLED=0 Linux/darwin crossbuild passed.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: GUI acceptance, multi-monitor/crash, macOS/Linux native execution, successful Hello/Touch ID authentication and installed protocol delivery remain pending; crossbuild is not native verification.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L117 - 2026-09-12 - Batch C raw transfer and F bounded data-plane evidence
+
+- Capability rows: `TERM-01`, `TERM-03.3`, `TERM-03.4`
+- Plan task: `P3-01`, `P3-08`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Output admission atomically copies and bounds queued plus writer-pending bytes to 1 MiB; closed/full queue errors reach all producers. Mosh/ET reconnect retains native process/bootstrap state. Private ZMODEM length-prefix units are replaced by standard headers/subpackets, duplex handshake, ACK progress and CAN cancellation. Helper provisioning scripts validate external hash and architecture.
+- Go canonical owner: internal/terminal/dataplane; internal/terminal/zmodem; cmd/netcatty/terminalService.go; scripts/package-wails.mjs
+- Frontend adapter: infrastructure/runtime/wails terminal bridge; lib/textZip.ts; packages/plugin-cli/src/cli.test.ts; port-forward rule fixtures; .gitignore
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: F owner: go test -race ./internal/terminal/dataplane and focused cmd TestTerminalPublishFailureReportsAndCloses passed; 94 targeted Node tests plus 3 domain rule tests passed; 13 scoped tsc errors cleared while global tsc remains red. C2: go test -race ./internal/terminal/zmodem ./internal/terminal/ymodem passed; independent zmodem.js send/receive peers transferred all-byte 4096-byte payloads; independent CRC32 and hex fixtures plus cancellation/corruption/incomplete-file tests passed. C owner: focused cmd TestTerminalPublish/TestZmodemCapture passed; package-wails 12 tests passed.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Actual lrzsz peer unavailable and unverified; corrupt input aborts rather than automatic retry. SendFile closes one session per file. Native roaming/network and three-platform benchmarks pending. Provisioning scripts do not establish shipped Windows/macOS helper binaries or signed variants.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L118 - 2026-09-12 - Batch C SFTP and transfer center code evidence
+
+- Capability rows: `SFTP-01`, `SFTP-02`
+- Plan task: `P3-05`, `P3-06`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: sudo SFTP starts the subsystem through the existing SSH owner and reports failures explicitly. TransferService tasks, pause/resume/cancel and progress are connected to the renderer transfer center; reload snapshots and event epoch handling are integrated.
+- Go canonical owner: cmd/netcatty/sftpService.go; cmd/netcatty/transferService.go; internal/sftp
+- Frontend adapter: infrastructure/runtime/wails/transferBridge.ts; application/state/sftpTransferCenterStore.ts
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C owner: focused cmd TestTransferStart and transfer tests passed; main reports transfer reload and epoch tests added. Final integrated renderer verification to be recorded by main after the concurrent batch settles.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Real sudo server authorization and high-RTT/corruption/resume matrix remain pending; no verified or renderer-close survival claim from code tests alone.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L119 - 2026-09-12 - Wails plugin implementation and final product build evidence
+
+- Capability rows: `PLUG-01`, `PLUG-02`
+- Plan task: `P5-01`, `P5-02`, `P5-03`, `P5-04`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Go/Wails host settings/list/card contributions, explicit plugin permission broker, encrypted secrets and durable recovery implemented. E3 is partial legacy Electron evidence, not Wails acceptance. Capability status remains probe: PLUG-02 requires stable child-row decomposition before implementation advancement; code completion does not bypass that gate.
+- Go canonical owner: internal/plugin/host; internal/plugin/store; internal/plugin/permissions; cmd/netcatty/pluginService.go
+- Frontend adapter: components/plugins/DeclarativePluginHost.tsx; infrastructure/runtime/wails plugin adapter
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: Main reports seven frontend plugin tests, all Go/plugin and targeted cmd tests, scoped eslint and check:plugin-contract passed; integrated persistence/runtime/workbench/plugin Node suite 101/101 passed. npm run wails:build and npm run build PASS exit 0; final bindings generation 20 services / 138 methods without warnings. Real Electron smoke PASS (PLUGIN_RUNTIME_SMOKE_OK). Fresh go test -race ./cmd/netcatty ./internal/terminal/dataplane ./internal/terminal/transfer ./internal/terminal/zmodem ./internal/terminal/ymodem PASS exit 0; existing multiple-manifest linker warning remains.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Regular legacy Electron plugin-runtime suite remains hanging with two pre-existing NUL SQLite sidecar failures; investigation stopped at the user-authorized Wails scope boundary. npm run pack:dir not run (legacy Electron target), not required for this Wails build evidence. GUI, signed-package and three-platform acceptance pending. C4 compressed-upload incremental progress still in progress; ET inline auth/proxy/jump unsupported outside original roaming scope; process-death recovery absent beyond living-process roaming.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L120 - 2026-09-12 - Advance independent plugin contract and store capability
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-01`, `P5-02`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Advance PLUG-01 independently on the completed contract, permission broker, encrypted settings, durable recovery and localized v1 rejection evidence recorded in L119. PLUG-02 decomposition is not a dependency of PLUG-01; PLUG-02 alone remains probe pending that gate.
+- Go canonical owner: internal/plugin/host; internal/plugin/store; internal/plugin/permissions; cmd/netcatty/pluginService.go
+- Frontend adapter: components/plugins/DeclarativePluginHost.tsx; infrastructure/runtime/wails plugin adapter
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: Main reports seven frontend plugin tests, all Go/plugin and targeted cmd tests, scoped eslint and check:plugin-contract passed; integrated persistence/runtime/workbench/plugin Node suite 101/101 passed. npm run wails:build and npm run build PASS exit 0; final bindings generation 20 services / 138 methods without warnings. Real Electron smoke PASS (PLUGIN_RUNTIME_SMOKE_OK). Fresh go test -race ./cmd/netcatty ./internal/terminal/dataplane ./internal/terminal/transfer ./internal/terminal/zmodem ./internal/terminal/ymodem PASS exit 0; existing multiple-manifest linker warning remains.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Native platform, attack/crash acceptance and signed-package evidence remain pending; no verified claim. Legacy Electron E3 remains partial and does not redefine the Wails target. PLUG-02 still requires stable child decomposition before its own advancement.
+- Next safe slice: Main records final C4 evidence separately; retain PLUG-02 probe until legitimate decomposition and child status replay.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L121 - 2026-09-12 - Compressed upload scheduler and transfer center completion
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: StartCompressed stages a ZIP under managed temp and uploads through the same scheduler task ID. Pause/resume/cancel apply during compression and upload; backend epochs and List restore renderer observation after reload.
+- Go canonical owner: cmd/netcatty/transferService.go; internal/terminal/transfer/scheduler.go
+- Frontend adapter: infrastructure/runtime/wails/transferBridge.ts; application/state/sftpTransferCenterStore.ts
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C4 owner reports Go TestCompressed/TestTransfer/TestStage/TestLocalBrowse PASS; main targeted TypeScript suite 33/33 PASS. Main final pinned generation PASS: 20 services, 142 methods, 50 models, no warnings. npm run wails:build PASS produced bin/LemonSSH.exe version 0.0.1. go test -race ./cmd/netcatty ./internal/terminal/transfer ./internal/terminal/dataplane ./internal/terminal/zmodem ./internal/plugin/... PASS; existing multiple-manifest linker warning. Frozen final integrated Node suite 102/102 PASS, including compression; TS33 includes raw 1000-byte source to 10-byte ZIP accounting. Compression reports zero transferred bytes until actual ZIP upload. Upload sends the ZIP archive without implicit extraction, matching the existing UploadCompressedFolder behavior. Final metric-corrected npm run wails:build also completed PASS, exit 0.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: High-RTT/corruption/resume, renderer-close survival and live server acceptance remain pending. ClearTemp conservatively skips staged prefixes, so orphan staged files may remain. E3 legacy test gaps and actual helper/native acceptance are unchanged.
+- Next safe slice: Record final integrated verification when it finishes; retain explicit helper, legacy Electron and native acceptance limits.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L122 - 2026-09-12 - Shared managed temp and final native hardening evidence
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Filesystem and transfer services receive the same filepath.Join(baseProfileDir(), temp) root via dependency injection; TempInfo, TempFilePath and ClearTemp are wired to existing UI paths. Preserve probe pending native filesystem/dialog matrix.
+- Go canonical owner: cmd/netcatty/filesystemService.go; cmd/netcatty/transferService.go; cmd/netcatty/main.go
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts; existing System temp UI
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C4 owner reports Go TestStage/TestLocalBrowse and transfer tests PASS; main targeted TypeScript suite 33/33 PASS. Final generation, Wails build and Go race success are recorded in L121; frozen final integrated Node suite 102/102 PASS.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: ClearTemp skips staged prefixes conservatively; orphan stage cleanup remains limited. UNC/long-path/native dialog and installed platform acceptance pending. D hardening focused race passed separately: no re-enable overwrite, empty-reason unlock rejected, corrupt/read failures fail closed, Disable persists atomically before state. Darwin plist app.lemonssh.desktop is corrected, but bare binary plus plist is not an installed .app and runtime refuses bare-binary registration.
+- Next safe slice: Record final integrated verification when it finishes; retain explicit helper, legacy Electron and native acceptance limits.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
