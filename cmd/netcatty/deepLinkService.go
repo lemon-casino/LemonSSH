@@ -52,11 +52,13 @@ func (s *DeepLinkService) SetOSProtocol(enabled bool) ProtocolRegistrationResult
 	if err != nil {
 		return ProtocolRegistrationResult{Error: fmt.Sprintf("resolve executable: %v", err)}
 	}
-	store := deeplink.NewRegistryStore()
-	if err := deeplink.SetOSProtocols(store, exePath, enabled); err != nil {
+	if err := deeplink.SetNativeProtocols(exePath, enabled); err != nil {
 		return ProtocolRegistrationResult{Error: err.Error()}
 	}
-	registered := deeplink.OSProtocolsRegistered(store, exePath)
+	registered, err := deeplink.NativeProtocolsRegistered(exePath)
+	if err != nil {
+		return ProtocolRegistrationResult{Error: err.Error()}
+	}
 	return ProtocolRegistrationResult{Success: true, Registered: registered}
 }
 
@@ -67,7 +69,10 @@ func (s *DeepLinkService) GetOSProtocolStatus() ProtocolRegistrationResult {
 	if err != nil {
 		return ProtocolRegistrationResult{Error: fmt.Sprintf("resolve executable: %v", err)}
 	}
-	registered := deeplink.OSProtocolsRegistered(deeplink.NewRegistryStore(), exePath)
+	registered, err := deeplink.NativeProtocolsRegistered(exePath)
+	if err != nil {
+		return ProtocolRegistrationResult{Error: err.Error()}
+	}
 	return ProtocolRegistrationResult{Success: true, Registered: registered}
 }
 

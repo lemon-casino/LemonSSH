@@ -75,19 +75,22 @@ func TestCrashCleanupClearsGuardsWithoutToken(t *testing.T) {
 	_ = manager.SetCloseVeto(window.ID, window.Token, true)
 	_ = manager.SetDirty(window.ID, window.Token, true)
 
+	_ = manager.BindRenderer(window.ID, window.Token, "renderer-1")
+	other, _ := manager.Create(RolePopup)
+	_ = manager.BindRenderer(other.ID, other.Token, "renderer-2")
+	_ = manager.SetDirty(other.ID, other.Token, true)
 	removed := manager.CrashCleanup("renderer-1")
-	if removed == 0 {
-		t.Fatal("crash cleanup must clear guards")
+	if removed != 1 {
+		t.Fatalf("removed = %d", removed)
 	}
-	// After cleanup the close gate passes and destroy works with the token.
-	if err := manager.CloseAttempt(window.ID, window.Token); err != nil {
-		t.Fatalf("guards must be cleared: %v", err)
+	if _, err := manager.Get(window.ID, window.Token); err == nil {
+		t.Fatal("crashed window token remained valid")
 	}
-	if err := manager.Destroy(window.ID, window.Token); err != nil {
-		t.Fatal(err)
+	if err := manager.CloseAttempt(other.ID, other.Token); !errors.Is(err, ErrDirtyEditor) {
+		t.Fatal("other renderer lost dirty guard")
 	}
-	if manager.Count(RolePopup) != 0 {
-		t.Fatal("destroy must remove the window")
+	if manager.Count(RolePopup) != 1 {
+		t.Fatal("crash removed wrong windows")
 	}
 }
 

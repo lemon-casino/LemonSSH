@@ -27,6 +27,9 @@ func TestShortcutRegisterFailsClosedWithoutNativeHotkeys(t *testing.T) {
 	if result.Error == "" {
 		t.Fatal("failure must explain that native hotkeys are unavailable")
 	}
+	if service.Status().Enabled || len(service.List()) != 0 {
+		t.Fatal("failed native registration leaked into active registry")
+	}
 }
 
 func TestOSProtocolStatusReadable(t *testing.T) {
