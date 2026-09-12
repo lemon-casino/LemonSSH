@@ -3769,3 +3769,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: a runtime-abandoned staged upload (renderer died mid-stage without discard) stays until the next boot, by lease design; external-edit downloads accumulate until the user clears temp from Settings
 - Next safe slice: live mosh/et roaming matrix on the Debian 13 host
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L126 - 2026-09-12 - Cloud OAuth device/PKCE flows and master key rotation through the native bridge
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Wire the completed cloud auth backend into the runtime bridge so the existing UI works under Wails. The Go side already exposes GitHub device flow (start/poll/cancel), Google and OneDrive PKCE exchange/refresh, user info, and GitHub Gist plus Google Drive and OneDrive snapshot file operations with a loopback OAuth callback server (internal/platform/cloudsync/oauth_client.go, oauth_callback.go, oauth_snapshots.go, cmd/netcatty/syncAuthService.go). The missing link was the runtime surface: the generated syncservice bindings were never mapped onto the camelCase bridge the adapters and cloudSyncBridge.get() consume, so Wails silently fell back to renderer-direct fetch, which cannot complete Google/OneDrive token exchange (CORS). createCloudOAuthFacade(syncServiceBinding) now maps every method (refresh preserves the prior refresh token, deletions verify the ok flag) onto both the transition bridge and the sync port, built from injectable bindings for tests. UI flows already present: GitHub device-flow modal, Google/OneDrive connect, and the master key rotation dialog driving updateCloudSyncMasterKey through changeMasterKey and propagateMasterKeyRotation, whose multi-key profile transaction is guarded by the Go CAS Write (sync_rotation_test.go proves atomicity and durability across reopen).
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go, internal/platform/cloudsync/oauth_callback.go, cmd/netcatty/syncAuthService.go
+- Frontend adapter: infrastructure/services/cloudSync/cloudSyncFacade.ts, infrastructure/runtime/wails/wailsRuntimeClient.ts (sync port plus transition bridge), application/state/useCloudSync.ts, application/state/useCloudSyncMasterKey.ts, components/cloud-sync/CloudSyncDialogs.tsx
+- Electron owner affected: none; adapters keep renderer-fetch fallback for the Electron shell
+- Preserved invariants: tokens never appear in argv or logs; refresh keeps the previous refresh token when the provider omits one; rotation writes every sync key in one CAS transaction, so a failed rotation leaves the profile untouched; Wails never falls back to renderer fetch for provider ports
+- Data/schema impact: none; rotation reuses the existing master key config, replica, baseline and snapshot keys
+- Security impact: client secrets stay in the Go process; PKCE verifiers and device codes cross the bridge once and are not persisted
+- Verification: node --test infrastructure/services/cloudSync/*.test.ts plus runtime client 134/134; rotation suites useCloudSyncMasterKey, masterKeyRotation, masterKeyPropagation 6/6; Go go vet clean; bindings already expose the OAuth methods (syncservice.js); new wiring test asserts githubStartDeviceFlow reaches the injected binding through both the sync port and the transition bridge
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live provider authorization remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence on three platforms passes
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: OAuth applications are user-registered (client id/secret supplied at runtime); OneDrive/GitHub file operations are exercised by fixtures, not live accounts; rotation rollback under mid-flight crash is covered by the store transaction but not by a live kill test
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

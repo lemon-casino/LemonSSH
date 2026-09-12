@@ -38,6 +38,7 @@ import type { RemoteFile } from "../../../domain/models/workspace";
 import { openDataPlaneSession } from "./dataPlaneSession";
 import type { DataPlaneSessionHandle } from "./dataPlaneSession";
 import { createLocalShellBridge, type NativeLocalShellBindings } from './localShellBridge';
+import { createCloudOAuthFacade, type CloudOAuthBindings } from '../../services/cloudSync/cloudSyncFacade';
 import { createMonitoringBridge, type MonitoringBindings } from './monitoringBridge';
 import { readLocalTree } from "./localTree";
 import { createTransferBridge, type TransferBindings } from "./transferBridge";
@@ -221,6 +222,13 @@ export interface WailsBindingDeps {
     StageDiscard?: (tempPath: string) => Promise<unknown>;
   };
   sync?: {
+    PrepareOAuthCallback?: () => Promise<{ sessionId: string; port: number; redirectUri: string }>;
+    GithubStartDeviceFlow?: (options: { clientId?: string; scope?: string }) => Promise<unknown>;
+    GithubGetUserInfo?: (options: unknown) => Promise<unknown>;
+    GithubFindSyncFile?: (options: unknown) => Promise<unknown>;
+    GoogleGetUserInfo?: (options: unknown) => Promise<unknown>;
+    GoogleExchangeCodeForTokens?: (options: unknown) => Promise<unknown>;
+    OnedriveGetUserInfo?: (options: unknown) => Promise<unknown>;
     CloudSyncWebdavInitialize?: (config: unknown) => Promise<{ resourceId: string | null }>;
     CloudSyncWebdavUpload?: (config: unknown, syncedFile: unknown) => Promise<{ resourceId: string }>;
     CloudSyncWebdavDownload?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
@@ -294,6 +302,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const sessionAliases = new Map<string, string>();
   const nativeSessionId = (id: string) => sessionAliases.get(id) ?? id;
   const monitoring = createMonitoringBridge(bindings.terminal, nativeSessionId);
+  // Cloud OAuth facade: maps the generated PascalCase sync bindings onto the
+  // camelCase bridge surface the cloud sync adapters and UI already call.
+  const cloudOAuth = createCloudOAuthFacade(bindings.sync as unknown as CloudOAuthBindings);
   const rememberSession = (uiId: string | undefined, nativeId: string) => {
     if (uiId) sessionAliases.set(uiId, nativeId);
   };
@@ -839,6 +850,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
+    ...cloudOAuth,
     getDefaultShell,
     discoverShells,
     validatePath,
@@ -1272,6 +1284,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       getSftpHomeDir,
     }),
     sync: portWith("sync", {
+      // Cloud OAuth surface (camelCase) mapped from the generated sync
+      // bindings, so cloudSyncBridge.get() and the adapters reach the Go
+      // OAuth/device-flow/file operations under Wails.
+      ...cloudOAuth,
       cloudSyncWebdavInitialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
         return bindings.sync.CloudSyncWebdavInitialize(config);
