@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L124`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
+当前台账头：`WV3-L125`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -70,7 +70,7 @@ helper binary 和对应 pin 均缺。已通过的 Wails build 不等于 package-
 - sudo SFTP 子系统启动和显式错误代码已接；真实 sudo 权限服务器未验证 — pending（L118）；非 UTF-8 文件名矩阵已在 192.168.0.6 上活体通过（L112）
 - 远程 zip 解压：下载到临时目录、zip-slip 提取、再上传（SFTP-01）— 已处理
 
-C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、backend epoch、List reload observation 均已接；Go 定向测试与 main TS 33/33 通过（L121）。最终 pinned generation 20 services/142 methods/50 models 无 warnings，Wails build 产出 bin/LemonSSH.exe v0.0.1，cmd/transfer/dataplane/zmodem/plugin Go race 全部 PASS（既存 multiple-manifest linker warning）；冻结后集成 Node suite 102/102 PASS；TS33 覆盖 raw1000 → ZIP10 计量，压缩期间 transferred bytes=0，实际上传后才计 ZIP 字节。上传 ZIP 不隐式解压，沿用 UploadCompressedFolder 路径。最终 metric 修正后的 npm run wails:build 亦 PASS / exit 0。filesystem/transfer 共用 profile temp，UI TempInfo/TempFilePath/ClearTemp 已接；ClearTemp 跳过 staged prefixes，可能保留孤儿 stage（L122）。
+C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、backend epoch、List reload observation 均已接；Go 定向测试与 main TS 33/33 通过（L121）。最终 pinned generation 20 services/142 methods/50 models 无 warnings，Wails build 产出 bin/LemonSSH.exe v0.0.1，cmd/transfer/dataplane/zmodem/plugin Go race 全部 PASS（既存 multiple-manifest linker warning）；冻结后集成 Node suite 102/102 PASS；TS33 覆盖 raw1000 → ZIP10 计量，压缩期间 transferred bytes=0，实际上传后才计 ZIP 字节。上传 ZIP 不隐式解压，沿用 UploadCompressedFolder 路径。最终 metric 修正后的 npm run wails:build 亦 PASS / exit 0。filesystem/transfer 共用 profile temp，UI TempInfo/TempFilePath/ClearTemp 已接；租约注册表保护运行中条目，boot 清扫移除上一会话孤儿 staging（L125），运行中放弃的上传须等下次启动回收。
 
 ### 系统能力
 - App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；UnlockWithBiometrics 已接原生 Hello/Touch ID adapter；本机 Hello IsSupported=false，成功认证与 macOS 活体仍缺（L116）（SYS-04）— 已处理

@@ -3744,3 +3744,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: restart re-runs the full SSH/mosh handshake (new remote shell by design); repeated dead helpers keep requiring manual restarts; banner UI not yet GUI-verified
 - Next safe slice: live mosh/et roaming matrix on the Debian 13 host
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L125 - 2026-09-12 - Boot-time staging orphan sweep over leased temp entries
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Close the residual orphan-temp risk. The managed temp lease registry (owned entries, I/O pin refcounts, staged-inode checks) already protects active work from ClearTemp; the missing piece was a caller for TempService.CleanupOrphans. Boot now sweeps the dedicated temp root: a fresh process holds no leases, so leftover staged-upload files and active-transfer directories from a previous session are removed once at startup, external-edit downloads are preserved, and entries leased by the running process are never touched. The sweep is idempotent, failures are logged without blocking boot, and cmd-level tests lock the semantics (previous-process leftovers removed; this-process leases survive; second sweep removes nothing).
+- Go canonical owner: cmd/netcatty/temp_orphan_sweep.go (sweepTempOrphans), internal/platform/filesystem/filesystem.go (existing lease registry and CleanupOrphans)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: no lease-protected entry is ever deleted; external-edit downloads survive; single-instance lock means a fresh process cannot race a live session's temp files
+- Data/schema impact: none
+- Security impact: sweep stays inside the managed temp root and only touches known staging prefixes
+- Verification: go test ./cmd/netcatty -run TestSweepTempOrphans (red for the missing helper, green after wiring); go test -race ./internal/platform/filesystem; go test ./cmd/netcatty ./internal/platform/filesystem; migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron temp bridges stay until installed-package acceptance passes
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: a runtime-abandoned staged upload (renderer died mid-stage without discard) stays until the next boot, by lease design; external-edit downloads accumulate until the user clears temp from Settings
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

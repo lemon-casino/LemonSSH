@@ -152,6 +152,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("open application temp directory: %v", err)
 	}
+	sweepTempOrphans(managedTemp)
 	filesystemService := newFilesystemService()
 	filesystemService.setTempService(managedTemp)
 	transferService := newTransferService()
@@ -186,6 +187,8 @@ func main() {
 		wailsApp.Event.Emit(name, payload)
 	})
 	sftpService := NewSFTPService(sshPool, knownHosts)
+	sftpService.setTempService(managedTemp)
+	sftpService.setTerminalService(terminalSvc)
 	transferService.setSFTPService(sftpService)
 	forwardService := NewForwardService(sshPool, knownHosts)
 

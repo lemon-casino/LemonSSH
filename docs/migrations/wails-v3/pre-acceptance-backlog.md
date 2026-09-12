@@ -78,7 +78,7 @@ WV3-L114 保留对 L113 的纠正；L115 在真实 adapter/boot 验证后重新�
   压缩阶段 transfer bytes 为 0，上传阶段按实际 ZIP 字节计量（raw1000 → ZIP10 测试）；
   仅上传 ZIP、不隐式解压，沿用 UploadCompressedFolder 语义。
   最终 metric 修正后 npm run wails:build 亦 PASS / exit 0。
-  共享 managed temp 已接；ClearTemp 跳过 staged prefixes，孤儿 stage 可能残留（L122）。
+  共享 managed temp 租约注册表已接；boot 清扫移除上一会话孤儿 staging（L125），运行中租约永不清理。
 - [x] C5 Mosh/ET helper 可复现供给、可信校验与发布打包（TERM-03.3）— 完成：
   `scripts/fetch-wails-helpers.mjs` + `fetch-wails-helpers.lock.json` 锁定
   MoshCatty moshcatty-0.1.8 与 Netcatty et-bin-6.2.10-1（来源/构建/SHA256SUMS/
@@ -142,7 +142,7 @@ A1（gate 关键路径）→ B（有现成计划、用户已验收 P1–P3b）�
 ## 完成定义（本文档范围，尚未全部满足）
 
 不能宣称全部 capability implemented：C4 代码、最终 Wails build/Go race 完成，冻结后 Node suite 102/102 PASS，metric 修正后 Wails build 亦 PASS；
-ClearTemp 孤儿 stage 清理仍有限制；ET 高级认证/代理/跳板及
+ClearTemp 孤儿 stage 清理已由 boot 清扫补齐（L125）；ET 高级认证/代理/跳板及
 进程死亡恢复有上述范围限制。真实 lrzsz、GUI、原生多平台与签名证据仍缺。
 
 - 所需代码切片完成并按合法状态转换回写矩阵/台账；复选框不等于 capability `implemented`。
