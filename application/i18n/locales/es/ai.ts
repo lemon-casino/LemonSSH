@@ -610,6 +610,7 @@ export const esAiMessages: Messages = {
   'topTabs.externalMcp.disable': 'Desactivar MCP externo',
   'topTabs.windowOpacity': 'Opacidad de la ventana',
   'topTabs.openSettings': 'Abrir Configuración',
+  'topTabs.vaults': 'Bóvedas',
   'ai.chat.sessionHistory': 'Historial de sesiones',
   'ai.chat.resizeInput': 'Arrastra para redimensionar el campo de mensaje',
   'ai.chat.attach': 'Adjuntar',

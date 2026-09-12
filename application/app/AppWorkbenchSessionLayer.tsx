@@ -4,6 +4,7 @@ import { toEditorTabId, useActiveTabId } from '../state/activeTabStore';
 import type { EditorTabChrome } from '../state/editorTabStore';
 import type { LogView } from '../state/logViewState';
 import { useWorkbenchTreeExpanded } from '../state/workbenchSessionTreeStore';
+import { useI18n } from '../i18n/I18nProvider';
 import { WorkbenchSessionTree } from '../../components/workbench/WorkbenchSessionTree';
 import type { GroupConfig, Host, TerminalSession, Workspace } from '../../types';
 import { resolveSessionTabTitle } from '../../domain/sessionTabTitle';
@@ -79,6 +80,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   // Leaf-layer subscription: AppView must never read activeTabId itself.
   const activeTabId = useActiveTabId();
   const { expandedPaths, togglePath } = useWorkbenchTreeExpanded();
+  const { t } = useI18n();
   const surfaceVisible = enabled;
 
   const sections = useMemo(() => {
@@ -121,10 +123,10 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
       })),
       fixedItems: showSftpTab
         ? [
-            { id: 'vault', label: 'Vaults' },
+            { id: 'vault', label: t('topTabs.vaults') },
             { id: 'sftp', label: 'SFTP' },
           ]
-        : [{ id: 'vault', label: 'Vaults' }],
+        : [{ id: 'vault', label: t('topTabs.vaults') }],
     };
     return buildSessionGroupTree(options);
   }, [
@@ -137,6 +139,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
     logViews,
     editorTabs,
     showSftpTab,
+    t,
   ]);
 
   const fixedIds = useMemo(

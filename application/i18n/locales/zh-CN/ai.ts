@@ -610,6 +610,7 @@ export const zhCNAiMessages: Messages = {
   'topTabs.externalMcp.disable': '停用对外 MCP',
   'topTabs.windowOpacity': '窗口透明度',
   'topTabs.openSettings': '打开设置',
+  'topTabs.vaults': '保险库',
   'ai.chat.sessionHistory': '会话历史',
   'ai.chat.resizeInput': '拖动调整消息输入框高度',
   'ai.chat.attach': '附件',

@@ -1009,7 +1009,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
         <div ref={fixedLeftTabsRef} className="flex items-center gap-0 flex-shrink-0 app-drag">
           <RootTopTab
             tabId="vault"
-            label="Vaults"
+            label={t('topTabs.vaults')}
             icon={<FolderLock size={14} />}
             className="rounded"
             compact={rootTabsCompact}

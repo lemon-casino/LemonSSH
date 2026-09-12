@@ -609,6 +609,7 @@ export const zhTWAiMessages: Messages = {
   'topTabs.externalMcp.disable': '停用對外 MCP',
   'topTabs.windowOpacity': '視窗透明度',
   'topTabs.openSettings': '開啟設定',
+  'topTabs.vaults': '保險庫',
   'ai.chat.sessionHistory': '工作階段歷史',
   'ai.chat.resizeInput': '拖曳調整訊息輸入框高度',
   'ai.chat.attach': '附件',

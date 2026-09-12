@@ -610,6 +610,7 @@ export const enAiMessages: Messages = {
   'topTabs.externalMcp.disable': 'Disable External MCP',
   'topTabs.windowOpacity': 'Window opacity',
   'topTabs.openSettings': 'Open Settings',
+  'topTabs.vaults': 'Vaults',
   'ai.chat.sessionHistory': 'Session history',
   'ai.chat.resizeInput': 'Drag to resize the message input',
   'ai.chat.attach': 'Attach',

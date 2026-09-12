@@ -118,7 +118,7 @@ export function AppActiveTabChrome({
   }, [editorTabs]);
 
   const activeWindowTitle = useMemo(() => {
-    if (activeTabId === 'vault') return 'Vaults';
+    if (activeTabId === 'vault') return t('topTabs.vaults');
     if (activeTabId === 'sftp') return 'SFTP';
     if (isEditorTabId(activeTabId)) {
       const editorTab = editorTabs.find((tab) => tab.id === fromEditorTabId(activeTabId));

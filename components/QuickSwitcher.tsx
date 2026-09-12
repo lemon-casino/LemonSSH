@@ -616,7 +616,7 @@ const QuickSwitcherInner: React.FC<QuickSwitcherProps> = ({
                 const isBuiltIn = item.id === "vault" || item.id === "sftp";
                 if (isBuiltIn) {
                   const icon = item.id === "vault" ? <FolderLock size={16} /> : <Folder size={16} />;
-                  const label = item.id === "vault" ? "Vaults" : "SFTP";
+                  const label = item.id === "vault" ? t("topTabs.vaults") : "SFTP";
                   return (
                     <div
                       className={rowClass}
