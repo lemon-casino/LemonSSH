@@ -79,10 +79,10 @@ export function VaultNavItems({
                   data-state={active ? "active" : "inactive"}
                   onClick={() => onSelectSection(section.id)}
                   className={cn(
-                    "h-7 px-2.5 rounded-md text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors",
+                    "h-8 px-3 rounded-md text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors",
                     active
                       ? "bg-foreground/10 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
+                      : "text-foreground hover:bg-foreground/5",
                   )}
                 >
                   {section.icon}

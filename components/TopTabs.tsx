@@ -998,7 +998,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
       {/* Always-on drag stripe so the window can be moved even when tabs fill the bar */}
       <div className="absolute inset-x-0 top-0 h-1 app-drag pointer-events-auto z-10" style={dragRegionStyle} aria-hidden />
       <div
-        className="h-9 flex items-end gap-0 app-drag overflow-visible"
+        className="h-10 flex items-end gap-0 app-drag overflow-visible"
         style={{
           ...dragRegionStyle,
           paddingLeft: isMacClient && !isWindowFullscreen ? 76 : 12,
@@ -1242,7 +1242,7 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
         </div>
         {/* Small drag shim to the right edge (macOS only – on Windows the close button should touch the edge) */}
         {isMacClient && !showWindowControls && (
-          <div className="w-2 h-9 app-drag flex-shrink-0 self-end" />
+          <div className="w-2 h-10 app-drag flex-shrink-0 self-end" />
         )}
       </div>
     </div>

@@ -771,7 +771,7 @@ html[data-theme-transition] *::after {
   -webkit-user-select: auto;
 }
 
-/* Window controls: icons sit in the h-7 tab row; hover fills the full h-9 title bar */
+/* Window controls: icons sit in the h-7 tab row; hover fills the full title bar */
 [data-section="top-tabs"] .window-control-btn,
 [data-section="workbench-chrome"] .window-control-btn {
   position: relative;

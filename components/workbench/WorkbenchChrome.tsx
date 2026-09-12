@@ -104,7 +104,7 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
       onDoubleClick={handleTitleBarDoubleClick}
     >
       <div
-        className="h-9 flex items-end gap-2 app-drag min-w-0"
+        className="h-10 flex items-end gap-2 app-drag min-w-0"
         style={{
           paddingLeft: isMacClient && !isWindowFullscreen ? 76 : 12,
           paddingRight: showWindowControls ? 0 : 12,
