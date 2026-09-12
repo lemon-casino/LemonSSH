@@ -31,6 +31,15 @@ if (!process.versions.electron) {
     },
   }]);
 
+  let service;
+  // Chromium owns userData until process exit; remove only this test directory
+  // after Electron releases its handles, including on a failed smoke run.
+  electron.app.on("quit", () => {
+    if (!process.env.NETCATTY_PLUGIN_SMOKE_KEEP) {
+      try { fs.rmSync(userData, { recursive: true, force: true }); }
+      catch (error) { console.error(`Smoke data retained at ${userData}: ${error.message}`); }
+    }
+  });
   void electron.app.whenReady().then(async () => {
     const rasterizeContributionIcon = createIsolatedContributionIconRasterizer({
       BrowserWindow: electron.BrowserWindow,
@@ -63,7 +72,7 @@ if (!process.versions.electron) {
       );
     }
     fs.cpSync(path.join(__dirname, "runtime"), runtimeDirectory, { recursive: true });
-    const service = createPluginHostService({
+    service = createPluginHostService({
       app: electron.app,
       electron,
       appRoot: runtimeAppRoot,
@@ -92,7 +101,6 @@ if (!process.versions.electron) {
       });
     }
     await service.manager.shutdown();
-    fs.rmSync(userData, { recursive: true, force: true });
     process.stdout.write("PLUGIN_RUNTIME_SMOKE_OK\n");
     electron.app.exit(0);
   }).catch(async (error) => {
@@ -107,8 +115,9 @@ if (!process.versions.electron) {
         console.error(fs.readFileSync(logPath, "utf8"));
       } catch {}
     }
+    try { await service?.manager.shutdown(); }
+    catch (shutdownError) { console.error(shutdownError); }
     if (process.env.NETCATTY_PLUGIN_SMOKE_KEEP) console.error(`Smoke data retained at ${userData}`);
-    else fs.rmSync(userData, { recursive: true, force: true });
     electron.app.exit(1);
   });
 }
