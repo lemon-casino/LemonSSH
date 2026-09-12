@@ -17,6 +17,11 @@ import {
   type AppLockTimeoutMinutes,
 } from '../../domain/appLock';
 import {
+  DEFAULT_LAYOUT_MODE,
+  parseLayoutMode,
+  type LayoutMode,
+} from '../../domain/layoutMode';
+import {
   DEFAULT_HTTP_NETWORK_PROXY,
   areHttpNetworkProxySettingsEqual,
   normalizeHttpNetworkProxySettings,
@@ -1760,6 +1765,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     globalHotkeyEnabled,
     closeToTray,
     closeBehavior,
+    layoutMode,
     windowOpacityRecord,
     windowOpacityMutationSourceRef,
     autoUpdateEnabled,

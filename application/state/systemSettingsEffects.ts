@@ -48,6 +48,7 @@ export function useSystemSettingsEffects({
   globalHotkeyEnabled,
   closeToTray,
   closeBehavior,
+  layoutMode,
   windowOpacityRecord,
   windowOpacityMutationSourceRef,
   autoUpdateEnabled,

@@ -189,7 +189,7 @@ export function useSettingsStorageSync({
   setSftpUseCompressedUpload, setSftpSkipUnchanged, setSftpAutoOpenSidebar, setSftpFollowTerminalCwd, setSftpDefaultViewMode,
   setShowRecentHostsState, setHostClickBehaviorState, setShowOnlyUngroupedHostsInRootState, setShowSftpTabState, setShowHostTreeSidebarState, setTerminalSidePanelAutoOpenState, setTerminalSidePanelAutoOpenTabState, setShellOnlyTabNumberShortcutsState, setShowTabNumberBadgesState, setDisableTerminalFontZoomState, setRestorePreviousSessionState, setRestoreTerminalCwdState, setStartupLandingState,
   setEditorWordWrapState, setSessionLogsEnabled, setSessionLogsDir, setSessionLogsFormat, setSessionLogsTimestampsEnabled, setSshDebugLogsEnabled, setSshDeepLinkEnabledState, setJmsDeepLinkEnabledState, setExplorerContextMenuEnabledState,
-  setGlobalHotkeyEnabled, setWindowOpacity, setCloseBehavior, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
+  setGlobalHotkeyEnabled, setWindowOpacity, setCloseBehavior, setLayoutMode, setAutoUpdateEnabled, setWorkspaceFocusStyleState,
   setSftpTransferConcurrencyState, setSshTransportIdleTtlMsState,
   applyIncomingCustomKeyBindings, mergeIncomingTerminalSettings,
 }: UseSettingsStorageSyncParams) {
@@ -516,6 +516,9 @@ export function useSettingsStorageSync({
           setCloseBehavior(e.newValue);
         }
       }
+      if (e.key === STORAGE_KEY_LAYOUT_MODE) {
+        setLayoutMode(e.newValue);
+      }
       // Sync workspace focus style from other windows
       if (e.key === STORAGE_KEY_WORKSPACE_FOCUS_STYLE && e.newValue !== null) {
         if (e.newValue === 'dim' || e.newValue === 'border') {
@@ -554,7 +557,7 @@ export function useSettingsStorageSync({
     setHostClickBehaviorState,
     setWindowOpacity,
     setCloseBehavior,
-  setLayoutMode,
+    setLayoutMode,
     setHotkeyScheme,
     setLightUiThemeId,
     setSessionLogsDir,
