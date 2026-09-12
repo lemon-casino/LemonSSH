@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { netcattyBridge } from '../infrastructure/services/netcattyBridge';
+import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 
 /**
  * Opens a URL in the system browser (never the app WebView). Components use

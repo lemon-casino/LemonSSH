@@ -71,6 +71,31 @@ func openExternalBrowser(ctx context.Context, rawURL string) error {
 	return openExternalLauncher(ctx, rawURL)
 }
 
+// CloudSyncSetSessionPassword remembers the vault master key for this
+// session (and seals a copy so a restart does not re-prompt).
+func (s *SyncService) CloudSyncSetSessionPassword(password string) bool {
+	if s.passwords == nil {
+		return false
+	}
+	return s.passwords.Set(password)
+}
+
+// CloudSyncGetSessionPassword returns the remembered master key, if any.
+func (s *SyncService) CloudSyncGetSessionPassword() (string, bool) {
+	if s.passwords == nil {
+		return "", false
+	}
+	return s.passwords.Get()
+}
+
+// CloudSyncClearSessionPassword forgets the remembered master key.
+func (s *SyncService) CloudSyncClearSessionPassword() bool {
+	if s.passwords == nil {
+		return false
+	}
+	return s.passwords.Clear()
+}
+
 func (s *SyncService) GithubStartDeviceFlow(ctx context.Context, options cloudsync.DeviceOptions) (cloudsync.DeviceCode, error) {
 	return s.oauth.StartDevice(ctx, options)
 }

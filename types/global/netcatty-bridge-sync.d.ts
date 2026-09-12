@@ -105,10 +105,12 @@ declare global {
     onAppLockSettingsChanged?(cb: (settings: AppLockSettings) => void): () => void;
     onAppLockRuntimeStateChanged?(cb: (state: AppLockRuntimeState) => void): () => void;
 
-    // Cloud sync master password (stored in-memory + persisted via Electron safeStorage)
+    // Cloud sync master password (in-memory + sealed by the OS keyring provider)
     cloudSyncSetSessionPassword?(password: string): Promise<boolean>;
     cloudSyncGetSessionPassword?(): Promise<string | null>;
-    cloudSyncClearSessionPassword?(): Promise<boolean>;
+    cloudSyncClearSessionPassword?(): Promise<{ success?: boolean }>;
+    /** Forgets the master key: removes every cloud sync identity key from the profile store. */
+    cloudSyncResetEverything?(): Promise<string[]>;
 
     // Cloud sync network operations (proxied via main process)
     cloudSyncWebdavInitialize?(config: WebDAVConfig): Promise<{ resourceId: string | null }>;

@@ -34,7 +34,7 @@ import {
   type SyncEventCallback,
 } from '../../infrastructure/services/CloudSyncManager';
 import type { ShrinkFinding } from '../../domain/syncGuards';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { cloudSyncBridge as netcattyBridge, cloudSyncBridge } from '../../infrastructure/services/cloudSync/cloudSyncFacade';
 import type { DeviceFlowState } from '../../infrastructure/services/adapters/GitHubAdapter';
 import {
   getConvergentSyncLocalConfig,
@@ -95,6 +95,7 @@ export interface CloudSyncHook {
   unlock: (password: string) => Promise<boolean>;
   lock: () => void;
   changeMasterKey: (oldPassword: string, newPassword: string) => Promise<boolean>;
+  propagateMasterKeyRotation: (oldPassword: string, newPassword: string) => Promise<void>;
   verifyPassword: (password: string) => Promise<boolean>;
   
   // Provider Actions
@@ -123,6 +124,7 @@ export interface CloudSyncHook {
     redirectUri: string
   ) => Promise<void>;
   cancelOAuthConnect: () => void;
+  resetSyncEverything: () => Promise<string[]>;
   disconnectProvider: (provider: CloudProvider) => Promise<void>;
   resetProviderStatus: (provider: CloudProvider) => void;
 
@@ -404,9 +406,10 @@ export const useCloudSync = (): CloudSyncHook => {
     oldPassword: string,
     newPassword: string
   ): Promise<boolean> => {
-    const ok = await manager.changeMasterKey(oldPassword, newPassword);
+    const ok = await manager.verifyPassword(newPassword) || await manager.changeMasterKey(oldPassword, newPassword);
     if (ok) {
-      void netcattyBridge.get()?.cloudSyncSetSessionPassword?.(newPassword);
+      const saved = await netcattyBridge.get()?.cloudSyncSetSessionPassword?.(newPassword);
+      if (saved === false) throw new Error('Master key changed locally, but saving the password failed. Retry the key update.');
     }
     return ok;
   }, []);
@@ -493,7 +496,7 @@ export const useCloudSync = (): CloudSyncHook => {
     );
 
     try {
-      await netcattyBridge.get()?.cancelOAuthCallback?.(sessionId);
+      await cloudSyncBridge.get()?.cancelOAuthCallback?.(sessionId);
     } catch {
       // Best-effort cleanup
     }
@@ -501,7 +504,7 @@ export const useCloudSync = (): CloudSyncHook => {
   
   const runPKCEAuth = useCallback(
     async (provider: 'google' | 'onedrive'): Promise<string> => {
-      const bridge = netcattyBridge.get();
+      const bridge = cloudSyncBridge.get();
       const prepare = bridge?.prepareOAuthCallback;
       const awaitCallback = bridge?.awaitOAuthCallback;
       const openExternal = bridge?.openExternal;
@@ -729,6 +732,12 @@ export const useCloudSync = (): CloudSyncHook => {
     await manager.connectPluginProvider(providerId, configuration, credential);
   }, []);
   
+  const resetSyncEverything = useCallback(async (): Promise<string[]> => {
+    const bridge = netcattyBridge.get();
+    if (!bridge?.cloudSyncResetEverything) throw new Error('cloudSyncResetEverything is not migrated to the Wails runtime yet');
+    return bridge.cloudSyncResetEverything();
+  }, []);
+
   const cancelOAuthConnect = useCallback(() => {
     const githubAbort = activeGitHubAuthAbortRef.current;
     if (githubAbort) {
@@ -951,6 +960,7 @@ export const useCloudSync = (): CloudSyncHook => {
     unlock,
     lock,
     changeMasterKey,
+    propagateMasterKeyRotation: manager.propagateMasterKeyRotation.bind(manager),
     verifyPassword,
     
     // Provider Actions
@@ -963,6 +973,7 @@ export const useCloudSync = (): CloudSyncHook => {
     connectPluginProvider,
     completePKCEAuth,
     cancelOAuthConnect,
+    resetSyncEverything,
     disconnectProvider,
     resetProviderStatus,
 

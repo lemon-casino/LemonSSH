@@ -167,6 +167,7 @@ func main() {
 		}
 	})
 	syncService := newSyncService()
+	syncService.setSessionDependencies(profileStore, baseProfileDir(), credentialProvider)
 	diagnosticLogService := newDiagnosticLogService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.

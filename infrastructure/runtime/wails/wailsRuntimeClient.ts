@@ -228,6 +228,10 @@ export interface WailsBindingDeps {
     StageDiscard?: (tempPath: string) => Promise<unknown>;
   };
   sync?: {
+    CloudSyncSetSessionPassword?: (password: string) => Promise<boolean>;
+    CloudSyncGetSessionPassword?: () => Promise<{ password?: string; found?: boolean }>;
+    CloudSyncClearSessionPassword?: () => Promise<{ success?: boolean }>;
+    CloudSyncResetEverything?: () => Promise<string[]>;
     PrepareOAuthCallback?: () => Promise<{ sessionId: string; port: number; redirectUri: string }>;
     OpenProviderConsole?: (provider: 'github' | 'google' | 'onedrive') => Promise<void>;
     GithubStartDeviceFlow?: (options: { clientId?: string; scope?: string }) => Promise<unknown>;
@@ -332,6 +336,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   // Cloud OAuth facade: maps the generated PascalCase sync bindings onto the
   // camelCase bridge surface the cloud sync adapters and UI already call.
   const cloudOAuth = createCloudOAuthFacade(bindings.sync as unknown as CloudOAuthBindings);
+  const cloudSyncSetSessionPassword = (async (password: string) => {
+    if (!bindings.sync?.CloudSyncSetSessionPassword) missingBridgeMethod("cloudSyncSetSessionPassword");
+    return bindings.sync.CloudSyncSetSessionPassword(password);
+  }) as unknown as NetcattyBridge["cloudSyncSetSessionPassword"];
+  const cloudSyncGetSessionPassword = (async () => {
+    const result = await bindings.sync?.CloudSyncGetSessionPassword?.();
+    return result?.password ?? null;
+  }) as unknown as NetcattyBridge["cloudSyncGetSessionPassword"];
+  const cloudSyncClearSessionPassword = (async () => {
+    return (await bindings.sync?.CloudSyncClearSessionPassword?.()) ?? { success: false };
+  }) as unknown as NetcattyBridge["cloudSyncClearSessionPassword"];
+  const cloudSyncResetEverything = (async () => {
+    if (!bindings.sync?.CloudSyncResetEverything) missingBridgeMethod("cloudSyncResetEverything");
+    const keys = await bindings.sync.CloudSyncResetEverything();
+    return { removedKeys: keys ?? [] };
+  }) as unknown as NetcattyBridge["cloudSyncResetEverything"];
   const openProviderConsole = (async (provider: 'github' | 'google' | 'onedrive') => {
     if (!bindings.sync?.OpenProviderConsole) missingBridgeMethod("openProviderConsole");
     await bindings.sync.OpenProviderConsole(provider);
@@ -886,6 +906,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     credentialsAvailable,
     credentialsEncrypt,
     credentialsDecrypt,
+    cloudSyncSetSessionPassword,
+    cloudSyncGetSessionPassword,
+    cloudSyncClearSessionPassword,
+    cloudSyncResetEverything,
     getDefaultShell,
     discoverShells,
     validatePath,
