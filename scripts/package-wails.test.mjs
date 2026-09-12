@@ -121,6 +121,7 @@ test("protocol resources register all supported schemes", async () => {
   for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(desktop.includes(`x-scheme-handler/${scheme};`));
   const mac = await writeProtocolResources(dir, "darwin", "LemonSSH");
   const plist = await readFile(mac[0], "utf8");
+  assert.match(plist, /<key>CFBundleIdentifier<\/key><string>app\.lemonssh\.desktop<\/string>/);
   for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(plist.includes(`<string>${scheme}</string>`));
 });
 

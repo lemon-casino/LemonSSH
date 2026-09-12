@@ -52,9 +52,7 @@ func TestAppLockEnableUnlockRoundTrip(t *testing.T) {
 	if state := service.GetRuntimeState(); state.Locked {
 		t.Fatal("unlock must clear locked")
 	}
-	if _, err := service.Enable("hunter22"); err != nil {
-		t.Fatal(err)
-	}
+	service.SetRuntimeLocked("manual")
 	if err := service.Disable("hunter22"); err != nil {
 		t.Fatal(err)
 	}

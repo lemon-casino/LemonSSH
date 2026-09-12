@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -22,11 +24,14 @@ type AppLockRuntimeState struct {
 }
 
 type AppLockService struct {
-	mu       sync.Mutex
-	state    AppLockRuntimeState
-	core     *applock.Service
-	store    *store.Store
-	verifier applock.Verifier
+	mu                    sync.Mutex
+	state                 AppLockRuntimeState
+	core                  *applock.Service
+	store                 *store.Store
+	verifierPresent       bool
+	verifier              applock.Verifier
+	authenticateBiometric func() error
+	biometricSettings     BiometricSettings
 }
 
 const appLockDomain = "settings"
@@ -38,11 +43,17 @@ func newAppLockService() *AppLockService {
 
 func newAppLockServiceWithDeps(core *applock.Service, profileStore *store.Store) *AppLockService {
 	service := &AppLockService{
-		state: AppLockRuntimeState{Initialized: true, Locked: false, Version: 1},
-		core:  core,
-		store: profileStore,
+		state:                 AppLockRuntimeState{Initialized: true, Locked: false, Version: 1},
+		core:                  core,
+		store:                 profileStore,
+		authenticateBiometric: applock.AuthenticateBiometric,
 	}
 	service.loadVerifier()
+	if profileStore != nil {
+		if raw, err := profileStore.GetRaw(appLockDomain, "app-lock-biometric"); err == nil {
+			_ = json.Unmarshal(raw, &service.biometricSettings)
+		}
+	}
 	return service
 }
 
@@ -51,17 +62,22 @@ func (s *AppLockService) loadVerifier() {
 		return
 	}
 	raw, err := s.store.GetRaw(appLockDomain, appLockKey)
-	if err != nil || len(raw) == 0 {
+	if errors.Is(err, store.ErrNoSuchKey) {
+		return
+	}
+	s.verifierPresent = true
+	s.state.Locked = true
+	reason := "password"
+	s.state.Reason = &reason
+	now := time.Now().UnixMilli()
+	s.state.LastLockedAt = &now
+	if err != nil {
 		return
 	}
 	var verifier applock.Verifier
-	if err := json.Unmarshal(raw, &verifier); err != nil {
-		return
+	if err := json.Unmarshal(raw, &verifier); err == nil {
+		s.verifier = verifier
 	}
-	s.verifier = verifier
-	s.state.Locked = true
-	now := time.Now().UnixMilli()
-	s.state.LastLockedAt = &now
 }
 
 func (s *AppLockService) GetRuntimeState() AppLockRuntimeState {
@@ -82,6 +98,9 @@ func (s *AppLockService) SetRuntimeLocked(reason string) AppLockRuntimeState {
 	defer s.mu.Unlock()
 	now := time.Now().UnixMilli()
 	if reason == "" {
+		if s.verifierPresent {
+			return s.state
+		}
 		s.state.Locked = false
 		s.state.Reason = nil
 		s.state.LastUnlockedAt = &now
@@ -97,6 +116,9 @@ func (s *AppLockService) SetRuntimeLocked(reason string) AppLockRuntimeState {
 func (s *AppLockService) Enable(password string) (AppLockRuntimeState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.verifierPresent {
+		return s.state, fmt.Errorf("app lock already configured; authenticate before changing password")
+	}
 	if s.core == nil {
 		return s.state, applock.ErrNoVerifier
 	}
@@ -114,6 +136,7 @@ func (s *AppLockService) Enable(password string) (AppLockRuntimeState, error) {
 		}
 	}
 	s.verifier = verifier
+	s.verifierPresent = true
 	now := time.Now().UnixMilli()
 	s.state.Locked = true
 	reason := "password"
@@ -148,13 +171,20 @@ func (s *AppLockService) Disable(password string) error {
 	if err := s.core.Verify(s.verifier, password); err != nil {
 		return err
 	}
+	if s.store != nil {
+		if _, err := s.store.Write(store.WriteRequest{Mutations: []store.Mutation{
+			{Domain: appLockDomain, Key: "app-lock-biometric", Delete: true},
+			{Domain: appLockDomain, Key: appLockKey, Delete: true},
+		}}); err != nil {
+			return err
+		}
+	}
 	now := time.Now().UnixMilli()
 	s.state.Locked = false
 	s.state.Reason = nil
 	s.state.LastUnlockedAt = &now
-	if s.store != nil {
-		_ = s.store.DeleteRaw(appLockDomain, appLockKey)
-	}
+	s.verifierPresent = false
+	s.biometricSettings = BiometricSettings{}
 	s.verifier = applock.Verifier{}
 	return nil
 }
@@ -165,10 +195,34 @@ type BiometricUnlockResult struct {
 }
 
 func (s *AppLockService) UnlockWithBiometrics() BiometricUnlockResult {
-	return BiometricUnlockResult{
-		Success: false,
-		Error:   "Windows Hello and Touch ID are not wired on the Wails App Lock owner yet",
+	s.mu.Lock()
+	if !s.biometricSettings.Enabled {
+		s.mu.Unlock()
+		return BiometricUnlockResult{Error: "disabled"}
 	}
+	if !s.state.Locked {
+		s.mu.Unlock()
+		return BiometricUnlockResult{Error: "not-locked"}
+	}
+	if s.core == nil || s.verifier.Digest == "" || s.authenticateBiometric == nil {
+		s.mu.Unlock()
+		return BiometricUnlockResult{Error: "biometric app lock owner or verifier unavailable"}
+	}
+	version, verifier, authenticate := s.state.Version, s.verifier, s.authenticateBiometric
+	s.mu.Unlock()
+	if err := authenticate(); err != nil {
+		return BiometricUnlockResult{Error: err.Error()}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state.Version != version || s.verifier != verifier {
+		return BiometricUnlockResult{Error: "app lock changed during biometric authentication; retry"}
+	}
+	now := time.Now().UnixMilli()
+	s.state.Locked = false
+	s.state.Reason = nil
+	s.state.LastUnlockedAt = &now
+	return BiometricUnlockResult{Success: true}
 }
 
 func newAppLockServiceForTest(t interface{ Fatal(...any) }) *AppLockService {

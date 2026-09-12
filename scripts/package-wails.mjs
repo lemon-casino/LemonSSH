@@ -128,7 +128,7 @@ export async function writeProtocolResources(outDir, goos, executable) {
   }
   if (goos === "darwin") {
     const target = path.join(outDir, "Info.plist");
-    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.netcatty.app</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Netcatty sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
+    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.lemonssh.desktop</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Netcatty sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
     return [target];
   }
   return [];
