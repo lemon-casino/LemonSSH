@@ -777,6 +777,7 @@ html[data-theme-transition] *::after {
   position: relative;
   z-index: 0;
   display: flex;
+  cursor: pointer;
   height: 1.75rem;
   width: 1.75rem;
   align-items: center;

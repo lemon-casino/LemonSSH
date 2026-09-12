@@ -106,7 +106,7 @@ export function WorkbenchSessionTreeRow({
         data-state={isActive ? "active" : "inactive"}
         onClick={() => onActivateTab(node.id)}
         className={cn(
-          "w-full flex items-center gap-2 px-2 rounded-md text-xs font-semibold transition-colors",
+          "w-full flex items-center gap-2 px-2 rounded-md text-xs font-semibold cursor-pointer transition-colors",
           isActive
             ? "bg-foreground/10 text-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
@@ -168,7 +168,7 @@ export function WorkbenchSessionTreeRow({
       >
         <button
           aria-label={label}
-          className="p-0.5 rounded hover:bg-foreground/10 shrink-0"
+          className="p-0.5 rounded cursor-pointer hover:bg-foreground/10 shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             onTogglePath(node.id);
@@ -224,7 +224,7 @@ export function WorkbenchSessionTreeRow({
       {logView && (
         <button
           aria-label={t("tabs.closeLogViewAria")}
-          className="p-1 rounded-full opacity-0 group-hover/leaf:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+          className="p-1 rounded-full cursor-pointer opacity-0 group-hover/leaf:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
             onCloseLogView(logView.id);
@@ -236,7 +236,7 @@ export function WorkbenchSessionTreeRow({
       {session && !session.workspaceId && (
         <button
           aria-label={t("tabs.closeSessionAria")}
-          className="p-1 rounded-full opacity-0 group-hover/leaf:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+          className="p-1 rounded-full cursor-pointer opacity-0 group-hover/leaf:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
             onCloseSession(session.id, e);
