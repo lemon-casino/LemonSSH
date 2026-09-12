@@ -138,9 +138,12 @@
       transition: opacity 0.2s ease-out;
     }
 
-    /* Main app only: opaque splash fill. Tray overlay stays clear (#2505). */
+    /* Main app only: opaque splash fill. Tray overlay stays clear (#2505).
+       --splash-background / --splash-accent come from the boot-theme mirror
+       (netcatty_boot_theme_v1, written by applyThemeTokens) so the splash
+       matches the real UI theme instead of the builtin fallback palette. */
     html:not(.tray-window) .splash-screen {
-      background: hsl(var(--background));
+      background: var(--splash-background, hsl(var(--background)));
     }
 
     .splash-screen.fade-out {
@@ -164,8 +167,8 @@
     .splash-spinner {
       width: 24px;
       height: 24px;
-      border: 2px solid hsl(var(--muted));
-      border-top-color: hsl(var(--primary));
+      border: 2px solid var(--splash-muted, hsl(var(--muted)));
+      border-top-color: var(--splash-accent, hsl(var(--primary)));
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -210,6 +213,21 @@
 
         if (lang) root.lang = lang;
 
+        // Boot-theme mirror: tint the splash with the real UI theme palette
+        // for the resolved scheme (written by applyThemeTokens on last run).
+        try {
+          var mirror = JSON.parse(localStorage.getItem('netcatty_boot_theme_v1') || 'null');
+          var palette = mirror && mirror[resolved];
+          if (palette && palette.background) {
+            root.style.setProperty('--splash-background', 'hsl(' + palette.background + ')');
+            if (palette.accent) {
+              root.style.setProperty('--splash-accent', 'hsl(' + palette.accent + ')');
+            }
+          }
+        } catch (e) {
+          // fall back to the builtin palette
+        }
+
         var ua = navigator.userAgent || '';
         if (/Win/i.test(ua)) {
           root.classList.add('platform-win32');
@@ -237,8 +255,8 @@
         // ignore
       }
     })();
-  </script>
-  <script type="module" crossorigin src="./assets/index-C256Yjb9.js"></script>
+  </script>
+  <script type="module" crossorigin src="./assets/index-fef_imSm.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/vendor-ai-C3X27dAL.js">
   <link rel="modulepreload" crossorigin href="./assets/vendor-radix-BB4rY6J4.js">
   <link rel="stylesheet" crossorigin href="./assets/index-c2FDLAIw.css">
@@ -254,7 +272,7 @@
         <div class="splash-spinner"></div>
       </div>
     </div>
-  </div>
+  </div>
 </body>
 
 </html>
