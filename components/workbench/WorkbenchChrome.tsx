@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { Lock, Menu, Plus, Settings, Sparkles } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import {
@@ -120,15 +119,28 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
         <div className="hidden min-[1440px]:block app-no-drag">
           <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
         </div>
-        <div className="min-[1440px]:hidden app-no-drag shrink-0">
-          <Popover open={navigationOpen} onOpenChange={setNavigationOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 app-no-drag" aria-label={t('topTabs.vaults')}><Menu size={16} /></Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-56 app-no-drag">
-              <VaultNavItems currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
-            </PopoverContent>
-          </Popover>
+        <div className="min-[1440px]:hidden app-no-drag shrink-0 flex items-center min-w-0">
+          {/* Toggle: one click expands the sections inline into the bar, a
+              second click collapses them back to the ☰ button. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={'h-7 w-7 shrink-0 app-no-drag' + (navigationOpen ? ' bg-foreground/10 text-foreground' : '')}
+            aria-label={t('topTabs.vaults')}
+            aria-expanded={navigationOpen}
+            onClick={() => setNavigationOpen(open => !open)}
+          >
+            <Menu size={16} />
+          </Button>
+          {navigationOpen && (
+            <div
+              data-section="workbench-chrome-inline-nav"
+              className="min-w-0 overflow-x-auto"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
+              <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-4 app-drag" style={dragRegionStyle} />
         <div
