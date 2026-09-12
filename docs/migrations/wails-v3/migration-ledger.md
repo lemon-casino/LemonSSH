@@ -3919,3 +3919,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: keyring unlock prompts (if any) appear as opaque Seal failures; a changed OS user cannot open previously sealed envelopes (by design)
 - Next safe slice: live end-to-end GitHub sync after this fix
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L132 - 2026-09-12 - Session password service and forgot-master-key reset
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the "cloudSyncGetSessionPassword is not migrated" sync error and add the forgot-master-key restart the user requested. CloudSyncSetSessionPassword/Get/Clear move to Go (cmd/netcatty/cloudSyncSession.go): the master key is held in memory for the session and a copy sealed by the OS-keyring-backed credential provider is persisted under the profile directory, restoring on first read after a restart — the Electron safeStorage semantics that were unreachable under Wails. CloudSyncResetEverything implements "forgot master key, start over": one CAS profile transaction deletes the master key config, convergent replicas, provider baselines, per-provider base payloads and snapshots, sync history and provider state, then clears the session password; the removed keys are returned for the confirmation toast. The unlock dialog gains a two-step reset entry (five-locale copy) calling resetSyncEverything through the useCloudSync surface.
+- Go canonical owner: cmd/netcatty/cloudSyncSession.go, cmd/netcatty/syncAuthService.go (session password facade), cmd/netcatty/syncService.go (setSessionDependencies)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts (session/reset bridge methods), application/state/useCloudSync.ts (resetSyncEverything), components/cloud-sync/CloudSyncDialogs.tsx (two-step reset), five locale files
+- Electron owner affected: none; the Electron in-memory plus safeStorage semantics are preserved as the frozen baseline
+- Preserved invariants: the reset runs in one CAS transaction, so a failed rotation-style reset cannot leave a half-cleared profile; the session password never crosses the bridge in plaintext responses after being set; local vault data is untouched by the reset
+- Data/schema impact: new profile file cloudsync/session-password (sealed, 0600); no storage keys added
+- Security impact: the sealed master key copy is purpose-bound to the Go credential provider and lives only in the profile directory
+- Verification: go build plus full cmd/netcatty package tests; node cloud suites 105/105, runtime client 37/37, workbench 8/8, locales 24/24; eslint and tsc clean on touched files (repository-wide tsc baseline unchanged); migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; cross-restart password restore is covered by tests, live restart by acceptance
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron session-password bridge stays until live sync evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: a forgotten key with an intact remote snapshot means the remote copy is orphaned until the fresh vault's first force push; sealed password file removal on manual profile deletion behaves like a normal reset
+- Next safe slice: live end-to-end GitHub sync with the restored session password
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
