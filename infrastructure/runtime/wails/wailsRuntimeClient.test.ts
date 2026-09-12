@@ -55,6 +55,73 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
   };
 }
 
+test("Complete resolves authoritative clean/error/closed exit metadata", async () => {
+  for (const status of [{ reason: "exited" as const, exitCode: 0 }, { reason: "exited" as const, exitCode: 7 }, { reason: "closed" as const }, { reason: "error" as const, error: "transport lost" }]) {
+    const bindings = stubBindings({ GetExitStatus: async () => ({ sessionId: "term-1", ...status }) });
+    let complete: (() => void) | undefined;
+    bindings.openDataPlane = options => { complete = options.onComplete; return { dispose() {} }; };
+    const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+    await bridge.startSSHSession({ hostname: "host", username: "user" });
+    const received = new Promise(resolve => bridge.onSessionExit("term-1", resolve));
+    complete!();
+    assert.deepEqual(await received, { sessionId: "term-1", ...status });
+  }
+});
+
+test("native exit remains authoritative when Complete is lost with the socket", async () => {
+  const bindings = stubBindings({ GetExitStatus: async () => ({ sessionId: "term-1", reason: "exited", exitCode: 0 }) });
+  let disconnect: (() => void) | undefined;
+  bindings.openDataPlane = options => { disconnect = options.onDisconnect; return { dispose() {} }; };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ hostname: "host", username: "user" });
+  const result = new Promise(resolve => bridge.onSessionExit("term-1", resolve));
+  disconnect!();
+  assert.deepEqual(await Promise.race([result, new Promise(resolve => setTimeout(() => resolve("missing exit"), 100))]), { sessionId: "term-1", reason: "exited", exitCode: 0 });
+  await bridge.closeSession("term-1");
+});
+
+test("OSC notification bridge reports native delivery and failure", async () => {
+  const bindings = stubBindings();
+  bindings.settings = { Open: async () => true, Close: async () => {}, ShowSystemNotification: async payload => ({ shown: payload.body === "ready" }) };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.deepEqual(await bridge.showSystemNotification!({ title: "Host", body: "ready" }), { shown: true });
+  bindings.settings.ShowSystemNotification = async () => { throw new Error("unavailable"); };
+  assert.deepEqual(await bridge.showSystemNotification!({ title: "Host", body: "ready" }), { shown: false, reason: "Error: unavailable" });
+});
+
+test("clipboard image bridge uses managed native files and exact terminal aliases", async () => {
+  const bindings = stubBindings();
+  const opened: string[] = [];
+  bindings.sftp.OpenForTerminal = async id => { opened.push(id); return `sftp-${id}`; };
+  const image = { path: "C:\\Netcatty\\temp\\shot.png", name: "shot.png", mediaType: "image/png", size: 123 };
+  bindings.filesystem = { ReadClipboardImage: async () => image };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ sessionId: "ui-image", hostname: "host", username: "user" });
+  assert.deepEqual(await bridge.readClipboardImage!(), image);
+  assert.equal(await bridge.openSftpForSession!("ui-image"), "sftp-term-1");
+  assert.equal(await bridge.openSftpForSession!("native-other"), "sftp-native-other");
+  assert.deepEqual(opened, ["term-1", "native-other"]);
+  bindings.filesystem.ReadClipboardImage = async () => null;
+  assert.equal(await bridge.readClipboardImage!(), null);
+  bindings.sftp.OpenForTerminal = async () => { throw new Error("closed terminal"); };
+  await assert.rejects(bridge.openSftpForSession!("ui-image"), /closed terminal/);
+});
+
+test("autocomplete bridge lists the aliased terminal without PTY writes", async () => {
+  const bindings = stubBindings({
+    ListAutocompleteDirectory: async (id, directory, foldersOnly) => ({
+      success: id === 'term-1' && directory === '/data' && foldersOnly,
+      entries: [{ name: 'Mihomo', type: 'directory' }],
+    }),
+    Write: () => { throw new Error('completion must never write to PTY'); },
+  });
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ sessionId: 'ui-completion', hostname: 'host', username: 'user' });
+  const result = await bridge.listAutocompleteRemoteDir!('ui-completion', '/data', true);
+  assert.equal(result.success, true);
+  assert.equal(result.entries[0].name, 'Mihomo');
+});
+
 test("system unlock keeps unavailable native status and rejected authentication fail closed", async () => {
   const bindings = stubBindings();
   bindings.appLock = {
@@ -128,6 +195,28 @@ test("local browsing uses native paths through the bridge and fails without file
   } finally {
     setActiveRuntimeClient(previousClient);
   }
+});
+
+test("SFTP terminal actions resolve UI IDs and keep native clipboard text intact", async () => {
+  const writes: unknown[][] = [];
+  const bindings = stubBindings({
+    Connect: async () => "native-a",
+    Write: (...args) => { writes.push(args); },
+    GetSessionPwd: async (id, options) => {
+      assert.deepEqual(options, { allowHomeFallback: false, allowLoginShellFallback: false, timeoutMs: 350 });
+      return { success: id === "native-a", cwd: "/srv/a b'\u76ee\u5f55" };
+    },
+    GetSessionRemoteInfo: async () => ({ success: true, remoteSshVersion: "OpenSSH_9" }),
+  });
+  let clipboard = "";
+  bindings.clipboard = { SetText: async text => { clipboard = text; return true; }, Text: async () => clipboard };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession({ sessionId: "ui-a", hostname: "h", username: "u" });
+  client.transitionBridge.writeToSession("ui-a", "cd '/srv/a b'\r");
+  assert.equal(writes[0][0], "native-a");
+  assert.equal((await client.terminal.getSessionPwd!("ui-a", { allowHomeFallback: false, timeoutMs: 350 })).cwd, "/srv/a b'\u76ee\u5f55");
+  await client.transitionBridge.writeClipboardText!("/srv/a b'\u76ee\u5f55");
+  assert.equal(await client.transitionBridge.readClipboardText!(), "/srv/a b'\u76ee\u5f55");
 });
 
 test("transitionBridge startSSHSession attaches the data plane", async () => {
@@ -206,6 +295,82 @@ test("startLocalSession attaches the data plane", async () => {
   const client = createWailsRuntimeClient(bindings);
   const id = await client.transitionBridge.startLocalSession?.({ shell: "cmd.exe" });
   assert.equal(id, "local-1");
+});
+
+test("startMoshSession and startEtSession forward proxy and jump hosts to the Go bridge", async () => {
+  const seen: Array<Record<string, unknown>> = [];
+  const bindings = stubBindings({
+    StartMosh: async (request) => {
+      seen.push(request as Record<string, unknown>);
+      return "mosh-1";
+    },
+    StartEt: async (request) => {
+      seen.push(request as Record<string, unknown>);
+      return "et-1";
+    },
+  });
+  const client = createWailsRuntimeClient(bindings);
+  const options = {
+    hostname: "h",
+    username: "u",
+    proxy: { type: "socks5", host: "127.0.0.1", port: 1080, username: "p", password: "s" },
+    jumpHosts: [{ hostname: "jump", username: "bastion", port: 2222 }],
+  };
+  await client.transitionBridge.startMoshSession!(options);
+  await client.transitionBridge.startEtSession!(options);
+  assert.equal(seen.length, 2);
+  for (const request of seen) {
+    assert.equal(request.proxyUrl, "socks5://p:s@127.0.0.1:1080");
+    assert.deepEqual(request.proxyCommand, "");
+    assert.equal((request.jumpHosts as Array<Record<string, unknown>>)[0].hostname, "jump");
+    assert.equal((request.jumpHosts as Array<Record<string, unknown>>)[0].port, 2222);
+  }
+});
+
+test("onHelperLifecycle fans mosh/et lifecycle events and restartHelperSession maps aliases", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const restarted: string[] = [];
+  const bindings = stubBindings({
+    StartMosh: async () => "mosh-1",
+    RestartHelper: async (sessionID) => {
+      if (sessionID !== "mosh-1") throw new Error("helper session not found");
+      restarted.push(sessionID);
+      return { state: "running", attempt: 0, sessionId: sessionID };
+    },
+  });
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ state: string; sessionId: string }> = [];
+  const dispose = client.transitionBridge.onHelperLifecycle!("ui-mosh", (evt) => seen.push({ state: evt.state, sessionId: evt.sessionId }));
+  // Listeners may also register under the native session id directly.
+  const etSeen: Array<{ state: string; sessionId: string }> = [];
+  client.transitionBridge.onHelperLifecycle!("et-1", (evt) => etSeen.push({ state: evt.state, sessionId: evt.sessionId }));
+  await client.transitionBridge.startMoshSession!({ sessionId: "ui-mosh", hostname: "h", username: "u" });
+  listeners.get("mosh:lifecycle")?.[0]({ data: { state: "failed", attempt: 3, sessionId: "mosh-1", kind: "mosh" } });
+  listeners.get("et:lifecycle")?.[0]({ data: { state: "running", attempt: 0, sessionId: "et-1" } });
+  // The mosh listener matches via its alias and must not see other sessions.
+  assert.deepEqual(seen, [{ state: "failed", sessionId: "mosh-1" }]);
+  assert.deepEqual(etSeen, [{ state: "running", sessionId: "et-1" }]);
+  dispose();
+  listeners.get("mosh:lifecycle")?.[0]({ data: { state: "failed", sessionId: "mosh-1" } });
+  assert.equal(seen.length, 1);
+
+  assert.deepEqual(
+    await client.transitionBridge.restartHelperSession!("ui-mosh"),
+    { success: true, state: { state: "running", attempt: 0, sessionId: "mosh-1" } },
+  );
+  assert.deepEqual(restarted, ["mosh-1"]);
+  assert.deepEqual(
+    await client.transitionBridge.restartHelperSession!("gone"),
+    { success: false, error: "helper session not found" },
+  );
 });
 
 test("startSSHSession maps jump and MFA onto one Connect payload", async () => {

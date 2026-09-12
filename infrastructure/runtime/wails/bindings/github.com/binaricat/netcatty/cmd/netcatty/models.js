@@ -11,6 +11,9 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as json$0 from "../../../../../encoding/json/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as monitoring$0 from "../../internal/platform/monitoring/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
 export class AppLockRuntimeState {
@@ -80,6 +83,87 @@ export class AppLockRuntimeState {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new AppLockRuntimeState(/** @type {Partial<AppLockRuntimeState>} */($$parsedSource));
+    }
+}
+
+export class AutocompleteDirectoryEntry {
+    /**
+     * Creates a new AutocompleteDirectoryEntry instance.
+     * @param {Partial<AutocompleteDirectoryEntry>} [$$source = {}] - The source object to create the AutocompleteDirectoryEntry.
+     */
+    constructor($$source = {}) {
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("type" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["type"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AutocompleteDirectoryEntry instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AutocompleteDirectoryEntry}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AutocompleteDirectoryEntry(/** @type {Partial<AutocompleteDirectoryEntry>} */($$parsedSource));
+    }
+}
+
+export class AutocompleteDirectoryResult {
+    /**
+     * Creates a new AutocompleteDirectoryResult instance.
+     * @param {Partial<AutocompleteDirectoryResult>} [$$source = {}] - The source object to create the AutocompleteDirectoryResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("entries" in $$source)) {
+            /**
+             * @member
+             * @type {AutocompleteDirectoryEntry[]}
+             */
+            this["entries"] = [];
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AutocompleteDirectoryResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AutocompleteDirectoryResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("entries" in $$parsedSource) {
+            $$parsedSource["entries"] = $$createField1_0($$parsedSource["entries"]);
+        }
+        return new AutocompleteDirectoryResult(/** @type {Partial<AutocompleteDirectoryResult>} */($$parsedSource));
     }
 }
 
@@ -216,6 +300,55 @@ export class BiometricUnlockResult {
     }
 }
 
+export class ClipboardImageFile {
+    /**
+     * Creates a new ClipboardImageFile instance.
+     * @param {Partial<ClipboardImageFile>} [$$source = {}] - The source object to create the ClipboardImageFile.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("mediaType" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mediaType"] = "";
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ClipboardImageFile instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ClipboardImageFile}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ClipboardImageFile(/** @type {Partial<ClipboardImageFile>} */($$parsedSource));
+    }
+}
+
 export class CloudSyncDeleteResult {
     /**
      * Creates a new CloudSyncDeleteResult instance.
@@ -267,7 +400,7 @@ export class CloudSyncDownloadResult {
      * @returns {CloudSyncDownloadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType1;
+        const $$createField0_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("syncedFile" in $$parsedSource) {
             $$parsedSource["syncedFile"] = $$createField0_0($$parsedSource["syncedFile"]);
@@ -418,6 +551,215 @@ export class CloudSyncWebDAVConfig {
     }
 }
 
+export class DiscoveredShell {
+    /**
+     * Creates a new DiscoveredShell instance.
+     * @param {Partial<DiscoveredShell>} [$$source = {}] - The source object to create the DiscoveredShell.
+     */
+    constructor($$source = {}) {
+        if (!("id" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("command" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["command"] = "";
+        }
+        if (!("args" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["args"] = [];
+        }
+        if (!("icon" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["icon"] = "";
+        }
+        if (!("isDefault" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isDefault"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DiscoveredShell instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DiscoveredShell}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("args" in $$parsedSource) {
+            $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
+        }
+        return new DiscoveredShell(/** @type {Partial<DiscoveredShell>} */($$parsedSource));
+    }
+}
+
+export class DockerStatsOptions {
+    /**
+     * Creates a new DockerStatsOptions instance.
+     * @param {Partial<DockerStatsOptions>} [$$source = {}] - The source object to create the DockerStatsOptions.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string[] | undefined}
+             */
+            this["ids"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DockerStatsOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DockerStatsOptions}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("ids" in $$parsedSource) {
+            $$parsedSource["ids"] = $$createField1_0($$parsedSource["ids"]);
+        }
+        return new DockerStatsOptions(/** @type {Partial<DockerStatsOptions>} */($$parsedSource));
+    }
+}
+
+/**
+ * HelperSessionState is queryable after Start/route rebind so early lifecycle
+ * events cannot be lost. Running/ready means the native client was launched;
+ * encrypted native protocol readiness is not exposed by the upstream CLI.
+ */
+export class HelperSessionState {
+    /**
+     * Creates a new HelperSessionState instance.
+     * @param {Partial<HelperSessionState>} [$$source = {}] - The source object to create the HelperSessionState.
+     */
+    constructor($$source = {}) {
+        if (!("state" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["state"] = "";
+        }
+        if (!("attempt" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["attempt"] = 0;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["delayMs"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["exitCode"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("bootEpoch" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["bootEpoch"] = 0;
+        }
+        if (!("kind" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["kind"] = "";
+        }
+        if (!("recoveryMode" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["recoveryMode"] = "";
+        }
+        if (!("readiness" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["readiness"] = "";
+        }
+        if (!("recoveryLimit" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["recoveryLimit"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HelperSessionState instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {HelperSessionState}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HelperSessionState(/** @type {Partial<HelperSessionState>} */($$parsedSource));
+    }
+}
+
 export class HotkeyResult {
     /**
      * Creates a new HotkeyResult instance.
@@ -547,6 +889,162 @@ export class LocalPathStat {
     }
 }
 
+export class LocalStartRequest {
+    /**
+     * Creates a new LocalStartRequest instance.
+     * @param {Partial<LocalStartRequest>} [$$source = {}] - The source object to create the LocalStartRequest.
+     */
+    constructor($$source = {}) {
+        if (!("shell" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["shell"] = "";
+        }
+        if (!("shellArgs" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["shellArgs"] = [];
+        }
+        if (!("cwd" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cwd"] = "";
+        }
+        if (!("env" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string }}
+             */
+            this["env"] = {};
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LocalStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {LocalStartRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType4;
+        const $$createField3_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("shellArgs" in $$parsedSource) {
+            $$parsedSource["shellArgs"] = $$createField1_0($$parsedSource["shellArgs"]);
+        }
+        if ("env" in $$parsedSource) {
+            $$parsedSource["env"] = $$createField3_0($$parsedSource["env"]);
+        }
+        return new LocalStartRequest(/** @type {Partial<LocalStartRequest>} */($$parsedSource));
+    }
+}
+
+/**
+ * MonitoringResult keeps the existing renderer success/error envelope. Payload
+ * keys are collection-specific and omitted on failure.
+ */
+export class MonitoringResult {
+    /**
+     * Creates a new MonitoringResult instance.
+     * @param {Partial<MonitoringResult>} [$$source = {}] - The source object to create the MonitoringResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["stats"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {monitoring$0.Row | undefined}
+             */
+            this["capabilities"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["processes"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["sessions"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["containers"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["images"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MonitoringResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {MonitoringResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType6;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("capabilities" in $$parsedSource) {
+            $$parsedSource["capabilities"] = $$createField3_0($$parsedSource["capabilities"]);
+        }
+        return new MonitoringResult(/** @type {Partial<MonitoringResult>} */($$parsedSource));
+    }
+}
+
 /**
  * MoshStartRequest is the Wails-facing Mosh/ET bootstrap payload. The union of
  * SSH dial fields lets the handshake reuse the same auth path as Connect.
@@ -641,12 +1139,82 @@ export class MoshStartRequest {
              */
             this["identityFilePaths"] = [];
         }
+        if (!("term" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["term"] = "";
+        }
+        if (!("verifyHostKeys" in $$source)) {
+            /**
+             * @member
+             * @type {boolean | null}
+             */
+            this["verifyHostKeys"] = null;
+        }
+        if (!("keepaliveInterval" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveInterval"] = null;
+        }
+        if (!("keepaliveCountMax" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveCountMax"] = null;
+        }
+        if (!("forwardX11" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["forwardX11"] = false;
+        }
+        if (!("x11Display" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["x11Display"] = "";
+        }
         if (!("jumpHosts" in $$source)) {
             /**
              * @member
              * @type {SSHConnectRequest[]}
              */
             this["jumpHosts"] = [];
+        }
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("bootEpoch" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["bootEpoch"] = 0;
+        }
+        if (!("etPort" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["etPort"] = 0;
+        }
+        if (!("serverFifo" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["serverFifo"] = "";
         }
         if (!("clientPath" in $$source)) {
             /**
@@ -688,14 +1256,14 @@ export class MoshStartRequest {
      * @returns {MoshStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType2;
-        const $$createField12_0 = $$createType4;
+        const $$createField11_0 = $$createType4;
+        const $$createField18_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
             $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
         }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField12_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField18_0($$parsedSource["jumpHosts"]);
         }
         return new MoshStartRequest(/** @type {Partial<MoshStartRequest>} */($$parsedSource));
     }
@@ -762,7 +1330,7 @@ export class NativeStartRequest {
      * @returns {NativeStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType2;
+        const $$createField3_0 = $$createType4;
         const $$createField5_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("args" in $$parsedSource) {
@@ -772,6 +1340,55 @@ export class NativeStartRequest {
             $$parsedSource["env"] = $$createField5_0($$parsedSource["env"]);
         }
         return new NativeStartRequest(/** @type {Partial<NativeStartRequest>} */($$parsedSource));
+    }
+}
+
+export class PathValidation {
+    /**
+     * Creates a new PathValidation instance.
+     * @param {Partial<PathValidation>} [$$source = {}] - The source object to create the PathValidation.
+     */
+    constructor($$source = {}) {
+        if (!("exists" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["exists"] = false;
+        }
+        if (!("isFile" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isFile"] = false;
+        }
+        if (!("isDirectory" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isDirectory"] = false;
+        }
+        if (!("isExecutable" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isExecutable"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PathValidation instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PathValidation}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PathValidation(/** @type {Partial<PathValidation>} */($$parsedSource));
     }
 }
 
@@ -967,6 +1584,48 @@ export class SFTPOpenRequest {
              */
             this["rows"] = 0;
         }
+        if (!("term" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["term"] = "";
+        }
+        if (!("verifyHostKeys" in $$source)) {
+            /**
+             * @member
+             * @type {boolean | null}
+             */
+            this["verifyHostKeys"] = null;
+        }
+        if (!("keepaliveInterval" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveInterval"] = null;
+        }
+        if (!("keepaliveCountMax" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveCountMax"] = null;
+        }
+        if (!("forwardX11" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["forwardX11"] = false;
+        }
+        if (!("x11Display" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["x11Display"] = "";
+        }
         if (!("jumpHosts" in $$source)) {
             /**
              * @member
@@ -991,14 +1650,14 @@ export class SFTPOpenRequest {
      * @returns {SFTPOpenRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType2;
-        const $$createField14_0 = $$createType4;
+        const $$createField11_0 = $$createType4;
+        const $$createField20_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
             $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
         }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField14_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField20_0($$parsedSource["jumpHosts"]);
         }
         return new SFTPOpenRequest(/** @type {Partial<SFTPOpenRequest>} */($$parsedSource));
     }
@@ -1112,6 +1771,48 @@ export class SSHConnectRequest {
              */
             this["rows"] = 0;
         }
+        if (!("term" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["term"] = "";
+        }
+        if (!("verifyHostKeys" in $$source)) {
+            /**
+             * @member
+             * @type {boolean | null}
+             */
+            this["verifyHostKeys"] = null;
+        }
+        if (!("keepaliveInterval" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveInterval"] = null;
+        }
+        if (!("keepaliveCountMax" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["keepaliveCountMax"] = null;
+        }
+        if (!("forwardX11" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["forwardX11"] = false;
+        }
+        if (!("x11Display" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["x11Display"] = "";
+        }
         if (!("jumpHosts" in $$source)) {
             /**
              * @member
@@ -1129,14 +1830,14 @@ export class SSHConnectRequest {
      * @returns {SSHConnectRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType2;
-        const $$createField14_0 = $$createType4;
+        const $$createField11_0 = $$createType4;
+        const $$createField20_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identityFilePaths" in $$parsedSource) {
             $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
         }
         if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField14_0($$parsedSource["jumpHosts"]);
+            $$parsedSource["jumpHosts"] = $$createField20_0($$parsedSource["jumpHosts"]);
         }
         return new SSHConnectRequest(/** @type {Partial<SSHConnectRequest>} */($$parsedSource));
     }
@@ -1207,6 +1908,83 @@ export class SerialStartRequest {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new SerialStartRequest(/** @type {Partial<SerialStartRequest>} */($$parsedSource));
+    }
+}
+
+export class SystemNotificationRequest {
+    /**
+     * Creates a new SystemNotificationRequest instance.
+     * @param {Partial<SystemNotificationRequest>} [$$source = {}] - The source object to create the SystemNotificationRequest.
+     */
+    constructor($$source = {}) {
+        if (!("title" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["title"] = "";
+        }
+        if (!("body" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["body"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sessionId"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SystemNotificationRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SystemNotificationRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SystemNotificationRequest(/** @type {Partial<SystemNotificationRequest>} */($$parsedSource));
+    }
+}
+
+export class SystemNotificationResult {
+    /**
+     * Creates a new SystemNotificationResult instance.
+     * @param {Partial<SystemNotificationResult>} [$$source = {}] - The source object to create the SystemNotificationResult.
+     */
+    constructor($$source = {}) {
+        if (!("shown" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["shown"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["reason"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SystemNotificationResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SystemNotificationResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SystemNotificationResult(/** @type {Partial<SystemNotificationResult>} */($$parsedSource));
     }
 }
 
@@ -1365,6 +2143,181 @@ export class TempDirectoryInfo {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new TempDirectoryInfo(/** @type {Partial<TempDirectoryInfo>} */($$parsedSource));
+    }
+}
+
+export class TerminalExitStatus {
+    /**
+     * Creates a new TerminalExitStatus instance.
+     * @param {Partial<TerminalExitStatus>} [$$source = {}] - The source object to create the TerminalExitStatus.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["intentional"] = undefined;
+        }
+        if (!("reason" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["reason"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["exitCode"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TerminalExitStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TerminalExitStatus}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TerminalExitStatus(/** @type {Partial<TerminalExitStatus>} */($$parsedSource));
+    }
+}
+
+export class TerminalPwdOptions {
+    /**
+     * Creates a new TerminalPwdOptions instance.
+     * @param {Partial<TerminalPwdOptions>} [$$source = {}] - The source object to create the TerminalPwdOptions.
+     */
+    constructor($$source = {}) {
+        if (!("allowHomeFallback" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["allowHomeFallback"] = false;
+        }
+        if (!("allowLoginShellFallback" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["allowLoginShellFallback"] = false;
+        }
+        if (!("timeoutMs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["timeoutMs"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TerminalPwdOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TerminalPwdOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TerminalPwdOptions(/** @type {Partial<TerminalPwdOptions>} */($$parsedSource));
+    }
+}
+
+export class TerminalPwdResult {
+    /**
+     * Creates a new TerminalPwdResult instance.
+     * @param {Partial<TerminalPwdResult>} [$$source = {}] - The source object to create the TerminalPwdResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["cwd"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TerminalPwdResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TerminalPwdResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TerminalPwdResult(/** @type {Partial<TerminalPwdResult>} */($$parsedSource));
+    }
+}
+
+export class TerminalRemoteInfo {
+    /**
+     * Creates a new TerminalRemoteInfo instance.
+     * @param {Partial<TerminalRemoteInfo>} [$$source = {}] - The source object to create the TerminalRemoteInfo.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["remoteSshVersion"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TerminalRemoteInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TerminalRemoteInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TerminalRemoteInfo(/** @type {Partial<TerminalRemoteInfo>} */($$parsedSource));
     }
 }
 
@@ -1674,7 +2627,7 @@ export class UpgradeStatus {
      * @returns {UpgradeStatus}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType2;
+        const $$createField3_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("history" in $$parsedSource) {
             $$parsedSource["history"] = $$createField3_0($$parsedSource["history"]);
@@ -1684,9 +2637,12 @@ export class UpgradeStatus {
 }
 
 // Private type creation functions
-const $$createType0 = CloudSyncSyncedFile.createFrom;
-const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $Create.Array($Create.Any);
-const $$createType3 = SSHConnectRequest.createFrom;
-const $$createType4 = $Create.Array($$createType3);
+const $$createType0 = AutocompleteDirectoryEntry.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = CloudSyncSyncedFile.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($Create.Any);
 const $$createType5 = $Create.Map($Create.Any, $Create.Any);
+const $$createType6 = $Create.Map($Create.Any, $Create.Any);
+const $$createType7 = SSHConnectRequest.createFrom;
+const $$createType8 = $Create.Array($$createType7);

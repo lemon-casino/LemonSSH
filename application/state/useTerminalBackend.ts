@@ -366,6 +366,19 @@ export const useTerminalBackend = () => {
     return bridge?.onMoshSessionReady?.(sessionId, cb);
   }, []);
 
+  const onHelperLifecycle = useCallback((sessionId: string, cb: Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1]) => {
+    const bridge = netcattyBridge.get();
+    return bridge?.onHelperLifecycle?.(sessionId, cb);
+  }, []);
+
+  const restartHelperSession = useCallback(async (sessionId: string) => {
+    const bridge = netcattyBridge.get();
+    if (!bridge?.restartHelperSession) {
+      return { success: false as const, error: "restartHelperSession unavailable" };
+    }
+    return bridge.restartHelperSession(sessionId);
+  }, []);
+
   const onTelnetEchoMode = useCallback((sessionId: string, cb: (evt: { sessionId: string; remoteEcho: boolean; localEcho: boolean }) => void) => {
     const bridge = netcattyBridge.get();
     return bridge?.onTelnetEchoMode?.(sessionId, cb);
@@ -613,6 +626,8 @@ export const useTerminalBackend = () => {
         onTelnetAutoLoginCancelled,
         onTelnetEchoMode,
         getTelnetEchoMode,
+        onHelperLifecycle,
+        restartHelperSession,
         onChainProgress,
         onConnectionReuseFallback,
         onWindowFullScreenChanged,
@@ -694,6 +709,8 @@ export const useTerminalBackend = () => {
       onTelnetAutoLoginComplete,
       onTelnetAutoLoginCancelled,
       onMoshSessionReady,
+      onHelperLifecycle,
+      restartHelperSession,
       onTelnetEchoMode,
       getTelnetEchoMode,
       onChainProgress,

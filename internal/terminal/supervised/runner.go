@@ -25,6 +25,7 @@ var (
 	ErrArchMismatch    = errors.New("supervised binary arch mismatch")
 	ErrTooManyRestarts = errors.New("supervised binary restart limit exceeded")
 	ErrNotRunning      = errors.New("supervised binary not running")
+	ErrClosed          = errors.New("supervised terminal closed")
 )
 
 // Manifest pins one helper binary per platform/arch.

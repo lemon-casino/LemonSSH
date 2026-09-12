@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L123`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
+当前台账头：`WV3-L124`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -50,7 +50,7 @@
 | SSH 跳板链 / socks5/http proxy | Connect 结构体透出 jumpHosts + proxyUrl；command 代理仍显式拒绝 | SSH-01 | 已处理 |
 | SSH 用户证书 | Connect 透出 certificate + 私钥，ParseCertificateSigner 接到 x/crypto | SSH-01 | 已处理 |
 | SSH agent / IdentityFile | Connect 透出 useAgent 与 identityFilePaths；缺文件失败关闭；活体 agent 仍缺 | SSH-01 | 已处理 |
-| Mosh / ET | StartMosh/StartEt 解析 bundled/dev helper 路径；192.168.0.6 (Debian 13) 上对真实 mosh-server 1.4.0 的 MOSH CONNECT 抓取已活体通过（L107）；route reconnect 保留原生进程/bootstrap 已实现；helper 供给/校验/打包链路已交付：lock 锁定 MoshCatty 0.1.8 与 et-bin 6.2.10-1、8 目标本机校验通过、打包自动捆绑 helper+许可证并写入清单（L123）；网络漫游活体与装机后的真机验收仍缺 | TERM-03.3 | 已处理 |
+| Mosh / ET | StartMosh/StartEt 解析 bundled/dev helper 路径；192.168.0.6 (Debian 13) 上对真实 mosh-server 1.4.0 的 MOSH CONNECT 抓取已活体通过（L107）；route reconnect 保留原生进程/bootstrap 已实现；helper 供给/校验/打包链路已交付：lock 锁定 MoshCatty 0.1.8 与 et-bin 6.2.10-1、8 目标本机校验通过、打包自动捆绑 helper+许可证并写入清单（L123）；进程死亡恢复（同会话手动重启新 shell）与 proxy/jumpHosts 渲染层透传已接（L124）；网络漫游活体与装机后的真机验收仍缺 | TERM-03.3 | 已处理 |
 | ZMODEM 完整 rz/sz 会话 | 私有长度前缀已替换为标准 ZMODEM wire；独立 zmodem.js 双向传输/CRC32 夹具通过；真实 lrzsz 对端仍未验证，CRC 错误中止而非重传（L117） | TERM-03.4 | 已处理 |
 | 串口 YMODEM | SendSerialYmodem/ReceiveSerialYmodem 接到打开的串口会话 | TERM-03.2 | 已处理 |
 | Serial/Telnet 活体设备矩阵 | 无真实硬件证据 | TERM-03.1, TERM-03.2 | pending |

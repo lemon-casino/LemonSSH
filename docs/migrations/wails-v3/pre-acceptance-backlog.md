@@ -89,6 +89,7 @@ WV3-L114 保留对 L113 的纠正；L115 在真实 adapter/boot 验证后重新�
   + sidecar + 许可证并写入 helper-supply.lock.json 与 artifact-manifest.helpers；
   遗留 --install-helper 自选 digest 路径已移除（防止写出 lock 拒绝的 sidecar）。
   运行时 Go 侧仍强制 manifest os/arch/sha256 校验（supervised.Verify）。
+- [x] 追加（L124）：ET 内联认证/代理/跳板经 Go-SSH 桥接模式支持，渲染层 proxy/jumpHosts 透传已修复；Mosh/ET 进程死亡后保留会话，横幅手动"重启会话"在同一会话内以新 shell 重启 helper（协议状态无法续，文档化）。
 
 ### Batch D — 系统壳
 

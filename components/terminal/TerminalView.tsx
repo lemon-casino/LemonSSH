@@ -86,6 +86,59 @@ export function focusTerminalFromDisconnectedNotice(
   focusTerminal();
 }
 
+/**
+ * Manual restart banner for a supervised mosh/et helper whose restart budget
+ * was exhausted. The terminal session stays alive; restart opens a new remote
+ * shell under the same session. Never restarts automatically.
+ */
+export function TerminalHelperFailureNotice({
+  message,
+  actionLabel,
+  restartPending,
+  bottom,
+  left,
+  right,
+  onRestart,
+}: {
+  message: string;
+  actionLabel: string;
+  restartPending?: boolean;
+  bottom: number;
+  left: number;
+  right: number;
+  onRestart: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      data-terminal-helper-failure-notice="true"
+      className="absolute z-20 flex h-7 items-center gap-2 overflow-hidden rounded border px-2 text-[11px]"
+      style={{
+        bottom,
+        left,
+        right,
+        color: 'var(--terminal-ui-fg)',
+        borderColor: 'var(--terminal-ui-border)',
+        backgroundColor: 'var(--terminal-ui-bg)',
+      }}
+    >
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" aria-hidden="true" />
+      <span className="min-w-0 flex-1 truncate" title={message}>{message}</span>
+      <button
+        type="button"
+        disabled={restartPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRestart();
+        }}
+        className="shrink-0 rounded px-2 py-0.5 font-medium text-primary hover:bg-primary/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
 export function resolveTerminalDisconnectedNoticeMessage({
   status,
   error,
@@ -390,7 +443,7 @@ function terminalViewCtxEqual(
 }
 
 function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalViewContext; isPaneMagnified?: boolean }) {
-  const { Activity, Button, Clock3, Copy, Maximize2, Radio, RefreshCcw, SquareArrowOutUpRight, TerminalAutocomplete, TerminalComposeBar, TerminalConnectionDialog, TerminalContextMenu, TerminalSearchBar, Tooltip, TooltipContent, TooltipTrigger, Unplug, ZmodemOverwriteDialog, ZmodemProgressIndicator, auth, autocompleteAcceptTextRef, autocompleteCloseRef, autocompleteHostOs, autocompleteInputRef, autocompleteKeyEventRef, autocompleteRepositionRef, autocompleteSettings, canUpdateHost, chainProgress, cn, compactToolbar, lineTimestampsAvailable, containerRef, effectiveFontSize, effectiveFontWeight, effectiveTerminalProtocol, effectiveTheme, error, executeSnippet, executeSnippetCommand, handleAddSelectionToAI, handleCancelConnect, handleCloseDisconnectedSession, handleCloseSearch, handleDisconnect, handleDismissDisconnectedDialog, handleDragEnter, handleDragLeave, handleDragOver, handleDrop, handleFindNext, handleFindPrevious, handleHostKeyAddAndContinue, handleHostKeyClose, handleHostKeyContinue, handleOsc52ReadResponse, handleOsc7SetupConfirm, handleOsc7SetupOpenChange, handleReceiveYmodem, handleRetry, handleSearch, handleSendYmodem, handleTopOverlayMouseDownCapture, hasMouseTracking, host, hotkeyScheme, inWorkspace, isBroadcastEnabled, isCancelling, isComposeBarOpen, isConnectionAwaitingUserInput, isDraggingOver, isFocusMode, isFocusedPane, isLocalConnection, remoteDragDropUsesZmodem, isPluginTerminalProviderAvailable, isReconnectActive, isSerialConnection, isSearchOpen, isSupportedOs, isSystemSidebarEligible, isVisible, keyBindings, keys, knownCwdRef, needsHostKeyVerification, onCloseSession, onDetach, onDetachPointerDown, onExpandToFocus, onTogglePaneMagnification, onOpenSystem, onRename, onSplitHorizontal, onSplitVertical, onToggleBroadcast, onUpdateHost, osc52ReadPromptVisible, osc7SetupOpen, osc7SetupRunning, passwordPromptActiveRef, pendingHostKeyInfo, progressLogs, progressValue, renderControls, resolvedFontFamily, restoreState, scriptExecutionOverlay, searchMatchCount, searchFocusToken, sessionDisplayName, sessionId, workspaceId, sessionRef, setIsComposeBarOpen, setShowLogs, shouldShowConnectionDialog, showDisconnectedTerminalNotice, showConnectionControls, showLogs, showSelectionAIAction, isRestoringSelectionRef, snippets, status, sudoHintRef, sudoHintText, passwordPickerState, onPasswordPickerSelect, passwordPickerTitle, passwordPickerEmptyText, t, termRef, terminalContextActions, terminalCwdTracker, terminalPreviewVars, terminalSettings, terminalReconnectAvailable, reconnectNoticeMessage, timeLeft, toast, zmodem } = ctx;
+  const { Activity, Button, Clock3, Copy, Maximize2, Radio, RefreshCcw, SquareArrowOutUpRight, TerminalAutocomplete, TerminalComposeBar, TerminalConnectionDialog, TerminalContextMenu, TerminalSearchBar, Tooltip, TooltipContent, TooltipTrigger, Unplug, ZmodemOverwriteDialog, ZmodemProgressIndicator, auth, autocompleteAcceptTextRef, autocompleteCloseRef, autocompleteHostOs, autocompleteInputRef, autocompleteKeyEventRef, autocompleteRepositionRef, autocompleteSettings, canUpdateHost, chainProgress, cn, compactToolbar, lineTimestampsAvailable, containerRef, effectiveFontSize, effectiveFontWeight, effectiveTerminalProtocol, effectiveTheme, error, executeSnippet, executeSnippetCommand, handleAddSelectionToAI, handleCancelConnect, handleCloseDisconnectedSession, handleCloseSearch, handleDisconnect, handleDismissDisconnectedDialog, handleDragEnter, handleDragLeave, handleDragOver, handleDrop, handleFindNext, handleFindPrevious, handleHostKeyAddAndContinue, handleHostKeyClose, handleHostKeyContinue, handleOsc52ReadResponse, handleOsc7SetupConfirm, handleOsc7SetupOpenChange, handleReceiveYmodem, handleRetry, handleSearch, handleSendYmodem, handleTopOverlayMouseDownCapture, handleHelperRestart, hasMouseTracking, helperFailure, helperRestartPending, host, hotkeyScheme, inWorkspace, isBroadcastEnabled, isCancelling, isComposeBarOpen, isConnectionAwaitingUserInput, isDraggingOver, isFocusMode, isFocusedPane, isLocalConnection, remoteDragDropUsesZmodem, isPluginTerminalProviderAvailable, isReconnectActive, isSerialConnection, isSearchOpen, isSupportedOs, isSystemSidebarEligible, isVisible, keyBindings, keys, knownCwdRef, needsHostKeyVerification, onCloseSession, onDetach, onDetachPointerDown, onExpandToFocus, onTogglePaneMagnification, onOpenSystem, onRename, onSplitHorizontal, onSplitVertical, onToggleBroadcast, onUpdateHost, osc52ReadPromptVisible, osc7SetupOpen, osc7SetupRunning, passwordPromptActiveRef, pendingHostKeyInfo, progressLogs, progressValue, renderControls, resolvedFontFamily, restoreState, scriptExecutionOverlay, searchMatchCount, searchFocusToken, sessionDisplayName, sessionId, workspaceId, sessionRef, setIsComposeBarOpen, setShowLogs, shouldShowConnectionDialog, showDisconnectedTerminalNotice, showConnectionControls, showLogs, showSelectionAIAction, isRestoringSelectionRef, snippets, status, sudoHintRef, sudoHintText, passwordPickerState, onPasswordPickerSelect, passwordPickerTitle, passwordPickerEmptyText, t, termRef, terminalContextActions, terminalCwdTracker, terminalPreviewVars, terminalSettings, terminalReconnectAvailable, reconnectNoticeMessage, timeLeft, toast, zmodem } = ctx;
   // Context menu only needs a snapshot at open; avoid selection state lifting into Terminal.
   const [contextMenuHasSelection, setContextMenuHasSelection] = useState(false);
   const isNetworkDevice = host.deviceType === 'network'
@@ -474,6 +527,13 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
     disconnectedLabel: t('terminal.progress.disconnected'),
     isReconnectActive,
   });
+  const helperFailureMessage = helperFailure
+    ? `${t('terminal.helperFailure.notice', {
+        kind: helperFailure.kind === 'et'
+          ? t('terminal.connection.protocol.et')
+          : t('terminal.connection.protocol.mosh'),
+      })}${helperFailure.error ? ` — ${helperFailure.error}` : ''}`
+    : '';
   // Optimistic override so the gutter paints immediately; host vault write can
   // lag behind without making the toolbar feel sticky.
   const [timestampOverride, setTimestampOverride] = useState<boolean | null>(null);
@@ -1100,6 +1160,17 @@ function TerminalViewInner({ ctx, isPaneMagnified = false }: { ctx: TerminalView
                 event,
                 () => termRef.current?.focus(),
               )}
+            />
+          )}
+          {helperFailure && !showDisconnectedTerminalNotice && (
+            <TerminalHelperFailureNotice
+              message={helperFailureMessage}
+              actionLabel={t('terminal.helperFailure.restart')}
+              restartPending={helperRestartPending}
+              bottom={terminalBodyInset}
+              left={terminalBodyInset}
+              right={terminalRightInset}
+              onRestart={handleHelperRestart}
             />
           )}
           <TerminalSelectionAIOverlay

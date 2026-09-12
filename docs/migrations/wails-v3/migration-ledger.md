@@ -3719,3 +3719,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: mosh lock has no upstream build-provenance attestation (et does); real network roaming and installed-package helper launches on macOS/Linux remain acceptance work; helper bytes on other hosts require network access or a populated build/wails-helper-cache
 - Next safe slice: live mosh/et roaming matrix on the Debian 13 host; P4/P5 real-machine regression
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L124 - 2026-09-12 - ET bridge auth passthrough and supervised helper restart recovery
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-03`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Close the two real gaps behind "ET advanced auth/proxy/jump" and "Mosh/ET process-death recovery". The renderer StartMosh/StartEt payloads now forward proxy and jumpHosts so UI configurations reach the existing ET Go-SSH bridge mode (Go SSH dials with credentials/MFA/proxy/jumps and bootstraps etterminal; credentials never enter argv). Supervised helpers gain crash recovery that keeps the terminal session: supervised.Terminal.Restart() re-arms a finished run loop (fresh context/done, same factory and callbacks); the service keeps the session alive on MaxRestarts-exhausted "failed" (clean "exited" still closes; initial Start errors still close), emits the kind-scoped lifecycle event, and a new RestartHelper(sessionID) relaunches the helper as a new remote shell inside the same session (scrollback and session id preserved; mosh MOSH_KEY/et state still cannot resume, documented). Renderer listens to the kind-scoped helper lifecycle events and shows the existing disconnect-notice style banner with a manual restart button (no auto-restart chaining); "running" clears it. Bridge additions: restartHelperSession, onHelperLifecycle (nativeSessionId alias-mapped).
+- Go canonical owner: internal/terminal/supervised/terminal.go, cmd/netcatty/terminalSupervised.go (RestartHelper), cmd/netcatty/terminalEt.go (unchanged bridge mode)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts, types/global/netcatty-bridge-session.d.ts, components/Terminal.tsx, components/terminal/TerminalView.tsx, application/state/useTerminalBackend.ts, five locale terminal.ts files
+- Electron owner affected: none
+- Preserved invariants: manual restart only (no auto-restart chaining); "exited" (user typed exit) and initial Start failures still close the session; helper launch re-verifies the pinned manifest on every attempt; ET credentials stay out of argv
+- Data/schema impact: none
+- Security impact: proxy/jump credentials flow only through the Go SSH layer as before; no new secret surfaces
+- Verification: go test -race ./internal/terminal/supervised; go test ./cmd/netcatty -run 'TestHelper|TestSupervised|TestTerminalRecovery' -race; node --test wailsRuntimeClient.test.ts 34/34; locale suites 24/24; bindings regenerated (20 services / 197 methods) exposing TerminalService.RestartHelper
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live mosh/et roaming remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron helper bridges stay until Wails roaming live evidence and installed-package acceptance pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: restart re-runs the full SSH/mosh handshake (new remote shell by design); repeated dead helpers keep requiring manual restarts; banner UI not yet GUI-verified
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

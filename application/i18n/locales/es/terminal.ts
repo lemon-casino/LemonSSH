@@ -190,6 +190,8 @@ export const esTerminalMessages: Messages = {
   'terminal.progress.autoReconnectScheduled': 'Conexión perdida. Reconectando en {seconds}s (intento {attempt}).',
   'terminal.progress.autoReconnectAttempt': 'Intento de reconexión automática {attempt}...',
   'terminal.connection.dismissDisconnectedDialog': 'Descartar aviso de desconexión',
+  'terminal.helperFailure.notice': 'El asistente {kind} terminó y no puede reanudar su sesión cifrada. Reiniciar abre un nuevo shell remoto en esta sesión.',
+  'terminal.helperFailure.restart': 'Reiniciar',
   'terminal.connection.chainOf': 'Cadena {current} de {total}',
   'terminal.connection.showLogs': 'Mostrar registros',
   'terminal.connection.hideLogs': 'Ocultar registros',

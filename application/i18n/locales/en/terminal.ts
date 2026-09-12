@@ -190,6 +190,8 @@ export const enTerminalMessages: Messages = {
   'terminal.progress.autoReconnectScheduled': 'Connection lost. Reconnecting in {seconds}s (attempt {attempt}).',
   'terminal.progress.autoReconnectAttempt': 'Auto reconnect attempt {attempt}...',
   'terminal.connection.dismissDisconnectedDialog': 'Dismiss disconnected notice',
+  'terminal.helperFailure.notice': 'The {kind} helper exited and cannot resume its encrypted session. Restart opens a new remote shell in this session.',
+  'terminal.helperFailure.restart': 'Restart',
   'terminal.connection.chainOf': 'Chain {current} of {total}',
   'terminal.connection.showLogs': 'Show logs',
   'terminal.connection.hideLogs': 'Hide logs',

@@ -4,17 +4,19 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
 
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/mosh"
 	"github.com/binaricat/netcatty/internal/terminal/pty"
@@ -32,6 +34,8 @@ import (
 type TerminalService struct {
 	mu            sync.Mutex
 	sessions      map[string]*terminalSession
+	exitStatuses  map[string]TerminalExitStatus
+	exitOrder     []string
 	controller    *dataplane.RouteController
 	dp            *dataplane.Server
 	knownHosts    *ssh.KnownHosts
@@ -39,6 +43,7 @@ type TerminalService struct {
 	emitChallenge func(ssh.KeyboardChallenge)
 	emitEvent     func(name string, payload any)
 	counter       int
+	helperTemp    *filesystem.TempService
 }
 
 // TelnetStartRequest is the Wails-facing telnet dial payload. Auto-login
@@ -71,13 +76,24 @@ type SSHConnectRequest struct {
 	IdentityFilePaths []string            `json:"identityFilePaths"`
 	Cols              uint16              `json:"cols"`
 	Rows              uint16              `json:"rows"`
+	Term              string              `json:"term"`
+	VerifyHostKeys    *bool               `json:"verifyHostKeys"`
+	KeepaliveInterval *int                `json:"keepaliveInterval"`
+	KeepaliveCountMax *int                `json:"keepaliveCountMax"`
+	ForwardX11        bool                `json:"forwardX11"`
+	X11Display        string              `json:"x11Display"`
 	JumpHosts         []SSHConnectRequest `json:"jumpHosts"`
 }
 
 type terminalSession struct {
+	closing            bool
+	cwd                cwdOSC
+	cwdProbing         bool
+	completionQueries  int
 	zmodemPrefix       []byte
 	zmodem             *terminalZmodemStream
 	transport          *ssh.Transport
+	x11                *ssh.X11Forwarder
 	session            *gossh.Session
 	local              *pty.Session
 	telnet             *telnet.Client
@@ -85,6 +101,9 @@ type terminalSession struct {
 	serialID           string
 	serialYmodemCancel context.CancelFunc
 	runner             *supervised.Runner
+	helper             *supervised.Terminal
+	helperFactory      supervised.TerminalFactory
+	helperState        HelperSessionState
 	stdin              io.WriteCloser
 	bootstrap          dataplane.RouteBootstrap
 }
@@ -136,9 +155,15 @@ func (s *TerminalService) publishOutput(sessionID string, data []byte) bool {
 }
 
 func (s *TerminalService) publishTerminalBytes(sessionID string, data []byte) bool {
+	s.mu.Lock()
+	if term := s.sessions[sessionID]; term != nil {
+		term.cwd.feed(data)
+	}
+	s.mu.Unlock()
 	if err := s.dp.Publish(sessionID, data); err != nil {
 		s.emit("terminal:error", map[string]any{"sessionId": sessionID, "error": err.Error()})
-		_ = s.Close(sessionID)
+		// A supervised pump must return before its lifecycle can join it.
+		_ = s.beginSessionClose(sessionID, TerminalExitStatus{SessionID: sessionID, Reason: "error", Error: err.Error()}, true)
 		return false
 	}
 	return true
@@ -195,8 +220,7 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 	if request.Rows == 0 {
 		request.Rows = 24
 	}
-	policy := ssh.StrictPolicy(s.knownHosts)
-	config, err := ssh.BuildDialConfigErr(sshConnectToInput(request), policy, s.interactive.Handler(request.Hostname))
+	config, err := terminalSSHDialConfig(request, s.knownHosts, s.interactive.Handler(request.Hostname))
 	if err != nil {
 		return "", err
 	}
@@ -210,7 +234,7 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 		transport.Close()
 		return "", fmt.Errorf("new session: %w", err)
 	}
-	if err := sshSession.RequestPty("xterm-256color", int(request.Rows), int(request.Cols), gossh.TerminalModes{}); err != nil {
+	if err := sshSession.RequestPty(terminalTerm(request), int(request.Rows), int(request.Cols), gossh.TerminalModes{}); err != nil {
 		sshSession.Close()
 		transport.Close()
 		return "", fmt.Errorf("pty request: %w", err)
@@ -227,7 +251,26 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 		transport.Close()
 		return "", fmt.Errorf("stdout pipe: %w", err)
 	}
+	var x11 *ssh.X11Forwarder
+	if request.ForwardX11 {
+		display, xerr := ssh.ParseX11Display(request.X11Display, runtime.GOOS)
+		if xerr == nil {
+			var cookie []byte
+			cookie, xerr = ssh.ReadX11Cookie(context.Background(), display)
+			if xerr == nil {
+				x11, xerr = ssh.StartX11Forwarding(context.Background(), transport.Client, sshSession, display, cookie)
+			}
+		}
+		if xerr != nil {
+			sshSession.Close()
+			transport.Close()
+			return "", fmt.Errorf("X11 forwarding: %w", xerr)
+		}
+	}
 	if err := sshSession.Shell(); err != nil {
+		if x11 != nil {
+			x11.Close()
+		}
 		sshSession.Close()
 		transport.Close()
 		return "", fmt.Errorf("shell request: %w", err)
@@ -235,6 +278,9 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 
 	bootstrap, err := s.controller.Open(fmt.Sprintf("%s@%s:%d", request.Username, request.Hostname, request.Port))
 	if err != nil {
+		if x11 != nil {
+			x11.Close()
+		}
 		sshSession.Close()
 		transport.Close()
 		return "", fmt.Errorf("open route: %w", err)
@@ -243,7 +289,7 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 
 	s.mu.Lock()
 	s.counter++
-	term := &terminalSession{transport: transport, session: sshSession, stdin: stdin, bootstrap: bootstrap}
+	term := &terminalSession{x11: x11, transport: transport, session: sshSession, stdin: stdin, bootstrap: bootstrap}
 	s.sessions[sessionID] = term
 	s.mu.Unlock()
 
@@ -266,8 +312,8 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 
 	// When the remote side closes the shell, tear the session down.
 	go func() {
-		_ = sshSession.Wait()
-		s.Close(sessionID)
+		status := terminalWaitExit(sessionID, sshSession.Wait())
+		_ = s.closeWithStatus(sessionID, status)
 	}()
 
 	return sessionID, nil
@@ -277,6 +323,10 @@ func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
 // SSH dial fields lets the handshake reuse the same auth path as Connect.
 type MoshStartRequest struct {
 	SSHConnectRequest
+	SessionID  string `json:"sessionId"`
+	BootEpoch  uint64 `json:"bootEpoch"`
+	EtPort     uint16 `json:"etPort"`
+	ServerFifo string `json:"serverFifo"`
 	// ClientPath is the absolute path to the local mosh-client / et binary.
 	ClientPath string `json:"clientPath"`
 	// ServerPath overrides the remote mosh-server command (empty uses default).
@@ -299,119 +349,33 @@ func (s *TerminalService) StartEt(request MoshStartRequest) (string, error) {
 	return s.startSupervisedTerminal(request, "et")
 }
 
-// startSupervisedTerminal performs the shared handshake/supervision sequence.
-func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind string) (string, error) {
-	if request.Hostname == "" || request.Username == "" {
-		return "", fmt.Errorf("host and username are required")
-	}
-	exeDir := ""
-	if exePath, exeErr := os.Executable(); exeErr == nil {
-		exeDir = filepath.Dir(exePath)
-	}
-	repoRoot, _ := os.Getwd()
-	resolved, err := resolveHelperBinary(kind, request.ClientPath, os.Getenv(helperRootEnv), exeDir, repoRoot)
-	if err != nil {
-		return "", err
-	}
-	request.ClientPath = resolved
-	s.mu.Lock()
-	s.counter++
-	sessionID := fmt.Sprintf("%s-%d", kind, s.counter)
-	s.mu.Unlock()
-
-	bootstrap, err := s.controller.Open(sessionID)
-	if err != nil {
-		return "", fmt.Errorf("open route: %w", err)
-	}
-
-	// The handshake needs the remote command's stdout, so it runs its own SSH
-	// session rather than reusing the interactive Connect path.
-	var connect mosh.Connect
-	if kind == "mosh" {
-		connect, err = s.runHandshake(request, kind)
-		if err != nil {
-			_ = s.controller.Close(sessionID)
-			return "", err
-		}
-	} else if request.ProxyURL != "" || request.ProxyCommand != "" || len(request.JumpHosts) > 0 || request.PrivateKey != "" || request.Password != "" {
-		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("et: inline credentials and proxy/jump configuration are not supported; configure the native SSH client")
-	}
-
-	info, err := os.Stat(request.ClientPath)
-	if err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: client binary %s: %w", kind, request.ClientPath, err)
-	}
-	if info.IsDir() {
-		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: client binary %s is a directory", kind, request.ClientPath)
-	}
-	pinBytes, err := os.ReadFile(request.ClientPath + ".manifest.json")
-	if err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: pinned helper manifest: %w", kind, err)
-	}
-	var manifest supervised.Manifest
-	if err := json.Unmarshal(pinBytes, &manifest); err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", err
-	}
-	manifest.Path = filepath.Base(request.ClientPath)
-	if err := supervised.Verify(manifest, filepath.Dir(request.ClientPath)); err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", err
-	}
-	args, extraEnv, err := mosh.ClientLaunch(kind, request.Hostname, request.Username, request.Port, connect)
-	if err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", err
-	}
-	env := os.Environ()
-	for key, value := range extraEnv {
-		env = append(env, key+"="+value)
-	}
-	local := pty.NewSession(pty.Config{SessionID: sessionID, Shell: request.ClientPath, Args: args, Env: env, Cols: request.Cols, Rows: request.Rows})
-	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
-		_ = s.controller.Close(sessionID)
-		return "", fmt.Errorf("%s: start PTY client: %w", kind, err)
-	}
-	s.mu.Lock()
-	s.sessions[sessionID] = &terminalSession{local: local, bootstrap: bootstrap}
-	s.mu.Unlock()
-	go func() {
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := local.ReadOnce(buf)
-			if n > 0 && !s.publishOutput(sessionID, buf[:n]) {
-				return
-			}
-			if err != nil {
-				_ = s.Close(sessionID)
-				return
-			}
-		}
-	}()
-	s.emit(kind+":session-ready", map[string]any{"sessionId": sessionID})
-	return sessionID, nil
-}
-
 // runHandshake dials SSH and runs the remote mosh-server, returning the parsed
 // MOSH CONNECT announcement.
-func (s *TerminalService) runHandshake(request MoshStartRequest, kind string) (mosh.Connect, error) {
+func (s *TerminalService) runHandshake(ctx context.Context, request MoshStartRequest) (mosh.Connect, error) {
 	if request.Port == 0 {
 		request.Port = 22
 	}
-	policy := ssh.StrictPolicy(s.knownHosts)
-	config, err := ssh.BuildDialConfigErr(sshConnectToInput(request.SSHConnectRequest), policy, nil)
+	config, err := sshBootstrapConfig(ctx, s, request)
 	if err != nil {
 		return mosh.Connect{}, err
 	}
-	transport, err := ssh.Dial(context.Background(), config)
+	transport, err := ssh.Dial(ctx, config)
 	if err != nil {
 		return mosh.Connect{}, fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
 	}
 	defer transport.Close()
+	stop := context.AfterFunc(ctx, func() { _ = transport.Close() })
+	defer stop()
+	// mosh-client accepts numeric UDP destinations only. SSH jumps do not
+	// tunnel UDP; the target must remain directly reachable from this machine.
+	ip := net.ParseIP(request.Hostname)
+	if ip == nil {
+		addresses, resolveErr := net.DefaultResolver.LookupIPAddr(ctx, request.Hostname)
+		if resolveErr != nil || len(addresses) == 0 {
+			return mosh.Connect{}, fmt.Errorf("mosh: cannot resolve direct UDP destination")
+		}
+		ip = addresses[0].IP
+	}
 	sshSession, err := transport.Client.NewSession()
 	if err != nil {
 		return mosh.Connect{}, fmt.Errorf("new session: %w", err)
@@ -425,11 +389,14 @@ func (s *TerminalService) runHandshake(request MoshStartRequest, kind string) (m
 		return mosh.Connect{}, fmt.Errorf("stdout pipe: %w", err)
 	}
 	if err := sshSession.Start(mosh.ServerCommand(request.ServerPath)); err != nil {
-		return mosh.Connect{}, fmt.Errorf("start %s-server: %w", kind, err)
+		return mosh.Connect{}, fmt.Errorf("start mosh-server: %w", err)
 	}
 	connect, err := scanConnectDeadline(stdout, 30*time.Second, func() { _ = sshSession.Close() })
 	if err != nil {
 		return mosh.Connect{}, err
+	}
+	if connect.IP == "" {
+		connect.IP = ip.String()
 	}
 	return connect, nil
 }
@@ -587,6 +554,11 @@ func (s serialStream) Write(p []byte) (int, error) { return s.session.Write(s.po
 
 // StartLocal launches a local PTY and streams it on the same data plane as SSH.
 func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (string, error) {
+	return s.StartLocalWithOptions(LocalStartRequest{Shell: shell, CWD: cwd, Cols: cols, Rows: rows})
+}
+
+func (s *TerminalService) StartLocalWithOptions(request LocalStartRequest) (string, error) {
+	cols, rows := request.Cols, request.Rows
 	if cols == 0 {
 		cols = 80
 	}
@@ -598,7 +570,8 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 	sessionID := fmt.Sprintf("local-%d", s.counter)
 	s.mu.Unlock()
 
-	local := pty.NewSession(pty.BuildConfig(sessionID, shell, cwd, nil, nil, cols, rows))
+	request.Cols, request.Rows = cols, rows
+	local := pty.NewSession(localStartConfig(sessionID, request))
 	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
 		return "", fmt.Errorf("local pty: %w", err)
 	}
@@ -622,10 +595,14 @@ func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (stri
 				}
 			}
 			if readErr != nil {
-				s.Close(sessionID)
 				return
 			}
 		}
+	}()
+	// ConPTY output handles can remain open after the child exits. Observe the
+	// process independently; EOF is never evidence of a successful exit.
+	go func() {
+		_ = s.closeWithStatus(sessionID, terminalWaitExit(sessionID, local.Wait()))
 	}()
 	return sessionID, nil
 }
@@ -800,7 +777,7 @@ func (s *TerminalService) Bootstrap(sessionID string) (dataplane.RouteBootstrap,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
-	if !ok {
+	if !ok || term.closing {
 		return dataplane.RouteBootstrap{}, fmt.Errorf("session %q not found", sessionID)
 	}
 	return term.bootstrap, nil
@@ -812,7 +789,7 @@ func (s *TerminalService) Reconnect(sessionID string) (dataplane.RouteBootstrap,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
-	if !ok {
+	if !ok || term.closing {
 		return dataplane.RouteBootstrap{}, fmt.Errorf("session not found")
 	}
 	bootstrap, err := s.controller.Open(sessionID)
@@ -831,6 +808,9 @@ func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 	term, ok := s.lookup(sessionID)
 	if !ok {
 		return 0, fmt.Errorf("session %q not found", sessionID)
+	}
+	if term.helper != nil {
+		return term.helper.Write(data)
 	}
 	if term.local != nil {
 		return term.local.Write(term.local.Generation(), data)
@@ -860,6 +840,9 @@ func (s *TerminalService) Resize(sessionID string, cols, rows uint16) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
+	if term.helper != nil {
+		return term.helper.Resize(cols, rows)
+	}
 	if term.local != nil {
 		return term.local.Resize(term.local.Generation(), cols, rows)
 	}
@@ -875,6 +858,10 @@ func (s *TerminalService) Signal(sessionID, signal string) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
+	if term.helper != nil {
+		_, err := term.helper.Write([]byte{3})
+		return err
+	}
 	if term.local != nil {
 		return term.local.Interrupt(term.local.Generation())
 	}
@@ -887,12 +874,49 @@ func (s *TerminalService) Signal(sessionID, signal string) error {
 
 // Close tears the PTY, transport and data plane route down.
 func (s *TerminalService) Close(sessionID string) error {
+	return s.closeWithStatus(sessionID, TerminalExitStatus{SessionID: sessionID, Reason: "closed", Intentional: true})
+}
+
+func (s *TerminalService) closeWithStatus(sessionID string, status TerminalExitStatus, expected ...*terminalSession) error {
+	return s.beginSessionClose(sessionID, status, false, expected...)
+}
+
+func (s *TerminalService) beginSessionClose(sessionID string, status TerminalExitStatus, async bool, expected ...*terminalSession) error {
 	s.mu.Lock()
 	term, ok := s.sessions[sessionID]
-	delete(s.sessions, sessionID)
+	if !ok || term.closing || (len(expected) > 0 && expected[0] != term) {
+		s.mu.Unlock()
+		return nil
+	}
+	term.closing = true
+	if term.helper != nil {
+		term.helper.Cancel()
+	}
+	if ok {
+		if s.exitStatuses == nil {
+			s.exitStatuses = make(map[string]TerminalExitStatus)
+		}
+		s.exitStatuses[sessionID] = status
+		s.exitOrder = append(s.exitOrder, sessionID)
+		if len(s.exitOrder) > 256 {
+			delete(s.exitStatuses, s.exitOrder[0])
+			s.exitOrder = s.exitOrder[1:]
+		}
+	}
 	s.mu.Unlock()
 	if !ok {
 		return nil
+	}
+	if async {
+		go s.finishSessionClose(sessionID, term, status)
+		return nil
+	}
+	return s.finishSessionClose(sessionID, term, status)
+}
+
+func (s *TerminalService) finishSessionClose(sessionID string, term *terminalSession, status TerminalExitStatus) error {
+	if term.helper != nil {
+		_ = term.helper.Close()
 	}
 	if term.local != nil {
 		_ = term.local.Close()
@@ -912,14 +936,21 @@ func (s *TerminalService) Close(sessionID string) error {
 	if term.runner != nil {
 		_ = term.runner.Stop()
 	}
+	if term.x11 != nil {
+		term.x11.Close()
+	}
 	if term.session != nil {
 		term.session.Close()
 	}
 	if term.transport != nil {
 		term.transport.Close()
 	}
+	s.emit("terminal:exit", status)
+	s.mu.Lock()
+	delete(s.sessions, sessionID)
 	_ = s.controller.Close(sessionID)
 	s.dp.DropOutput(sessionID)
+	s.mu.Unlock()
 	return nil
 }
 
@@ -927,7 +958,7 @@ func (s *TerminalService) lookup(sessionID string) (*terminalSession, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
-	return term, ok
+	return term, ok && !term.closing
 }
 
 // handleUrgent writes urgent payloads (Ctrl-C et al.) straight to stdin.
@@ -935,6 +966,12 @@ func (s *TerminalService) handleUrgent(sessionID string, payload []byte) []byte 
 	term, ok := s.lookup(sessionID)
 	if !ok {
 		return nil
+	}
+	if term.helper != nil {
+		if _, err := term.helper.Write(payload); err != nil {
+			return nil
+		}
+		return []byte("ok")
 	}
 	if term.local != nil {
 		if _, err := term.local.Write(term.local.Generation(), payload); err != nil {

@@ -36,6 +36,26 @@ declare global {
     lineFeeds: number;
   }
 
+  /**
+   * Supervised mosh/et helper lifecycle payload (`<kind>:lifecycle` event).
+   * State mirrors the Go supervised.TerminalEvent: running | recovering |
+   * failed | exited. "failed" means the restart budget was exhausted and the
+   * session is kept alive for a manual restart (restartHelperSession).
+   */
+  interface NetcattyHelperSessionState {
+    state: string;
+    attempt: number;
+    delayMs?: number;
+    exitCode?: number;
+    error?: string;
+    sessionId: string;
+    bootEpoch?: number;
+    kind?: string;
+    recoveryMode?: string;
+    readiness?: string;
+    recoveryLimit?: string;
+  }
+
   interface NetcattyBridge {
     getWindowsPtyInfo?(): NetcattyWindowsPtyInfo | null;
     startSSHSession(options: NetcattySSHOptions): Promise<string>;
@@ -88,6 +108,8 @@ declare global {
       rows?: number;
       charset?: string;
       env?: Record<string, string>;
+      proxy?: NetcattyProxyConfig;
+      jumpHosts?: NetcattyJumpHost[];
       sessionLog?: { enabled: boolean; directory: string; format: string; timestampsEnabled?: boolean };
     }): Promise<string>;
     startEtSession?(options: {
@@ -123,6 +145,7 @@ declare global {
       rows?: number;
       charset?: string;
       env?: Record<string, string>;
+      proxy?: NetcattyProxyConfig;
       sessionLog?: { enabled: boolean; directory: string; format: string; timestampsEnabled?: boolean };
     }): Promise<string>;
     startLocalSession?(options: {
@@ -519,6 +542,20 @@ declare global {
       sessionId: string,
       cb: (evt: { sessionId: string; bootEpoch?: number }) => void
     ): () => void;
+    /** Supervised mosh/et helper lifecycle (running/recovering/failed/exited). */
+    onHelperLifecycle?(
+      sessionId: string,
+      cb: (evt: NetcattyHelperSessionState) => void
+    ): () => void;
+    /**
+     * Relaunch a failed mosh/et helper inside the same terminal session
+     * (manual restart from the failure notice; never automatic).
+     */
+    restartHelperSession?(sessionId: string): Promise<{
+      success: boolean;
+      state?: NetcattyHelperSessionState;
+      error?: string;
+    }>;
     onTelnetEchoMode?(
       sessionId: string,
       cb: (evt: { sessionId: string; remoteEcho: boolean; localEcho: boolean }) => void

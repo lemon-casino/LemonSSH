@@ -6,6 +6,10 @@
 // @ts-ignore: Unused imports
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * Close hides the window; the loaded page is kept for the next open.
  * @returns {$CancellablePromise<void>}
@@ -47,3 +51,18 @@ export function Preload() {
 export function Show() {
     return $Call.ByID(3854190277);
 }
+
+/**
+ * ShowSystemNotification is reached only after the renderer's OSC permission,
+ * focus and rate-limit gates. The platform boundary also bounds untrusted text.
+ * @param {$models.SystemNotificationRequest} request
+ * @returns {$CancellablePromise<$models.SystemNotificationResult>}
+ */
+export function ShowSystemNotification(request) {
+    return $Call.ByID(2312373539, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+// Private type creation functions
+const $$createType0 = $models.SystemNotificationResult.createFrom;

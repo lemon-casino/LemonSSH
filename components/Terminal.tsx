@@ -891,6 +891,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const [isConnectionAwaitingUserInput, setIsConnectionAwaitingUserInput] = useState(false);
   const [isConnectionPastTcpDial, setIsConnectionPastTcpDial] = useState(false);
   const [reconnectNoticeMessage, setReconnectNoticeMessage] = useState<string | null>(null);
+  /** Supervised mosh/et helper whose restart budget is exhausted (manual restart only). */
+  const [helperFailure, setHelperFailure] = useState<{ kind: string; error?: string } | null>(null);
+  const [helperRestartPending, setHelperRestartPending] = useState(false);
 
   // pendingUploadEntries removed - drag-drop uploads now handled by SftpSidePanel
   const [isComposeBarOpen, setIsComposeBarOpen] = useStoredBoolean(
@@ -1976,9 +1979,44 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           exitMessage,
         );
       onSessionExitRef.current?.(sessionId, evt);
+      setHelperFailure(null);
+      setHelperRestartPending(false);
       scheduleAutoReconnect({ evt });
     });
   }, [host.hostname, host.label, observeTerminalInputPrompt, onTerminalBell, scheduleAutoReconnect, sessionId, terminalBackend]);
+
+  // Supervised mosh/et helper lifecycle: "failed" shows the manual restart
+  // banner (the session stays alive), "running" clears it. Never automatic.
+  useEffect(() => {
+    if (!sessionId) return;
+    const dispose = terminalBackend.onHelperLifecycle?.(sessionId, (evt) => {
+      if (evt.state === "failed") {
+        setHelperFailure({ kind: evt.kind || "Mosh", error: evt.error });
+        setHelperRestartPending(false);
+      } else if (evt.state === "running") {
+        setHelperFailure(null);
+        setHelperRestartPending(false);
+      } else if (evt.state === "exited") {
+        setHelperFailure(null);
+      }
+    });
+    return () => dispose?.();
+  }, [sessionId, terminalBackend]);
+
+  const handleHelperRestart = useCallback(() => {
+    const targetId = sessionRef.current || sessionId;
+    if (!targetId || helperRestartPending) return;
+    setHelperRestartPending(true);
+    void Promise.resolve(terminalBackend.restartHelperSession(targetId))
+      .then((result) => {
+        // Success path clears via the "running" lifecycle event.
+        if (!result?.success) {
+          setHelperRestartPending(false);
+          setHelperFailure((prev) => (prev ? { ...prev, error: result?.error } : prev));
+        }
+      })
+      .catch(() => setHelperRestartPending(false));
+  }, [helperRestartPending, sessionId, terminalBackend]);
 
   const clearHibernateRetry = useCallback(() => {
     if (hibernateRetryTimerRef.current === null) return;
@@ -4290,7 +4328,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           onDismiss={dismissScriptOverlay}
           compactTopChrome={terminalSettings?.showHostInfoBar === false}
         />
-      ) : null, sessionDisplayName, sessionId, workspaceId, sessionRef, setIsComposeBarOpen, setShowLogs, shouldShowConnectionDialog, showDisconnectedTerminalNotice, showConnectionControls: !attachExistingSession && !compactToolbar, showLogs, showSelectionAIAction: Boolean(showSelectionAIAction && onAddSelectionToAI), isRestoringSelectionRef, snippets, status, sudoHintRef, sudoHintText, passwordPickerState, onPasswordPickerSelect: handlePasswordPickerSelect, passwordPickerTitle, passwordPickerEmptyText, t, termRef, terminalBackend, terminalContextActions, terminalCwdTracker, terminalPreviewVars, terminalSettings, terminalReconnectAvailable: !attachExistingSession, reconnectNoticeMessage, timeLeft, toast, zmodem }} isPaneMagnified={isPaneMagnified} />
+      ) : null, sessionDisplayName, sessionId, workspaceId, sessionRef, setIsComposeBarOpen, setShowLogs, shouldShowConnectionDialog, showDisconnectedTerminalNotice, showConnectionControls: !attachExistingSession && !compactToolbar, showLogs, showSelectionAIAction: Boolean(showSelectionAIAction && onAddSelectionToAI), isRestoringSelectionRef, snippets, status, sudoHintRef, sudoHintText, passwordPickerState, onPasswordPickerSelect: handlePasswordPickerSelect, passwordPickerTitle, passwordPickerEmptyText, t, termRef, terminalBackend, terminalContextActions, terminalCwdTracker, terminalPreviewVars, terminalSettings, terminalReconnectAvailable: !attachExistingSession, reconnectNoticeMessage, timeLeft, toast, zmodem, helperFailure, helperRestartPending, handleHelperRestart }} isPaneMagnified={isPaneMagnified} />
       <ScriptSaveRecordingDialog
         open={saveRecordingOpen}
         code={recordedCode}
