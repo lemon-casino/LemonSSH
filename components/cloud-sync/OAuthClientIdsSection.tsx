@@ -1,9 +1,10 @@
 import React from 'react';
-import { ExternalLink, KeyRound } from 'lucide-react';
+import { CircleHelp, ExternalLink, KeyRound } from 'lucide-react';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useOAuthClientIds } from '../../application/state/useOAuthClientIds';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oauthClientIds';
@@ -35,6 +36,8 @@ export const OAuthClientIdsSection: React.FC = () => {
     { provider: 'onedrive', label: t('cloudSync.oauth.onedrive'), placeholder: '00000000-0000-0000-0000-000000000000' },
   ];
 
+  const guideFor = (provider: OAuthProvider): string => t(`cloudSync.oauth.guide.${provider}`);
+
   return (
     <section
       data-section="cloud-sync-oauth-client-ids"
@@ -50,15 +53,25 @@ export const OAuthClientIdsSection: React.FC = () => {
           <div key={provider} className="space-y-1">
             <Label className="flex items-center gap-1 text-xs" htmlFor={`oauth-client-id-${provider}`}>
               {label}
-              <button
-                type="button"
-                className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                title={t('cloudSync.oauth.apply')}
-                aria-label={t('cloudSync.oauth.apply')}
-                onClick={() => openApplyPage(provider)}
-              >
-                <ExternalLink size={11} />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                    aria-label={t('cloudSync.oauth.guideTitle')}
+                    onClick={() => openApplyPage(provider)}
+                  >
+                    <CircleHelp size={12} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72 whitespace-pre-wrap text-left text-xs">
+                  <p className="whitespace-pre-wrap">{guideFor(provider)}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <ExternalLink size={9} />
+                    {t('cloudSync.oauth.apply')}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </Label>
             <Input
               id={`oauth-client-id-${provider}`}

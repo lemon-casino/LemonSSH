@@ -3844,3 +3844,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: console page layouts are provider-controlled; a failed browser launch still only logs (settings has no toast port in this section)
 - Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L129 - 2026-09-12 - GitHub device-flow 400 pending fix and client ID hover guides
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the live "GitHub connect failed: Cloud provider HTTP 400". The device-flow token endpoint answers HTTP 400 with the real status in the JSON body (authorization_pending while the user is still typing the code), but PollDevice treated 400 as fatal before parsing the body, killing the poll the moment it started. The token poll now accepts 200 and 400, reads the JSON error field, and only surfaces non-protocol statuses; slow_down keeps returning to the polling loop. Existing tests covered pending only over HTTP 200, so a regression test now pins 400-authorization-pending and slow_down-then-success over real 400 responses. Per the same feedback, every client ID field gains a hover ? tooltip (five locales) with step-by-step registration guidance including the redirect-URI answers, and the external-link control is folded into that icon.
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go (PollDevice 400 handling)
+- Frontend adapter: components/cloud-sync/OAuthClientIdsSection.tsx (guide tooltips), five locale files
+- Electron owner affected: none
+- Preserved invariants: token bodies are still never relayed (ErrorDescription stays stripped); polling loop ownership and cancellation are unchanged
+- Data/schema impact: none
+- Security impact: none; provider error descriptions remain suppressed
+- Verification: go test -race ./internal/platform/cloudsync (new TestOAuthPollDeviceTreats400AsPending covers 400-authorization-pending non-fatal and slow_down re-poll); node cloud suites plus runtime client 141/141; locale suites 24/24; migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live device flow authorization remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: slow_down interval growth is owned by the renderer loop; a user typing a wrong client ID still gets provider-side errors that are intentionally generic
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
