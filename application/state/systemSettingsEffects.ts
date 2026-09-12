@@ -15,8 +15,8 @@ import {
 } from '../../domain/httpNetworkProxy';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
-import {
 import type { LayoutMode } from '../../domain/layoutMode';
+import {
   parseWindowOpacityRecord,
   serializeWindowOpacityRecord,
   shouldApplyWindowOpacityRecord,
