@@ -727,3 +727,19 @@ test("cloud OAuth methods surface on the sync port and transition bridge", async
   assert.equal(typeof client.transitionBridge.googleGetUserInfo, "function");
   assert.deepEqual(calls, ["device-flow"]);
 });
+
+test("openProviderConsole forwards the allow-listed provider to the Go bridge", async () => {
+  const requested: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    OpenProviderConsole: async (provider: 'github' | 'google' | 'onedrive') => {
+      requested.push(provider);
+    },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(typeof client.transitionBridge.openProviderConsole, "function");
+  await client.transitionBridge.openProviderConsole!('github');
+  assert.deepEqual(requested, ['github']);
+  await client.sync.openProviderConsole!('google');
+  assert.deepEqual(requested, ['github', 'google']);
+});

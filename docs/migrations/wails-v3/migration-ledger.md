@@ -3819,3 +3819,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the authorize URLs are now correct only after the user registers OAuth clients and pastes the IDs; distribution builds can still pin IDs at build time
 - Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L128 - 2026-09-12 - Allow-listed provider console opener for apply links
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the silent dead click on the OAuth apply links added in WV3-L127. They routed through OpenOAuthExternal, whose strict validation only permits device-flow and PKCE authorize endpoints, so the console pages were rejected and the swallowed error looked like a dead button. A new SyncService.OpenProviderConsole(provider) opens the exact registration page for an allow-listed provider name (github, google, onedrive) — the bridge takes a provider enum, never a raw URL, so no arbitrary link can turn the app into a URL opener; the browser launcher is a package-level seam covered by tests. The renderer component calls openProviderConsole on the transition bridge and sync port and logs failures instead of swallowing them.
+- Go canonical owner: cmd/netcatty/syncAuthService.go (OpenProviderConsole, openExternalLauncher seam)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts, types/global/netcatty-bridge-sync.d.ts, components/cloud-sync/OAuthClientIdsSection.tsx
+- Electron owner affected: none
+- Preserved invariants: OAuth authorize validation is untouched; only the three fixed console URLs are reachable; launcher failures surface in the console instead of vanishing
+- Data/schema impact: none
+- Security impact: allow-list is closed (provider enum plus exact URLs); no user-controlled URL ever reaches the launcher
+- Verification: go test ./cmd/netcatty -run TestOpenProviderConsoleAllowlist (unknown provider rejected, three known URLs hit the launcher seam verbatim); node runtime client 36/36 including the passthrough test on both bridge surfaces; cloud suites 127/127; race clean on the touched paths
+- Platforms covered: Windows 10 22H2 x64 tests; launcher commands remain platform-specific
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: console page layouts are provider-controlled; a failed browser launch still only logs (settings has no toast port in this section)
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

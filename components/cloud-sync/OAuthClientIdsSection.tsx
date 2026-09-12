@@ -1,10 +1,11 @@
 import React from 'react';
-import { KeyRound } from 'lucide-react';
+import { ExternalLink, KeyRound } from 'lucide-react';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useOAuthClientIds } from '../../application/state/useOAuthClientIds';
+import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
 import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oauthClientIds';
 
 /**
@@ -15,6 +16,18 @@ import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oaut
 export const OAuthClientIdsSection: React.FC = () => {
   const { t } = useI18n();
   const { ids, setClientId } = useOAuthClientIds();
+
+  const openApplyPage = (provider: OAuthProvider) => {
+    const bridge = netcattyBridge.get();
+    const opener = bridge?.openProviderConsole;
+    if (!opener) {
+      console.error('Provider console bridge is unavailable');
+      return;
+    }
+    opener(provider).catch((error: unknown) => {
+      console.error(`Failed to open the ${provider} console page:`, error);
+    });
+  };
 
   const fields: Array<{ provider: OAuthProvider; label: string; placeholder: string }> = [
     { provider: 'github', label: t('cloudSync.oauth.github'), placeholder: 'Iv1.xxxxxxxxxxxxxxxx' },
@@ -35,7 +48,18 @@ export const OAuthClientIdsSection: React.FC = () => {
       <div className="grid gap-3 sm:grid-cols-3">
         {fields.map(({ provider, label, placeholder }) => (
           <div key={provider} className="space-y-1">
-            <Label className="text-xs" htmlFor={`oauth-client-id-${provider}`}>{label}</Label>
+            <Label className="flex items-center gap-1 text-xs" htmlFor={`oauth-client-id-${provider}`}>
+              {label}
+              <button
+                type="button"
+                className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                title={t('cloudSync.oauth.apply')}
+                aria-label={t('cloudSync.oauth.apply')}
+                onClick={() => openApplyPage(provider)}
+              >
+                <ExternalLink size={11} />
+              </button>
+            </Label>
             <Input
               id={`oauth-client-id-${provider}`}
               className="h-8 text-xs font-mono"

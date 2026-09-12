@@ -504,6 +504,7 @@ export const enTerminalMessages: Messages = {
   'cloudSync.conflict.useCloud': 'Download cloud (overwrite local)',
   'cloudSync.connect.browserContinue': 'Complete authorization in browser',
   'cloudSync.oauth.sectionTitle': 'OAuth applications',
+  'cloudSync.oauth.apply': 'Open the OAuth application registration page',
   'cloudSync.oauth.sectionDesc': 'Register a desktop-app OAuth client for each provider you use (no client secret required), then paste its client ID here. GitHub uses Device Flow; Google and OneDrive use PKCE with a loopback redirect.',
   'cloudSync.oauth.github': 'GitHub client ID',
   'cloudSync.oauth.google': 'Google client ID',

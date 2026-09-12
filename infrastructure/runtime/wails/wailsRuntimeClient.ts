@@ -223,6 +223,7 @@ export interface WailsBindingDeps {
   };
   sync?: {
     PrepareOAuthCallback?: () => Promise<{ sessionId: string; port: number; redirectUri: string }>;
+    OpenProviderConsole?: (provider: 'github' | 'google' | 'onedrive') => Promise<void>;
     GithubStartDeviceFlow?: (options: { clientId?: string; scope?: string }) => Promise<unknown>;
     GithubGetUserInfo?: (options: unknown) => Promise<unknown>;
     GithubFindSyncFile?: (options: unknown) => Promise<unknown>;
@@ -305,6 +306,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   // Cloud OAuth facade: maps the generated PascalCase sync bindings onto the
   // camelCase bridge surface the cloud sync adapters and UI already call.
   const cloudOAuth = createCloudOAuthFacade(bindings.sync as unknown as CloudOAuthBindings);
+  const openProviderConsole = (async (provider: 'github' | 'google' | 'onedrive') => {
+    if (!bindings.sync?.OpenProviderConsole) missingBridgeMethod("openProviderConsole");
+    await bindings.sync.OpenProviderConsole(provider);
+  }) as unknown as NetcattyBridge["openProviderConsole"];
   const rememberSession = (uiId: string | undefined, nativeId: string) => {
     if (uiId) sessionAliases.set(uiId, nativeId);
   };
@@ -851,6 +856,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
     ...cloudOAuth,
+    openProviderConsole,
     getDefaultShell,
     discoverShells,
     validatePath,
@@ -1288,6 +1294,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       // bindings, so cloudSyncBridge.get() and the adapters reach the Go
       // OAuth/device-flow/file operations under Wails.
       ...cloudOAuth,
+      openProviderConsole,
       cloudSyncWebdavInitialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
         return bindings.sync.CloudSyncWebdavInitialize(config);

@@ -21,14 +21,9 @@ test('compact workbench menu toggles inline in the bar and collapses after navig
     const { TooltipProvider } = await import('../ui/tooltip');
     const selected: string[] = [];
     await renderer.render(<TooltipProvider><WorkbenchChrome theme="dark" themePreference="dark" onThemeChange={() => {}} isMacClient={false} showWindowControls={false} onSelectVaultSection={section => selected.push(section)} onOpenQuickSwitcher={() => {}} onOpenSettings={() => {}} externalMcpEnabled={false} onToggleExternalMcp={() => {}} /></TooltipProvider>);
-    // Collapsed by default: the toggle button exists, no inline sections.
+    // Expanded by default: the sections render inline in the bar.
     const toggle = renderer.container.querySelector('button[aria-expanded]');
     assert.ok(toggle, 'compact menu toggle missing');
-    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
-    assert.equal(env.document.querySelector('[data-section="workbench-chrome-inline-nav"]'), null);
-
-    // First click expands the sections inline into the menu bar.
-    await dispatchDomEvent(toggle, new env.window.MouseEvent('click', { bubbles: true }));
     assert.equal(toggle.getAttribute('aria-expanded'), 'true');
     const inlineNav = renderer.container.querySelector('[data-section="workbench-chrome-inline-nav"]');
     assert.ok(inlineNav, 'expanded sections must render inside the bar, not a dialog');
@@ -37,13 +32,19 @@ test('compact workbench menu toggles inline in the bar and collapses after navig
     assert.equal(buttons.length, 8);
     const logs = buttons.find(button => button.textContent === 'vault.nav.logs');
     assert.ok(logs);
+    // The toggle keeps breathing room from the first section.
+    assert.notEqual(env.window.getComputedStyle(inlineNav).marginLeft, '0px');
 
-    // Second click collapses back to the toggle only.
+    // First click collapses to the toggle only.
     await dispatchDomEvent(toggle, new env.window.MouseEvent('click', { bubbles: true }));
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
     assert.equal(renderer.container.querySelector('[data-section="workbench-chrome-inline-nav"]'), null);
 
-    // Expand again and navigate: the selection lands and the bar collapses.
+    // Second click expands again.
     await dispatchDomEvent(toggle, new env.window.MouseEvent('click', { bubbles: true }));
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+
+    // Navigate: the selection lands and the bar collapses.
     const logsAgain = Array.from(
       renderer.container.querySelectorAll('[data-section="workbench-chrome-inline-nav"] button'),
     ).find(button => button.textContent === 'vault.nav.logs');

@@ -406,6 +406,16 @@ export function OpenOAuthExternal(rawURL) {
 }
 
 /**
+ * OpenProviderConsole opens the OAuth application registration page for a
+ * provider in the system browser.
+ * @param {string} provider
+ * @returns {$CancellablePromise<void>}
+ */
+export function OpenProviderConsole(provider) {
+    return $Call.ByID(2684756348, provider);
+}
+
+/**
  * These methods mirror the existing cloud-sync bridge. Wails injects context;
  * the renderer supplies only the JSON options shown by the domain types.
  * @returns {$CancellablePromise<cloudsync$0.CallbackSession>}

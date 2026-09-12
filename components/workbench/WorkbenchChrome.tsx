@@ -79,7 +79,9 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
     };
   }, [isFullscreen, isMacClient, onFullscreenChanged]);
 
-  const [navigationOpen, setNavigationOpen] = useState(false);
+  // Compact menu defaults to expanded so the sections stay visible; the
+  // toggle collapses them to the ☰ button when the bar is needed for drag.
+  const [navigationOpen, setNavigationOpen] = useState(true);
   const handleSelectSection = useCallback((section: VaultSection) => {
     setNavigationOpen(false);
     setVaultNavSection(section);
@@ -135,7 +137,7 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
           {navigationOpen && (
             <div
               data-section="workbench-chrome-inline-nav"
-              className="min-w-0 overflow-x-auto"
+              className="ml-1.5 min-w-0 overflow-x-auto"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
               <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />

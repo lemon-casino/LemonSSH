@@ -881,6 +881,7 @@ export const zhTWVaultMessages: Messages = {
   'cloudSync.conflict.useCloud': '下載雲端（覆蓋本機）',
   'cloudSync.connect.browserContinue': '請在瀏覽器中完成授權',
   'cloudSync.oauth.sectionTitle': 'OAuth 應用',
+  'cloudSync.oauth.apply': '開啟 OAuth 應用註冊頁面',
   'cloudSync.oauth.sectionDesc': '為使用的每個供應商註冊一個「桌面應用」類型的 OAuth 用戶端（無需用戶端密鑰），並把 client ID 貼上到這裡。GitHub 使用 Device Flow；Google 與 OneDrive 使用本機回環 PKCE。',
   'cloudSync.oauth.github': 'GitHub client ID',
   'cloudSync.oauth.google': 'Google client ID',

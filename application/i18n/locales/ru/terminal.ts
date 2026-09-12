@@ -522,6 +522,7 @@ export const ruTerminalMessages: Messages = {
   'cloudSync.conflict.useCloud': 'Скачать из облака (перезаписать локальную)',
   'cloudSync.connect.browserContinue': 'Завершите авторизацию в браузере',
   'cloudSync.oauth.sectionTitle': 'OAuth-приложения',
+  'cloudSync.oauth.apply': 'Открыть страницу регистрации OAuth-приложения',
   'cloudSync.oauth.sectionDesc': 'Зарегистрируйте OAuth-клиент типа «настольное приложение» для каждого провайдера (секрет клиента не требуется) и вставьте его client ID здесь. GitHub использует Device Flow; Google и OneDrive — PKCE с локальным redirect.',
   'cloudSync.oauth.github': 'Client ID GitHub',
   'cloudSync.oauth.google': 'Client ID Google',

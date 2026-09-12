@@ -504,6 +504,7 @@ export const esTerminalMessages: Messages = {
   'cloudSync.conflict.useCloud': 'Descargar la nube (sobrescribir local)',
   'cloudSync.connect.browserContinue': 'Completar la autorización en el navegador',
   'cloudSync.oauth.sectionTitle': 'Aplicaciones OAuth',
+  'cloudSync.oauth.apply': 'Abrir la página de registro de la aplicación OAuth',
   'cloudSync.oauth.sectionDesc': 'Registra un cliente OAuth de tipo aplicación de escritorio para cada proveedor (sin secreto de cliente) y pega su ID de cliente aquí. GitHub usa Device Flow; Google y OneDrive usan PKCE con redirección de bucle local.',
   'cloudSync.oauth.github': 'ID de cliente de GitHub',
   'cloudSync.oauth.google': 'ID de cliente de Google',
