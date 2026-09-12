@@ -106,7 +106,7 @@ export function WorkbenchSessionTreeRow({
         data-state={isActive ? "active" : "inactive"}
         onClick={() => onActivateTab(node.id)}
         className={cn(
-          "w-full flex items-center gap-2 px-2 rounded-md text-xs font-medium transition-colors",
+          "w-full flex items-center gap-2 px-2 rounded-md text-xs font-semibold transition-colors",
           isActive
             ? "bg-foreground/10 text-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
@@ -155,7 +155,7 @@ export function WorkbenchSessionTreeRow({
         data-section={node.type === "group" ? "workbench-tree-group" : "workbench-tree-host"}
         data-tab-id={isWorkspaceNode ? workspaceId : undefined}
         data-state={expanded ? "expanded" : "collapsed"}
-        className="w-full flex items-center gap-1 px-2 rounded-md text-xs text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
+        className="w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
         style={{ marginLeft: indent, height: TREE_ROW_HEIGHT }}
         onClick={() => {
           // Workspace nodes double as tab shortcuts; plain groups toggle.
@@ -201,7 +201,7 @@ export function WorkbenchSessionTreeRow({
       data-tab-id={sessionId}
       data-state={isActive ? "active" : "inactive"}
       className={cn(
-        "w-full flex items-center gap-2 pl-2 pr-1 rounded-md text-xs cursor-pointer select-none group/leaf",
+        "w-full flex items-center gap-2 pl-2 pr-1 rounded-md text-xs font-semibold cursor-pointer select-none group/leaf",
         isActive
           ? "bg-foreground/10 text-foreground"
           : "text-muted-foreground hover:text-foreground hover:bg-foreground/5",

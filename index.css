@@ -772,7 +772,8 @@ html[data-theme-transition] *::after {
 }
 
 /* Window controls: icons sit in the h-7 tab row; hover fills the full h-9 title bar */
-[data-section="top-tabs"] .window-control-btn {
+[data-section="top-tabs"] .window-control-btn,
+[data-section="workbench-chrome"] .window-control-btn {
   position: relative;
   z-index: 0;
   display: flex;
@@ -785,7 +786,8 @@ html[data-theme-transition] *::after {
   transition: color 150ms ease;
 }
 
-[data-section="top-tabs"] .window-control-btn::before {
+[data-section="top-tabs"] .window-control-btn::before,
+[data-section="workbench-chrome"] .window-control-btn::before {
   content: "";
   position: absolute;
   left: 0;
@@ -797,20 +799,25 @@ html[data-theme-transition] *::after {
   transition: background-color 150ms ease;
 }
 
-[data-section="top-tabs"] .window-control-btn:hover::before {
+[data-section="top-tabs"] .window-control-btn:hover::before,
+[data-section="workbench-chrome"] .window-control-btn:hover::before {
   background: hsl(var(--foreground) / 0.1);
 }
 
-[data-section="top-tabs"] .window-control-btn--close:hover {
+[data-section="top-tabs"] .window-control-btn--close:hover,
+[data-section="workbench-chrome"] .window-control-btn--close:hover {
   color: white;
 }
 
-[data-section="top-tabs"] .window-control-btn--close:hover::before {
+[data-section="top-tabs"] .window-control-btn--close:hover::before,
+[data-section="workbench-chrome"] .window-control-btn--close:hover::before {
   background: rgb(239 68 68);
 }
 
 [data-section="top-tabs"] .top-tab-utility-btn:hover,
-[data-section="top-tabs"] .top-tab-utility-btn[data-state="open"] {
+[data-section="top-tabs"] .top-tab-utility-btn[data-state="open"],
+[data-section="workbench-chrome"] .top-tab-utility-btn:hover,
+[data-section="workbench-chrome"] .top-tab-utility-btn[data-state="open"] {
   background-color: hsl(var(--foreground) / 0.1);
   color: var(--top-tabs-muted, hsl(var(--muted-foreground)));
 }

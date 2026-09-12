@@ -104,13 +104,13 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
       onDoubleClick={handleTitleBarDoubleClick}
     >
       <div
-        className="h-9 flex items-center gap-2 app-drag min-w-0"
+        className="h-9 flex items-end gap-2 app-drag min-w-0"
         style={{
           paddingLeft: isMacClient && !isWindowFullscreen ? 76 : 12,
           paddingRight: showWindowControls ? 0 : 12,
         }}
       >
-        <div className="flex items-center app-no-drag shrink-0">
+        <div className="flex items-center app-no-drag shrink-0 self-end h-7">
           <AppLogo className="h-6 w-6" />
         </div>
         <VaultNavItems
@@ -122,7 +122,7 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
         />
         <div className="flex-1 min-w-4 app-drag" style={dragRegionStyle} />
         <div
-          className="shrink-0 flex items-center gap-0.5 app-drag h-7 overflow-visible"
+          className="shrink-0 flex items-center gap-0.5 app-drag self-end h-7 overflow-visible"
           style={dragRegionStyle}
           data-section="workbench-chrome-actions"
         >
