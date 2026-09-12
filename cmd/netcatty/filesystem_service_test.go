@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"io"
 	"os"
 	"path/filepath"
@@ -9,6 +10,11 @@ import (
 
 func TestLocalBrowseReturnsRealUploadSources(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	home, err := service.HomeDir()
 	if err != nil || home == "" {
 		t.Fatalf("home directory: %q, %v", home, err)
@@ -44,13 +50,18 @@ func TestLocalBrowseReturnsRealUploadSources(t *testing.T) {
 	if err != nil || string(data) != "PDFDATA" {
 		t.Fatalf("upload source: %q, %v", data, err)
 	}
-		if _, err := service.ListDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
-			t.Fatalf("missing directory must report its error, got %v", err)
-		}
+	if _, err := service.ListDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
+		t.Fatalf("missing directory must report its error, got %v", err)
 	}
+}
 
 func TestStatPathClassifiesFilesAndDirectories(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	dir := t.TempDir()
 	file := filepath.Join(dir, "a.txt")
 	if err := os.WriteFile(file, []byte("hello"), 0o600); err != nil {
@@ -77,6 +88,11 @@ func TestStatPathClassifiesFilesAndDirectories(t *testing.T) {
 
 func TestStageBeginAppendDiscardRoundTrip(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	tempPath, err := service.StageBegin("notes.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +124,11 @@ func TestStageBeginAppendDiscardRoundTrip(t *testing.T) {
 
 func TestStageAppendRejectsNonStagingPaths(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	if err := service.StageAppend(filepath.Join(t.TempDir(), "evil.txt"), 0, []byte("x")); err == nil {
 		t.Fatal("non-staging path must be rejected")
 	}
@@ -118,6 +139,11 @@ func TestStageAppendRejectsNonStagingPaths(t *testing.T) {
 
 func TestStageFromLocalPathCopiesImmediately(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	dir := t.TempDir()
 	file := filepath.Join(dir, "report.pdf")
 	if err := os.WriteFile(file, []byte("PDFDATA"), 0o600); err != nil {

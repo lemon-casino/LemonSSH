@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +13,54 @@ import (
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
 )
 
-type FilesystemService struct{}
+type FilesystemService struct{ temp *filesystem.TempService }
+
+func (s *FilesystemService) setTempService(temp *filesystem.TempService) { s.temp = temp }
+
+type TempDirectoryInfo struct {
+	Path      string `json:"path"`
+	FileCount int64  `json:"fileCount"`
+	TotalSize int64  `json:"totalSize"`
+}
+type TempClearResult struct {
+	Success      bool `json:"success"`
+	DeletedCount int  `json:"deletedCount"`
+}
+
+func (s *FilesystemService) TempInfo() (TempDirectoryInfo, error) {
+	if s.temp == nil {
+		return TempDirectoryInfo{}, fmt.Errorf("managed temp unavailable")
+	}
+	count, size, err := s.temp.Usage(context.Background())
+	return TempDirectoryInfo{Path: s.temp.Root(), FileCount: count, TotalSize: size}, err
+}
+func (s *FilesystemService) TempFilePath(name string) (string, error) {
+	if s.temp == nil {
+		return "", fmt.Errorf("managed temp unavailable")
+	}
+	return s.temp.FilePath(fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(name)))
+}
+func (s *FilesystemService) ClearTemp() (TempClearResult, error) {
+	if s.temp == nil {
+		return TempClearResult{}, fmt.Errorf("managed temp unavailable")
+	}
+	entries, err := os.ReadDir(s.temp.Root())
+	if err != nil {
+		return TempClearResult{}, err
+	}
+	result := TempClearResult{Success: true}
+	for _, entry := range entries {
+		// Staged uploads and active compression archives may still be in use.
+		if strings.HasPrefix(entry.Name(), "active-transfer-") || strings.HasPrefix(entry.Name(), stagedUploadPrefix) {
+			continue
+		}
+		if err := s.temp.Remove(entry.Name()); err != nil {
+			return result, err
+		}
+		result.DeletedCount++
+	}
+	return result, nil
+}
 
 func newFilesystemService() *FilesystemService {
 	return &FilesystemService{}
@@ -72,7 +120,10 @@ func (s *FilesystemService) StageFromLocalPath(path string) (string, int64, erro
 	}
 	defer reader.Close()
 	base := filepath.Base(path)
-	staged, err := os.CreateTemp("", stagedUploadPrefix+base)
+	if s.temp == nil {
+		return "", 0, fmt.Errorf("managed temp unavailable")
+	}
+	staged, err := os.CreateTemp(s.temp.Root(), stagedUploadPrefix+base)
 	if err != nil {
 		return "", 0, err
 	}
@@ -127,7 +178,10 @@ func (s *FilesystemService) StageBegin(fileName string) (string, error) {
 	if base == "" || base == "." || base == string(filepath.Separator) {
 		base = "upload.bin"
 	}
-	file, err := os.CreateTemp("", stagedUploadPrefix+base)
+	if s.temp == nil {
+		return "", fmt.Errorf("managed temp unavailable")
+	}
+	file, err := os.CreateTemp(s.temp.Root(), stagedUploadPrefix+base)
 	if err != nil {
 		return "", err
 	}

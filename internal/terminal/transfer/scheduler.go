@@ -52,15 +52,16 @@ const (
 // Progress is the aggregated progress snapshot. UI subscribes to snapshots at
 // a bounded rate — never per chunk — so Wails events are not flooded.
 type Progress struct {
-	TaskID      string    `json:"taskId"`
-	State       State     `json:"state"`
-	TotalBytes  int64     `json:"totalBytes"`
-	DoneBytes   int64     `json:"doneBytes"`
-	ChunksDone  int       `json:"chunksDone"`
-	ChunksTotal int       `json:"chunksTotal"`
-	StartedAt   time.Time `json:"startedAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Err         string    `json:"error,omitempty"`
+	LifecycleEpoch uint64    `json:"lifecycleEpoch"`
+	TaskID         string    `json:"taskId"`
+	State          State     `json:"state"`
+	TotalBytes     int64     `json:"totalBytes"`
+	DoneBytes      int64     `json:"doneBytes"`
+	ChunksDone     int       `json:"chunksDone"`
+	ChunksTotal    int       `json:"chunksTotal"`
+	StartedAt      time.Time `json:"startedAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Err            string    `json:"error,omitempty"`
 }
 
 // Source reads one chunk of the transfer.
@@ -74,12 +75,15 @@ type Sink interface {
 }
 
 type task struct {
-	spec      TaskSpec
-	chunks    []Chunk
-	state     State
-	errText   string
-	pauseGate int32
-	cancel    context.CancelFunc
+	lifecycleEpoch uint64
+	done           chan struct{}
+	startedAt      time.Time
+	spec           TaskSpec
+	chunks         []Chunk
+	state          State
+	errText        string
+	pauseGate      int32
+	cancel         context.CancelFunc
 }
 
 // Scheduler owns all transfers with per-host concurrency limits.
@@ -134,7 +138,7 @@ func newChunks(total, chunkSize int64) []Chunk {
 
 // Enqueue registers a transfer in the pending state.
 func (s *Scheduler) Enqueue(spec TaskSpec) (Progress, error) {
-	if spec.TaskID == "" || spec.HostKey == "" || spec.TotalBytes <= 0 {
+	if spec.TaskID == "" || spec.HostKey == "" || spec.TotalBytes < 0 {
 		return Progress{}, fmt.Errorf("invalid transfer spec")
 	}
 	s.mu.Lock()
@@ -142,7 +146,7 @@ func (s *Scheduler) Enqueue(spec TaskSpec) (Progress, error) {
 	if _, exists := s.tasks[spec.TaskID]; exists {
 		return Progress{}, fmt.Errorf("duplicate transfer task %s", spec.TaskID)
 	}
-	created := &task{spec: spec, chunks: newChunks(spec.TotalBytes, spec.ChunkSize), state: StatePending}
+	created := &task{done: make(chan struct{}), startedAt: s.nowFunc(), spec: spec, chunks: newChunks(spec.TotalBytes, spec.ChunkSize), state: StatePending}
 	s.tasks[spec.TaskID] = created
 	return s.snapshotLocked(created), nil
 }
@@ -175,6 +179,8 @@ func (s *Scheduler) Start(ctx context.Context, taskID string, source Source, sin
 
 func (s *Scheduler) run(ctx context.Context, created *task, slots chan struct{}, source Source, sink Sink) {
 	var workerWG sync.WaitGroup
+	defer close(created.done)
+	defer workerWG.Wait()
 	chunkIndex := 0
 	for chunkIndex < len(created.chunks) {
 		select {
@@ -193,7 +199,11 @@ func (s *Scheduler) run(ctx context.Context, created *task, slots chan struct{},
 			}
 		}
 		chunk := created.chunks[chunkIndex]
-		slots <- struct{}{}
+		select {
+		case slots <- struct{}{}:
+		case <-ctx.Done():
+			return
+		}
 		workerWG.Add(1)
 		go func(chunk Chunk) {
 			defer workerWG.Done()
@@ -203,6 +213,10 @@ func (s *Scheduler) run(ctx context.Context, created *task, slots chan struct{},
 			data, err := source.ReadChunk(chunkCtx, created.spec, chunk)
 			if err != nil {
 				s.finish(created, StateFailed, err)
+				return
+			}
+			if int64(len(data)) != chunk.Length {
+				s.finish(created, StateFailed, fmt.Errorf("source short read: got %d want %d", len(data), chunk.Length))
 				return
 			}
 			if err := sink.WriteChunk(chunkCtx, created.spec, chunk, data); err != nil {
@@ -235,6 +249,21 @@ func (s *Scheduler) finish(created *task, state State, err error) {
 	}
 }
 
+func (s *Scheduler) Wait(ctx context.Context, taskID string) error {
+	s.mu.Lock()
+	created, ok := s.tasks[taskID]
+	s.mu.Unlock()
+	if !ok {
+		return ErrTaskNotFound
+	}
+	select {
+	case <-created.done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // Progress reports the current snapshot.
 func (s *Scheduler) Progress(taskID string) (Progress, error) {
 	s.mu.Lock()
@@ -248,13 +277,14 @@ func (s *Scheduler) Progress(taskID string) (Progress, error) {
 
 func (s *Scheduler) snapshotLocked(created *task) Progress {
 	progress := Progress{
-		TaskID:      created.spec.TaskID,
-		State:       created.state,
-		TotalBytes:  created.spec.TotalBytes,
-		ChunksTotal: len(created.chunks),
-		Err:         created.errText,
-		StartedAt:   s.nowFunc(),
-		UpdatedAt:   s.nowFunc(),
+		LifecycleEpoch: created.lifecycleEpoch,
+		TaskID:         created.spec.TaskID,
+		State:          created.state,
+		TotalBytes:     created.spec.TotalBytes,
+		ChunksTotal:    len(created.chunks),
+		Err:            created.errText,
+		StartedAt:      created.startedAt,
+		UpdatedAt:      s.nowFunc(),
 	}
 	for _, chunk := range created.chunks {
 		if chunk.Done {
@@ -276,6 +306,7 @@ func (s *Scheduler) Pause(taskID string) error {
 	if created.state != StateRunning {
 		return ErrTaskNotRunning
 	}
+	created.lifecycleEpoch++
 	created.state = StatePaused
 	atomic.StoreInt32(&created.pauseGate, 1)
 	return nil
@@ -292,6 +323,7 @@ func (s *Scheduler) Resume(taskID string) error {
 	if created.state != StatePaused {
 		return ErrTaskNotRunning
 	}
+	created.lifecycleEpoch++
 	atomic.StoreInt32(&created.pauseGate, 0)
 	created.state = StateRunning
 	return nil
