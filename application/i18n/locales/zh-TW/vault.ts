@@ -883,7 +883,7 @@ export const zhTWVaultMessages: Messages = {
   'cloudSync.oauth.sectionTitle': 'OAuth 應用',
   'cloudSync.oauth.apply': '開啟 OAuth 應用註冊頁面',
   'cloudSync.oauth.guideTitle': '填寫指導',
-  'cloudSync.oauth.guide.github': 'GitHub：Settings → Developer settings → OAuth Apps → New。名稱和首頁隨意，不需要重定向 URI，並在頁面底部勾選「啟用設備流」。建立後把 Client ID 貼上到這裡。',
+  'cloudSync.oauth.guide.github': 'GitHub：Settings → Developer settings → OAuth Apps → New，或 GitHub App。名稱和首頁隨意，不需要重定向 URI，並啟用設備流（OAuth App 在頁面底部勾選；GitHub App 在應用 General 設定裡開啟）。建立後把 Client ID 貼上到這裡。',
   'cloudSync.oauth.guide.google': 'Google：console.cloud.google.com → OAuth 同意畫面（外部）→ 憑證 → 建立 OAuth 用戶端 ID → 類型選「桌面應用」。複製 Client ID，無需密鑰。',
   'cloudSync.oauth.guide.onedrive': 'OneDrive：Azure Portal → 應用程式註冊 → 新註冊 → 類型選「公用用戶端/本機」，重定向 URI 填 http://localhost，並在驗證裡開啟「允許公用用戶端流」。貼上 Application (client) ID。',
   'cloudSync.oauth.sectionDesc': '為使用的每個供應商註冊一個「桌面應用」類型的 OAuth 用戶端（無需用戶端密鑰），並把 client ID 貼上到這裡。GitHub 使用 Device Flow；Google 與 OneDrive 使用本機回環 PKCE。',

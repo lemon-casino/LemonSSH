@@ -3869,3 +3869,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: slow_down interval growth is owned by the renderer loop; a user typing a wrong client ID still gets provider-side errors that are intentionally generic
 - Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L130 - 2026-09-12 - Live-confirmed device_flow_disabled start error surfaced
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Diagnose the still-failing GitHub connect with the user's real client ID (authorized live probe). POST /login/device/code answers 400 with body device_flow_disabled ("Device Flow must be explicitly enabled for this App") because the app has not enabled device flow — and the failure came from StartDevice, which WV3-L129's poll fix did not cover. StartDevice now parses the 400 body like the poll does and maps device-flow error codes to actionable messages (device_flow_disabled names the exact settings toggle; unverified_user_email names the fix; other codes surface their code). The provider error description is still never relayed.
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go (StartDevice 400 handling, deviceFlowErrorText)
+- Frontend adapter: none (error message flows through the existing provider error surface)
+- Electron owner affected: none
+- Preserved invariants: provider error descriptions remain stripped; only the error code reaches the user
+- Data/schema impact: none
+- Security impact: none
+- Verification: live probe against github.com/login/device/code with the user-provided client ID reproduced 400 device_flow_disabled; new TestOAuthStartDeviceSurfacesDisabledFlow asserts the actionable message; go test -race ./internal/platform/cloudsync passes
+- Platforms covered: live probe from Windows 10 22H2 x64 against github.com
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: the user must enable device flow on their GitHub app; the actionable message is currently English-only
+- Next safe slice: retry GitHub connect after the user enables device flow
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

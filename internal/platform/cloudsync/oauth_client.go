@@ -232,6 +232,19 @@ func (c *OAuthClient) Tokens(ctx context.Context, provider string, o OAuthOption
 	return OAuthTokens{wire.AccessToken, wire.RefreshToken, expiresAt, wire.TokenType, wire.Scope}, nil
 }
 
+// deviceFlowErrorText maps GitHub device-flow error codes to actionable
+// messages. Descriptions from the provider are never relayed.
+func deviceFlowErrorText(code string) string {
+	switch code {
+	case "device_flow_disabled":
+		return "Device flow is disabled for this GitHub application. Open its settings (Settings → Developer settings → GitHub Apps or OAuth Apps → Enable device flow), check it, save, and connect again."
+	case "unverified_user_email":
+		return "GitHub requires a verified email for device authorization. Verify your email on github.com and try again."
+	default:
+		return fmt.Sprintf("GitHub authorization failed: %s", code)
+	}
+}
+
 func (c *OAuthClient) StartDevice(ctx context.Context, o DeviceOptions) (DeviceCode, error) {
 	if o.ClientID == "" {
 		return DeviceCode{}, errors.New("GitHub OAuth client ID is required")
@@ -240,8 +253,11 @@ func (c *OAuthClient) StartDevice(ctx context.Context, o DeviceOptions) (DeviceC
 	if err != nil {
 		return DeviceCode{}, err
 	}
-	if err = statusError(status); err != nil {
-		return DeviceCode{}, err
+	// The start endpoint answers HTTP 400 with an error code in the JSON body
+	// (device_flow_disabled when the app has not enabled device flow), so
+	// parse the body before treating 400 as fatal.
+	if status != 200 && status != 400 {
+		return DeviceCode{}, statusError(status)
 	}
 	var wire struct {
 		DeviceCode      string `json:"device_code"`
@@ -249,8 +265,15 @@ func (c *OAuthClient) StartDevice(ctx context.Context, o DeviceOptions) (DeviceC
 		VerificationURI string `json:"verification_uri"`
 		ExpiresIn       int    `json:"expires_in"`
 		Interval        int    `json:"interval"`
+		Error           string `json:"error"`
 	}
-	if json.Unmarshal(data, &wire) != nil || wire.DeviceCode == "" || wire.UserCode == "" || wire.ExpiresIn <= 0 || wire.ExpiresIn > 3600 || wire.VerificationURI != "https://github.com/login/device" {
+	if json.Unmarshal(data, &wire) != nil {
+		return DeviceCode{}, errors.New("Invalid GitHub device response")
+	}
+	if wire.Error != "" {
+		return DeviceCode{}, errors.New(deviceFlowErrorText(wire.Error))
+	}
+	if wire.DeviceCode == "" || wire.UserCode == "" || wire.ExpiresIn <= 0 || wire.ExpiresIn > 3600 || wire.VerificationURI != "https://github.com/login/device" {
 		return DeviceCode{}, errors.New("Invalid GitHub device response")
 	}
 	return DeviceCode{wire.DeviceCode, wire.UserCode, wire.VerificationURI, time.Now().UnixMilli() + int64(wire.ExpiresIn)*1000, max(wire.Interval, 5)}, nil

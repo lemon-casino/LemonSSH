@@ -291,3 +291,21 @@ func TestOAuthPollDeviceTreats400AsPending(t *testing.T) {
 		t.Fatalf("success after slow_down: %v %+v", err, token)
 	}
 }
+
+// The user-visible case from WV3-L129 feedback: a GitHub app without device
+// flow enabled answers the start request with 400 device_flow_disabled; the
+// error must surface as an actionable message, not a generic HTTP 400.
+func TestOAuthStartDeviceSurfacesDisabledFlow(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		io.WriteString(w, `{"error":"device_flow_disabled","error_description":"Device Flow must be explicitly enabled for this App"}`)
+	}))
+	defer server.Close()
+	c := NewOAuthClient()
+	defer c.Close()
+	c.githubOAuth = server.URL
+	_, err := c.StartDevice(context.Background(), DeviceOptions{ClientID: "Ov23licrO6aqtR2h1WBC"})
+	if err == nil || !strings.Contains(err.Error(), "Device flow is disabled") {
+		t.Fatalf("device_flow_disabled must surface an actionable message, got %v", err)
+	}
+}

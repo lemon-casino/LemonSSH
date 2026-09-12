@@ -506,7 +506,7 @@ export const enTerminalMessages: Messages = {
   'cloudSync.oauth.sectionTitle': 'OAuth applications',
   'cloudSync.oauth.apply': 'Open the OAuth application registration page',
   'cloudSync.oauth.guideTitle': 'How to fill this in',
-  'cloudSync.oauth.guide.github': 'GitHub: Settings → Developer settings → OAuth Apps → New. Name it anything, any homepage URL, no redirect URI, and enable ’Device Flow’ at the bottom. Paste the Client ID here.',
+  'cloudSync.oauth.guide.github': 'GitHub: Settings → Developer settings → OAuth Apps → New, or a GitHub App. Name and homepage any, no redirect URI, and enable Device Flow (OAuth Apps: checkbox at the bottom; GitHub Apps: General settings). Paste the Client ID here.',
   'cloudSync.oauth.guide.google': 'Google: console.cloud.google.com → OAuth consent screen (External) → Credentials → Create OAuth client ID → type ’Desktop app’. Copy the client ID; no secret needed.',
   'cloudSync.oauth.guide.onedrive': 'OneDrive: Azure Portal → App registrations → New → ’Public client/native’, redirect URI http://localhost, then enable ’Allow public client flows’. Paste the Application (client) ID.',
   'cloudSync.oauth.sectionDesc': 'Register a desktop-app OAuth client for each provider you use (no client secret required), then paste its client ID here. GitHub uses Device Flow; Google and OneDrive use PKCE with a loopback redirect.',

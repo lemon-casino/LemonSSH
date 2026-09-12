@@ -506,7 +506,7 @@ export const esTerminalMessages: Messages = {
   'cloudSync.oauth.sectionTitle': 'Aplicaciones OAuth',
   'cloudSync.oauth.apply': 'Abrir la página de registro de la aplicación OAuth',
   'cloudSync.oauth.guideTitle': 'Cómo completar este campo',
-  'cloudSync.oauth.guide.github': 'GitHub: Ajustes → Ajustes de desarrollador → OAuth Apps → Nueva. Nombre y URL principal cualquiera, sin URI de redirección, y activa ’Device Flow’ abajo. Pega el ID de cliente aquí.',
+  'cloudSync.oauth.guide.github': 'GitHub: Ajustes → Ajustes de desarrollador → OAuth Apps → Nueva, o una GitHub App. Nombre y URL principal cualquiera, sin URI de redirección, y activa Device Flow (OAuth Apps: casilla abajo; GitHub Apps: ajustes generales). Pega el ID de cliente aquí.',
   'cloudSync.oauth.guide.google': 'Google: console.cloud.google.com → pantalla de consentimiento (Externa) → Credenciales → Crear ID de cliente OAuth → tipo ’Aplicación de escritorio’. Copia el ID; no hace falta secreto.',
   'cloudSync.oauth.guide.onedrive': 'OneDrive: Azure Portal → Registros de aplicaciones → Nueva → ’Cliente público/nativo’, URI de redirección http://localhost, activa ’Permitir flujos de clientes públicos’. Pega el ID de aplicación.',
   'cloudSync.oauth.sectionDesc': 'Registra un cliente OAuth de tipo aplicación de escritorio para cada proveedor (sin secreto de cliente) y pega su ID de cliente aquí. GitHub usa Device Flow; Google y OneDrive usan PKCE con redirección de bucle local.',
