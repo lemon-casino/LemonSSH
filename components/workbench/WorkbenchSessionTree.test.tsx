@@ -7,10 +7,35 @@ import {
   dispatchDomEvent,
   flushEffects,
   installDomEnvironment,
+  runWithAct,
 } from "../test-support/renderReactDom.tsx";
 import { installTreeEnvironmentMocks } from "./testEnvironmentMocks.ts";
 
 import type { Host, TerminalSession, Workspace } from "../../types";
+
+test('active session outside the virtual window scrolls into view', async () => {
+  const env = installDomEnvironment();
+  const restore = installTreeEnvironmentMocks();
+  const renderer = await createDomRenderer(env.document);
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const sessions = Array.from({ length: 100 }, (_, index) => makeSession({ id: `s${index}`, hostId: 'deleted' }));
+    const sections = makeSectionsBuilder(buildSessionGroupTree)(sessions, []);
+    await renderTree(WorkbenchSessionTree, renderer, {
+      sections, sessions, workspaces: [], logViews: [], hostById: new Map(),
+      fixedIds: new Set(['vault', 'sftp']), expandedPaths: new Set(), activeTabId: 's99',
+      onTogglePath: noop, onActivateTab: noop, onActivateWorkspaceSession: noop,
+      onCloseSession: noop, onCloseLogView: noop, onRenameSession: noop, onReconnectSession: noop,
+      onRenameWorkspace: noop, onCopyWorkspace: noop, onCloseWorkspace: noop, onOpenQuickSwitcher: noop,
+      shortcutNumbers: new Map([['s99', 3]]),
+    });
+    const active = renderer.container.querySelector('[data-tab-id="s99"]');
+    assert.ok(active, 'offscreen active row must enter the virtual render window');
+    assert.equal(active.querySelector('kbd')?.textContent, '3');
+  } finally {
+    await renderer.unmount(); restore(); env.cleanup();
+  }
+});
 
 const noop = () => {};
 
@@ -132,11 +157,17 @@ test("workbench tree renders fixed entries, group badge and pruned sessions", as
       sessions,
       workspaces: [] as Workspace[],
       logViews: [],
+      hostById: new Map(),
       onTogglePath: noop,
       onActivateTab: noop,
       onActivateWorkspaceSession: noop,
       onCloseSession: noop,
       onCloseLogView: noop,
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
       onOpenQuickSwitcher: noop,
     });
     await flushEffects();
@@ -163,6 +194,7 @@ test("workbench tree renders fixed entries, group badge and pruned sessions", as
     await renderer.unmount();
   } finally {
     restoreEnv();
+    env.cleanup();
   }
 });
 
@@ -205,6 +237,12 @@ test("workbench tree interactions: group toggle, session activate, workspace act
         workspaceActivated.push([workspaceId, sessionId]),
       onCloseSession: noop,
       onCloseLogView: noop,
+      hostById: new Map(),
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
       onOpenQuickSwitcher: noop,
     };
     await renderTree(WorkbenchSessionTree, renderer, props);
@@ -244,6 +282,7 @@ test("workbench tree interactions: group toggle, session activate, workspace act
     await renderer.unmount();
   } finally {
     restoreEnv();
+    env.cleanup();
   }
 });
 
@@ -267,11 +306,17 @@ test("workbench tree keeps the tree mounted across data updates", async () => {
       sessions,
       workspaces: [] as Workspace[],
       logViews: [],
+      hostById: new Map(),
       onTogglePath: noop,
       onActivateTab: noop,
       onActivateWorkspaceSession: noop,
       onCloseSession: noop,
       onCloseLogView: noop,
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
       onOpenQuickSwitcher: noop,
     };
     await renderTree(WorkbenchSessionTree, renderer, props);
@@ -298,5 +343,102 @@ test("workbench tree keeps the tree mounted across data updates", async () => {
     await renderer.unmount();
   } finally {
     restoreEnv();
+    env.cleanup();
+  }
+});
+
+test("workbench tree context menu reuses the TopTabs session actions", async () => {
+  const env = installDomEnvironment();
+  const restoreEnv = installTreeEnvironmentMocks();
+
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const buildSections = makeSectionsBuilder(buildSessionGroupTree);
+    const renderer = await createDomRenderer(env.document);
+    const host = makeHost({ id: "h1", label: "web-01", group: "Prod" });
+    const sessions = [makeSession({ id: "s1", hostId: "h1", customName: "web shell" })];
+    const sections = buildSections(sessions, [host]);
+    const closed: string[] = [];
+    const renamed: string[] = [];
+    const copied: string[] = [];
+    const reconnected: string[] = [];
+
+    const props = {
+      sections,
+      expandedPaths: new Set(["Prod", "h1"]),
+      fixedIds: new Set(["vault", "sftp"]),
+      activeTabId: "s1",
+      sessions,
+      workspaces: [] as Workspace[],
+      logViews: [],
+      hostById: new Map([["h1", host]]),
+      onTogglePath: noop,
+      onActivateTab: noop,
+      onActivateWorkspaceSession: noop,
+      onCloseSession: (id: string) => closed.push(id),
+      onCloseLogView: noop,
+      onRenameSession: (id: string) => renamed.push(id),
+      onCopySession: (id: string) => copied.push(id),
+      onReconnectSession: (id: string) => reconnected.push(id),
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
+      onOpenQuickSwitcher: noop,
+    };
+    await renderTree(WorkbenchSessionTree, renderer, props);
+    await flushEffects();
+
+    const sessionRow = renderer.container.querySelector(
+      '[data-section="workbench-tree-session"][data-tab-id="s1"]',
+    );
+    assert.ok(sessionRow, "session row missing");
+    // Radix ContextMenu opens on the contextmenu event.
+    await dispatchDomEvent(
+      sessionRow as Element,
+      new env.window.MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+    );
+    await flushEffects();
+
+    const menuItems = Array.from(
+      env.document.querySelectorAll("[role='menuitem']"),
+    );
+    assert.ok(menuItems.length > 0, "session context menu did not open");
+    // Reconnect state can change while the menu is open.
+    const { terminalReconnectRegistry } = await import('../../application/state/terminalReconnectRegistry');
+    await runWithAct(() => terminalReconnectRegistry.setActive('s1', true));
+    const reconnectItem = menuItems.find(item => item.textContent === 'terminal.menu.reconnect');
+    assert.equal(reconnectItem?.getAttribute('aria-disabled'), 'true');
+    await runWithAct(() => terminalReconnectRegistry.setActive('s1', false));
+    assert.notEqual(reconnectItem?.getAttribute('aria-disabled'), 'true');
+    const closeItem = menuItems.find((item) => item.textContent === "common.close");
+    assert.ok(closeItem, "close menu item missing");
+    await clickElement(env, closeItem as Element);
+    await flushEffects();
+    assert.deepEqual(closed, ["s1"], "close action did not reuse onCloseSession");
+
+    // Re-open for the rename item.
+    await dispatchDomEvent(
+      sessionRow as Element,
+      new env.window.MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+    );
+    await flushEffects();
+    const renamedItem = Array.from(
+      env.document.querySelectorAll("[role='menuitem']"),
+    ).find((item) => item.textContent === "common.rename");
+    assert.ok(renamedItem, "rename menu item missing");
+    await clickElement(env, renamedItem as Element);
+    await flushEffects();
+    // Ordinary group menus act on descendant sessions via the shared callbacks.
+    const groupRow = renderer.container.querySelector('[data-section="workbench-tree-group"]');
+    assert.ok(groupRow);
+    await dispatchDomEvent(groupRow, new env.window.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    const groupClose = Array.from(env.document.querySelectorAll('[role="menuitem"]')).find(item => item.textContent === 'common.close');
+    assert.ok(groupClose, 'ordinary group close menu missing');
+    await clickElement(env, groupClose);
+    assert.deepEqual(closed, ['s1', 's1']);
+    await renderer.unmount();
+  } finally {
+    restoreEnv();
+    env.cleanup();
   }
 });

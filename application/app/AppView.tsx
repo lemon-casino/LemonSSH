@@ -5,6 +5,7 @@ import { activeTabStore, toEditorTabId, useIsEditorTabActive } from '../state/ac
 import { editorTabStore } from '../state/editorTabStore';
 import { releaseEditorTabSaveCoordinator, saveEditorTab } from '../state/editorTabSave';
 import { useTerminalHostTreeLayoutWidth } from '../state/terminalHostTreeStore';
+import { terminalReconnectRegistry } from '../state/terminalReconnectRegistry';
 import { TopTabs } from '../../components/TopTabs';
 import { VaultView } from '../../components/VaultView';
 import { QuickAddSnippetDialog } from '../../components/QuickAddSnippetDialog';
@@ -311,6 +312,11 @@ function AppViewInner({ domains }: AppViewProps) {
     setActiveTabId('vault');
   }, [setActiveTabId]);
 
+  // Session-tree context menu reconnect: same registry the TopTabs menu uses.
+  const handleWorkbenchTreeReconnect = useCallback((sessionId: string) => {
+    terminalReconnectRegistry.request(sessionId);
+  }, []);
+
   const paneMagnificationController = getAvailablePaneMagnificationController([
     sftpPaneMagnificationRef?.current,
     terminalPaneMagnificationRef?.current,
@@ -568,6 +574,13 @@ function AppViewInner({ domains }: AppViewProps) {
       <div className="flex-1 relative min-h-0 flex">
       <AppWorkbenchSessionLayer
         enabled={layoutMode === 'workbench'}
+        switchTabKeyBinding={keyBindings.find((binding) => binding.action === 'switchToTab') ?? null}
+        onStartSessionDrag={setDraggingSessionId}
+        onEndSessionDrag={handleEndSessionDrag}
+        onReorderTabs={reorderWorkTabs}
+        onRemoveSessionFromWorkspace={removeSessionFromWorkspace}
+        onAppendHostToWorkspace={handleAppendHostToWorkspace}
+        onAddSessionToWorkspace={addSessionToWorkspace}
         hosts={hosts}
         customGroups={customGroups}
         groupConfigs={groupConfigs}
@@ -583,6 +596,14 @@ function AppViewInner({ domains }: AppViewProps) {
         onCloseSession={closeSession}
         onCloseLogView={closeLogView}
         onOpenQuickSwitcher={handleOpenQuickSwitcher}
+        onRenameSession={startSessionRename}
+        onCopySession={copySessionWithCurrentShell}
+        onCopySessionToNewWindow={copySessionToNewWindowWithCurrentShell}
+        onReconnectSession={handleWorkbenchTreeReconnect}
+        onEditHost={handleEditHostFromOverlay}
+        onRenameWorkspace={startWorkspaceRename}
+        onCopyWorkspace={copyWorkspaceWithCurrentShell}
+        onCloseWorkspace={closeWorkspace}
       />
       <div className="relative flex-1 min-w-0 min-h-0">
         <AppHostTreeLayer

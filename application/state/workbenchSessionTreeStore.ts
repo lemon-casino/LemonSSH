@@ -1,4 +1,21 @@
+import { useCallback, useState } from 'react';
+import { hostStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
+import { STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH } from '../../infrastructure/config/storageKeys';
 import { useTreeExpandedState } from "./useTreeExpandedState";
+
+export function useWorkbenchTreeWidth() {
+  const [width, setWidth] = useState(() => {
+    const stored = Number(hostStorageAdapter.readString(STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH));
+    return Number.isFinite(stored) && stored >= 180 && stored <= 480 ? stored : 240;
+  });
+  const resize = useCallback((value: number) => {
+    if (!Number.isFinite(value)) return;
+    const next = Math.max(180, Math.min(480, value));
+    setWidth(next);
+    hostStorageAdapter.writeString(STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH, String(next));
+  }, []);
+  return { width, resize };
+}
 import { STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED } from "../../infrastructure/config/storageKeys";
 
 /**

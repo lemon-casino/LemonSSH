@@ -1,3 +1,4 @@
+export const STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH = 'netcatty_workbench_session_tree_width_v1';
 export const STORAGE_KEY_HOSTS = 'netcatty_hosts_v1';
 export const STORAGE_KEY_KEYS = 'netcatty_keys_v1';
 export const STORAGE_KEY_GROUPS = 'netcatty_groups_v1';

@@ -373,6 +373,25 @@ export function buildSessionGroupTree(
  * Children of `group` and `host` nodes are skipped unless the node's id is in
  * `expandedPaths`. Section nodes always reveal their children.
  */
+export function getSessionTreeAncestorIds(sections: SessionGroupTreeSections, tabId: string): string[] {
+  const visit = (node: SessionGroupTreeNode, ancestors: string[]): string[] | null => {
+    const branch = node.type === 'group' || node.type === 'host';
+    const path = branch ? [...ancestors, node.id] : ancestors;
+    if (node.id === tabId || (node.type === 'group' && node.id === `workspace:${tabId}`)) return path;
+    for (const child of node.children) {
+      const found = visit(child, path);
+      if (found) return found;
+    }
+    return null;
+  };
+  for (const root of [...sections.fixed, sections.groupTree, sections.ungrouped, sections.localTerminals, sections.workspaces, sections.logs, sections.editors, sections.others]) {
+    if (!root) continue;
+    const found = visit(root, []);
+    if (found) return found;
+  }
+  return [];
+}
+
 export function flattenSessionGroupTree(
   sections: SessionGroupTreeSections,
   expandedPaths: Set<string>,

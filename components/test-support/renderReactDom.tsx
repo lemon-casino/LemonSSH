@@ -13,10 +13,14 @@ export function installDomEnvironment(): DomEnvironment {
     url: "http://localhost/",
   });
 
+  const previousDescriptors = Object.getOwnPropertyDescriptors(globalThis);
   const previousWindow = globalThis.window;
   const previousDocument = globalThis.document;
   const previousNavigator = globalThis.navigator;
   const previousHTMLElement = globalThis.HTMLElement;
+  const previousElement = globalThis.Element;
+  const previousMutationObserver = globalThis.MutationObserver;
+  const previousDomRect = globalThis.DOMRect;
   const previousNode = globalThis.Node;
   const previousEvent = globalThis.Event;
   const previousFocusEvent = globalThis.FocusEvent;
@@ -31,6 +35,16 @@ export function installDomEnvironment(): DomEnvironment {
     document: dom.window.document,
     navigator: dom.window.navigator,
     HTMLElement: dom.window.HTMLElement,
+    Element: dom.window.Element,
+    MutationObserver: dom.window.MutationObserver,
+    DOMRect: dom.window.DOMRect ?? class DOMRectStub {
+      x = 0; y = 0; width = 0; height = 0; top = 0; right = 0; bottom = 0; left = 0;
+      constructor(x = 0, y = 0, width = 0, height = 0) {
+        this.x = x; this.y = y; this.width = width; this.height = height;
+        this.top = y; this.right = x + width; this.bottom = y + height; this.left = x;
+      }
+      toJSON() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+    },
     Node: dom.window.Node,
     Event: dom.window.Event,
     FocusEvent: dom.window.FocusEvent,
@@ -85,6 +99,9 @@ export function installDomEnvironment(): DomEnvironment {
         document: previousDocument,
         navigator: previousNavigator,
         HTMLElement: previousHTMLElement,
+        Element: previousElement,
+        MutationObserver: previousMutationObserver,
+        DOMRect: previousDomRect,
         Node: previousNode,
         Event: previousEvent,
         FocusEvent: previousFocusEvent,
@@ -94,18 +111,11 @@ export function installDomEnvironment(): DomEnvironment {
         DOMParser: previousDOMParser,
         getComputedStyle: previousGetComputedStyle,
       } as const;
-      for (const [key, value] of Object.entries(previousValues)) {
-        Object.defineProperty(globalThis, key, {
-          configurable: true,
-          writable: true,
-          value,
-        });
+      for (const key of [...Object.keys(previousValues), 'IS_REACT_ACT_ENVIRONMENT']) {
+        const descriptor = previousDescriptors[key];
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
       }
-      Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {
-        configurable: true,
-        writable: true,
-        value: undefined,
-      });
     },
   };
 }

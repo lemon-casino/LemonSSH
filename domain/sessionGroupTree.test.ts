@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildSessionGroupTree, flattenSessionGroupTree } from './sessionGroupTree';
+import { buildSessionGroupTree, flattenSessionGroupTree, getSessionTreeAncestorIds } from './sessionGroupTree';
+
+it('reveals nested session and workspace ancestors without opening unrelated branches', () => {
+  const tree = buildSessionGroupTree(makeOptions({
+    hosts: [makeHost('h1', 'web', 'Prod/Web')],
+    sessions: [makeSession('s1', 'h1'), makeSession('s2', 'h1', { workspaceId: 'ws1' })],
+  }));
+  assert.deepEqual(getSessionTreeAncestorIds(tree, 's1'), ['Prod', 'Prod/Web', 'h1']);
+  assert.deepEqual(getSessionTreeAncestorIds(tree, 'ws1'), ['workspace:ws1']);
+  assert.deepEqual(getSessionTreeAncestorIds(tree, 'missing'), []);
+});
 import type { HostProtocol } from './models/connection';
 import type {
   BuildSessionGroupTreeOptions,

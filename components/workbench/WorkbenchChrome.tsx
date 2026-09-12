@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Lock, Plus, Settings, Sparkles } from 'lucide-react';
+import { Lock, Menu, Plus, Settings, Sparkles } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import {
@@ -79,7 +80,9 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
     };
   }, [isFullscreen, isMacClient, onFullscreenChanged]);
 
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const handleSelectSection = useCallback((section: VaultSection) => {
+    setNavigationOpen(false);
     setVaultNavSection(section);
     onSelectVaultSection(section);
   }, [onSelectVaultSection]);
@@ -103,6 +106,7 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
       }}
       onDoubleClick={handleTitleBarDoubleClick}
     >
+      <div className="absolute inset-x-0 top-0 h-1 app-drag" style={dragRegionStyle} aria-hidden />
       <div
         className="h-[45px] flex items-center gap-2 app-drag min-w-0"
         style={{
@@ -113,17 +117,23 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
         <div className="flex items-center app-no-drag shrink-0 self-center h-7">
           <AppLogo className="h-6 w-6" />
         </div>
-        <VaultNavItems
-          orientation="horizontal"
-          currentSection={currentSection}
-          onSelectSection={handleSelectSection}
-          sidebarCollapsed={false}
-          t={t}
-        />
+        <div className="hidden min-[1440px]:block app-no-drag">
+          <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
+        </div>
+        <div className="min-[1440px]:hidden app-no-drag shrink-0">
+          <Popover open={navigationOpen} onOpenChange={setNavigationOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 app-no-drag" aria-label={t('topTabs.vaults')}><Menu size={16} /></Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56 app-no-drag">
+              <VaultNavItems currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="flex-1 min-w-4 app-drag" style={dragRegionStyle} />
         <div
-          className="shrink-0 flex items-center gap-0.5 app-drag self-center h-7 overflow-visible"
-          style={dragRegionStyle}
+          className="shrink-0 flex items-center gap-0.5 app-no-drag self-center h-7 overflow-visible"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           data-section="workbench-chrome-actions"
         >
           <GlobalSftpTransferCenter />
