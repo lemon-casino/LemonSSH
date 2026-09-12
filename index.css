@@ -778,10 +778,10 @@ html[data-theme-transition] *::after {
   z-index: 0;
   display: flex;
   height: 1.75rem;
-  width: 2.5rem;
+  width: 1.75rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0;
+  border-radius: 0.375rem;
   color: var(--top-tabs-muted, hsl(var(--muted-foreground)));
   transition: color 150ms ease;
 }
@@ -790,10 +790,8 @@ html[data-theme-transition] *::after {
 [data-section="workbench-chrome"] .window-control-btn::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: calc(1.75rem - 2.25rem);
+  inset: 0;
+  border-radius: inherit;
   z-index: -1;
   background: transparent;
   transition: background-color 150ms ease;
