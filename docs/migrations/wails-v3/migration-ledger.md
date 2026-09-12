@@ -3794,3 +3794,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: OAuth applications are user-registered (client id/secret supplied at runtime); OneDrive/GitHub file operations are exercised by fixtures, not live accounts; rotation rollback under mid-flight crash is covered by the store transaction but not by a live kill test
 - Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L127 - 2026-09-12 - Runtime OAuth client IDs after the provider 400 reports
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the live authorization failures reported for all three providers (Google 400 invalid_request "Missing required parameter: client_id", OneDrive AADSTS900144, GitHub "OAuth client ID is required"). Root cause: the client IDs came only from build-time VITE_SYNC_*_CLIENT_ID variables and default to empty, so the authorize URLs opened with a blank client_id. Client IDs are public values and each user registers their own desktop-app OAuth client, so they are now runtime-configurable: a new settings-domain key (netcatty_sync_oauth_client_ids_v1) holds per-provider IDs, all adapter reads resolve through resolveOAuthClientId (runtime override wins, build constant falls back), startProviderAuth refuses before any browser hop with a clear message when an ID is missing, and the Cloud Sync settings tab gains an OAuth applications section (GitHub/Google/OneDrive fields, five locales) served by the useOAuthClientIds state hook. No client secret is required for GitHub Device Flow or loopback-PKCE desktop clients, so no secret storage was added.
+- Go canonical owner: none (renderer-side configuration only)
+- Frontend adapter: infrastructure/services/cloudSync/oauthClientIds.ts, infrastructure/services/cloudSync/authMethods.ts, infrastructure/services/adapters/{GitHubAdapter,GoogleDriveAdapter,OneDriveAdapter}.ts, application/state/useOAuthClientIds.ts, components/cloud-sync/OAuthClientIdsSection.tsx, components/CloudSyncSettings.tsx, infrastructure/config/storageKeys.ts
+- Electron owner affected: none; the build-time constants remain the fallback
+- Preserved invariants: client IDs are public values (no secret storage); an unconfigured provider never opens a provider URL; the settings-domain key flows through the canonical host adapter
+- Data/schema impact: new settings-domain key netcatty_sync_oauth_client_ids_v1
+- Security impact: positive; users bring their own registered OAuth clients instead of a baked-in application
+- Verification: node --test infrastructure/services/cloudSync/oauthClientIds.test.ts (fallback, override, guard, snapshot immutability); full cloud suites plus master key 104/104; runtime client 35/35; locale suites 24/24; eslint clean on new and touched files
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: the authorize URLs are now correct only after the user registers OAuth clients and pastes the IDs; distribution builds can still pin IDs at build time
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -47,6 +47,7 @@ import { GatekeeperScreen, StatusDot } from './cloud-sync/CloudSyncControls';
 import { LocalBackupsPanel } from './cloud-sync/CloudSyncLocalBackupsPanel';
 import { CloudSyncDialogs } from './cloud-sync/CloudSyncDialogs';
 import { CloudSyncDashboardTabs } from './cloud-sync/CloudSyncDashboardTabs';
+import { OAuthClientIdsSection } from './cloud-sync/OAuthClientIdsSection';
 interface SyncDashboardProps {
     onBuildPayload: () => SyncPayload | Promise<SyncPayload>;
     onBuildLocalPayload: () => SyncPayload;
@@ -887,6 +888,8 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
                     </Button>
                 </div>
             </div>
+
+            <OAuthClientIdsSection />
 
             {blockedFinding && (
                 <SyncBlockedBanner

@@ -18,6 +18,8 @@ export const STORAGE_KEY_UI_THEME_DARK = 'netcatty_ui_theme_dark_v1';
 export const STORAGE_KEY_BOOT_THEME = 'netcatty_boot_theme_v1';
 export const STORAGE_KEY_UI_FONT_FAMILY = 'netcatty_ui_font_family_v1';
 export const STORAGE_KEY_SYNC = 'netcatty_sync_v1';
+/** Per-provider OAuth client IDs (public values; users register their own desktop-app clients). */
+export const STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS = 'netcatty_sync_oauth_client_ids_v1';
 /** Device-local experimental convergent-sync toggle; never included in SyncPayload settings. */
 export const STORAGE_KEY_CONVERGENT_SYNC_CONFIG = 'netcatty_convergent_sync_config_v2';
 export const STORAGE_KEY_TERM_THEME = 'netcatty_term_theme_v1';

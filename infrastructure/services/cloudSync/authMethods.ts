@@ -2,6 +2,7 @@
 
 
 import { EncryptionService } from '../EncryptionService';
+import { requireOAuthClientId } from './oauthClientIds';
 import { createAdapter, type CloudAdapter } from '../adapters';
 import type GitHubAdapter from '../adapters/GitHubAdapter';
 import type GoogleDriveAdapter from '../adapters/GoogleDriveAdapter';
@@ -44,6 +45,10 @@ export async function startProviderAuthImpl(this: any,
     if (provider === 'webdav' || provider === 's3') {
       throw new Error('Provider requires manual configuration');
     }
+    // Refuse before any browser hop when the provider's public client ID is
+    // not configured, so the user gets a settings hint instead of the
+    // provider's broken authorize page (400 invalid_request).
+    requireOAuthClientId(provider);
     const authAttemptId = ++this.providerAuthAttemptSeq[provider];
     this.providerAuthRestoreState[provider] = {
       attemptId: authAttemptId,

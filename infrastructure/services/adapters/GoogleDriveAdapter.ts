@@ -19,8 +19,9 @@ import {
   type SyncedFile,
   type PKCEChallenge,
 } from '../../../domain/sync';
+import { resolveOAuthClientId } from '../cloudSync/oauthClientIds';
 import { arrayBufferToBase64, generateRandomBytes } from '../EncryptionService';
-import { netcattyBridge } from '../netcattyBridge';
+import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
 
 // ============================================================================
 // Types
@@ -101,7 +102,7 @@ export const buildAuthUrl = async (
   const pkce = await generatePKCEChallenge();
 
   const params = new URLSearchParams({
-    client_id: SYNC_CONSTANTS.GOOGLE_CLIENT_ID,
+    client_id: resolveOAuthClientId('google'),
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
@@ -135,7 +136,7 @@ export const exchangeCodeForTokens = async (
   }
 
   return await exchangeViaMain({
-    clientId: SYNC_CONSTANTS.GOOGLE_CLIENT_ID,
+    clientId: resolveOAuthClientId('google'),
     clientSecret: SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET,
     code,
     codeVerifier,
@@ -156,7 +157,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
   }
 
   return await refreshViaMain({
-    clientId: SYNC_CONSTANTS.GOOGLE_CLIENT_ID,
+    clientId: resolveOAuthClientId('google'),
     clientSecret: SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET,
     refreshToken,
   });
@@ -492,7 +493,9 @@ export class GoogleDriveAdapter {
    * (#1189 / #1208); Google differs in that its refresh response usually omits a
    * new refresh token, so refreshTokens() carries the previous one forward.
    */
-  private onTokensRefreshed: ((tokens: OAuthTokens) => void) | null = null;
+  private onTokensRefreshed: ((tokens: OAuthTokens) => unknown) | null = null;
+  private refreshing: Promise<OAuthTokens> | null = null;
+  private tokensNeedPersistence = false;
 
   constructor(tokens?: OAuthTokens, fileId?: string) {
     if (tokens) {
@@ -505,7 +508,7 @@ export class GoogleDriveAdapter {
    * Register a callback that receives refreshed tokens so the caller can
    * persist them. Passing null removes the callback.
    */
-  setOnTokensRefreshed(callback: ((tokens: OAuthTokens) => void) | null): void {
+  setOnTokensRefreshed(callback: ((tokens: OAuthTokens) => unknown) | null): void {
     this.onTokensRefreshed = callback;
   }
 
@@ -518,6 +521,12 @@ export class GoogleDriveAdapter {
    * reconnect on the next launch.
    */
   private async refreshTokens(refreshToken: string): Promise<OAuthTokens> {
+    if (this.refreshing) return this.refreshing;
+    this.refreshing = this.performTokenRefresh(refreshToken).finally(() => { this.refreshing = null; });
+    return this.refreshing;
+  }
+
+  private async performTokenRefresh(refreshToken: string): Promise<OAuthTokens> {
     const refreshed = await refreshAccessToken(refreshToken);
     // Google's refresh response frequently omits refresh_token (it does not
     // rotate on every refresh). Never let a missing value clobber the working
@@ -527,12 +536,9 @@ export class GoogleDriveAdapter {
       refreshToken: refreshed.refreshToken || refreshToken,
     };
     this.tokens = merged;
-    try {
-      this.onTokensRefreshed?.(merged);
-    } catch {
-      // Persistence is best-effort; a failed save must not abort the sync that
-      // triggered the refresh — the fresh tokens still work for this session.
-    }
+    this.tokensNeedPersistence = true;
+    await this.onTokensRefreshed?.(merged);
+    this.tokensNeedPersistence = false;
     return merged;
   }
 
@@ -610,6 +616,7 @@ export class GoogleDriveAdapter {
    * Ensure token is fresh
    */
   private async ensureValidToken(): Promise<string> {
+    if (this.refreshing) await this.refreshing;
     if (!this.tokens) {
       throw new Error('Not authenticated');
     }
@@ -622,6 +629,10 @@ export class GoogleDriveAdapter {
       }
     }
 
+    if (this.tokensNeedPersistence) {
+      await this.onTokensRefreshed?.(this.tokens);
+      this.tokensNeedPersistence = false;
+    }
     return this.tokens.accessToken;
   }
 
