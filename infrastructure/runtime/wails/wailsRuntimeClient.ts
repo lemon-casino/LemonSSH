@@ -10,6 +10,7 @@ import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netca
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
 import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
 import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
+import * as credentialService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/credentialservice";
 import * as pluginService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/pluginservice";
 import * as deepLinkService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/deeplinkservice";
 import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/filesystemservice";
@@ -169,6 +170,11 @@ export interface WailsBindingDeps {
     OpenFile: (options: Record<string, unknown>) => Promise<string | string[]>;
     SaveFile: (options: Record<string, unknown>) => Promise<string>;
   };
+  credential?: {
+    Available?: () => Promise<boolean>;
+    Seal?: (plaintextBase64: string, purpose: string) => Promise<string>;
+    Open?: (envelopeBase64: string, purpose: string) => Promise<string>;
+  };
   appLock?: {
     GetRuntimeState: () => Promise<{
       initialized: boolean;
@@ -275,6 +281,7 @@ export interface WailsBindingDeps {
     forward: forwardService as unknown as WailsBindingDeps["forward"],
     dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
     appLock: appLockService as unknown as WailsBindingDeps["appLock"],
+    credential: credentialService as unknown as WailsBindingDeps["credential"],
     plugins: pluginService as unknown as WailsBindingDeps["plugins"],
     events: Events as unknown as WailsBindingDeps["events"],
     deepLink: deepLinkService as unknown as WailsBindingDeps["deepLink"],
@@ -293,6 +300,25 @@ type SessionExitCallback = (evt: SessionExitEvent) => void;
 type HelperLifecycleCallback = Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1];
 
 export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBindings): RuntimeClient {
+  // Field-level credential storage over the Go credential provider. The
+  // envelope keeps the Electron enc:v1: sentinel so renderer-side detection
+  // (no double encryption, migration) behaves identically.
+  const CREDENTIAL_ENC_PREFIX = "enc:v1:";
+  const CREDENTIAL_PURPOSE = "cloud-sync-credentials";
+  const credentialsAvailable = async () => bindings.credential?.Available?.() ?? false;
+  const credentialsEncrypt = async (plaintext: string) => {
+    if (!bindings.credential?.Seal) missingBridgeMethod("credentialsEncrypt");
+    if (plaintext.startsWith(CREDENTIAL_ENC_PREFIX)) return plaintext;
+    const sealed = await bindings.credential.Seal(bytesToBase64(new TextEncoder().encode(plaintext)), CREDENTIAL_PURPOSE);
+    return CREDENTIAL_ENC_PREFIX + sealed;
+  };
+  const credentialsDecrypt = async (value: string) => {
+    if (typeof value !== "string" || value.length === 0 || !value.startsWith(CREDENTIAL_ENC_PREFIX)) return value;
+    if (!bindings.credential?.Open) missingBridgeMethod("credentialsDecrypt");
+    const opened = await bindings.credential.Open(value.slice(CREDENTIAL_ENC_PREFIX.length), CREDENTIAL_PURPOSE);
+    const plainBytes = Uint8Array.from(atob(opened), (ch) => ch.charCodeAt(0));
+    return new TextDecoder().decode(plainBytes);
+  };
   const zmodem = createZmodemBridge(bindings.terminal, bindings.filesystem, (name, callback) =>
     (bindings.events?.On ?? Events.On)(name, callback), () => selectDirectory());
   const transfers = createTransferBridge(bindings.transfer as TransferBindings | undefined);
@@ -857,6 +883,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     ...monitoring,
     ...cloudOAuth,
     openProviderConsole,
+    credentialsAvailable,
+    credentialsEncrypt,
+    credentialsDecrypt,
     getDefaultShell,
     discoverShells,
     validatePath,
@@ -1251,7 +1280,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       },
     }),
     agent: unimplemented("agent"),
-    files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage }),
+    files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
     script: unimplemented("script"),
     terminal: portWith("terminal", {
       getDefaultShell,

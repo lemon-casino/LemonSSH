@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L130`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
+当前台账头：`WV3-L131`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
 **verified 0 / migrated 0**。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -80,7 +80,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 
 ### 数据与同步
 - 非 AI Go canonical adapter 已在 L115 完成修正并重新推进 implemented：内存同步读取、挂载前 hydrate、一次性 legacy 导入、删除防复活及跨窗口刷新均有测试；保留 L114 对早期误报的纠正。多机恢复验收待补；AI 继续 localStorage，P6-05 未解锁。
-- 云同步：Go WebDAV 与 S3 sigv4 快照传输均已落地并接入渲染层 cloudSync 端口（SYNC-02，L111）；GitHub 设备流、Google/OneDrive PKCE（本地回调服务器）经原生桥接通，密钥轮换对话框走 Go CAS 事务（L126）；三个 provider 的 client ID 支持设置页运行时配置（L127），空值不再打开坏 URL；申请入口经白名单 OpenProviderConsole 打开（L128）、client ID 字段带悬停填写指导，GitHub 设备流轮询的 400 authorization_pending 不再误报失败（L129），live 实测确认用户应用未开启设备流，StartDevice 现将 device_flow_disabled 映射为可操作提示（L130） — 已处理；活体授权证据仍缺
+- 云同步：Go WebDAV 与 S3 sigv4 快照传输均已落地并接入渲染层 cloudSync 端口（SYNC-02，L111）；GitHub 设备流、Google/OneDrive PKCE（本地回调服务器）经原生桥接通，密钥轮换对话框走 Go CAS 事务（L126）；三个 provider 的 client ID 支持设置页运行时配置（L127），空值不再打开坏 URL；申请入口经白名单 OpenProviderConsole 打开（L128）、client ID 字段带悬停填写指导，GitHub 设备流轮询的 400 authorization_pending 不再误报失败（L129），live 实测确认用户应用未开启设备流，StartDevice 现将 device_flow_disabled 映射为可操作提示（L130）；provider 令牌经 Go 凭据提供者（OS 钥匙环）密封存储、设备流验证页经系统浏览器打开（L131） — 已处理；活体授权证据仍缺
 
 ### 插件
 - Go/Wails plugin host settings/list/card、显式 once/session broker、encrypted secrets、durable recovery 和 localized v1 rejection 已实现；7 个 frontend tests、全部 Go/plugin、targeted cmd、scoped eslint/check:plugin-contract 通过（L119）。

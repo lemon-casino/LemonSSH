@@ -3894,3 +3894,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the user must enable device flow on their GitHub app; the actionable message is currently English-only
 - Next safe slice: retry GitHub connect after the user enables device flow
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L131 - 2026-09-12 - Native credential storage for provider tokens and system-browser device flow
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the two failures from the live GitHub authorization run: after the browser step succeeded, saving the token threw "Secure credential storage is unavailable", and the verification page opened inside the app WebView instead of the system browser. Root causes: the Wails runtime bridge never implemented credentialsEncrypt/credentialsDecrypt/credentialsAvailable (the Go CredentialService with purpose-bound AES-GCM over the OS keyring was registered but unreachable), and the device-flow modal opened the verification URI with window.open. The runtime bridge now exposes the three methods over the Go provider (Seal/Open with a fixed cloud-sync-credentials purpose), keeping the Electron enc:v1: envelope sentinel so renderer-side encrypted-value detection behaves identically, with plaintext passthrough for legacy values. The modal opens the allow-listed github.com/login/device URI through a new useOpenExternal state hook (window.open fallback for Electron), honoring the OAuth URL allow-list on the Go side.
+- Go canonical owner: cmd/netcatty/credentialService.go (unchanged; Available/Seal/Open now reachable)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts (credential methods), application/state/useOpenExternal.ts, components/cloud-sync/CloudSyncControls.tsx
+- Electron owner affected: none; the enc:v1: contract matches the Electron credential bridge
+- Preserved invariants: envelopes stay opaque refs in the connection record; decrypt passes non-prefixed values through unchanged; token material never enters argv or logs; the verification URI stays allow-listed
+- Data/schema impact: provider connection credentials under Wails are stored as enc:v1: envelopes sealed by the Go credential provider
+- Security impact: positive; tokens now sit behind OS keyring-backed AES-GCM instead of being unsavable
+- Verification: node runtime client 37/37 including a seal/open round-trip test asserting purpose, prefix, passthrough and decode; eslint clean on touched files; workbench suites 8/8
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; OS keyring interaction remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron credential bridge stays until live OAuth storage evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: keyring unlock prompts (if any) appear as opaque Seal failures; a changed OS user cannot open previously sealed envelopes (by design)
+- Next safe slice: live end-to-end GitHub sync after this fix
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

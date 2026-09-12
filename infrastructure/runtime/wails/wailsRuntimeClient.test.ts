@@ -743,3 +743,32 @@ test("openProviderConsole forwards the allow-listed provider to the Go bridge", 
   await client.sync.openProviderConsole!('google');
   assert.deepEqual(requested, ['github', 'google']);
 });
+
+test("credentials round-trip through the Go credential provider with the enc:v1 contract", async () => {
+  const sealed: string[] = [];
+  const bindings = stubBindings();
+  bindings.credential = {
+    Available: async () => true,
+    Seal: async (plaintextBase64: string, purpose: string) => {
+      assert.equal(purpose, "cloud-sync-credentials");
+      sealed.push(plaintextBase64);
+      return Buffer.from(`sealed(${Buffer.from(plaintextBase64, "base64").toString("utf8")})`).toString("base64");
+    },
+    Open: async (envelopeBase64: string, purpose: string) => {
+      assert.equal(purpose, "cloud-sync-credentials");
+      const decoded = Buffer.from(envelopeBase64, "base64").toString("utf8");
+      const inner = decoded.startsWith("sealed(") ? decoded.slice(7, -1) : decoded;
+      return Buffer.from(inner, "utf8").toString("base64");
+    },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(await client.files.credentialsAvailable?.(), true);
+  const envelope = await client.files.credentialsEncrypt?.("github-token");
+  assert.match(envelope, /^enc:v1:/);
+  const storedSealed = sealed[0];
+  assert.equal(await client.files.credentialsDecrypt?.(envelope), "github-token");
+  assert.equal(sealed.length, 1);
+  // A plaintext passthrough value decrypts unchanged, matching the Electron contract.
+  assert.equal(await client.files.credentialsDecrypt?.("plain-value"), "plain-value");
+  void storedSealed;
+});
