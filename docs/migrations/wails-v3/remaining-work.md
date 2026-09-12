@@ -60,7 +60,7 @@
 - 下载/上传经 `startStreamTransfer` 接到现有 ClientFS；本地 zip 解压接到 `ExtractArchive`（SFTP-01）— 已处理
 - filesystem/transfer 绑定已进入 defaultBindings；缺 ExtractArchive 时失败关闭，不再假成功 — 已处理
 - 调度器 pause/resume/cancel 接到 Wails TransferService；startCompressedUpload 走本地 zip 再 Upload（SFTP-02）— 已处理
-- sudo SFTP、非 UTF-8 文件名矩阵未验证 — pending
+- sudo SFTP 未验证 — pending；非 UTF-8 文件名矩阵已在 192.168.0.6 上活体通过（L112）
 - 远程 zip 解压：下载到临时目录、zip-slip 提取、再上传（SFTP-01）— 已处理
 
 ### 系统能力
