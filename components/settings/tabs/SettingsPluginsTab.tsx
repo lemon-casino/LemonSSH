@@ -1,3 +1,5 @@
+import { useDeclarativePlugins } from '../../../application/state/useDeclarativePlugins';
+import { DeclarativePluginHost, PluginInstallError } from '../../plugins/DeclarativePluginHost';
 import { FolderOpen } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -278,7 +280,8 @@ export function PluginSettingField({
   );
 }
 
-export default function SettingsPluginsTab() {
+export default function SettingsPluginsTab({ declarativePlugins = [] }: { declarativePlugins?: React.ComponentProps<typeof DeclarativePluginHost>[] } = {}) {
+ const declarative = useDeclarativePlugins();
   const { t } = useI18n();
   const availableFonts = useAvailableFonts();
   const scopeCatalog = usePluginSettingScopeCatalog();
@@ -325,7 +328,9 @@ export default function SettingsPluginsTab() {
           </section>
         )}
         {contributions.loading && <p className="text-sm text-muted-foreground">{t('settings.plugins.loading')}</p>}
-        {contributions.error && <p role="alert" className="text-sm text-destructive">{contributions.error.message}</p>}
+        {!declarative.available && contributions.error && <PluginInstallError error={contributions.error} />}
+        {declarative.error != null && <PluginInstallError error={declarative.error} />}
+        {[...declarative.plugins,...declarativePlugins].map(plugin => <DeclarativePluginHost key={plugin.pluginId} {...plugin} />)}
         {contributions.snapshot.plugins.map((plugin) => {
           const settings = plugin.settings.filter((setting) => setting.visible);
           const views = plugin.views.filter((view) => view.visible && view.location === 'settings');
@@ -365,7 +370,7 @@ export default function SettingsPluginsTab() {
             </section>
           );
         })}
-        {!contributions.loading && contributions.available && !hasVisibleContributions && (
+        {!contributions.loading && (contributions.available || declarative.available) && !hasVisibleContributions && !declarative.plugins.length && !declarativePlugins.length && (
           <p className="text-sm text-muted-foreground">{t('settings.plugins.empty')}</p>
         )}
       </SettingsAnchor>

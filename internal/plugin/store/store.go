@@ -35,19 +35,21 @@ const (
 
 // PackageRecord is the metadata snapshot for one installed plugin version.
 type PackageRecord struct {
-	PluginID    string            `json:"pluginId"`
-	Version     string            `json:"version"`
-	Manifest    json.RawMessage   `json:"manifest"`
-	SHA256      string            `json:"sha256"`
-	State       State             `json:"state"`
-	InstalledAt time.Time         `json:"installedAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	PluginID    string                     `json:"pluginId"`
+	Version     string                     `json:"version"`
+	Manifest    json.RawMessage            `json:"manifest"`
+	SHA256      string                     `json:"sha256"`
+	State       State                      `json:"state"`
+	InstalledAt time.Time                  `json:"installedAt"`
+	UpdatedAt   time.Time                  `json:"updatedAt"`
+	Settings    map[string]json.RawMessage `json:"settings,omitempty"`
+	Labels      map[string]string          `json:"labels,omitempty"`
 }
 
 // Store owns plugin package inventory (P5-02).
 type Store struct {
 	mu      sync.RWMutex
+	path    string
 	plugins map[string]*PackageRecord // pluginId -> record
 }
 
@@ -65,6 +67,7 @@ func (s *Store) Install(pluginID, version, sha256Hex string, manifestJSON json.R
 	if existing, ok := s.plugins[pluginID]; ok {
 		return existing, ErrAlreadyInstalled
 	}
+	previous := s.snapshotLocked()
 	now := time.Now()
 	record := &PackageRecord{
 		PluginID:    pluginID,
@@ -76,6 +79,9 @@ func (s *Store) Install(pluginID, version, sha256Hex string, manifestJSON json.R
 		UpdatedAt:   now,
 	}
 	s.plugins[pluginID] = record
+	if err := s.persistLocked(previous); err != nil {
+		return nil, err
+	}
 	return record, nil
 }
 
@@ -91,6 +97,7 @@ func (s *Store) StageInstall(pluginID, version, sha256Hex string, manifestJSON j
 	if existing, ok := s.plugins[pluginID]; ok && existing.State != StateStaged {
 		return existing, ErrAlreadyInstalled
 	}
+	previous := s.snapshotLocked()
 	now := time.Now()
 	record := &PackageRecord{
 		PluginID:    pluginID,
@@ -102,6 +109,9 @@ func (s *Store) StageInstall(pluginID, version, sha256Hex string, manifestJSON j
 		UpdatedAt:   now,
 	}
 	s.plugins[pluginID] = record
+	if err := s.persistLocked(previous); err != nil {
+		return nil, err
+	}
 	return record, nil
 }
 
@@ -114,8 +124,12 @@ func (s *Store) CommitStaged(pluginID string) (*PackageRecord, error) {
 	if !ok || record.State != StateStaged {
 		return nil, ErrNoStagedInstall
 	}
+	previous := s.snapshotLocked()
 	record.State = StateInstalled
 	record.UpdatedAt = time.Now()
+	if err := s.persistLocked(previous); err != nil {
+		return nil, err
+	}
 	return record, nil
 }
 
@@ -154,8 +168,9 @@ func (s *Store) Uninstall(pluginID string) error {
 	if _, ok := s.plugins[pluginID]; !ok {
 		return ErrNotInstalled
 	}
+	previous := s.snapshotLocked()
 	delete(s.plugins, pluginID)
-	return nil
+	return s.persistLocked(previous)
 }
 
 // SetState transitions a plugin's lifecycle state.
@@ -166,9 +181,16 @@ func (s *Store) SetState(pluginID string, state State) error {
 	if !ok {
 		return ErrNotInstalled
 	}
+	if state != StateEnabled && state != StateDisabled {
+		return errors.New("invalid plugin state")
+	}
+	if record.State == StateStaged {
+		return ErrNoStagedInstall
+	}
+	previous := s.snapshotLocked()
 	record.State = state
 	record.UpdatedAt = time.Now()
-	return nil
+	return s.persistLocked(previous)
 }
 
 // Get returns one plugin record.
@@ -196,6 +218,24 @@ func (s *Store) List() []*PackageRecord {
 		}
 	}
 	return result
+}
+
+// SetSetting persists an already validated non-secret setting.
+func (s *Store) SetSetting(id, key string, value json.RawMessage) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, ok := s.plugins[id]
+	if !ok {
+		return ErrNotInstalled
+	}
+	previous := s.snapshotLocked()
+	values := make(map[string]json.RawMessage, len(record.Settings)+1)
+	for k, v := range record.Settings {
+		values[k] = v
+	}
+	values[key] = append(json.RawMessage(nil), value...)
+	record.Settings = values
+	return s.persistLocked(previous)
 }
 
 // Checksum computes SHA-256 of the data (used for package integrity).

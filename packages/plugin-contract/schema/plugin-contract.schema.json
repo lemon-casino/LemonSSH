@@ -5,6 +5,38 @@
   "description": "Canonical public contract for Netcatty plugin manifests and host RPC messages.",
   "$ref": "#/$defs/PluginManifest",
   "$defs": {
+    "DeclarativePluginUI": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "settings": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginSetting" } },
+        "views": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginView" } }
+      }
+    },
+    "DeclarativePluginSetting": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "type", "label"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "enum": ["text", "number", "boolean", "select", "password"] },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "default": { "type": "string" },
+        "required": { "type": "boolean" },
+        "options": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "DeclarativePluginView": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "type", "title"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "enum": ["list", "card"] },
+        "title": { "type": "string" },
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "bindings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "JsonPrimitive": {
       "oneOf": [
         { "type": "string" },

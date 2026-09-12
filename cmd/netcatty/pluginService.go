@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"sync"
 
+	"github.com/binaricat/netcatty/internal/plugin/host"
 	"github.com/binaricat/netcatty/internal/plugin/manifest"
 	"github.com/binaricat/netcatty/internal/plugin/native"
 	"github.com/binaricat/netcatty/internal/plugin/permissions"
 	pluginstore "github.com/binaricat/netcatty/internal/plugin/store"
+	"github.com/binaricat/netcatty/internal/plugin/ui"
+	"github.com/binaricat/netcatty/internal/plugin/v1reject"
 	"github.com/binaricat/netcatty/internal/plugin/wasm"
 )
 
@@ -32,12 +36,29 @@ func newPluginService() *PluginService {
 	return service
 }
 
+func newPluginServiceAt(path string) (*PluginService, error) {
+	inventory, err := pluginstore.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	service := newPluginService()
+	service.store = inventory
+	return service, nil
+}
+
 func (s *PluginService) List() []*pluginstore.PackageRecord {
 	return s.store.List()
 }
 
 // parseManifestV2 unmarshals and validates a manifest v2 document.
 func parseManifestV2(manifestJSON string) (manifest.Manifest, error) {
+	legacy, err := v1reject.DetectV1([]byte(manifestJSON))
+	if err != nil {
+		return manifest.Manifest{}, err
+	}
+	if legacy {
+		return manifest.Manifest{}, v1reject.Reject("package")
+	}
 	var parsed manifest.Manifest
 	if err := json.Unmarshal([]byte(manifestJSON), &parsed); err != nil {
 		return manifest.Manifest{}, fmt.Errorf("manifest json: %w", err)
@@ -51,16 +72,24 @@ func parseManifestV2(manifestJSON string) (manifest.Manifest, error) {
 func (s *PluginService) Install(pluginID, version, sha256Hex, manifestJSON string) (*pluginstore.PackageRecord, error) {
 	// The manifest is the contract: an invalid v2 document never enters the
 	// store, so the WASM/native runtimes can trust the stored snapshot.
-	if _, err := parseManifestV2(manifestJSON); err != nil {
+	parsed, err := parseManifestV2(manifestJSON)
+	if err != nil {
 		return nil, err
+	}
+	if parsed.Name != pluginID || parsed.Version != version {
+		return nil, fmt.Errorf("plugin identity does not match manifest")
 	}
 	return s.store.Install(pluginID, version, sha256Hex, json.RawMessage(manifestJSON))
 }
 
 // StageInstall begins a two-phase publish: validate, stage, then commit.
 func (s *PluginService) StageInstall(pluginID, version, sha256Hex, manifestJSON string) (*pluginstore.PackageRecord, error) {
-	if _, err := parseManifestV2(manifestJSON); err != nil {
+	parsed, err := parseManifestV2(manifestJSON)
+	if err != nil {
 		return nil, err
+	}
+	if parsed.Name != pluginID || parsed.Version != version {
+		return nil, fmt.Errorf("plugin identity does not match manifest")
 	}
 	return s.store.StageInstall(pluginID, version, sha256Hex, json.RawMessage(manifestJSON))
 }
@@ -75,12 +104,39 @@ func (s *PluginService) RecoverStaged() int {
 	return s.store.RecoverStaged()
 }
 
+func (s *PluginService) Settings(pluginID string) (map[string]any, error) {
+	return (host.Host{Store: s.store, Broker: s.broker, Credentials: credentials.NewOSProvider()}).Settings(pluginID)
+}
+
+func (s *PluginService) SetSetting(pluginID, settingID, valueJSON string) error {
+	return (host.Host{Store: s.store, Broker: s.broker, Credentials: credentials.NewOSProvider()}).SetSetting(pluginID, settingID, valueJSON)
+}
+
+func (s *PluginService) UISchema(pluginID string) (*ui.Schema, error) {
+	return (host.Host{Store: s.store, Broker: s.broker, Credentials: credentials.NewOSProvider()}).UI(pluginID)
+}
+
+// GrantPermission is a trusted host UI approval entrypoint, never a plugin RPC.
+func (s *PluginService) GrantPermission(pluginID, kind, resource, mode, lifetime string) error {
+	return (host.Host{Store: s.store, Broker: s.broker, Credentials: credentials.NewOSProvider()}).Grant(pluginID, kind, resource, mode, lifetime)
+}
+
+func (s *PluginService) AuthorizePermission(pluginID, kind, resource, mode string) error {
+	return (host.Host{Store: s.store, Broker: s.broker, Credentials: credentials.NewOSProvider()}).Authorize(pluginID, kind, resource, mode)
+}
+
 func (s *PluginService) SetEnabled(pluginID string, enabled bool) error {
 	state := pluginstore.StateDisabled
 	if enabled {
 		state = pluginstore.StateEnabled
 	}
-	return s.store.SetState(pluginID, state)
+	if err := s.store.SetState(pluginID, state); err != nil {
+		return err
+	}
+	if !enabled {
+		s.broker.RevokeAll(pluginID)
+	}
+	return nil
 }
 
 func (s *PluginService) InstantiateWASM(pluginID string, wasmBytes []byte) error {

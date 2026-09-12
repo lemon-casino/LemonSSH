@@ -165,6 +165,29 @@ export type CredentialRef = {
   id: string;
 };
 
+export type DeclarativePluginSetting = {
+  id: string;
+  type: "text" | "number" | "boolean" | "select" | "password";
+  label: string;
+  description?: string;
+  default?: string;
+  required?: boolean;
+  options?: Array<string>;
+};
+
+export type DeclarativePluginUI = {
+  settings?: Array<DeclarativePluginSetting> | null;
+  views?: Array<DeclarativePluginView> | null;
+};
+
+export type DeclarativePluginView = {
+  id: string;
+  type: "list" | "card";
+  title: string;
+  columns?: Array<string>;
+  bindings?: Array<string>;
+};
+
 export type FeatureId = string;
 
 export type IconReference = (ThemeIcon) | (PackageIcon);

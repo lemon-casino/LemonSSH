@@ -7,6 +7,7 @@ package manifest
 import (
 	"errors"
 	"fmt"
+	"github.com/binaricat/netcatty/internal/plugin/ui"
 	"regexp"
 	"strings"
 )
@@ -21,6 +22,7 @@ var (
 )
 
 type Manifest struct {
+	UI             *ui.Schema     `json:"ui,omitempty"`
 	APIVersion     int            `json:"apiVersion"`
 	Name           string         `json:"name"`
 	Version        string         `json:"version"`
@@ -52,6 +54,11 @@ type Contribution struct {
 }
 
 func Validate(m Manifest) error {
+	if m.UI != nil {
+		if err := ui.Validate(*m.UI); err != nil {
+			return err
+		}
+	}
 	if m.APIVersion != Version {
 		return fmt.Errorf("%w: apiVersion %d, want %d", ErrInvalid, m.APIVersion, Version)
 	}
