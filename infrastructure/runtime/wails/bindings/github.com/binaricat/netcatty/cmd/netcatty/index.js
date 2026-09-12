@@ -47,6 +47,8 @@ export {
 
 export {
     AppLockRuntimeState,
+    BiometricSettings,
+    BiometricStatus,
     BiometricUnlockResult,
     CloudSyncDeleteResult,
     CloudSyncDownloadResult,
@@ -60,8 +62,13 @@ export {
     NativeStartRequest,
     PopupOpenResult,
     ProtocolRegistrationResult,
+    SFTPOpenRequest,
     SSHConnectRequest,
     SerialStartRequest,
     TelnetStartRequest,
+    TempClearResult,
+    TempDirectoryInfo,
+    TransferSnapshot,
+    TransferStartRequest,
     UpgradeStatus
 } from "./models.js";

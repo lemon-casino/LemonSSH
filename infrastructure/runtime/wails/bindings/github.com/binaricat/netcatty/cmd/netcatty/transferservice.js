@@ -10,6 +10,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @param {string} taskID
  * @returns {$CancellablePromise<void>}
@@ -29,6 +33,16 @@ export function Enqueue(spec) {
 }
 
 /**
+ * List lets a replacement webview observe jobs without restarting their I/O.
+ * @returns {$CancellablePromise<$models.TransferSnapshot[]>}
+ */
+export function List() {
+    return $Call.ByID(2208745326).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * @param {string} taskID
  * @returns {$CancellablePromise<void>}
  */
@@ -38,11 +52,11 @@ export function Pause(taskID) {
 
 /**
  * @param {string} taskID
- * @returns {$CancellablePromise<transfer$0.Progress>}
+ * @returns {$CancellablePromise<$models.TransferSnapshot>}
  */
 export function Progress(taskID) {
     return $Call.ByID(3959402413, taskID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType1($result);
     }));
 }
 
@@ -54,5 +68,29 @@ export function Resume(taskID) {
     return $Call.ByID(1326767581, taskID);
 }
 
+/**
+ * @param {$models.TransferStartRequest} request
+ * @returns {$CancellablePromise<transfer$0.Progress>}
+ */
+export function Start(request) {
+    return $Call.ByID(1933622186, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * StartCompressed stages ZIP bytes under the shared managed temp root, then uses
+ * the ordinary scheduler. Compression and upload share identity and controls.
+ * @param {$models.TransferStartRequest} request
+ * @returns {$CancellablePromise<$models.TransferSnapshot>}
+ */
+export function StartCompressed(request) {
+    return $Call.ByID(4146605115, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = transfer$0.Progress.createFrom;
+const $$createType1 = $models.TransferSnapshot.createFrom;
+const $$createType2 = $Create.Array($$createType1);

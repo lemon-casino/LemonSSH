@@ -9,6 +9,9 @@ import { Create as $Create } from "@wailsio/runtime";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as json$0 from "../../../../../encoding/json/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
 export class AppLockRuntimeState {
     /**
@@ -77,6 +80,104 @@ export class AppLockRuntimeState {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new AppLockRuntimeState(/** @type {Partial<AppLockRuntimeState>} */($$parsedSource));
+    }
+}
+
+export class BiometricSettings {
+    /**
+     * Creates a new BiometricSettings instance.
+     * @param {Partial<BiometricSettings>} [$$source = {}] - The source object to create the BiometricSettings.
+     */
+    constructor($$source = {}) {
+        if (!("systemUnlockEnabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["systemUnlockEnabled"] = false;
+        }
+        if (!("systemUnlockAutoPromptEnabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["systemUnlockAutoPromptEnabled"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BiometricSettings instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {BiometricSettings}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BiometricSettings(/** @type {Partial<BiometricSettings>} */($$parsedSource));
+    }
+}
+
+export class BiometricStatus {
+    /**
+     * Creates a new BiometricStatus instance.
+     * @param {Partial<BiometricStatus>} [$$source = {}] - The source object to create the BiometricStatus.
+     */
+    constructor($$source = {}) {
+        if (!("supported" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["supported"] = false;
+        }
+        if (!("available" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["available"] = false;
+        }
+        if (!("enabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enabled"] = false;
+        }
+        if (!("platform" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["platform"] = "";
+        }
+        if (!("label" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["label"] = null;
+        }
+        if (!("reason" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["reason"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BiometricStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {BiometricStatus}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BiometricStatus(/** @type {Partial<BiometricStatus>} */($$parsedSource));
     }
 }
 
@@ -762,6 +863,147 @@ export class ProtocolRegistrationResult {
     }
 }
 
+export class SFTPOpenRequest {
+    /**
+     * Creates a new SFTPOpenRequest instance.
+     * @param {Partial<SFTPOpenRequest>} [$$source = {}] - The source object to create the SFTPOpenRequest.
+     */
+    constructor($$source = {}) {
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("port" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["password"] = "";
+        }
+        if (!("privateKey" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["privateKey"] = "";
+        }
+        if (!("passphrase" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["passphrase"] = "";
+        }
+        if (!("certificate" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["certificate"] = "";
+        }
+        if (!("proxyUrl" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyUrl"] = "";
+        }
+        if (!("proxyCommand" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["proxyCommand"] = "";
+        }
+        if (!("enableMfa" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enableMfa"] = false;
+        }
+        if (!("useAgent" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["useAgent"] = false;
+        }
+        if (!("identityFilePaths" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["identityFilePaths"] = [];
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+        if (!("jumpHosts" in $$source)) {
+            /**
+             * @member
+             * @type {SSHConnectRequest[]}
+             */
+            this["jumpHosts"] = [];
+        }
+        if (!("sudo" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["sudo"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SFTPOpenRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SFTPOpenRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField11_0 = $$createType2;
+        const $$createField14_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("identityFilePaths" in $$parsedSource) {
+            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
+        }
+        if ("jumpHosts" in $$parsedSource) {
+            $$parsedSource["jumpHosts"] = $$createField14_0($$parsedSource["jumpHosts"]);
+        }
+        return new SFTPOpenRequest(/** @type {Partial<SFTPOpenRequest>} */($$parsedSource));
+    }
+}
+
 /**
  * SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
  * proxyCommand carries OpenSSH ProxyCommand semantics (%h/%p tokens).
@@ -1046,6 +1288,342 @@ export class TelnetStartRequest {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new TelnetStartRequest(/** @type {Partial<TelnetStartRequest>} */($$parsedSource));
+    }
+}
+
+export class TempClearResult {
+    /**
+     * Creates a new TempClearResult instance.
+     * @param {Partial<TempClearResult>} [$$source = {}] - The source object to create the TempClearResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("deletedCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["deletedCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TempClearResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TempClearResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TempClearResult(/** @type {Partial<TempClearResult>} */($$parsedSource));
+    }
+}
+
+export class TempDirectoryInfo {
+    /**
+     * Creates a new TempDirectoryInfo instance.
+     * @param {Partial<TempDirectoryInfo>} [$$source = {}] - The source object to create the TempDirectoryInfo.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("fileCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["fileCount"] = 0;
+        }
+        if (!("totalSize" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["totalSize"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TempDirectoryInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TempDirectoryInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TempDirectoryInfo(/** @type {Partial<TempDirectoryInfo>} */($$parsedSource));
+    }
+}
+
+export class TransferSnapshot {
+    /**
+     * Creates a new TransferSnapshot instance.
+     * @param {Partial<TransferSnapshot>} [$$source = {}] - The source object to create the TransferSnapshot.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["phase"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["controlKind"] = undefined;
+        }
+        if (!("lifecycleEpoch" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["lifecycleEpoch"] = 0;
+        }
+        if (!("taskId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["taskId"] = "";
+        }
+        if (!("state" in $$source)) {
+            /**
+             * @member
+             * @type {transfer$0.State}
+             */
+            this["state"] = transfer$0.State.$zero;
+        }
+        if (!("totalBytes" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["totalBytes"] = 0;
+        }
+        if (!("doneBytes" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["doneBytes"] = 0;
+        }
+        if (!("chunksDone" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["chunksDone"] = 0;
+        }
+        if (!("chunksTotal" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["chunksTotal"] = 0;
+        }
+        if (!("startedAt" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["startedAt"] = "0001-01-01T00:00:00.000Z";
+        }
+        if (!("updatedAt" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["updatedAt"] = "0001-01-01T00:00:00.000Z";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (!("sourceSessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sourceSessionId"] = "";
+        }
+        if (!("targetSessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetSessionId"] = "";
+        }
+        if (!("sourcePath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sourcePath"] = "";
+        }
+        if (!("targetPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetPath"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sourceHostId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["targetHostId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["parentTaskId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["directoryEntryIndex"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["directoryEntryIdentity"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TransferSnapshot instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TransferSnapshot}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TransferSnapshot(/** @type {Partial<TransferSnapshot>} */($$parsedSource));
+    }
+}
+
+export class TransferStartRequest {
+    /**
+     * Creates a new TransferStartRequest instance.
+     * @param {Partial<TransferStartRequest>} [$$source = {}] - The source object to create the TransferStartRequest.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sourceHostId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["targetHostId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["parentTaskId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["directoryEntryIndex"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["directoryEntryIdentity"] = undefined;
+        }
+        if (!("taskId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["taskId"] = "";
+        }
+        if (!("sourceSessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sourceSessionId"] = "";
+        }
+        if (!("targetSessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetSessionId"] = "";
+        }
+        if (!("sourcePath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sourcePath"] = "";
+        }
+        if (!("targetPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetPath"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TransferStartRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TransferStartRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TransferStartRequest(/** @type {Partial<TransferStartRequest>} */($$parsedSource));
     }
 }
 

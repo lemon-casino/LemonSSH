@@ -71,6 +71,13 @@ export class PackageRecord {
         if (/** @type {any} */(false)) {
             /**
              * @member
+             * @type {{ [_ in string]?: json$0.RawMessage } | undefined}
+             */
+            this["settings"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
              * @type {{ [_ in string]?: string } | undefined}
              */
             this["labels"] = undefined;
@@ -86,9 +93,13 @@ export class PackageRecord {
      */
     static createFrom($$source = {}) {
         const $$createField7_0 = $$createType0;
+        const $$createField8_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("settings" in $$parsedSource) {
+            $$parsedSource["settings"] = $$createField7_0($$parsedSource["settings"]);
+        }
         if ("labels" in $$parsedSource) {
-            $$parsedSource["labels"] = $$createField7_0($$parsedSource["labels"]);
+            $$parsedSource["labels"] = $$createField8_0($$parsedSource["labels"]);
         }
         return new PackageRecord(/** @type {Partial<PackageRecord>} */($$parsedSource));
     }
@@ -118,3 +129,4 @@ export const State = {
 
 // Private type creation functions
 const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);

@@ -1,6 +1,10 @@
 import type { Messages } from '../types';
 
 export const ruCoreMessages: Messages = {
+  'profile.persistenceFailed': 'Не удалось обновить профиль. Последние изменения могли не сохраниться. Повторите попытку.',
+  'terminal.menu.receiveZmodem': 'Получить через ZMODEM',
+  'terminal.zmodem.receiveReady': 'Ожидание ZMODEM. Выполните sz <файл> в удалённом терминале для отправки файла.',
+  'terminal.zmodem.receiveFailed': 'Не удалось получить файл через ZMODEM. Повторите попытку.',
   // Common
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
@@ -1068,6 +1072,9 @@ export const ruCoreMessages: Messages = {
   'settings.plugins.title': 'Настройки плагинов',
   'settings.plugins.description': 'Проверенные нативные настройки от плагинов разработки.',
   'settings.plugins.loading': 'Загрузка настроек плагинов…',
+  'settings.plugins.allow.once': 'Разрешить один раз',
+  'settings.plugins.allow.session': 'Разрешить на сеанс',
+  'settings.plugins.legacyGuidance': 'Запросите у автора сборку WASM с manifest v2. Устаревшие пакеты JavaScript/Node не поддерживаются.',
   'settings.plugins.empty': 'Включённые плагины не предоставляют настройки.',
   'settings.plugins.scopeContext': 'Откройте эту настройку в контексте {scope}.',
   'settings.plugins.pressKeybinding': 'Нажмите сочетание клавиш',

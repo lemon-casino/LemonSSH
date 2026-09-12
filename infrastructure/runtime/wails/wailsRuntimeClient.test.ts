@@ -55,6 +55,21 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
   };
 }
 
+test("system unlock keeps unavailable native status and rejected authentication fail closed", async () => {
+  const bindings = stubBindings();
+  bindings.appLock = {
+    GetRuntimeState: async () => ({initialized:true,locked:true,reason:"manual",version:1,lastLockedAt:1,lastUnlockedAt:null,lastActivityAt:null}),
+    GetSystemUnlockStatus: async () => ({supported:true,available:false,enabled:false,platform:"win32",label:"Windows Hello",reason:"not configured"}),
+    UnlockWithBiometrics: async () => ({success:false,error:"disabled"}),
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.equal((await bridge.getAppLockSystemUnlockStatus!()).available, false);
+  assert.deepEqual(await bridge.requestAppLockSystemUnlock!(), {ok:false,error:"disabled"});
+  bindings.appLock.UnlockWithBiometrics = async () => ({success:true});
+  assert.deepEqual(await bridge.requestAppLockSystemUnlock!(), {ok:true});
+  assert.deepEqual(await createWailsRuntimeClient(stubBindings()).transitionBridge.requestAppLockSystemUnlock!(), {ok:false,error:"unsupported"});
+});
+
 test("local browsing uses native paths through the bridge and fails without filesystem bindings", async () => {
   let listing!: ReturnType<typeof useSftpDirectoryListing>;
   function Probe() {
@@ -74,7 +89,10 @@ test("local browsing uses native paths through the bridge and fails without file
         return [{ name: "real.pdf", type: "file", size: "7", lastModified: "2026-09-11T00:00:00Z" }];
       },
     };
-    bindings.sftp.Upload = async (_sessionId, path) => { uploads.push(path); return 7; };
+    bindings.transfer = {
+      Start: async request => { uploads.push(request.sourcePath); return { taskId: request.taskId, state: 'completed', totalBytes: 7, doneBytes: 7 }; },
+      Progress: async () => { throw new Error('Already completed'); },
+    };
     const client = createWailsRuntimeClient(bindings);
     setActiveRuntimeClient(client);
     assert.equal(await client.sftp.getHomeDir!(), home);
@@ -135,15 +153,15 @@ test("transitionBridge closeSession disposes the data plane", async () => {
   assert.equal(disposed, true);
 });
 
-test("optional-chain startup calls do not throw on missing bridge methods", () => {
+test("optional startup methods remain safe and missing native settings reject explicitly", async () => {
   const client = createWailsRuntimeClient(stubBindings());
   const bridge = client.transitionBridge;
   assert.doesNotThrow(() => {
-    bridge.setLanguage?.("en");
-    void bridge.getAppLockSettings?.();
     void bridge.rendererReady?.();
     void bridge.notifySettingsChanged?.({ key: "x", value: "y" });
   });
+  await bridge.setLanguage?.("en");
+  await assert.rejects(bridge.getAppLockSettings!(), /App lock settings unavailable/);
 });
 
 test("openSettingsWindow creates or focuses a dedicated settings window", async () => {
@@ -292,10 +310,13 @@ test("native file and folder drops upload to the original tab and complete witho
     ],
   };
   bindings.sftp.Stat = async () => { throw new Error("no such file"); };
-  bindings.sftp.Upload = async (id, source, target) => {
-    assert.equal(id, "original-sftp");
-    uploaded.push(`${source} -> ${target}`);
-    return 3;
+  bindings.transfer = {
+    Start: async request => {
+      assert.equal(request.targetSessionId, 'original-sftp');
+      uploaded.push(`${request.sourcePath} -> ${request.targetPath}`);
+      return { taskId: request.taskId, state: 'completed', totalBytes: 3, doneBytes: 3 };
+    },
+    Progress: async () => { throw new Error('Already completed'); },
   };
   bindings.sftp.Mkdir = async (_id, path) => { directories.push(path); };
   let operations!: ReturnType<typeof useSftpExternalOperations>;
@@ -309,8 +330,13 @@ test("native file and folder drops upload to the original tab and complete witho
     });
     return null;
   }
+  let unsubscribeTransferEvents: (() => void) | undefined;
   try {
-    setActiveRuntimeClient(createWailsRuntimeClient(bindings));
+    const client = createWailsRuntimeClient(bindings);
+    setActiveRuntimeClient(client);
+    unsubscribeTransferEvents = client.transitionBridge.onGlobalSftpTransferEvent?.(event => {
+      sftpTransferCenterStore.ingestBackgroundEvent(event);
+    });
     renderToStaticMarkup(createElement(Probe));
     const results = await operations.uploadExternalPaths("left", ["C:\\drop\\one.txt", "C:\\drop\\folder"]);
     assert.ok(results.length >= 2 && results.every((result) => result.success), JSON.stringify(results));
@@ -323,6 +349,7 @@ test("native file and folder drops upload to the original tab and complete witho
     assert.ok(tasks.length >= 2);
     assert.ok(tasks.every((task) => task.status === "completed"), JSON.stringify(tasks.map((task) => [task.fileName, task.status])));
   } finally {
+    unsubscribeTransferEvents?.();
     for (const task of sftpTransferCenterStore.getSnapshot().tasks) {
       if (task.ownerId === "native-drop-regression") sftpTransferCenterStore.dismiss(task.id);
     }
@@ -385,6 +412,8 @@ test("pauseTransfer reaches the Go transfer service", async () => {
   const paused: string[] = [];
   const bindings = stubBindings();
   bindings.transfer = {
+    Start: async () => ({ taskId: 't-1', state: 'running', totalBytes: 10, doneBytes: 2 }),
+    Progress: async () => ({ taskId: 't-1', state: 'paused', totalBytes: 10, doneBytes: 2 }),
     Pause: async (taskID) => {
       paused.push(taskID);
     },
@@ -425,12 +454,14 @@ test("startCompressedUpload fails closed until a compressed-upload owner exists"
   assert.equal(result?.success, false);
 });
 
-test("startCompressedUpload calls UploadCompressedFolder", async () => {
+test("startCompressedUpload calls the scheduler compressed owner", async () => {
   const seen: string[] = [];
   const bindings = stubBindings();
-  bindings.sftp.UploadCompressedFolder = async (sftpID, localFolder, remoteZipPath) => {
-    seen.push(sftpID, localFolder, remoteZipPath);
-    return 12;
+  bindings.transfer = {
+    Start: async () => { throw new Error('wrong start'); },
+    StartCompressed: async request => { seen.push(request.targetSessionId, request.sourcePath, request.targetPath); return { taskId:request.taskId,state:'completed',totalBytes:12,doneBytes:12 }; },
+    Progress: async () => ({taskId:'c1',state:'completed',totalBytes:12,doneBytes:12}),
+    Pause:async()=>{},Resume:async()=>{},Cancel:async()=>{},
   };
   const client = createWailsRuntimeClient(bindings);
   const result = await client.transitionBridge.startCompressedUpload?.({

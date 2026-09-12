@@ -15,6 +15,15 @@ import * as filesystem$0 from "../../internal/platform/filesystem/models.js";
 import * as $models from "./models.js";
 
 /**
+ * @returns {$CancellablePromise<$models.TempClearResult>}
+ */
+export function ClearTemp() {
+    return $Call.ByID(571030481).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * @param {string} archivePath
  * @param {string} destinationRoot
  * @returns {$CancellablePromise<number>}
@@ -36,7 +45,7 @@ export function HomeDir() {
  */
 export function ListDir(path) {
     return $Call.ByID(729165017, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType2($result);
     }));
 }
 
@@ -92,11 +101,30 @@ export function StageFromLocalPath(path) {
  */
 export function StatPath(path) {
     return $Call.ByID(1999196219, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} name
+ * @returns {$CancellablePromise<string>}
+ */
+export function TempFilePath(name) {
+    return $Call.ByID(3262733025, name);
+}
+
+/**
+ * @returns {$CancellablePromise<$models.TempDirectoryInfo>}
+ */
+export function TempInfo() {
+    return $Call.ByID(3758389736).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = filesystem$0.LocalEntry.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $models.LocalPathStat.createFrom;
+const $$createType0 = $models.TempClearResult.createFrom;
+const $$createType1 = filesystem$0.LocalEntry.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.LocalPathStat.createFrom;
+const $$createType4 = $models.TempDirectoryInfo.createFrom;

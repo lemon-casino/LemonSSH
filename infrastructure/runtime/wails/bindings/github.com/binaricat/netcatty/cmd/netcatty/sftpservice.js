@@ -86,7 +86,7 @@ export function Mkdir(sessionID, dir) {
 
 /**
  * Open dials (or borrows) a transport for host and registers an SFTP session.
- * @param {$models.SSHConnectRequest} request
+ * @param {$models.SFTPOpenRequest} request
  * @returns {$CancellablePromise<string>}
  */
 export function Open(request) {

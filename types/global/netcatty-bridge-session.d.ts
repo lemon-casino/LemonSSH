@@ -457,6 +457,7 @@ declare global {
         error?: string;
       }) => void
     ): () => void;
+    receiveZmodem?(sessionId: string, destinationDir: string): Promise<{ success: boolean; error?: string }>;
     cancelZmodem?(sessionId: string, options?: { interrupt?: boolean }): void;
     startZmodemDragDropUpload?(
       sessionId: string,

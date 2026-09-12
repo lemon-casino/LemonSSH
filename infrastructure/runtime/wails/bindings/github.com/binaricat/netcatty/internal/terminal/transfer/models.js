@@ -16,6 +16,13 @@ export class Progress {
      * @param {Partial<Progress>} [$$source = {}] - The source object to create the Progress.
      */
     constructor($$source = {}) {
+        if (!("lifecycleEpoch" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["lifecycleEpoch"] = 0;
+        }
         if (!("taskId" in $$source)) {
             /**
              * @member

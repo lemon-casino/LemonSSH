@@ -1,6 +1,10 @@
 import type { Messages } from '../types';
 
 export const zhCNCoreMessages: Messages = {
+  'profile.persistenceFailed': '无法更新你的配置。最近的更改可能未保存，请重试。',
+  'terminal.menu.receiveZmodem': 'ZMODEM 接收',
+  'terminal.zmodem.receiveReady': '正在等待 ZMODEM。请在远程终端运行 sz <文件> 发送文件。',
+  'terminal.zmodem.receiveFailed': 'ZMODEM 接收失败，请重试。',
   // Common
   'common.save': '保存',
   'common.cancel': '取消',
@@ -1088,6 +1092,9 @@ export const zhCNCoreMessages: Messages = {
   'settings.plugins.title': '插件设置',
   'settings.plugins.description': '由开发插件提供、经 Netcatty 原生组件验证的设置。',
   'settings.plugins.loading': '正在加载插件设置…',
+  'settings.plugins.allow.once': '仅允许一次',
+  'settings.plugins.allow.session': '本次会话允许',
+  'settings.plugins.legacyGuidance': '请向插件作者获取使用 manifest v2 的 WASM 版本。无法加载旧版 JavaScript/Node 插件包。',
   'settings.plugins.empty': '当前没有已启用插件提供设置。',
   'settings.plugins.scopeContext': '请在对应的 {scope} 上下文中打开此设置。',
   'settings.plugins.pressKeybinding': '请按下组合键',

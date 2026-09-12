@@ -113,6 +113,29 @@ export function ReceiveSerialYmodem(sessionID, destinationDir) {
 }
 
 /**
+ * ReceiveZmodem refuses existing targets; transfer bytes are written only after
+ * validated metadata, and partial files are removed if negotiation fails.
+ * @param {string} sessionID
+ * @param {string} destinationDir
+ * @returns {$CancellablePromise<void>}
+ */
+export function ReceiveZmodem(sessionID, destinationDir) {
+    return $Call.ByID(3664406058, sessionID, destinationDir);
+}
+
+/**
+ * Reconnect rotates only the renderer route. Native Mosh/ET processes retain
+ * their protocol keys and roaming state; no new remote server is bootstrapped.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<dataplane$0.RouteBootstrap>}
+ */
+export function Reconnect(sessionID) {
+    return $Call.ByID(2144418350, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * Resize updates the remote PTY window size.
  * @param {string} sessionID
  * @param {number} cols
@@ -148,21 +171,16 @@ export function SendSerialYmodem(sessionID, filePath) {
 }
 
 /**
- * @param {any} emit
+ * SendZmodem holds the session's raw byte stream until the peer acknowledges
+ * completion. The native terminal writer is shared by data and protocol replies.
+ * @param {string} sessionID
+ * @param {string} filePath
+ * @param {string} remoteName
+ * @param {string} command
  * @returns {$CancellablePromise<void>}
  */
-export function SetChallengeEmitter(emit) {
-    return $Call.ByID(3085412466, emit);
-}
-
-/**
- * SetEventEmitter wires renderer-visible events (telnet echo mode, auto-login
- * completion/cancellation) to the Wails event bus.
- * @param {any} emit
- * @returns {$CancellablePromise<void>}
- */
-export function SetEventEmitter(emit) {
-    return $Call.ByID(829485873, emit);
+export function SendZmodem(sessionID, filePath, remoteName, command) {
+    return $Call.ByID(695933495, sessionID, filePath, remoteName, command);
 }
 
 /**

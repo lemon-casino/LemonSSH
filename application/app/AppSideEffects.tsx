@@ -1,3 +1,4 @@
+import { subscribeProfileStorageErrors } from './profileStorageNotifications';
 import React, { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { registerAppHandlers } from './appHandlersBridge';
 import { publishAppLocalUi } from './appLocalUiStore';
@@ -342,7 +343,7 @@ export function AppSideEffects() {
     () =>
       portForwardingRules.map((rule) => ({
         ...rule,
-        status: "inactive",
+        status: "inactive" as const,
         error: undefined,
         lastUsedAt: undefined,
       })),
@@ -1819,6 +1820,10 @@ export function AppSideEffects() {
     })();
   }, [openSettingsWindow, t]);
   handleOpenSettingsRef.current = handleOpenSettings;
+
+  useEffect(() => subscribeProfileStorageErrors(window, () => {
+    toast.error(t('profile.persistenceFailed'), t('common.error'));
+  }), [t]);
 
   const hasShownCredentialProtectionWarningRef = useRef(false);
 
