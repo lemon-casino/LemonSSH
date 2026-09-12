@@ -5,6 +5,8 @@ import {
   TERMINAL_FONT_AUTO,
 } from '../../infrastructure/config/fonts';
 import { DARK_UI_THEMES, LIGHT_UI_THEMES, type UiThemeTokens } from '../../infrastructure/config/uiThemes';
+import { STORAGE_KEY_BOOT_THEME } from '../../infrastructure/config/storageKeys';
+import { localStorageAdapter as plainLocalStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
 import { UI_FONTS } from '../../infrastructure/config/uiFonts';
 import { uiFontStore } from './uiFontStore';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
@@ -202,6 +204,23 @@ export const applyThemeTokens = (
   const cssVars = buildAppThemeCssVars(tokens, accentMode, accentOverride);
   for (const [property, value] of Object.entries(cssVars)) {
     root.style.setProperty(property, value);
+  }
+
+  // Boot-splash mirror: index.html's early script reads this before React
+  // mounts so the splash background/spinner match the real UI theme. Merge so
+  // the other scheme's last-known palette survives.
+  try {
+    const accentToken = accentMode === 'custom' ? accentOverride : tokens.accent;
+    let mirror: Record<string, { background: string; accent: string }> = {};
+    try {
+      mirror = JSON.parse(plainLocalStorageAdapter.readString(STORAGE_KEY_BOOT_THEME) ?? '{}');
+    } catch {
+      mirror = {};
+    }
+    mirror[resolvedTheme] = { background: tokens.background, accent: accentToken };
+    plainLocalStorageAdapter.writeString(STORAGE_KEY_BOOT_THEME, JSON.stringify(mirror));
+  } catch {
+    // The splash mirror is best-effort; defaults cover a failed write.
   }
 
   // Sync with native window title bar (Electron)

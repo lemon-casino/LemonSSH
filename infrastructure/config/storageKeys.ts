@@ -13,6 +13,8 @@ export const STORAGE_KEY_COLOR = 'netcatty_color_v1';
 export const STORAGE_KEY_ACCENT_MODE = 'netcatty_accent_mode_v1';
 export const STORAGE_KEY_UI_THEME_LIGHT = 'netcatty_ui_theme_light_v1';
 export const STORAGE_KEY_UI_THEME_DARK = 'netcatty_ui_theme_dark_v1';
+/** Mirrors each scheme's resolved {background, accent} so the boot splash (index.html early script) matches the real UI theme before React mounts. */
+export const STORAGE_KEY_BOOT_THEME = 'netcatty_boot_theme_v1';
 export const STORAGE_KEY_UI_FONT_FAMILY = 'netcatty_ui_font_family_v1';
 export const STORAGE_KEY_SYNC = 'netcatty_sync_v1';
 /** Device-local experimental convergent-sync toggle; never included in SyncPayload settings. */

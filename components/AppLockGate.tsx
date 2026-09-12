@@ -106,6 +106,11 @@ export function createAppLockGate(deps: AppLockGateDeps): React.FC<AppLockGatePr
 
     useEffect(() => {
       try {
+        // Keep the boot splash up until real content exists: app children
+        // mount, or the startup lock screen is showing. Fading while the gate
+        // still withholds children re-introduces a white gap between splash
+        // removal and the first content paint.
+        if (!renderChildren && appLock.locked !== true) return;
         const splash = document.getElementById('splash');
         if (splash) {
           splash.classList.add('fade-out');
@@ -117,7 +122,7 @@ export function createAppLockGate(deps: AppLockGateDeps): React.FC<AppLockGatePr
       } catch {
         // ignore
       }
-    }, [notifyAppLockRendererReady, shouldNotifyRendererReady]);
+    }, [notifyAppLockRendererReady, shouldNotifyRendererReady, renderChildren, appLock.locked]);
 
     useEffect(() => {
       const unsubscribe = onAppLockReopen(() => {

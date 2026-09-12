@@ -1024,3 +1024,91 @@ test("reopen resync does not unlock a gate when runtime is still locked", async 
     dom.cleanup();
   }
 });
+
+test("boot splash stays while lock state initializes, then fades when content mounts", async () => {
+  const dom = installDomEnvironment();
+  const renderer = await createDomRenderer(dom.document);
+
+  // Mirror index.html: the splash lives inside #root until React content is ready.
+  const splash = dom.document.createElement("div");
+  splash.id = "splash";
+  splash.classList.add("splash-screen");
+  dom.document.getElementById("root")?.appendChild(splash);
+
+  // App-lock bridge not initialized yet: the gate withholds children and the
+  // splash must stay up (this is the "loading" window).
+  const bridgeHarness = createAppLockBridgeHarness({
+    runtimeState: {
+      initialized: false,
+      locked: false,
+      reason: null,
+      version: 1,
+      lastLockedAt: null,
+      lastUnlockedAt: null,
+      lastActivityAt: null,
+    },
+  });
+  const AppLockGate = createAppLockGate({
+    useSettingsState: () => ({
+      uiLanguage: "en",
+      appLockSettings: {
+        enabled: true,
+        timeoutMinutes: 15,
+        passwordVerifier: {
+          version: 1,
+          algorithm: "PBKDF2-SHA256",
+          iterations: 210000,
+          salt: "AAAAAAAAAAAAAAAAAAAAAA==",
+          hash: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        },
+      },
+    }) as ReturnType<typeof import("../application/state/useSettingsState.ts").useSettingsState>,
+    useAppLockState,
+    useAppLockBridge,
+  });
+
+  const previousWindowNetcatty = dom.window.netcatty;
+  dom.window.netcatty = bridgeHarness.bridge;
+
+  try {
+    await renderer.render(
+      React.createElement(AppLockGate, {
+        children: () => React.createElement("div", { id: "app-content" }, "Content"),
+      }),
+    );
+    await flushEffects();
+
+    assert.notEqual(
+      dom.document.getElementById("splash"),
+      null,
+      "splash must stay while the lock runtime initializes",
+    );
+    assert.equal(dom.document.getElementById("app-content"), null);
+
+    // Lock runtime finishes initializing -> children mount -> splash fades.
+    bridgeHarness.setRuntimeState({ initialized: true, locked: false, reason: null });
+    await flushEffects();
+    await flushEffects();
+
+    assert.notEqual(dom.document.getElementById("app-content"), null);
+    const fadingSplash = dom.document.getElementById("splash");
+    assert.ok(fadingSplash, "splash should still be in the DOM while fading");
+    assert.ok(
+      fadingSplash.classList.contains("fade-out"),
+      "splash must start fading once content has rendered",
+    );
+
+    await runWithAct(async () => {
+      await new Promise((resolve) => dom.window.setTimeout(resolve, 250));
+    });
+    assert.equal(
+      dom.document.getElementById("splash"),
+      null,
+      "splash must be removed after the fade completes",
+    );
+  } finally {
+    dom.window.netcatty = previousWindowNetcatty;
+    await renderer.unmount();
+    dom.cleanup();
+  }
+});
