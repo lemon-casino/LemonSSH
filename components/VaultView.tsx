@@ -50,6 +50,10 @@ import { useStoredNumber } from "../application/state/useStoredNumber";
 import { useStoredString } from "../application/state/useStoredString";
 import type { VaultLockHandle } from "../application/state/vaultManagedImportLock";
 import { useTreeExpandedState } from "../application/state/useTreeExpandedState";
+import {
+  registerVaultNav,
+  syncVaultNavSection,
+} from "../application/state/vaultNavStore";
 import { useVaultGroupDeletion } from "../application/state/useVaultGroupDeletion";
 import type { VaultHostPersistenceResult } from "../application/state/vaultImportProgress";
 import type {
@@ -298,6 +302,13 @@ interface VaultViewProps {
     keepaliveInterval: number;
     keepaliveCountMax: number;
   };
+  /**
+   * Whether VaultView renders its own business nav sidebar. The workbench
+   * layout drives sections from the top menu bar instead, so it renders the
+   * vault content-only; the sidebar stays mounted (CSS hidden) to preserve
+   * its local state.
+   */
+  showSidebar?: boolean;
 }
 
 const VaultViewInner: React.FC<VaultViewProps> = ({
@@ -355,6 +366,7 @@ const VaultViewInner: React.FC<VaultViewProps> = ({
   vaultFocusRequest,
   onVaultFocusRequestHandled,
   terminalSettings,
+  showSidebar = true,
 }) => {
   const { t } = useI18n();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -428,6 +440,27 @@ const VaultViewInner: React.FC<VaultViewProps> = ({
       onNavigateToSectionHandled?.();
     }
   }, [navigateToSection, onNavigateToSectionHandled]);
+
+  // Mirror section state into vaultNavStore so external chrome (the workbench
+  // menu bar) highlights and drives the active section without prop drilling.
+  useEffect(() => {
+    syncVaultNavSection(currentSection);
+  }, [currentSection]);
+
+  const selectVaultSection = useCallback(
+    (section: VaultSection) => {
+      setCurrentSection(section);
+      if (section === "hosts") {
+        setSelectedGroupPath(null);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    registerVaultNav({ setCurrentSection: selectVaultSection });
+    return () => registerVaultNav(null);
+  }, [selectVaultSection]);
 
   // View mode, sorting, and tag filter state
   const [viewMode, setViewMode] = useStoredViewMode(
@@ -1409,6 +1442,7 @@ const VaultViewInner: React.FC<VaultViewProps> = ({
           ContextMenuTrigger,
           Copy,
           currentSection,
+          showSidebar,
           customGroups,
           deleteGroupPath,
           deleteGroupPaths,
@@ -1675,6 +1709,7 @@ export const vaultViewAreEqual = (
     prev.navigateToSection === next.navigateToSection &&
     prev.deepLinkHostDraft === next.deepLinkHostDraft &&
     prev.vaultFocusRequest === next.vaultFocusRequest &&
+    prev.showSidebar === next.showSidebar &&
     // Only these terminal connection settings are forwarded to
     // PortForwarding inside the vault, so compare them directly. Other
     // terminal settings (fonts, themes, etc.) don't affect this subtree

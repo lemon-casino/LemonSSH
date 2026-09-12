@@ -517,7 +517,8 @@ export function VaultViewLayout({ ctx }: { ctx: VaultViewLayoutContext }) {
       className="absolute inset-0 min-h-0 flex bg-secondary"
       data-section="vault-view"
     >
-      {/* Sidebar */}
+      {/* Sidebar — CSS-hidden (still mounted) in workbench mode so its local
+          state survives layout switches; the menu bar drives sections there. */}
       <TooltipProvider delayDuration={100}>
         <div
           className={cn(
@@ -525,9 +526,11 @@ export function VaultViewLayout({ ctx }: { ctx: VaultViewLayoutContext }) {
             isSidebarResizing
               ? "transition-none"
               : "transition-[width] duration-200",
+            ctx.showSidebar === false && "hidden",
           )}
           style={{ width: effectiveSidebarWidth }}
           data-section="vault-sidebar"
+          data-visible={ctx.showSidebar === false ? "false" : "true"}
         >
           <div
             className={cn(

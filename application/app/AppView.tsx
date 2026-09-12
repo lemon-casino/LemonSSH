@@ -21,6 +21,8 @@ import { Label } from '../../components/ui/label';
 import { LazyLoadBoundary } from '../../components/ui/lazy-load-boundary';
 import { toast } from '../../components/ui/toast';
 import { AppHostTreeLayer } from './AppHostTreeLayer';
+import { AppWorkbenchSessionLayer } from './AppWorkbenchSessionLayer';
+import { WorkbenchChrome } from '../../components/workbench/WorkbenchChrome';
 import { AppHostEditorLayer } from './AppHostEditorLayer';
 import { AppPluginKeybindingHost } from './AppPluginKeybindingHost';
 import { shouldOpenHostEditOnWorkSurface } from './workTabSurface';
@@ -299,8 +301,15 @@ function AppViewInner({ domains }: AppViewProps) {
     restoreTerminalCwd,
     terminalSidePanelAutoOpen,
     terminalSidePanelAutoOpenTab,
+    layoutMode,
   } = useSettingsChromeStore();
   const { setTheme } = useSettingsChromeActions();
+
+  // Workbench chrome: the menu bar drives vault sections via vaultNavStore;
+  // activating a menu entry must also surface the vault content itself.
+  const handleWorkbenchSelectVaultSection = useCallback(() => {
+    setActiveTabId('vault');
+  }, [setActiveTabId]);
 
   const paneMagnificationController = getAvailablePaneMagnificationController([
     sftpPaneMagnificationRef?.current,
@@ -488,6 +497,7 @@ function AppViewInner({ domains }: AppViewProps) {
     <UnsavedChangesProvider>
       {() => (
     <div className="flex flex-col h-screen text-foreground font-sans netcatty-shell" data-terminal-appearance-root onContextMenu={handleRootContextMenu}>
+      {layoutMode === 'classic' ? (
       <TopTabs
         theme={resolvedTheme}
         themePreference={themePreference}
@@ -533,8 +543,48 @@ function AppViewInner({ domains }: AppViewProps) {
         onRequestCloseEditorTab={handleRequestCloseEditorTab}
         hostById={hostById}
       />
+      ) : (
+      <WorkbenchChrome
+        theme={resolvedTheme}
+        themePreference={themePreference}
+        onThemeChange={setTheme}
+        isMacClient={isMacClient}
+        showWindowControls={!isMacClient}
+        onSelectVaultSection={handleWorkbenchSelectVaultSection}
+        onOpenQuickSwitcher={handleOpenQuickSwitcher}
+        onOpenSettings={handleOpenSettings}
+        onSyncNow={handleSyncNowManual}
+        onLockApp={handleLockApp}
+        appLockEnabled={appLockEnabled}
+        externalMcpEnabled={externalMcpToggle.enabled}
+        onToggleExternalMcp={externalMcpToggle.setEnabled}
+        showExternalMcpToggle={!isPeerSessionWindow}
+      />
+      )}
 
-      <div className="flex-1 relative min-h-0">
+      {/* Content row: the workbench session tree is a persistent flex sibling
+          (visibility-toggled, never conditionally mounted) so layout switches
+          cannot remount the terminal layer underneath. */}
+      <div className="flex-1 relative min-h-0 flex">
+      <AppWorkbenchSessionLayer
+        enabled={layoutMode === 'workbench'}
+        hosts={hosts}
+        customGroups={customGroups}
+        groupConfigs={groupConfigs}
+        sessions={sessions}
+        workspaces={workspaces}
+        editorTabs={editorTabs}
+        logViews={logViews}
+        orderedTabs={orderedTabsWithEditors}
+        showSftpTab={showSftpTab}
+        dynamicTabTitleMode={dynamicTabTitleMode}
+        onActivateTab={setActiveTabId}
+        onActivateWorkspaceSession={setWorkspaceFocusedSession}
+        onCloseSession={closeSession}
+        onCloseLogView={closeLogView}
+        onOpenQuickSwitcher={handleOpenQuickSwitcher}
+      />
+      <div className="relative flex-1 min-w-0 min-h-0">
         <AppHostTreeLayer
           enabled={showHostTreeSidebar}
           hosts={hosts}
@@ -636,6 +686,7 @@ function AppViewInner({ domains }: AppViewProps) {
             vaultFocusRequest={vaultFocusRequest}
             onVaultFocusRequestHandled={() => setVaultFocusRequest(null)}
             terminalSettings={terminalSettings}
+            showSidebar={layoutMode === 'classic'}
           />
         </AppVaultThemeSurface>
 
@@ -793,6 +844,7 @@ function AppViewInner({ domains }: AppViewProps) {
           sessions={sessions}
           workspaces={workspaces}
         />
+      </div>
       </div>
 
       {/* Global "quick add / edit snippet" modal, triggered by the

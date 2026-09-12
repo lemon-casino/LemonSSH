@@ -1,26 +1,13 @@
-import { useSyncExternalStore } from "react";
-
 import { useTreeExpandedState } from "./useTreeExpandedState";
 import { STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED } from "../../infrastructure/config/storageKeys";
 
-type WorkbenchTreeState = {
-  expandedPaths: Set<string>;
-};
-
-const listeners = new Set<() => void>();
-let expandedPaths = new Set<string>();
-
-function notify() {
-  for (const listener of listeners) listener();
-}
-
-export function useWorkbenchTreeExpanded(): {
-  expandedPaths: Set<string>;
-  toggle: (path: string) => void;
-  expand: (path: string) => void;
-} {
-  const tree = useTreeExpandedState(STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED);
-  return tree;
+/**
+ * Workbench session-tree view state: which group/host branches are expanded.
+ * Persisted via useTreeExpandedState (hostStorageAdapter-backed) under a key
+ * that is independent from the vault host tree (plan §3.7.7).
+ */
+export function useWorkbenchTreeExpanded(): ReturnType<typeof useTreeExpandedState> {
+  return useTreeExpandedState(STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED);
 }
 
 export const STORAGE_KEY = STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED;

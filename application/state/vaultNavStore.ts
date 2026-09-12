@@ -43,6 +43,17 @@ export function setVaultNavSection(section: VaultSection) {
   }
 }
 
+/**
+ * Mirrors the VaultView-owned section into the store without invoking the
+ * registered action, so external chrome (workbench menu bar) stays in sync
+ * with section changes that originate inside VaultView.
+ */
+export function syncVaultNavSection(section: VaultSection) {
+  if (state.currentSection === section) return;
+  state = { ...state, currentSection: section };
+  notify();
+}
+
 export function useVaultNavState(): VaultNavState {
   return useSyncExternalStore(
     (listener) => {

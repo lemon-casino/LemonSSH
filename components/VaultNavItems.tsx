@@ -1,3 +1,4 @@
+import type React from "react";
 import {
   Activity,
   BookMarked,
@@ -28,12 +29,17 @@ type VaultNavItemsProps = {
   sidebarCollapsed: boolean;
   /** I18n translator. */
   t: I18nContextValue["t"];
+  /**
+   * `vertical` (default) is the classic sidebar rail; `horizontal` is the
+   * compact menu-bar row used by the workbench chrome.
+   */
+  orientation?: "vertical" | "horizontal";
 };
 
 /**
  * Vault navigation items (hosts, keys, proxies, port forwarding, scripts,
  * notes, known hosts, logs). Rendered inside the classic vault sidebar and
- * reusable by other shells (e.g. a future workbench menu bar); owns only the
+ * reusable by other shells (e.g. the workbench menu bar); owns only the
  * nav list itself, not the surrounding sidebar chrome.
  */
 export function VaultNavItems({
@@ -41,207 +47,84 @@ export function VaultNavItems({
   onSelectSection,
   sidebarCollapsed,
   t,
+  orientation = "vertical",
 }: VaultNavItemsProps) {
+  const horizontal = orientation === "horizontal";
+  const showLabel = horizontal || !sidebarCollapsed;
+  const sections: Array<{
+    id: VaultSection;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { id: "hosts", label: t("vault.nav.hosts"), icon: <LayoutGrid size={16} className="flex-shrink-0" /> },
+    { id: "keys", label: t("vault.nav.keychain"), icon: <Key size={16} className="flex-shrink-0" /> },
+    { id: "proxies", label: t("vault.nav.proxies"), icon: <Globe size={16} className="flex-shrink-0" /> },
+    { id: "port", label: t("vault.nav.portForwarding"), icon: <Plug size={16} className="flex-shrink-0" /> },
+    { id: "snippets", label: t("vault.nav.scripts"), icon: <FileCode size={16} className="flex-shrink-0" /> },
+    { id: "notes", label: t("vault.nav.notes"), icon: <NotebookText size={16} className="flex-shrink-0" /> },
+    { id: "knownhosts", label: t("vault.nav.knownHosts"), icon: <BookMarked size={16} className="flex-shrink-0" /> },
+    { id: "logs", label: t("vault.nav.logs"), icon: <Activity size={16} className="flex-shrink-0" /> },
+  ];
+
+  if (horizontal) {
+    return (
+      <div className="flex items-center gap-0.5 min-w-0 overflow-hidden app-no-drag">
+        {sections.map((section) => {
+          const active = currentSection === section.id;
+          return (
+            <Tooltip key={section.id}>
+              <TooltipTrigger asChild>
+                <button
+                  data-section={`workbench-menu-${section.id}`}
+                  data-state={active ? "active" : "inactive"}
+                  onClick={() => onSelectSection(section.id)}
+                  className={cn(
+                    "h-7 px-2.5 rounded-md text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors",
+                    active
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
+                  )}
+                >
+                  {section.icon}
+                  <span className="max-w-[9rem] truncate">{section.label}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{section.label}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn("space-y-1", sidebarCollapsed ? "px-1.5" : "px-2.5")}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "hosts" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "hosts" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("hosts")}
-          >
-            <LayoutGrid size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.hosts")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.hosts")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "keys" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "keys" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("keys")}
-          >
-            <Key size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.keychain")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.keychain")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "proxies" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "proxies" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("proxies")}
-          >
-            <Globe size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.proxies")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.proxies")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "port" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "port" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("port")}
-          >
-            <Plug size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.portForwarding")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.portForwarding")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={
-              currentSection === "snippets" ? "secondary" : "ghost"
-            }
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "snippets" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("snippets")}
-          >
-            <FileCode size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.scripts")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.scripts")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "notes" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "notes" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("notes")}
-          >
-            <NotebookText size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.notes")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.notes")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={
-              currentSection === "knownhosts" ? "secondary" : "ghost"
-            }
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "knownhosts" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("knownhosts")}
-          >
-            <BookMarked size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.knownHosts")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.knownHosts")}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RippleButton
-            variant={currentSection === "logs" ? "secondary" : "ghost"}
-            className={cn(
-              "w-full h-10",
-              sidebarCollapsed
-                ? "justify-center p-0"
-                : "justify-start gap-3",
-              currentSection === "logs" &&
-                "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
-            )}
-            onClick={() => onSelectSection("logs")}
-          >
-            <Activity size={16} className="flex-shrink-0" />
-            {!sidebarCollapsed && t("vault.nav.logs")}
-          </RippleButton>
-        </TooltipTrigger>
-        {sidebarCollapsed && (
-          <TooltipContent side="right">
-            {t("vault.nav.logs")}
-          </TooltipContent>
-        )}
-      </Tooltip>
+      {sections.map((section) => (
+        <Tooltip key={section.id}>
+          <TooltipTrigger asChild>
+            <RippleButton
+              variant={currentSection === section.id ? "secondary" : "ghost"}
+              className={cn(
+                "w-full h-10",
+                sidebarCollapsed
+                  ? "justify-center p-0"
+                  : "justify-start gap-3",
+                currentSection === section.id &&
+                  "bg-foreground/10 text-foreground hover:bg-foreground/15 border-border/40",
+              )}
+              onClick={() => onSelectSection(section.id)}
+            >
+              {section.icon}
+              {showLabel && section.label}
+            </RippleButton>
+          </TooltipTrigger>
+          {sidebarCollapsed && (
+            <TooltipContent side="right">{section.label}</TooltipContent>
+          )}
+        </Tooltip>
+      ))}
     </div>
   );
 }
