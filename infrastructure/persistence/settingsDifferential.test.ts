@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   configureHostProfileClient,
   flushHostProfileWrites,
+  hydrateHostProfile,
   hostStorageAdapter,
 } from "./hostStorageAdapter";
 
@@ -27,17 +28,18 @@ function makeRecordingClient(initial: Record<string, string> = {}) {
     },
     write: async (
       expectedRevision: number,
-      mutations: Array<{ domain: string; key: string; value?: string; delete?: boolean }>,
+      mutations: Array<{ domain: string; key: string; valueBase64?: string; delete?: boolean }>,
     ) => {
       if (expectedRevision !== revision) throw new Error("cutover revision conflict");
       revision += 1;
       for (const mutation of mutations) {
         if (mutation.delete) mirror.delete(mutation.key);
-        else if (mutation.value !== undefined) mirror.set(mutation.key, mutation.value);
+        else if (mutation.valueBase64 !== undefined) mirror.set(mutation.key, mutation.valueBase64);
       }
       return { revision };
     },
     domains: async () => ["settings"],
+    domainKeys: async (domain: string) => domain === "settings" ? [...mirror.keys()].filter(key => !key.startsWith("canonical-")) : [],
   };
   return { client, mirror, writes, bump: () => { revision += 1; } };
 }
@@ -47,6 +49,8 @@ function installLocalStorage(): Map<string, string> {
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     value: {
+      get length() { return local.size; },
+      key: (index: number) => [...local.keys()][index] ?? null,
       getItem: (key: string) => local.get(key) ?? null,
       setItem: (key: string, value: string) => { local.set(key, value); },
       removeItem: (key: string) => { local.delete(key); },
@@ -59,6 +63,7 @@ test("settings differential: adapter write mirrors byte-identical host value", a
   installLocalStorage();
   const recording = makeRecordingClient();
   configureHostProfileClient(recording.client);
+  await hydrateHostProfile();
 
   const payloads = ["dark", '{"ui":"light","accent":"#3b82f6"}', "秘密值-🔐"];
   for (const [index, payload] of payloads.entries()) {
@@ -75,6 +80,7 @@ test("settings differential: remove propagates and read stays consistent", async
   installLocalStorage();
   const recording = makeRecordingClient();
   configureHostProfileClient(recording.client);
+  await hydrateHostProfile();
 
   hostStorageAdapter.writeString("settings.remove-me", "gone-soon");
   await flushHostProfileWrites();
@@ -88,8 +94,9 @@ test("settings differential: remove propagates and read stays consistent", async
 
 test("differential acceptance envelope: three domains round-trip", async () => {
   installLocalStorage();
-  const recording = makeRecordingClient({ "netcatty_theme_v1": "dark" });
+  const recording = makeRecordingClient();
   configureHostProfileClient(recording.client);
+  await hydrateHostProfile();
 
   const cases: Array<[string, string]> = [
     ["netcatty_theme_v1", "midnight"],

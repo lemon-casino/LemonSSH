@@ -1,172 +1,91 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
+import { mkdtemp, rm } from "node:fs/promises";
+import { resolve } from "node:path";
+import { createCanonicalStorage } from "./hostStorageAdapter";
+import type { ProfileClient } from "../runtime/profile/profileClient";
 
-import { hydrateCanonicalProfile, diffCanonicalSources } from "./canonicalHydration";
-
-// SYNC-01 canonical cutover harness: proves the hydration state machine
-// (hydrate / promote / heal / skip) is lossless and that AI-managed keys
-// never cross the localStorage <-> Go profile store boundary.
-
-type Sources = {
-  local: Map<string, string | null>;
-  profile: Map<string, string>;
-  promoted: Array<{ domain: string; key: string; value: string }>;
-};
-
-function makeSources(localInitial: Record<string, string> = {}, profileInitial: Record<string, string> = {}): Sources {
-  const local = new Map<string, string | null>(Object.entries(localInitial));
-  const profile = new Map<string, string>(Object.entries(profileInitial));
-  const promoted: Array<{ domain: string; key: string; value: string }> = [];
-  return {
-    local,
-    profile,
-    promoted,
+// Runs the actual bbolt store through a test-only JSONL transport. This catches
+// invalid domains, base64 mismatches, zero-revision CAS semantics and restart loss.
+test("real Go adapter boot, concurrent import, serialized writes, conflicts, restart, closed-store errors and AI isolation", async () => {
+  const directory = await mkdtemp(resolve("infrastructure/persistence/.profile-test-"));
+  const db = resolve(directory, "profile.db");
+  const processes: ReturnType<typeof spawn>[] = [];
+  async function start() {
+    const child = spawn("go", ["run", "./infrastructure/persistence/profileStoreHarness.go", db], { stdio: ["pipe", "pipe", "pipe"] });
+    processes.push(child);
+    const lines = createInterface({ input: child.stdout! });
+    const waiting: Array<{ resolve(value: unknown): void; reject(error: Error): void }> = [];
+    let stderr = "";
+    child.stderr!.on("data", chunk => { stderr += String(chunk); });
+    child.on("exit", () => { for (const waiter of waiting.splice(0)) waiter.reject(new Error(stderr || "Go exited")); });
+    lines.on("line", line => {
+      const response = JSON.parse(line);
+      const waiter = waiting.shift()!;
+      if (response.error) waiter.reject(new Error(response.error));
+      else waiter.resolve(response.value);
+    });
+    const call = (request: object): Promise<unknown> => new Promise((resolve, reject) => {
+      waiting.push({ resolve, reject });
+      child.stdin!.write(`${JSON.stringify(request)}\n`);
+    });
+    const client: ProfileClient = {
+      revision: async () => Number(await call({ Method: "revision" })),
+      domains: async () => ["settings", "vault", "sessions"],
+      domainKeys: async domain => (await call({ Method: "keys", Domain: domain }) as string[] | null) ?? [],
+      getRawBase64: async (domain, key) => (await call({ Method: "get", Domain: domain, Key: key }) as string | null) ?? undefined,
+      setRawBase64: async () => { throw new Error("non-CAS write"); },
+      deleteRaw: async () => { throw new Error("non-CAS delete"); },
+      write: async (revision, mutations) => {
+        const result = await call({ Method: "write", Revision: revision, Mutations: mutations.map(m => ({ Domain: m.domain, Key: m.key, Value: m.valueBase64, Delete: m.delete })) }) as { Revision: number };
+        return { revision: result.Revision };
+      },
+    };
+    return { client, close: async () => { await call({ Method: "close" }); } };
+  }
+  const localData = new Map([["theme", "legacy"], ["netcatty_hosts_v1", "hosts"], ["netcatty_ai_sessions_v1", "private"]]);
+  const local = {
+    keys: () => [...localData.keys()], readString: (key: string) => localData.get(key) ?? null,
+    writeString: (key: string, value: string) => { localData.set(key, value); return true; },
+    remove: (key: string) => { localData.delete(key); },
   };
-}
-
-function readerOf(sources: Sources) {
-  return {
-    getRawText: async (_domain: string, key: string) => sources.profile.get(key),
-    domainKeys: async () => Array.from(sources.profile.keys()),
-  };
-}
-
-function writerOf(sources: Sources) {
-  return {
-    setRawText: async (domain: string, key: string, value: string) => {
-      sources.profile.set(key, value);
-      sources.promoted.push({ domain, key, value });
-    },
-  };
-}
-
-function localOf(sources: Sources) {
-  return {
-    readString: (key: string) => sources.local.get(key) ?? null,
-    writeString: (key: string, value: string) => {
-      sources.local.set(key, value);
-      return true;
-    },
-  };
-}
-
-test("canonical hydrate fills empty local keys from the profile store losslessly", async () => {
-  const sources = makeSources({}, { theme: "dark", "netcatty_hosts_v1": "[{\"id\":\"h1\"}]" });
-  const outcome = await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", [
-    "theme",
-    "netcatty_hosts_v1",
-    "missing-both",
-  ]);
-  assert.equal(sources.local.get("theme"), "dark");
-  assert.equal(sources.local.get("netcatty_hosts_v1"), "[{\"id\":\"h1\"}]");
-  assert.deepEqual(outcome.hydratedFromProfile.sort(), ["netcatty_hosts_v1", "theme"]);
-  assert.deepEqual(outcome.promotedToProfile, []);
-  assert.deepEqual(outcome.healedToProfile, []);
-  assert.deepEqual(outcome.divergences, []);
-  assert.equal(sources.promoted.length, 0);
-});
-
-test("canonical hydrate promotes legacy local-only values into the profile store", async () => {
-  const sources = makeSources({ "netcatty_hosts_v1": "[legacy]" });
-  const outcome = await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "vault", [
-    "netcatty_hosts_v1",
-  ]);
-  assert.equal(sources.profile.get("netcatty_hosts_v1"), "[legacy]");
-  assert.deepEqual(outcome.promotedToProfile, ["netcatty_hosts_v1"]);
-  assert.deepEqual(outcome.healedToProfile, ["netcatty_hosts_v1"]);
-  assert.deepEqual(outcome.divergences, [{ domain: "vault", key: "netcatty_hosts_v1", conflict: false }]);
-  // Legacy bytes survive the promotion unchanged.
-  assert.equal(sources.promoted[0]?.value, "[legacy]");
-});
-
-test("canonical hydrate heals conflicts toward the local value and reports them", async () => {
-  const sources = makeSources({ theme: "local-newer" }, { theme: "stale-mirror" });
-  const outcome = await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", [
-    "theme",
-  ]);
-  assert.equal(sources.local.get("theme"), "local-newer");
-  assert.equal(sources.profile.get("theme"), "local-newer");
-  assert.deepEqual(outcome.healedToProfile, ["theme"]);
-  assert.deepEqual(outcome.divergences, [{ domain: "settings", key: "theme", conflict: true }]);
-  // A conflict is not a promotion: the local value already existed in a prior
-  // session, the profile heal only restores convergence.
-  assert.deepEqual(outcome.promotedToProfile, []);
-});
-
-test("canonical hydrate treats equal values as converged no-ops", async () => {
-  const sources = makeSources({ theme: "same" }, { theme: "same" });
-  const outcome = await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", [
-    "theme",
-  ]);
-  assert.deepEqual(outcome.hydratedFromProfile, []);
-  assert.deepEqual(outcome.promotedToProfile, []);
-  assert.deepEqual(outcome.healedToProfile, []);
-  assert.deepEqual(outcome.divergences, []);
-  assert.equal(sources.promoted.length, 0);
-});
-
-test("AI-managed keys never cross the boundary in either direction", async () => {
-  const sources = makeSources(
-    { "netcatty_ai_providers_v1": "[local-ai]", "netcatty.aiDebug.hide": "x" },
-    { "netcatty_ai_providers_v1": "[profile-ai]", "netcatty.aiDebug.profile": "y" },
-  );
-  const outcome = await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", [
-    "netcatty_ai_providers_v1",
-    "netcatty.aiDebug.hide",
-    "netcatty.aiDebug.profile",
-  ]);
-  // Local AI values stay untouched and are never promoted into the store.
-  assert.equal(sources.local.get("netcatty_ai_providers_v1"), "[local-ai]");
-  assert.equal(sources.local.get("netcatty.aiDebug.hide"), "x");
-  // Profile AI values are never hydrated down into the local cache.
-  assert.equal(sources.local.has("netcatty.aiDebug.profile"), false);
-  assert.deepEqual(outcome.hydratedFromProfile, []);
-  assert.deepEqual(outcome.promotedToProfile, []);
-  assert.deepEqual(outcome.healedToProfile, []);
-  assert.equal(sources.promoted.length, 0);
-});
-
-test("diffCanonicalSources reports coverage and mismatches without writing", async () => {
-  const sources = makeSources(
-    { theme: "a", orphan: "b" },
-    { theme: "a", stale: "c", remoteOnly: "d" },
-  );
-  const diff = await diffCanonicalSources(readerOf(sources), localOf(sources), "settings", [
-    "theme",
-    "orphan",
-    "stale",
-    "remoteOnly",
-    "netcatty_ai_sessions_v1",
-  ]);
-  const byKey = new Map(diff.map((entry) => [entry.key, entry]));
-  assert.deepEqual(byKey.get("theme"), { domain: "settings", key: "theme", inLocal: true, inProfile: true, mismatch: false });
-  assert.deepEqual(byKey.get("orphan"), { domain: "settings", key: "orphan", inLocal: true, inProfile: false, mismatch: false });
-  assert.deepEqual(byKey.get("stale"), { domain: "settings", key: "stale", inLocal: false, inProfile: true, mismatch: false });
-  assert.deepEqual(byKey.get("remoteOnly"), { domain: "settings", key: "remoteOnly", inLocal: false, inProfile: true, mismatch: false });
-  // AI keys are excluded from the differential entirely.
-  assert.equal(byKey.has("netcatty_ai_sessions_v1"), false);
-});
-
-test("canonical hydrate state machine: full cutover boot sequence converges both stores", async () => {
-  // Simulate the three boot phases: legacy profile -> first run -> restart.
-  // Phase 1: legacy data only in localStorage; first run promotes it.
-  const sources = makeSources({ "netcatty_hosts_v1": "[hosts]", "theme": "dark" });
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "vault", ["netcatty_hosts_v1"]);
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", ["theme"]);
-  assert.equal(sources.profile.get("netcatty_hosts_v1"), "[hosts]");
-  assert.equal(sources.profile.get("theme"), "dark");
-
-  // Phase 2: wipe the local cache (profile reset / new machine sharing the
-  // Go store); the restart hydrates everything back from the profile store.
-  sources.local.clear();
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "vault", ["netcatty_hosts_v1"]);
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", ["theme"]);
-  assert.equal(sources.local.get("netcatty_hosts_v1"), "[hosts]");
-  assert.equal(sources.local.get("theme"), "dark");
-
-  // Phase 3: steady state - converged sources produce no writes at all.
-  const before = sources.promoted.length;
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "vault", ["netcatty_hosts_v1"]);
-  await hydrateCanonicalProfile(readerOf(sources), writerOf(sources), localOf(sources), "settings", ["theme"]);
-  assert.equal(sources.promoted.length, before);
+  const errors: unknown[] = [];
+  try {
+    const host = await start();
+    const a = createCanonicalStorage(host.client, local, error => errors.push(error));
+    const b = createCanonicalStorage(host.client, local, error => errors.push(error));
+    await Promise.all([a.hydrate(), b.hydrate()]);
+    assert.equal(a.readString("theme"), "legacy");
+    assert.equal(b.readString("netcatty_hosts_v1"), "hosts");
+    a.writeString("theme", "first");
+    a.writeString("theme", "Go canonical");
+    await a.flush();
+    b.writeString("theme", "stale overwrite");
+    await assert.rejects(b.flush(), /conflict/);
+    assert.equal(b.readString("theme"), "Go canonical");
+    a.remove("netcatty_hosts_v1");
+    await a.flush();
+    await b.refresh();
+    assert.equal(b.readString("netcatty_hosts_v1"), null);
+    assert.equal(await host.client.getRawBase64("settings", "netcatty_ai_sessions_v1"), undefined);
+    await host.close();
+    const restarted = await start();
+    localData.set("theme", "stale local");
+    localData.set("netcatty_hosts_v1", "resurrected");
+    const c = createCanonicalStorage(restarted.client, local, error => errors.push(error));
+    await c.hydrate();
+    assert.equal(c.readString("theme"), "Go canonical");
+    assert.equal(c.readString("netcatty_hosts_v1"), null);
+    assert.equal(c.readString("netcatty_ai_sessions_v1"), "private");
+    await restarted.close();
+    c.writeString("theme", "cannot persist");
+    await assert.rejects(c.flush(), /closed/);
+    assert.equal(c.readString("theme"), "Go canonical");
+    assert.ok(errors.some(error => String(error).includes("closed")));
+  } finally {
+    for (const child of processes) if (child.exitCode === null) child.kill();
+    await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
 });

@@ -33,7 +33,7 @@ import {
 } from './syncConfigPersist';
 import { EncryptionService } from '../EncryptionService';
 import { createAdapter } from '../adapters';
-import { localStorageAdapter } from '../../persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../../persistence/hostStorageAdapter';
 import {
   decryptProviderSecrets,
   encryptProviderSecrets,

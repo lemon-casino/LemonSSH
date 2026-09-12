@@ -11,14 +11,18 @@ import '@fontsource/space-grotesk/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
-import App from './App';
-import { AppLockGate } from './components/AppLockGate';
+import type AppComponent from './App';
+import type { AppLockGate as AppLockGateComponent } from './components/AppLockGate';
 import { hydrateReady, installRuntimeClient } from './infrastructure/runtime/bootstrap';
 
 // Shell-neutral runtime selection (P1-02): install the Wails RuntimeClient
 // under the Wails shell and the Electron adapter otherwise, before any
 // consumer resolves the bridge.
 installRuntimeClient();
+
+// Component graphs contain singleton stores; evaluate them only after Go hydration.
+let App: typeof AppComponent;
+let AppLockGate: typeof AppLockGateComponent;
 
 const LazySettingsPage = lazy(() => import('./components/SettingsPage'));
 const LazyTrayPanel = lazy(() => import('./components/TrayPanel'));
@@ -239,13 +243,23 @@ const renderApp = () => {
   }
 };
 
-void hydrateReady.then(() => {
+void hydrateReady.then(async () => {
+  const [appModule, gateModule] = await Promise.all([
+    import('./App'),
+    import('./components/AppLockGate'),
+  ]);
+  App = appModule.default;
+  AppLockGate = gateModule.AppLockGate;
   renderApp();
-}, (error) => {
-  // Hydration must never block boot: render with whatever the local cache has.
-  console.warn('[bootstrap] profile hydration failed; booting from local cache:', error);
-  renderApp();
+  window.addEventListener('hashchange', renderApp);
+}).catch((error) => {
+  console.error('[bootstrap] profile hydration failed:', error);
+  document.getElementById('splash')?.remove();
+  root.render(
+    <div role="alert" style={{ padding: 32, fontFamily: 'sans-serif' }}>
+      <h1>Unable to load your profile</h1>
+      <p>Your saved data could not be loaded. Please retry to continue.</p>
+      <button onClick={() => window.location.reload()}>Retry</button>
+    </div>,
+  );
 });
-
-// Listen for hash changes
-window.addEventListener('hashchange', renderApp);

@@ -28,7 +28,7 @@ function dispatchLocalStorageAdapterChanged(key: string): void {
   }
 }
 
-function emitLocalStorageAdapterChanged(key: string): void {
+export function emitLocalStorageAdapterChanged(key: string): void {
   pendingChangedKeys.add(key);
   if (emitChangedKeysTimer) return;
 
@@ -71,6 +71,10 @@ function safeSetItem(key: string, value: string): boolean {
 }
 
 export const localStorageAdapter = {
+  keys(): string[] {
+    return Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      .filter((key): key is string => key !== null);
+  },
   read<T>(key: string): T | null {
     return safeParse<T>(localStorage.getItem(key));
   },

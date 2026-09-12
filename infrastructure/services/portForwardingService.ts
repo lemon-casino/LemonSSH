@@ -27,7 +27,7 @@ const FALLBACK_TERMINAL_SETTINGS = {
   keepaliveCountMax: 10,
 };
 import { logger } from '../../lib/logger';
-import { localStorageAdapter } from '../persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../persistence/hostStorageAdapter';
 import { STORAGE_KEY_PF_RECONNECT_CANCEL } from '../config/storageKeys';
 import { netcattyBridge } from './netcattyBridge';
 

@@ -1,93 +1,76 @@
-import { isAIManagedStorageKey } from "./profileDomain";
+import type { ProfileClient, ProfileMutation } from "../runtime/profile/profileClient";
+import { CANONICAL_PROFILE_DOMAINS, isAIManagedStorageKey, profileDomainForKey } from "./profileDomain";
 import type { ProfileTextReader, LocalTextStore } from "./hostStorageHydrate";
 
-// SYNC-01 canonical cutover. The Go profile store is the durable owner of the
-// non-AI domains; localStorage becomes a derived read cache that existing
-// synchronous hooks keep consuming. One hydration pass before React mounts
-// (boot already awaits hydrateReady) converges both sources:
-//
-// - Go value, no local value  -> hydrate the local cache from Go.
-// - Local value, no Go value  -> promote the legacy local value into Go
-//   (first-run import / rollback path for profiles written before cutover).
-// - Both values, different    -> conflict. The local value wins and Go is
-//   healed, because the renderer is the only writer during a session and a
-//   boot-time divergence almost always means a failed best-effort mirror;
-//   the divergence is reported so acceptance evidence can show the count.
-// - Both values, equal        -> converged, no-op.
-//
-// AI-managed keys are excluded in every branch: they stay localStorage-
-// canonical until P6-05 and must never cross into the Go store.
-
-export type ProfileTextWriter = {
-  setRawText(domain: string, key: string, value: string): Promise<void>;
+// This marker belongs to Go, not browser storage. Import and marker are one CAS
+// transaction, so a restart can never re-import a deleted legacy value.
+const IMPORT_DOMAIN = "device";
+const IMPORT_KEY = "canonical-v1";
+export type LegacyTextStore = LocalTextStore & { keys(): string[]; remove(key: string): void };
+export type ProfileSnapshot = { revision: number; values: Map<string, string> };
+export const encodeProfileText = (value: string): string => {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 };
+const decodeProfileText = (value: string): string =>
+  new TextDecoder().decode(Uint8Array.from(atob(value), char => char.charCodeAt(0)));
+export const isProfileConflict = (error: unknown): boolean => String(error).includes("revision conflict");
 
-export type CanonicalDivergence = {
-  domain: string;
-  key: string;
-  /** True when both sources had values that differed (healed toward local). */
-  conflict: boolean;
-};
+export async function readCanonicalSnapshot(client: ProfileClient): Promise<ProfileSnapshot> {
+  if (!client.domainKeys) throw new Error("Canonical hydration requires profile key enumeration");
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const revision = await client.revision();
+    const values = new Map<string, string>();
+    for (const domain of CANONICAL_PROFILE_DOMAINS) {
+      for (const key of await client.domainKeys(domain)) {
+        if (isAIManagedStorageKey(key) || profileDomainForKey(key) !== domain) continue;
+        const value = await client.getRawBase64(domain, key);
+        if (value !== undefined) values.set(key, decodeProfileText(value));
+      }
+    }
+    if (await client.revision() === revision) return { revision, values };
+  }
+  throw new Error("Profile changed repeatedly during hydration");
+}
 
-export type CanonicalHydrationOutcome = {
-  hydratedFromProfile: string[];
-  promotedToProfile: string[];
-  healedToProfile: string[];
-  divergences: CanonicalDivergence[];
-};
-
-export async function hydrateCanonicalProfile(
-  reader: ProfileTextReader,
-  writer: ProfileTextWriter,
-  local: LocalTextStore,
-  domain: string,
-  keys: string[],
-): Promise<CanonicalHydrationOutcome> {
-  const outcome: CanonicalHydrationOutcome = {
-    hydratedFromProfile: [],
-    promotedToProfile: [],
-    healedToProfile: [],
-    divergences: [],
-  };
-  for (const key of keys) {
-    if (isAIManagedStorageKey(key)) continue;
-    const localValue = local.readString(key);
-    const remoteValue = await reader.getRawText(domain, key);
-    if (remoteValue === undefined && localValue === null) continue;
-    if (remoteValue !== undefined && localValue === null) {
-      if (local.writeString(key, remoteValue)) outcome.hydratedFromProfile.push(key);
+export async function hydrateCanonicalProfile(client: ProfileClient, local: LegacyTextStore): Promise<ProfileSnapshot> {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const snapshot = await readCanonicalSnapshot(client);
+    // Go reserves expectedRevision=0 for unconditional writes. Establish a
+    // nonzero revision using an inert device key before any import CAS. Racing
+    // initializers may both write this same seed, but cannot overwrite data.
+    if (snapshot.revision === 0) {
+      await client.write(0, [{ domain: IMPORT_DOMAIN, key: "canonical-cas-seed", valueBase64: encodeProfileText("1") }]);
       continue;
     }
-    if (remoteValue === undefined || remoteValue !== localValue) {
-      await writer.setRawText(domain, key, localValue as string);
-      outcome.healedToProfile.push(key);
-      outcome.divergences.push({ domain, key, conflict: remoteValue !== undefined });
-      if (remoteValue === undefined) outcome.promotedToProfile.push(key);
+    const imported = await client.getRawBase64(IMPORT_DOMAIN, IMPORT_KEY);
+    if (await client.revision() !== snapshot.revision) continue;
+    if (imported !== undefined) return snapshot;
+    const mutations: ProfileMutation[] = [];
+    // Union: snapshot already contains all remote keys; only absent local keys
+    // are imported. Existing Go values always win, including empty strings.
+    for (const key of local.keys()) {
+      if (isAIManagedStorageKey(key) || snapshot.values.has(key)) continue;
+      const value = local.readString(key);
+      if (value !== null) mutations.push({ domain: profileDomainForKey(key), key, valueBase64: encodeProfileText(value) });
+    }
+    mutations.push({ domain: IMPORT_DOMAIN, key: IMPORT_KEY, valueBase64: encodeProfileText("1") });
+    try {
+      await client.write(snapshot.revision, mutations);
+      return await readCanonicalSnapshot(client);
+    } catch (error) {
+      if (!isProfileConflict(error)) throw error;
     }
   }
-  return outcome;
+  throw new Error("Profile revision conflict during legacy import");
 }
 
 export type CanonicalDiffEntry = {
-  domain: string;
-  key: string;
-  inLocal: boolean;
-  inProfile: boolean;
-  /** Values exist in both sources but differ. Values are never reported. */
-  mismatch: boolean;
+  domain: string; key: string; inLocal: boolean; inProfile: boolean; mismatch: boolean;
 };
-
-/**
- * Differential comparison across localStorage and the Go profile store during
- * the cutover window. Read-only: it never writes either source. AI-managed
- * keys are skipped, matching the hydration boundary.
- */
-export async function diffCanonicalSources(
-  reader: ProfileTextReader,
-  local: LocalTextStore,
-  domain: string,
-  keys: string[],
-): Promise<CanonicalDiffEntry[]> {
+export async function diffCanonicalSources(reader: ProfileTextReader, local: LocalTextStore, domain: string, keys: string[]): Promise<CanonicalDiffEntry[]> {
   const entries: CanonicalDiffEntry[] = [];
   for (const key of keys) {
     if (isAIManagedStorageKey(key)) continue;

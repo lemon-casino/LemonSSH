@@ -3,9 +3,33 @@ import { test } from "node:test";
 
 import {
   createProfileClient,
+  configureProfileBindings,
   getRawText,
   setRawText,
 } from "./profileClient";
+
+test("profile bindings are required at call time and injected CAS maps wire mutations", async () => {
+  configureProfileBindings(undefined);
+  const client = createProfileClient();
+  await assert.rejects(client.revision(), /not configured/);
+  let captured: unknown;
+  configureProfileBindings({
+    Revision: async () => 7,
+    GetRaw: async () => { throw new Error("profile key not found"); },
+    SetRaw: async () => undefined,
+    DeleteRaw: async () => undefined,
+    Write: async (revision, mutations) => { captured = { revision, mutations }; return { Revision: 8 }; },
+    Domains: async () => ["vault"],
+    DomainKeys: async () => ["hosts"],
+  });
+  try {
+    assert.equal(await client.revision(), 7);
+    assert.equal(await client.getRawBase64("vault", "missing"), undefined);
+    assert.deepEqual(await client.write(7, [{ domain: "vault", key: "hosts", delete: true }]), { revision: 8 });
+    assert.deepEqual(captured, { revision: 7, mutations: [{ Domain: "vault", Key: "hosts", Value: null, Delete: true }] });
+    assert.deepEqual(await client.domainKeys!("vault"), ["hosts"]);
+  } finally { configureProfileBindings(undefined); }
+});
 
 test("profile client surfaces the generated skeleton service surface", async () => {
   const client = createProfileClient();
