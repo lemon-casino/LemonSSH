@@ -151,6 +151,25 @@ func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
 }
 
+// ClientLaunch delegates roaming to the native clients. ET bootstraps its own
+// persistent transport over SSH and must never receive MOSH credentials.
+func ClientLaunch(kind, host, user string, sshPort uint16, connect Connect) ([]string, map[string]string, error) {
+	switch kind {
+	case "mosh":
+		if connect.Port == 0 || connect.Key == "" {
+			return nil, nil, ErrNoConnectLine
+		}
+		return ClientArgs(host, connect), map[string]string{"MOSH_KEY": connect.Key}, nil
+	case "et":
+		if sshPort == 0 {
+			sshPort = 22
+		}
+		return []string{user + "@" + host, "--ssh-port", strconv.Itoa(int(sshPort))}, nil, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown helper %q", kind)
+	}
+}
+
 // ClientArgs builds the arguments for the locally supervised mosh-client. The
 // port is the one mosh-server announced; the key travels via MOSH_KEY, not
 // argv, so it does not leak into the process table.

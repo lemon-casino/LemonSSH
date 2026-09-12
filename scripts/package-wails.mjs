@@ -5,7 +5,7 @@
 // setting; cross builds are qualification binaries only (CGO disabled).
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { copyFile, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { copyFile, readFile, writeFile, mkdir, readdir, chmod } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -98,6 +98,62 @@ export function helperResourcePath(goos, goarch, kind = "mosh") {
   return path.join("resources", kind, platformDir, name);
 }
 
+export function verifyHelper(data, pin, goos, goarch) {
+  if (pin.os !== goos || pin.arch !== goarch) throw new Error("helper target does not match pin");
+  if (createHash("sha256").update(data).digest("hex") !== pin.sha256) throw new Error("helper hash mismatch");
+  const cpu = goarch === "amd64" ? 0x01000007 : 0x0100000c;
+  let matches = false;
+  if (goos === "windows" && data.length >= 64 && data.toString("ascii", 0, 2) === "MZ") {
+    const offset = data.readUInt32LE(60);
+    matches = offset + 6 <= data.length && data.toString("ascii", offset, offset + 4) === "PE\0\0" && data.readUInt16LE(offset + 4) === (goarch === "amd64" ? 0x8664 : 0xaa64);
+  } else if (goos === "darwin" && data.length >= 8) {
+    if (data.readUInt32LE(0) === 0xfeedfacf) matches = data.readUInt32LE(4) === cpu;
+    else if (data.readUInt32BE(0) === 0xcafebabe) {
+      const count = data.readUInt32BE(4);
+      if (count > 32 || 8 + count * 20 > data.length) throw new Error("invalid universal helper architecture table");
+      for (let i = 0; i < count; i++) if (data.readUInt32BE(8 + i * 20) === cpu) matches = true;
+    }
+  } else if (goos === "linux" && data.length >= 20 && data.toString("hex", 0, 4) === "7f454c46") {
+    matches = data[4] === 2 && data[5] === 1 && data.readUInt16LE(18) === (goarch === "amd64" ? 62 : 183);
+  }
+  if (!matches) throw new Error("helper executable architecture mismatch");
+}
+
+export async function writeProtocolResources(outDir, goos, executable) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(executable)) throw new Error("invalid executable name");
+  if (goos === "linux") {
+    const target = path.join(outDir, "lemonssh.desktop");
+    await writeFile(target, `[Desktop Entry]\nType=Application\nName=LemonSSH\nExec=${executable} %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/netcatty;\n`);
+    return [target];
+  }
+  if (goos === "darwin") {
+    const target = path.join(outDir, "Info.plist");
+    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.netcatty.app</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Netcatty sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
+    return [target];
+  }
+  return [];
+}
+
+// Provision a release helper only with an independently supplied digest.
+// Usage: node scripts/package-wails.mjs --install-helper mosh --source FILE_OR_HTTPS_URL --sha256 DIGEST --goos windows --goarch amd64
+export async function installHelper({ source, destination, sha256, goos, goarch, kind }) {
+ if (!["mosh","et"].includes(kind)) throw new Error("unknown helper kind");
+ if (!/^[a-f0-9]{64}$/.test(sha256 ?? "")) throw new Error("trusted sha256 pin required");
+ let data;
+ if (source.startsWith("https://")) {
+  const response=await fetch(source,{signal:AbortSignal.timeout(60000)});
+  if (!response.ok) throw new Error(`helper download failed: ${response.status}`);
+  data=Buffer.from(await response.arrayBuffer());
+ } else { data=await readFile(source); }
+ const pin={name:kind,path:path.basename(destination),os:goos,arch:goarch,sha256};
+ verifyHelper(data,pin,goos,goarch);
+ await mkdir(path.dirname(destination),{recursive:true});
+ await writeFile(destination,data);
+ if (goos!=="windows") await chmod(destination,0o755);
+ await writeFile(`${destination}.manifest.json`,JSON.stringify(pin,null,2)+"\n");
+ return pin;
+}
+
 export function hostTarget() {
   const osMap = { win32: "windows", darwin: "darwin", linux: "linux" };
   const goos = osMap[process.platform];
@@ -154,13 +210,25 @@ async function main() {
   }
   run(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
 
+  const helpers = [];
   for (const kind of ["mosh", "et"]) {
     const helper = helperResourcePath(target.goos, target.goarch, kind);
-    if (existsSync(helper)) {
-      const dest = path.join(args.outDir, path.basename(helper));
-      await copyFile(helper, dest);
+    if (!existsSync(helper)) {
+      throw new Error(`required ${kind} helper missing: ${helper}`);
     }
+    const pinPath = `${helper}.manifest.json`;
+    const pin = JSON.parse(await readFile(pinPath, "utf8"));
+    verifyHelper(await readFile(helper), pin, target.goos, target.goarch);
+    const dest = path.join(args.outDir, path.basename(helper));
+    await copyFile(helper, dest);
+    await copyFile(pinPath, `${dest}.manifest.json`);
+    helpers.push({ kind, ...pin, path: path.basename(helper), destination: target.goos === "darwin" ? `Contents/MacOS/${path.basename(helper)}` : path.basename(helper) });
   }
+  await writeProtocolResources(args.outDir, target.goos, path.basename(artifact));
+  await writeFile(path.join(args.outDir, "installer-resources.json"), JSON.stringify({
+    helpers,
+    protocolResources: target.goos === "darwin" ? [{ source: "Info.plist", destination: "Contents/Info.plist" }] : target.goos === "linux" ? [{ source: "lemonssh.desktop", destination: "share/applications/lemonssh.desktop" }] : [],
+  }, null, 2));
 
   const files = (await readdir(args.outDir))
     .filter((name) => name !== "checksums.txt" && name !== "artifact-manifest.json")
@@ -192,5 +260,8 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  await main();
+  if (process.argv[2] === "--install-helper") {
+    const options=Object.fromEntries(Array.from({length:Math.ceil((process.argv.length-2)/2)},(_,index)=>[process.argv[2+index*2]?.replace(/^--/,""),process.argv[3+index*2]]));
+    await installHelper({kind:options["install-helper"],source:options.source,sha256:options.sha256,goos:options.goos,goarch:options.goarch,destination:helperResourcePath(options.goos,options.goarch,options["install-helper"])});
+  } else { await main(); }
 }

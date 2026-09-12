@@ -1,11 +1,32 @@
 package zmodem
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
 	"testing"
 )
+
+func TestRawHeaderFixtures(t *testing.T) {
+	// Independent zmodem.js headers, also the standard lrzsz hex handshake.
+	for _, tc := range []struct{ wire, kind string }{
+		{"**\x18B00000000000000\r\n\x11", FrameZRQINIT},
+		{"**\x18B0100000023be50\r\n\x11", FrameZRINIT},
+	} {
+		frame, _, err := ParseBinaryHeader([]byte(tc.wire))
+		if err != nil || frame.Type != tc.kind {
+			t.Fatalf("raw header %q: %+v %v", tc.wire, frame, err)
+		}
+	}
+}
+
+func TestRawNullSeparatedMetadata(t *testing.T) {
+	meta, err := ParseFileMeta([]byte("hello world.txt\x005 0 100644 0\x00"), 1024)
+	if err != nil || meta.Name != "hello world.txt" || meta.Size != 5 {
+		t.Fatalf("raw metadata: %+v %v", meta, err)
+	}
+}
 
 func TestParseFileMetaSafeNames(t *testing.T) {
 	cases := []struct {
@@ -92,33 +113,23 @@ func TestCRC16KnownVector(t *testing.T) {
 }
 
 func TestParseBinaryHeaderValidAndTampered(t *testing.T) {
-	frameType := byte(ZFILE)
-	body := []byte{'B', frameType}
-	crc := CRC16(body)
-	header := []byte{ZPAD, ZDLE, 'B', frameType, byte(crc >> 8), byte(crc)}
-
-	frame, consumed, err := ParseBinaryHeader(header)
-	if err != nil {
+	header := binaryHeader(ZFILE, 123)
+	frame, _, err := ParseBinaryHeader(header)
+	if err != nil || frame.Type != FrameZFILE || frame.Sequence != 123 {
+		t.Fatalf("%+v %v", frame, err)
+	}
+	header[len(header)-1] ^= 1
+	if _, _, err = ParseBinaryHeader(header); !errors.Is(err, ErrCRCMismatch) {
 		t.Fatal(err)
-	}
-	if !frame.CRCValid || frame.Type != FrameZFILE || consumed != 6 {
-		t.Fatalf("frame mismatch: %+v consumed=%d", frame, consumed)
-	}
-	header[4] ^= 1
-	if _, _, err := ParseBinaryHeader(header); !errors.Is(err, ErrCRCMismatch) {
-		t.Fatalf("tampered CRC must fail: %v", err)
 	}
 }
 
 func TestReceiverCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	receiver := &Receiver{}
-	frameType := byte(ZRQINIT)
-	crc := CRC16([]byte{'B', frameType})
-	header := []byte{ZPAD, ZDLE, 'B', frameType, byte(crc >> 8), byte(crc)}
-	if err := receiver.Feed(ctx, header); !errors.Is(err, ErrCancelled) {
-		t.Fatalf("cancelled receiver must fail immediately, got %v", err)
+	r := &Receiver{}
+	if _, err := r.FeedSession(ctx, nil); !errors.Is(err, ErrCancelled) {
+		t.Fatal(err)
 	}
 }
 
@@ -165,59 +176,30 @@ func TestDecodeEscapedHandlesTrailingZDLE(t *testing.T) {
 
 // headerFor builds a valid binary header for a frame type, mirroring what the
 // sender emits on the wire.
-func headerFor(frameType byte) []byte {
-	crc := CRC16([]byte{'B', frameType})
-	return []byte{ZPAD, ZDLE, 'B', frameType, byte(crc >> 8), byte(crc)}
-}
+func headerFor(kind byte) []byte { return binaryHeader(kind, 0) }
 
 func TestSenderReceiverFileRoundTrip(t *testing.T) {
-	payload := []byte("hello zmodem \x18 escaped \r\n bytes")
-	meta := FileMeta{Name: "payload.bin", Size: int64(len(payload))}
-
-	var wire []byte
-	sender := &Sender{Write: func(unit []byte) error {
-		wire = append(wire, unit...)
+	payload := append([]byte("hello zmodem"), 24, 13, 10, 255)
+	var got []byte
+	var responses []byte
+	receiver := &Receiver{OnChunk: func(b []byte) error { got = append(got, b...); return nil }, Write: func(b []byte) error { responses = append(responses, b...); return nil }}
+	sender := &Sender{Write: func(b []byte) error {
+		for _, v := range b {
+			if _, err := receiver.FeedSession(context.Background(), []byte{v}); err != nil {
+				return err
+			}
+		}
 		return nil
+	}, Read: func(_ context.Context, b []byte) (int, error) {
+		n := copy(b, responses)
+		responses = responses[n:]
+		return n, nil
 	}}
-	if err := sender.SendFile(context.Background(), meta, payload); err != nil {
+	if err := sender.SendFile(context.Background(), FileMeta{Name: "payload.bin"}, payload); err != nil {
 		t.Fatal(err)
 	}
-
-	var gotName string
-	var gotData []byte
-	var started bool
-	receiver := &Receiver{
-		OnFileStart: func(meta FileMeta) error {
-			started = true
-			gotName = meta.Name
-			if meta.Size != int64(len(payload)) {
-				t.Fatalf("declared size %d", meta.Size)
-			}
-			return nil
-		},
-		OnChunk: func(chunk []byte) error {
-			gotData = append(gotData, chunk...)
-			return nil
-		},
-	}
-	// Feed the wire in small pieces to prove cross-call state is preserved.
-	for offset := 0; offset < len(wire); offset += 3 {
-		end := offset + 3
-		if end > len(wire) {
-			end = len(wire)
-		}
-		if _, err := receiver.FeedSession(context.Background(), wire[offset:end]); err != nil {
-			t.Fatalf("feed at %d: %v", offset, err)
-		}
-	}
-	if !started {
-		t.Fatal("OnFileStart never fired")
-	}
-	if gotName != "payload.bin" {
-		t.Fatalf("name %q", gotName)
-	}
-	if string(gotData) != string(payload) {
-		t.Fatalf("data mismatch: %q != %q", gotData, payload)
+	if string(got) != string(payload) || !receiver.Done {
+		t.Fatalf("%q done=%v", got, receiver.Done)
 	}
 }
 
@@ -265,7 +247,7 @@ func TestFeedSessionPartialHeaderWaits(t *testing.T) {
 		t.Fatalf("nothing consumed, got %d", consumed)
 	}
 	// Completing the unit afterwards must still succeed.
-	if _, err := receiver.FeedSession(context.Background(), framedUnit(ZEOF, nil)[2:]); err != nil {
+	if _, err := receiver.FeedSession(context.Background(), framedUnit(ZRQINIT, nil)[2:]); err != nil {
 		t.Fatalf("completed unit must parse: %v", err)
 	}
 }
@@ -288,20 +270,18 @@ func TestReceiverToleratesLeadingNoise(t *testing.T) {
 	}
 }
 
-func TestReceiverRejectsOversizeLengthPrefix(t *testing.T) {
-	// A hostile length prefix must be rejected before allocating a payload.
-	unit := append(append([]byte{}, headerFor(ZFILE)...), 0xFF, 0xFF, 0xFF, 0xFF)
-	receiver := &Receiver{}
-	if _, err := receiver.FeedSession(context.Background(), unit); !errors.Is(err, ErrFileTooLarge) {
-		t.Fatalf("expected length-prefix rejection, got %v", err)
+func TestReceiverRejectsOversizeUnterminatedPacket(t *testing.T) {
+	r := &Receiver{}
+	wire := append(binaryHeader(ZFILE, 0), bytes.Repeat([]byte{97}, maxSubpacket+1)...)
+	if _, err := r.FeedSession(context.Background(), wire); !errors.Is(err, ErrFileTooLarge) {
+		t.Fatal(err)
 	}
 }
 
-// framedUnit builds one session unit the way the sender does, for tests that
-// need to hand-craft a frame.
-func framedUnit(frameType byte, payload []byte) []byte {
-	escaped := EncodeEscaped(payload)
-	unit := append([]byte{}, headerFor(frameType)...)
-	unit = append(unit, byte(len(escaped)>>24), byte(len(escaped)>>16), byte(len(escaped)>>8), byte(len(escaped)))
-	return append(unit, escaped...)
+func framedUnit(kind byte, payload []byte) []byte {
+	out := binaryHeader(kind, 0)
+	if kind == ZFILE || kind == ZDATA {
+		out = append(out, dataPacket(payload, zcrcw)...)
+	}
+	return out
 }

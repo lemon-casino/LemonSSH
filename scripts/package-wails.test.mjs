@@ -13,6 +13,9 @@ import {
   purityInventory,
   shouldUseShell,
   windowsGuiLdflags,
+  verifyHelper,
+  writeProtocolResources,
+  installHelper,
 } from "./package-wails.mjs";
 
 test("artifactBasename applies the platform executable suffix", () => {
@@ -88,6 +91,37 @@ test("shouldUseShell runs npm through the shell on Windows", () => {
   assert.equal(shouldUseShell("npm", "linux"), true);
   assert.equal(shouldUseShell("go", "linux"), false);
   assert.equal(shouldUseShell("go", "win32"), true);
+});
+
+test("helper verification rejects altered content and wrong machine architecture", async () => {
+  const { createHash } = await import("node:crypto");
+  const pe = Buffer.alloc(128);
+  pe.write("MZ"); pe.writeUInt32LE(64, 60); pe.write("PE\0\0", 64); pe.writeUInt16LE(0x8664, 68);
+  const pin = { os: "windows", arch: "amd64", sha256: createHash("sha256").update(pe).digest("hex") };
+  assert.doesNotThrow(() => verifyHelper(pe, pin, "windows", "amd64"));
+  assert.throws(() => verifyHelper(Buffer.from("tampered"), pin, "windows", "amd64"), /hash/);
+  assert.throws(() => verifyHelper(pe, pin, "windows", "arm64"), /target/);
+  const wrong = { ...pin, arch: "arm64" };
+  assert.throws(() => verifyHelper(pe, wrong, "windows", "arm64"), /architecture/);
+});
+
+test("helper installation refuses untrusted bytes before publishing", async () => {
+ const dir=await mkdtemp(path.join(tmpdir(),"install-helper-"));
+ const source=path.join(dir,"source.exe");
+ await writeFile(source,"untrusted");
+ await assert.rejects(installHelper({source,destination:path.join(dir,"installed.exe"),sha256:"0".repeat(64),goos:"windows",goarch:"amd64",kind:"mosh"}),/hash/);
+ await assert.rejects(readFile(path.join(dir,"installed.exe")),/ENOENT/);
+});
+
+test("protocol resources register all supported schemes", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "protocol-wails-"));
+  const linux = await writeProtocolResources(dir, "linux", "LemonSSH");
+  const desktop = await readFile(linux[0], "utf8");
+  assert.match(desktop, /Exec=LemonSSH %u/);
+  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(desktop.includes(`x-scheme-handler/${scheme};`));
+  const mac = await writeProtocolResources(dir, "darwin", "LemonSSH");
+  const plist = await readFile(mac[0], "utf8");
+  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(plist.includes(`<string>${scheme}</string>`));
 });
 
 test("helperResourcePath follows the fetch-mosh layout", () => {
