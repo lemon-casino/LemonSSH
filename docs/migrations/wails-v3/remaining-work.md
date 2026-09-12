@@ -124,6 +124,9 @@ P8-01 签名 RC 全量 Gate → P8-02 WAILS-CUTOVER → P9 退役 Electron
 
 ## 五、建议优先级（下一步可执行）
 
+> 可编码功能已拆成带复选框的执行清单：
+> [pre-acceptance-backlog.md](pre-acceptance-backlog.md)。
+
 1. SSH MFA / 跳板 UI 回调 — 已处理（C 级；活体服务器仍缺）
 2. SFTP 高级路径接线 — 已处理（下载/上传/本地解压；传输中心 UI 仍缺）
 3. App Lock 密码启用/解锁 — 已处理（生物识别仍缺）
