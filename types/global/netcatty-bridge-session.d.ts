@@ -59,6 +59,16 @@ declare global {
   interface NetcattyBridge {
     getWindowsPtyInfo?(): NetcattyWindowsPtyInfo | null;
     startSSHSession(options: NetcattySSHOptions): Promise<string>;
+    testProxy?(options: {
+      kind: "http" | "socks5" | "command";
+      host?: string;
+      port?: number;
+      username?: string;
+      password?: string;
+      command?: string;
+      targetHost?: string;
+      targetPort?: number;
+    }): Promise<{ ok: boolean; latencyMs: number; error?: string }>;
     startTelnetSession?(options: {
       sessionId?: string;
       hostname: string;

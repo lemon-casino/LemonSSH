@@ -389,6 +389,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
           onReconnectSession={onReconnectSession}
           onEditHost={onEditHost}
           onConnectHost={onConnectHost}
+          onNewHost={onNewHost}
           onRenameWorkspace={onRenameWorkspace}
           onCopyWorkspace={onCopyWorkspace}
           onCloseWorkspace={onCloseWorkspace}

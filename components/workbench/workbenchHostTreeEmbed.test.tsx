@@ -85,6 +85,30 @@ test('workbench sidebar is one merged host+session tree with the toolbar above i
   }
 });
 
+test('workbench toolbar new-host button calls the opener', async () => {
+  const env = installDomEnvironment();
+  const restore = installTreeEnvironmentMocks();
+  const renderer = await createDomRenderer(env.document);
+  try {
+    const { AppWorkbenchSessionLayer } = await import('../../application/app/AppWorkbenchSessionLayer');
+    const { activeTabStore } = await import('../../application/state/activeTabStore');
+    const { TooltipProvider } = await import('../ui/tooltip');
+    const opened: string[] = [];
+    activeTabStore.setActiveTabId('vault');
+    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...(makeProps({
+      onNewHost: (...args: unknown[]) => opened.push(String(args.length)),
+    }) as unknown as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
+    const button = renderer.container.querySelector('[aria-label="terminal.layer.hostTree.newHost"]');
+    assert.ok(button, 'toolbar new-host button missing');
+    await dispatchDomEvent(button!, new env.window.MouseEvent('click', { bubbles: true }));
+    assert.deepEqual(opened, ['0']);
+  } finally {
+    await renderer.unmount();
+    restore();
+    env.cleanup();
+  }
+});
+
 test('merged tree filtering keeps session hosts visible and hides non-matching connect hosts', async () => {
   const env = installDomEnvironment();
   const restore = installTreeEnvironmentMocks();

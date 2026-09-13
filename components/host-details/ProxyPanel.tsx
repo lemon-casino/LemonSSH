@@ -4,6 +4,7 @@
  */
 import { Globe, KeyRound, SquareTerminal, Trash2 } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
+import { useProxyConnectivityTest } from '../../application/state/useProxyConnectivityTest';
 import { useI18n } from '../../application/i18n/I18nProvider';
 import {
     formatProxyConfigEndpoint,
@@ -84,6 +85,9 @@ export const ProxyPanel: React.FC<ProxyPanelPropsWithResize> = ({
         if (hasInvalidManualProxyPort || hasInvalidIdentity) return;
         onBack();
     }, [hasInvalidManualProxyPort, hasInvalidIdentity, onBack]);
+    const { state: connectivity, testConfig } = useProxyConnectivityTest(identities);
+    const testTarget = selectedProfile?.config ?? proxyConfig;
+    const canTest = Boolean(testTarget) && !hasInvalidIdentity && (isUsingProfile || hasManualProxyValue) && !hasInvalidManualProxyPort;
 
     return (
         <AsidePanel
@@ -328,6 +332,26 @@ export const ProxyPanel: React.FC<ProxyPanelPropsWithResize> = ({
                     </>
                 )}
 
+                <Button
+                    variant="secondary"
+                    className="w-full h-10"
+                    disabled={!canTest || connectivity.status === 'testing'}
+                    onClick={() => void testConfig(testTarget)}
+                >
+                    {connectivity.status === 'testing'
+                        ? t('hostDetails.proxyPanel.test.testing')
+                        : t('hostDetails.proxyPanel.test')}
+                </Button>
+                {connectivity.status === 'ok' && (
+                    <p className="text-xs text-emerald-600">
+                        {t('hostDetails.proxyPanel.test.ok', { ms: connectivity.latencyMs ?? 0 })}
+                    </p>
+                )}
+                {connectivity.status === 'error' && (
+                    <p className="text-xs text-destructive">
+                        {t('hostDetails.proxyPanel.test.failed', { error: connectivity.message || '' })}
+                    </p>
+                )}
                 {(proxyConfig?.host || proxyConfig?.command || selectedProxyProfileId) && (
                     <Button variant="ghost" className="w-full h-10 text-destructive" onClick={onClearProxy}>
                         <Trash2 size={14} className="mr-2" /> {t('hostDetails.proxyPanel.remove')}

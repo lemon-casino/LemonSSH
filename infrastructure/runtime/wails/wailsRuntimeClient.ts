@@ -77,12 +77,37 @@ function missingBridgeMethod(property: string | symbol): never {
   );
 }
 
+function normalizePortForwardResult(tunnelId: string, result: unknown): PortForwardResult {
+  const record = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const success = record.success === true || record.Success === true;
+  const status = String(record.status ?? record.Status ?? (success ? "active" : "error"));
+  return {
+    tunnelId: String(record.tunnelId ?? record.TunnelID ?? tunnelId),
+    success,
+    cancelled: Boolean(record.cancelled ?? record.Cancelled),
+    blockedByCleanup: Boolean(record.blockedByCleanup ?? record.BlockedByCleanup),
+    reused: Boolean(record.reused ?? record.Reused),
+    status: status as PortForwardResult["status"],
+    error: typeof record.error === "string" ? record.error : typeof record.Error === "string" ? record.Error : undefined,
+  };
+}
+
 export interface WailsBindingDeps {
   terminal: NativeLocalShellBindings & MonitoringBindings & {
     ListAutocompleteDirectory?: (sessionID: string, directory: string, foldersOnly: boolean, prefix: string, limit: number) => Promise<{ success: boolean; entries: Array<{ name: string; type: 'file' | 'directory' | 'symlink' }>; error?: string }>;
     GetSessionPwd?: (sessionID: string, options: { allowHomeFallback: boolean; allowLoginShellFallback: boolean; timeoutMs: number }) => Promise<{ success: boolean; cwd?: string; error?: string }>;
     GetSessionRemoteInfo?: (sessionID: string) => Promise<{ success: boolean; remoteSshVersion?: string; error?: string }>;
     Connect: (request: unknown) => Promise<string>;
+    TestProxy?: (request: {
+      kind: string;
+      host?: string;
+      port?: number;
+      username?: string;
+      password?: string;
+      command?: string;
+      targetHost?: string;
+      targetPort?: number;
+    }) => Promise<{ ok: boolean; latencyMs: number; error?: string }>;
     RespondKeyboardInteractive?: (requestID: string, responses: string[], cancelled: boolean) => Promise<unknown>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
     StartTelnet?: (request: unknown) => Promise<string>;
@@ -163,8 +188,10 @@ export interface WailsBindingDeps {
   forward?: {
     Start: (id: string, kind: string, bindHost: string, bindPort: number, targetHost: string, targetPort: number, request: unknown) => Promise<unknown>;
     Stop: (id: string) => Promise<unknown>;
+    StopByRuleId?: (ruleId: string) => Promise<unknown>;
     List: () => Promise<unknown>;
     Snapshot: (id: string) => Promise<unknown>;
+    RuntimeSnapshot?: () => Promise<unknown>;
   };
   dialogs?: {
     OpenFile: (options: Record<string, unknown>) => Promise<string | string[]>;
@@ -506,6 +533,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }));
   }
 
+  const testProxy = (async (options: Parameters<NonNullable<NetcattyBridge["testProxy"]>>[0]) => {
+    if (!bindings.terminal.TestProxy) missingBridgeMethod("testProxy");
+    return bindings.terminal.TestProxy({
+      kind: options.kind,
+      host: options.host ?? "",
+      port: options.port ?? 0,
+      username: options.username ?? "",
+      password: options.password ?? "",
+      command: options.command ?? "",
+      targetHost: options.targetHost ?? "",
+      targetPort: options.targetPort ?? 0,
+    });
+  }) as NonNullable<NetcattyBridge["testProxy"]>;
   const startSSHSession = (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
     const args = pickSSHConnectArgs(options);
     return bindings.terminal.Connect(args).then(async (sessionID) => {
@@ -673,25 +713,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const notifySettingsPainted = () => bindings.settings?.PaintReady?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
   const { selectFile, selectDirectory, showSaveDialog } = nativeFileActions;
-  const startPortForward = (options: {
-    tunnelId: string;
-    type: string;
-    bindAddress?: string;
-    localPort: number;
-    remoteHost?: string;
-    remotePort?: number;
-    hostname: string;
-    port?: number;
-    username: string;
-    password?: string;
-    privateKey?: string;
-    passphrase?: string;
-    requiresMfa?: boolean;
-    jumpHosts?: unknown[];
-    proxy?: unknown;
-  }) => {
+  const startPortForward = async (options: PortForwardOptions): Promise<PortForwardResult> => {
+    if (!bindings.forward?.Start) missingBridgeMethod("startPortForward");
     const request = pickSSHConnectArgs(options as Parameters<NetcattyBridge["startSSHSession"]>[0]);
-    return bindings.forward?.Start(
+    const result = await bindings.forward.Start(
       options.tunnelId,
       options.type,
       options.bindAddress ?? "127.0.0.1",
@@ -700,6 +725,47 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       options.remotePort ?? 0,
       request,
     );
+    return normalizePortForwardResult(options.tunnelId, result);
+  };
+  const stopPortForward = async (tunnelId: string): Promise<PortForwardResult> => {
+    if (!bindings.forward?.Stop) missingBridgeMethod("stopPortForward");
+    return normalizePortForwardResult(tunnelId, await bindings.forward.Stop(tunnelId));
+  };
+  const stopPortForwardByRuleId = async (ruleId: string) => {
+    if (!bindings.forward?.StopByRuleId) missingBridgeMethod("stopPortForwardByRuleId");
+    const result = await bindings.forward.StopByRuleId(ruleId) as { stopped?: number; failed?: number; errors?: string[] };
+    return { stopped: result.stopped ?? 0, failed: result.failed, errors: result.errors };
+  };
+  const listPortForwards = async () => {
+    if (!bindings.forward?.List) return [];
+    const items = await bindings.forward.List() as Array<{ ruleId?: string; tunnelId?: string; type?: string; status?: string; error?: string }>;
+    return (items ?? []).map((item) => ({
+      ruleId: item.ruleId,
+      tunnelId: item.tunnelId ?? "",
+      type: item.type ?? "",
+      status: item.status ?? "inactive",
+      error: item.error,
+    }));
+  };
+  const getPortForwardStatus = async (tunnelId: string): Promise<PortForwardStatusResult> => {
+    if (!bindings.forward?.Snapshot) return { tunnelId, status: "inactive" };
+    const result = normalizePortForwardResult(tunnelId, await bindings.forward.Snapshot(tunnelId));
+    return { tunnelId, status: (result.status ?? "inactive") as PortForwardStatusResult["status"], error: result.error };
+  };
+  const getPortForwardSnapshot = async (): Promise<PortForwardRuntimeSnapshot> => {
+    if (bindings.forward?.RuntimeSnapshot) {
+      const snapshot = await bindings.forward.RuntimeSnapshot() as PortForwardRuntimeSnapshot;
+      return snapshot ?? { epoch: "wails", revision: 0, records: [] };
+    }
+    const records = (await listPortForwards()).map((item) => ({
+      ruleId: item.ruleId,
+      tunnelId: item.tunnelId,
+      phase: item.status,
+      error: item.error,
+      revision: 0,
+      updatedAt: Date.now(),
+    }));
+    return { epoch: "wails", revision: 0, records };
   };
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
@@ -960,6 +1026,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     readClipboardText,
     readClipboardImage,
     startSSHSession,
+    testProxy,
     startLocalSession,
     startTelnetSession,
     startSerialSession,
@@ -1096,13 +1163,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     selectFile,
     selectDirectory,
     showSaveDialog,
-    startPortForward: startPortForward as unknown as NetcattyBridge["startPortForward"],
-    stopPortForward: ((id: string) =>
-      bindings.forward?.Stop(id)) as unknown as NetcattyBridge["stopPortForward"],
-    listPortForwards: (() =>
-      Promise.resolve(bindings.forward?.List() ?? [])) as unknown as NetcattyBridge["listPortForwards"],
-    getPortForwardSnapshot: ((id: string) =>
-      bindings.forward?.Snapshot(id)) as unknown as NetcattyBridge["getPortForwardSnapshot"],
+    startPortForward,
+    stopPortForward,
+    stopPortForwardByRuleId,
+    listPortForwards,
+    getPortForwardStatus,
+    getPortForwardSnapshot,
     windowMinimize,
     windowMaximize,
     windowClose,
@@ -1354,6 +1420,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       getSessionPwd,
       getSessionRemoteInfo,
       startSSHSession,
+      testProxy,
       startLocalSession,
       startTelnetSession,
       startSerialSession,

@@ -1434,6 +1434,234 @@ export class PopupOpenResult {
     }
 }
 
+export class PortForwardListItem {
+    /**
+     * Creates a new PortForwardListItem instance.
+     * @param {Partial<PortForwardListItem>} [$$source = {}] - The source object to create the PortForwardListItem.
+     */
+    constructor($$source = {}) {
+        if (!("ruleId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["ruleId"] = "";
+        }
+        if (!("tunnelId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["tunnelId"] = "";
+        }
+        if (!("type" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["type"] = "";
+        }
+        if (!("status" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["status"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PortForwardListItem instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PortForwardListItem}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PortForwardListItem(/** @type {Partial<PortForwardListItem>} */($$parsedSource));
+    }
+}
+
+export class PortForwardResult {
+    /**
+     * Creates a new PortForwardResult instance.
+     * @param {Partial<PortForwardResult>} [$$source = {}] - The source object to create the PortForwardResult.
+     */
+    constructor($$source = {}) {
+        if (!("tunnelId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["tunnelId"] = "";
+        }
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["status"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["cancelled"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["blockedByCleanup"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["reused"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PortForwardResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PortForwardResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PortForwardResult(/** @type {Partial<PortForwardResult>} */($$parsedSource));
+    }
+}
+
+export class PortForwardRuntimeRecord {
+    /**
+     * Creates a new PortForwardRuntimeRecord instance.
+     * @param {Partial<PortForwardRuntimeRecord>} [$$source = {}] - The source object to create the PortForwardRuntimeRecord.
+     */
+    constructor($$source = {}) {
+        if (!("ruleId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["ruleId"] = "";
+        }
+        if (!("tunnelId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["tunnelId"] = "";
+        }
+        if (!("phase" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["phase"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (!("revision" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["revision"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PortForwardRuntimeRecord instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PortForwardRuntimeRecord}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PortForwardRuntimeRecord(/** @type {Partial<PortForwardRuntimeRecord>} */($$parsedSource));
+    }
+}
+
+export class PortForwardRuntimeSnapshot {
+    /**
+     * Creates a new PortForwardRuntimeSnapshot instance.
+     * @param {Partial<PortForwardRuntimeSnapshot>} [$$source = {}] - The source object to create the PortForwardRuntimeSnapshot.
+     */
+    constructor($$source = {}) {
+        if (!("epoch" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["epoch"] = "";
+        }
+        if (!("revision" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["revision"] = 0;
+        }
+        if (!("records" in $$source)) {
+            /**
+             * @member
+             * @type {PortForwardRuntimeRecord[]}
+             */
+            this["records"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PortForwardRuntimeSnapshot instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PortForwardRuntimeSnapshot}
+     */
+    static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType10;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("records" in $$parsedSource) {
+            $$parsedSource["records"] = $$createField2_0($$parsedSource["records"]);
+        }
+        return new PortForwardRuntimeSnapshot(/** @type {Partial<PortForwardRuntimeSnapshot>} */($$parsedSource));
+    }
+}
+
 /**
  * ProtocolRegistrationResult reports the OS handoff state for the URL schemes
  * LemonSSH owns (ssh, telnet, netcatty).
@@ -1477,6 +1705,125 @@ export class ProtocolRegistrationResult {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProtocolRegistrationResult(/** @type {Partial<ProtocolRegistrationResult>} */($$parsedSource));
+    }
+}
+
+export class ProxyProbeRequest {
+    /**
+     * Creates a new ProxyProbeRequest instance.
+     * @param {Partial<ProxyProbeRequest>} [$$source = {}] - The source object to create the ProxyProbeRequest.
+     */
+    constructor($$source = {}) {
+        if (!("kind" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["kind"] = "";
+        }
+        if (!("host" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["host"] = "";
+        }
+        if (!("port" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["port"] = 0;
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("password" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["password"] = "";
+        }
+        if (!("command" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["command"] = "";
+        }
+        if (!("targetHost" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["targetHost"] = "";
+        }
+        if (!("targetPort" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["targetPort"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProxyProbeRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProxyProbeRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProxyProbeRequest(/** @type {Partial<ProxyProbeRequest>} */($$parsedSource));
+    }
+}
+
+export class ProxyProbeResult {
+    /**
+     * Creates a new ProxyProbeResult instance.
+     * @param {Partial<ProxyProbeResult>} [$$source = {}] - The source object to create the ProxyProbeResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (!("latencyMs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["latencyMs"] = 0;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProxyProbeResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProxyProbeResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProxyProbeResult(/** @type {Partial<ProxyProbeResult>} */($$parsedSource));
     }
 }
 
@@ -2757,7 +3104,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType10;
+        const $$createField1_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -2789,7 +3136,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType11;
+        const $$createField0_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -2954,7 +3301,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType9;
+        const $$createField0_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -3035,7 +3382,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType12;
+        const $$createField7_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -3117,7 +3464,9 @@ const $$createType5 = $Create.Map($Create.Any, $Create.Any);
 const $$createType6 = $Create.Map($Create.Any, $Create.Any);
 const $$createType7 = SSHConnectRequest.createFrom;
 const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = VaultBackupSummary.createFrom;
-const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = $Create.Array($$createType9);
-const $$createType12 = VaultBackupPreview.createFrom;
+const $$createType9 = PortForwardRuntimeRecord.createFrom;
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = VaultBackupSummary.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $Create.Array($$createType11);
+const $$createType14 = VaultBackupPreview.createFrom;

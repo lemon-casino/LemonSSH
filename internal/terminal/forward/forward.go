@@ -37,6 +37,7 @@ type Spec struct {
 	BindPort   uint16 `json:"bindPort"`
 	TargetHost string `json:"targetHost"`
 	TargetPort uint16 `json:"targetPort"`
+	RuleID     string `json:"ruleId,omitempty"`
 }
 
 type State struct {
@@ -50,6 +51,11 @@ type State struct {
 // SSH transport. In production this is ssh.Client.Dial over a pool lease.
 type TunnelFunc func(ctx context.Context, targetHost string, targetPort uint16, local net.Conn) error
 
+func writeSOCKS5Reply(client net.Conn, status byte) error {
+	_, err := client.Write([]byte{0x05, status, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
+	return err
+}
+
 type forwardEntry struct {
 	spec     Spec
 	listener net.Listener
@@ -62,11 +68,12 @@ type forwardEntry struct {
 
 // Manager owns all forwarding for the process.
 type Manager struct {
-	mu        sync.Mutex
-	entries   map[string]*forwardEntry
-	revision  uint64
-	tunnel    TunnelFunc
-	subscribe []func(State)
+	mu           sync.Mutex
+	entries      map[string]*forwardEntry
+	revision     uint64
+	tunnel       TunnelFunc
+	listenRemote func(ctx context.Context, spec Spec) (net.Listener, error)
+	subscribe    []func(State)
 }
 
 func NewManager(tunnel TunnelFunc) (*Manager, error) {
@@ -74,6 +81,24 @@ func NewManager(tunnel TunnelFunc) (*Manager, error) {
 		return nil, ErrTunnelMissing
 	}
 	return &Manager{entries: make(map[string]*forwardEntry), tunnel: tunnel}, nil
+}
+
+func proxyCopy(left, right net.Conn) {
+	defer left.Close()
+	defer right.Close()
+	done := make(chan struct{}, 2)
+	go func() { _, _ = io.Copy(left, right); done <- struct{}{} }()
+	go func() { _, _ = io.Copy(right, left); done <- struct{}{} }()
+	<-done
+}
+
+func NewManagerForRemote(listenRemote func(ctx context.Context, spec Spec) (net.Listener, error), tunnel TunnelFunc) (*Manager, error) {
+	manager, err := NewManager(tunnel)
+	if err != nil {
+		return nil, err
+	}
+	manager.listenRemote = listenRemote
+	return manager, nil
 }
 
 // Subscribe registers a state-change listener (invoked after each revision).
@@ -90,16 +115,26 @@ func (m *Manager) Start(ctx context.Context, spec Spec) (State, error) {
 	default:
 		return State{}, ErrUnsupportedKind
 	}
-	if spec.Kind != KindDynamic && spec.TargetPort == 0 {
-		return State{}, ErrPortInvalid
-	}
-	// BindPort 0 means the OS assigns an ephemeral port; the bound port is
-	// reported back through the returned state.
-	bindAddr := net.JoinHostPort(spec.BindHost, fmt.Sprintf("%d", spec.BindPort))
-	listener, err := net.Listen("tcp", bindAddr)
-	if err != nil {
-		return State{}, fmt.Errorf("bind %s: %w", bindAddr, err)
-	}
+		if spec.Kind != KindDynamic && spec.TargetPort == 0 {
+			return State{}, ErrPortInvalid
+		}
+		var listener net.Listener
+		var err error
+		if spec.Kind == KindRemote {
+			if m.listenRemote == nil {
+				return State{}, fmt.Errorf("%w: remote listen", ErrUnsupportedKind)
+			}
+			listener, err = m.listenRemote(ctx, spec)
+			if err != nil {
+				return State{}, fmt.Errorf("remote listen %s:%d: %w", spec.BindHost, spec.BindPort, err)
+			}
+		} else {
+			bindAddr := net.JoinHostPort(spec.BindHost, fmt.Sprintf("%d", spec.BindPort))
+			listener, err = net.Listen("tcp", bindAddr)
+			if err != nil {
+				return State{}, fmt.Errorf("bind %s: %w", bindAddr, err)
+			}
+		}
 	if actualAddr, ok := listener.Addr().(*net.TCPAddr); ok {
 		spec.BindPort = uint16(actualAddr.Port)
 	}
@@ -142,59 +177,112 @@ func (m *Manager) acceptLoop(entry *forwardEntry) {
 				m.mu.Lock()
 				entry.active--
 				m.mu.Unlock()
-			}()
-			target := fmt.Sprintf("%s:%d", entry.spec.TargetHost, entry.spec.TargetPort)
-			switch entry.spec.Kind {
-			case KindLocal:
-				_ = m.tunnel(entry.ctx, entry.spec.TargetHost, entry.spec.TargetPort, connection)
-			case KindDynamic:
-				if err := serveSOCKS5(entry.ctx, connection, m.tunnel); err != nil {
-					_ = entry.ctx.Err()
+				}()
+				switch entry.spec.Kind {
+				case KindLocal:
+					_ = m.tunnel(entry.ctx, entry.spec.TargetHost, entry.spec.TargetPort, connection)
+				case KindDynamic:
+					_ = serveSOCKS(entry.ctx, connection, m.tunnel)
+				case KindRemote:
+					target, dialErr := net.Dial("tcp", net.JoinHostPort(entry.spec.TargetHost, fmt.Sprintf("%d", entry.spec.TargetPort)))
+					if dialErr != nil {
+						return
+					}
+					proxyCopy(connection, target)
 				}
-				_ = target
-			case KindRemote:
-				// Remote listening is requested from the SSH server; the
-				// accepted local connection is tunneled like local.
-				_ = m.tunnel(entry.ctx, entry.spec.TargetHost, entry.spec.TargetPort, connection)
-			}
 		}()
 	}
+}
+
+func serveSOCKS(ctx context.Context, client net.Conn, tunnel TunnelFunc) error {
+	version := make([]byte, 1)
+	if _, err := io.ReadFull(client, version); err != nil {
+		return err
+	}
+	switch version[0] {
+	case 0x05:
+		return serveSOCKS5(ctx, client, tunnel)
+	case 0x04:
+		return serveSOCKS4(ctx, client, tunnel, version[0])
+	default:
+		return fmt.Errorf("socks: unsupported version %d", version[0])
+	}
+}
+
+func serveSOCKS4(ctx context.Context, client net.Conn, tunnel TunnelFunc, version byte) error {
+	header := make([]byte, 7)
+	if _, err := io.ReadFull(client, header); err != nil {
+		return err
+	}
+	command := header[0]
+	port := binary.BigEndian.Uint16(header[1:3])
+	ip := net.IP(header[3:7])
+	for {
+		next := make([]byte, 1)
+		if _, err := io.ReadFull(client, next); err != nil {
+			return err
+		}
+		if next[0] == 0 {
+			break
+		}
+	}
+	host := ip.String()
+	if ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] != 0 {
+		var name []byte
+		for {
+			next := make([]byte, 1)
+			if _, err := io.ReadFull(client, next); err != nil {
+				return err
+			}
+			if next[0] == 0 {
+				break
+			}
+			name = append(name, next[0])
+		}
+		host = string(name)
+	}
+	if command != 0x01 {
+		_, _ = client.Write([]byte{0x00, 0x5b, 0, 0, 0, 0, 0, 0})
+		return errors.New("socks4: only CONNECT supported")
+	}
+	if _, err := client.Write([]byte{0x00, 0x5a, header[1], header[2], header[3], header[4], header[5], header[6]}); err != nil {
+		return err
+	}
+	_ = version
+	return tunnel(ctx, host, port, client)
 }
 
 // serveSOCKS5 implements the no-auth CONNECT variant of SOCKS5 and tunnels the
 // connection through the SSH transport.
 func serveSOCKS5(ctx context.Context, client net.Conn, tunnel TunnelFunc) error {
-	// Greeting: VER(1) NMETHODS(1) METHODS(NMETHODS). Read all of it or the
-	// trailing method bytes corrupt the next request.
-	greeting := make([]byte, 2)
-	if _, err := io.ReadFull(client, greeting); err != nil {
+	nmethods := make([]byte, 1)
+	if _, err := io.ReadFull(client, nmethods); err != nil {
 		return err
 	}
-	methods := make([]byte, greeting[1])
+	methods := make([]byte, nmethods[0])
 	if _, err := io.ReadFull(client, methods); err != nil {
 		return err
 	}
-	// Offer no-auth only.
 	if _, err := client.Write([]byte{0x05, 0x00}); err != nil {
-		println("SOCKS5: greeting reply write failed")
 		return err
 	}
 	request := make([]byte, 4)
 	if _, err := io.ReadFull(client, request); err != nil {
 		return err
 	}
-	if request[0] != 0x05 || request[1] != 0x01 /* CONNECT */ {
+	if request[0] != 0x05 || request[1] != 0x01 {
+		_ = writeSOCKS5Reply(client, 0x07)
 		return errors.New("socks5: only CONNECT supported")
 	}
 	var host string
 	switch request[3] {
-	case 0x01: // IPv4
+	case 0x01:
 		addr := make([]byte, 4)
 		if _, err := io.ReadFull(client, addr); err != nil {
 			return err
 		}
 		host = net.IP(addr).String()
-	case 0x03: // domain
+	case 0x03:
 		length := make([]byte, 1)
 		if _, err := io.ReadFull(client, length); err != nil {
 			return err
@@ -204,13 +292,14 @@ func serveSOCKS5(ctx context.Context, client net.Conn, tunnel TunnelFunc) error 
 			return err
 		}
 		host = string(name)
-	case 0x04: // IPv6
+	case 0x04:
 		addr := make([]byte, 16)
 		if _, err := io.ReadFull(client, addr); err != nil {
 			return err
 		}
 		host = net.IP(addr).String()
 	default:
+		_ = writeSOCKS5Reply(client, 0x08)
 		return errors.New("socks5: unsupported address type")
 	}
 	portBytes := make([]byte, 2)
@@ -218,24 +307,10 @@ func serveSOCKS5(ctx context.Context, client net.Conn, tunnel TunnelFunc) error 
 		return err
 	}
 	port := binary.BigEndian.Uint16(portBytes)
-
-	if _, err := client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0}); err != nil {
-		return err
-	}
-	remote, err := net.Dial("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)))
-	if err != nil {
-		return err
-	}
-	defer remote.Close()
-	done := make(chan error, 2)
-	go func() { _, copyErr := io.Copy(remote, client); done <- copyErr }()
-	go func() {
-		_, copyErr := io.Copy(client, remote)
-		done <- copyErr
-		_ = ctx
-	}()
-	<-done
-	return nil
+		if err := writeSOCKS5Reply(client, 0x00); err != nil {
+			return err
+		}
+	return tunnel(ctx, host, port, client)
 }
 
 // Stop terminates one forward.

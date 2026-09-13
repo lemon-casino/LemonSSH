@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { readFileSync } from "node:fs";
 import { I18nProvider } from "../application/i18n/I18nProvider.tsx";
 import { STORAGE_KEY_VAULT_KEYS_VIEW_MODE } from "../infrastructure/config/storageKeys.ts";
 import type { Identity, SSHKey } from "../types.ts";
@@ -214,6 +215,14 @@ test("KeychainManager hides the empty key CTA when identities exist without keys
   assert.match(markup, /data-section="keychain-identities"/);
   assert.doesNotMatch(markup, /data-section="keychain-keys"/);
   assert.doesNotMatch(markup, /data-section="keychain-empty"/);
+});
+
+test("saving an imported key ignores the click event and keeps the draft", () => {
+  const managerSource = readFileSync(new URL("./KeychainManager.tsx", import.meta.url), "utf8");
+  const panelSource = readFileSync(new URL("./keychain/ImportKeyPanel.tsx", import.meta.url), "utf8");
+  assert.match(managerSource, /!\("nativeEvent" in override\)/);
+  assert.match(panelSource, /onClick=\{\(\) => onImport\(\)\}/);
+  assert.doesNotMatch(panelSource, /onClick=\{onImport\}/);
 });
 
 test("KeychainManager exposes new-key, import-certificate, and new-identity header actions", () => {

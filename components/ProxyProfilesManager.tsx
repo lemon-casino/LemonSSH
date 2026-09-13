@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
+import { useProxyConnectivityTest } from "../application/state/useProxyConnectivityTest";
 import { useI18n } from "../application/i18n/I18nProvider";
 import { useStoredViewMode } from "../application/state/useStoredViewMode";
 import {
@@ -296,6 +297,7 @@ export const ProxyProfilesManager: React.FC<ProxyProfilesManagerProps> = ({
   const selectedDraftIdentityValue =
     selectedDraftIdentity?.id ||
     (hasMissingDraftIdentity ? missingIdentityValue : manualCredentialsValue);
+  const { state: connectivity, testConfig } = useProxyConnectivityTest(identities);
 
   const usageByProfileId = useMemo(() => {
     const map = new Map<string, number>();
@@ -694,6 +696,26 @@ export const ProxyProfilesManager: React.FC<ProxyProfilesManagerProps> = ({
                 </>
               )}
             </Card>}
+            <Button
+              variant="secondary"
+              className="w-full h-10"
+              disabled={connectivity.status === "testing"}
+              onClick={() => void testConfig(draft.config)}
+            >
+              {connectivity.status === "testing"
+                ? t("hostDetails.proxyPanel.test.testing")
+                : t("hostDetails.proxyPanel.test")}
+            </Button>
+            {connectivity.status === "ok" && (
+              <p className="text-xs text-emerald-600">
+                {t("hostDetails.proxyPanel.test.ok", { ms: connectivity.latencyMs ?? 0 })}
+              </p>
+            )}
+            {connectivity.status === "error" && (
+              <p className="text-xs text-destructive">
+                {t("hostDetails.proxyPanel.test.failed", { error: connectivity.message || "" })}
+              </p>
+            )}
           </AsidePanelContent>
           <AsidePanelFooter>
             <Button className="w-full" onClick={saveDraft}>

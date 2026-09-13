@@ -76,6 +76,16 @@ test("workbench merges the host tree into the session tree and disables the floa
     appViewSource,
     /layoutMode === 'workbench' &&\s*\n?\s*<AppHostTreeLayer/,
   );
+  assert.match(
+    appViewSource,
+    /surfaceVisible=\{layoutMode === 'workbench' \? true : undefined\}/,
+    "workbench new-host overlay must stay visible on vault/sftp tabs",
+  );
+  assert.match(
+    layerSource,
+    /onNewHost=\{onNewHost\}/,
+    "merged tree group menus must receive the new-host opener",
+  );
 });
 
 test("workbench session layer owns the activeTabId subscription, not AppView", () => {

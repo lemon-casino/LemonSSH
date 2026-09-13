@@ -416,13 +416,24 @@ export function StartTelnet(request) {
 }
 
 /**
+ * TestProxy probes HTTP/SOCKS5/ProxyCommand reachability without opening a session.
+ * @param {$models.ProxyProbeRequest} request
+ * @returns {$CancellablePromise<$models.ProxyProbeResult>}
+ */
+export function TestProxy(request) {
+    return $Call.ByID(3774340899, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType16($result);
+    }));
+}
+
+/**
  * @param {string} path
  * @param {string} kind
  * @returns {$CancellablePromise<$models.PathValidation>}
  */
 export function ValidatePath(path, kind) {
     return $Call.ByID(1211764756, path, kind).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType16($result);
+        return $$createType17($result);
     }));
 }
 
@@ -453,4 +464,5 @@ const $$createType12 = $Create.Array($$createType11);
 const $$createType13 = ymodem$0.ReceiveResult.createFrom;
 const $$createType14 = $Create.Array($$createType13);
 const $$createType15 = ymodem$0.SendResult.createFrom;
-const $$createType16 = $models.PathValidation.createFrom;
+const $$createType16 = $models.ProxyProbeResult.createFrom;
+const $$createType17 = $models.PathValidation.createFrom;

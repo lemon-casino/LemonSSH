@@ -576,3 +576,84 @@ test("workbench tree context menu reuses the TopTabs session actions", async () 
     env.cleanup();
   }
 });
+
+test("workbench group menu creates a host in that group above new-group", async () => {
+  const env = installDomEnvironment();
+  const restoreEnv = installTreeEnvironmentMocks();
+
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const buildSections = makeSectionsBuilder(buildSessionGroupTree);
+    const renderer = await createDomRenderer(env.document);
+    const hosts = [makeHost({ id: "h1", label: "web-01", group: "Prod" })];
+    const sessions = [makeSession({ id: "s1", hostId: "h1", customName: "web-01 root" })];
+    const sections = buildSections(sessions, hosts);
+    const newHosts: Array<string | undefined> = [];
+    const { vaultHostTreeActionsStore } = await import("../../application/state/vaultHostTreeActionsStore");
+    vaultHostTreeActionsStore.setActions({
+      onDeleteHost: noop,
+      onDuplicateHost: noop,
+      onCopyCredentials: noop,
+      onRenameHost: noop,
+      onNewGroup: noop,
+      onRenameGroup: noop,
+      onDeleteGroup: noop,
+      commitInlineGroupRename: () => true,
+      cancelInlineGroupEdit: noop,
+      commitInlineHostRename: noop,
+      cancelInlineHostEdit: noop,
+      moveHostToGroup: noop,
+      moveGroup: noop,
+      reorderHost: noop,
+      reorderGroup: () => false,
+    });
+
+    await renderTree(WorkbenchSessionTree, renderer, {
+      sections,
+      expandedPaths: new Set(["Prod"]),
+      fixedIds: new Set(["vault", "sftp"]),
+      activeTabId: "s1",
+      sessions,
+      workspaces: [] as Workspace[],
+      logViews: [],
+      hostById: new Map(hosts.map((host) => [host.id, host])),
+      onTogglePath: noop,
+      onActivateTab: noop,
+      onActivateWorkspaceSession: noop,
+      onCloseSession: noop,
+      onCloseLogView: noop,
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onNewHost: (group?: string) => newHosts.push(group),
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
+    });
+    await flushEffects();
+
+    const groupRow = renderer.container.querySelector('[data-section="workbench-tree-group"]');
+    assert.ok(groupRow, "Prod group row missing");
+    await dispatchDomEvent(
+      groupRow as Element,
+      new env.window.MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+    );
+    await flushEffects();
+
+    const menuItems = Array.from(env.document.querySelectorAll("[role='menuitem']"));
+    const labels = menuItems.map((item) => item.textContent);
+    const newHostIndex = labels.indexOf("terminal.layer.hostTree.newHost");
+    const newGroupIndex = labels.indexOf("terminal.layer.hostTree.newGroup");
+    assert.ok(newHostIndex >= 0, "new host menu item missing");
+    assert.ok(newGroupIndex >= 0, "new group menu item missing");
+    assert.ok(newHostIndex < newGroupIndex, "new host must sit above new group");
+    await clickElement(env, menuItems[newHostIndex] as Element);
+    await flushEffects();
+    assert.deepEqual(newHosts, ["Prod"]);
+    await renderer.unmount();
+  } finally {
+    const { vaultHostTreeActionsStore } = await import("../../application/state/vaultHostTreeActionsStore");
+    vaultHostTreeActionsStore.setActions(null);
+    restoreEnv();
+    env.cleanup();
+  }
+});

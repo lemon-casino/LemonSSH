@@ -108,5 +108,6 @@ test('AppView composes host-tree actions with the work-surface editor', () => {
   assert.match(source, /<AppHostEditorLayer/);
   assert.match(source, /onNewHost=\{workSurfaceHostEditor\.openNew\}/);
   assert.match(source, /onEditHost=\{workSurfaceHostEditor\.openEdit\}/);
+  assert.match(source, /surfaceVisible=\{layoutMode === 'workbench' \? true : undefined\}/);
   assert.match(source, /terminal\.layer\.hostTree\.hostSavedNextConnection/);
 });

@@ -865,7 +865,7 @@ export const zhCNCoreMessages: Messages = {
   'pf.type.menu.dynamic': '动态转发',
   'pf.type.local.desc': '本地转发让你像访问本地一样访问远程服务端口。',
   'pf.type.remote.desc': '远程转发在远端开启端口，并将连接转发到本地（当前）主机。',
-  'pf.type.dynamic.desc': '动态转发将 Netcatty 作为 SOCKS 代理使用。',
+  'pf.type.dynamic.desc': '动态转发将 LemonSSH 作为 SOCKS 代理使用。',
   'pf.wizard.type.title': '选择端口转发类型：',
   'pf.wizard.localConfig.title': '设置本地端口与绑定地址：',
   'pf.wizard.localConfig.desc': '该端口会在本地（当前设备）打开，并接收流量。',

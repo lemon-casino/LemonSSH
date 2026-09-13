@@ -10,14 +10,17 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { detectKeyType } from './utils';
+import {
+    applyImportedKeyGroupToDraft,
+    groupImportedKeyFiles,
+} from '../../domain/sshKeyImport';
 
 interface ImportKeyPanelProps {
     draftKey: Partial<SSHKey>;
     setDraftKey: (key: Partial<SSHKey>) => void;
     showPassphrase: boolean;
     setShowPassphrase: (show: boolean) => void;
-    onImport: () => void;
+    onImport: (draft?: Partial<SSHKey>) => void;
 }
 
 export const ImportKeyPanel: React.FC<ImportKeyPanelProps> = ({
@@ -30,53 +33,36 @@ export const ImportKeyPanel: React.FC<ImportKeyPanelProps> = ({
     const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const applyFiles = useCallback(async (fileList: FileList | null) => {
+        if (!fileList || fileList.length === 0) return;
+        const files = await Promise.all(Array.from(fileList).map(async (file) => ({
+            name: file.name,
+            content: await file.text(),
+        })));
+        const groups = groupImportedKeyFiles(files);
+        if (groups.length === 0) return;
+        if (groups.length === 1) {
+            setDraftKey(applyImportedKeyGroupToDraft(draftKey, groups[0]!));
+            return;
+        }
+        for (const group of groups) {
+            onImport(applyImportedKeyGroupToDraft({
+                passphrase: draftKey.passphrase,
+                savePassphrase: draftKey.savePassphrase,
+            }, group));
+        }
+    }, [draftKey, onImport, setDraftKey]);
+
     const handleFileImport = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result as string;
-            if (content) {
-                const detectedType = detectKeyType(content);
-                const label = file.name.replace(/\.(pem|key|pub|ppk)$/i, '');
-
-                setDraftKey({
-                    ...draftKey,
-                    privateKey: content,
-                    label: draftKey.label || label,
-                    type: detectedType,
-                });
-            }
-        };
-        reader.readAsText(file);
+        void applyFiles(event.target.files);
         event.target.value = '';
-    }, [draftKey, setDraftKey]);
+    }, [applyFiles]);
 
     const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
-
-        const file = event.dataTransfer.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result as string;
-            if (content) {
-                const detectedType = detectKeyType(content);
-                const label = file.name.replace(/\.(pem|key|pub|ppk)$/i, '');
-
-                setDraftKey({
-                    ...draftKey,
-                    privateKey: content,
-                    label: draftKey.label || label,
-                    type: detectedType,
-                });
-            }
-        };
-        reader.readAsText(file);
-    }, [draftKey, setDraftKey]);
+        void applyFiles(event.dataTransfer.files);
+    }, [applyFiles]);
 
     const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -88,6 +74,8 @@ export const ImportKeyPanel: React.FC<ImportKeyPanelProps> = ({
             <input
                 ref={fileInputRef}
                 type="file"
+                multiple
+                accept=".pem,.key,.pub,.ppk,.cert,.crt,*"
                 className="hidden"
                 onChange={handleFileImport}
             />
@@ -191,8 +179,8 @@ export const ImportKeyPanel: React.FC<ImportKeyPanelProps> = ({
 
             <Button
                 className="w-full h-11"
-                onClick={onImport}
-                disabled={!draftKey.label?.trim() || !draftKey.privateKey?.trim()}
+                onClick={() => onImport()}
+                disabled={!draftKey.label?.trim() || (!draftKey.privateKey?.trim() && !draftKey.publicKey?.trim())}
             >
                 {t('keychain.import.saveKey')}
             </Button>

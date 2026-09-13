@@ -197,12 +197,124 @@ func TestDynamicSOCKS5RoundTrip(t *testing.T) {
 	if _, err := io.ReadFull(socksConn, got); err != nil {
 		t.Fatalf("socks tunnel echo failed: %v", err)
 	}
-	if !bytes.Equal(got, probe) {
-		t.Fatal("socks echo mismatch")
+		if !bytes.Equal(got, probe) {
+			t.Fatal("socks echo mismatch")
+		}
 	}
-}
 
-func TestStopAllAndConcurrency(t *testing.T) {
+	func TestDynamicForwardUsesTunnelNotDirectDial(t *testing.T) {
+		tunneled := make(chan struct{}, 1)
+		manager, err := NewManager(func(ctx context.Context, host string, port uint16, local net.Conn) error {
+			if host == "via-ssh" && port == 9 {
+				select {
+				case tunneled <- struct{}{}:
+				default:
+				}
+			}
+			_ = local.Close()
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		state, err := manager.Start(context.Background(), Spec{
+			ID: "socks-ssh", Kind: KindDynamic, BindHost: "127.0.0.1", BindPort: 0,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer manager.Stop("socks-ssh")
+		socksConn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", itoa(int(state.Spec.BindPort))))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer socksConn.Close()
+		if _, err := socksConn.Write([]byte{0x05, 0x01, 0x00}); err != nil {
+			t.Fatal(err)
+		}
+		greeting := make([]byte, 2)
+		if _, err := io.ReadFull(socksConn, greeting); err != nil {
+			t.Fatal(err)
+		}
+		request := []byte{0x05, 0x01, 0x00, 0x03, byte(len("via-ssh"))}
+		request = append(request, "via-ssh"...)
+		request = append(request, 0, 9)
+		if _, err := socksConn.Write(request); err != nil {
+			t.Fatal(err)
+		}
+		reply := make([]byte, 10)
+		_, _ = io.ReadFull(socksConn, reply)
+			select {
+			case <-tunneled:
+			case <-time.After(2 * time.Second):
+				t.Fatal("dynamic forward must tunnel through SSH")
+			}
+		}
+
+	func TestDynamicSOCKS4RoundTrip(t *testing.T) {
+		service, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		go func() {
+			for {
+				conn, err := service.Accept()
+				if err != nil {
+					return
+				}
+				go func() {
+					_, _ = io.Copy(conn, conn)
+					_ = conn.Close()
+				}()
+			}
+		}()
+		_, servicePortRaw, _ := net.SplitHostPort(service.Addr().String())
+		servicePort := 0
+		_, _ = fmt.Sscanf(servicePortRaw, "%d", &servicePort)
+		manager, err := NewManager(echoTunnel)
+		if err != nil {
+			t.Fatal(err)
+		}
+		state, err := manager.Start(context.Background(), Spec{
+			ID: "socks4", Kind: KindDynamic, BindHost: "127.0.0.1", BindPort: 0,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer manager.Stop("socks4")
+		socksConn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", itoa(int(state.Spec.BindPort))))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer socksConn.Close()
+		request := []byte{0x04, 0x01, 0, 0, 127, 0, 0, 1, 0}
+		binary.BigEndian.PutUint16(request[2:4], uint16(servicePort))
+		if _, err := socksConn.Write(request); err != nil {
+			t.Fatal(err)
+		}
+		reply := make([]byte, 8)
+		if _, err := io.ReadFull(socksConn, reply); err != nil {
+			t.Fatal(err)
+		}
+		if reply[1] != 0x5a {
+			t.Fatalf("socks4 rejected: %v", reply[1])
+		}
+		probe := []byte("socks4-roundtrip")
+		if _, err := socksConn.Write(probe); err != nil {
+			t.Fatal(err)
+		}
+		_ = socksConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		got := make([]byte, len(probe))
+		if _, err := io.ReadFull(socksConn, got); err != nil {
+			t.Fatalf("socks4 tunnel echo failed: %v", err)
+		}
+		if !bytes.Equal(got, probe) {
+			t.Fatal("socks4 echo mismatch")
+		}
+	}
+
+	func TestStopAllAndConcurrency(t *testing.T) {
 	manager, err := NewManager(func(context.Context, string, uint16, net.Conn) error { return nil })
 	if err != nil {
 		t.Fatal(err)

@@ -8,14 +8,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as forward$0 from "../../internal/terminal/forward/models.js";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
- * @returns {$CancellablePromise<forward$0.State[]>}
+ * @returns {$CancellablePromise<$models.PortForwardListItem[]>}
  */
 export function List() {
     return $Call.ByID(2411316348).then(/** @type {($result: any) => any} */(($result) => {
@@ -24,12 +20,21 @@ export function List() {
 }
 
 /**
+ * @returns {$CancellablePromise<$models.PortForwardRuntimeSnapshot>}
+ */
+export function RuntimeSnapshot() {
+    return $Call.ByID(1667287404).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * @param {string} id
- * @returns {$CancellablePromise<forward$0.State>}
+ * @returns {$CancellablePromise<$models.PortForwardResult>}
  */
 export function Snapshot(id) {
     return $Call.ByID(3731049984, id).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType3($result);
     }));
 }
 
@@ -41,24 +46,37 @@ export function Snapshot(id) {
  * @param {string} targetHost
  * @param {number} targetPort
  * @param {$models.SSHConnectRequest} request
- * @returns {$CancellablePromise<forward$0.State>}
+ * @returns {$CancellablePromise<$models.PortForwardResult>}
  */
 export function Start(id, kind, bindHost, bindPort, targetHost, targetPort, request) {
     return $Call.ByID(1065595960, id, kind, bindHost, bindPort, targetHost, targetPort, request).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType3($result);
     }));
 }
 
 /**
  * @param {string} id
- * @returns {$CancellablePromise<forward$0.State>}
+ * @returns {$CancellablePromise<$models.PortForwardResult>}
  */
 export function Stop(id) {
     return $Call.ByID(3637837660, id).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} ruleID
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function StopByRuleId(ruleID) {
+    return $Call.ByID(4129056370, ruleID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = forward$0.State.createFrom;
+const $$createType0 = $models.PortForwardListItem.createFrom;
 const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = $models.PortForwardRuntimeSnapshot.createFrom;
+const $$createType3 = $models.PortForwardResult.createFrom;
+const $$createType4 = $Create.Map($Create.Any, $Create.Any);

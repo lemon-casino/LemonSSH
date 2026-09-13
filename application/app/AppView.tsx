@@ -630,6 +630,7 @@ function AppViewInner({ domains }: AppViewProps) {
           onCreateLocalTerminal={handleCreateLocalTerminal}
         />
         <AppHostEditorLayer
+          surfaceVisible={layoutMode === 'workbench' ? true : undefined}
           target={workSurfaceHostEditor.target}
           editorKey={workSurfaceHostEditor.editorKey}
           hosts={hosts}

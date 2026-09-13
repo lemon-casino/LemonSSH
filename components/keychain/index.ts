@@ -6,7 +6,7 @@
 
 // Utilities and types
 export {
-isMacOS,shouldShowIdentitySection,shouldShowKeySection,shouldShowSearchNoResults,type PanelMode
+detectKeyType,isMacOS,shouldShowIdentitySection,shouldShowKeySection,shouldShowSearchNoResults,type PanelMode
 } from './utils';
 
 // Card components

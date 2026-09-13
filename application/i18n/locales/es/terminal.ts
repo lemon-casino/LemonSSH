@@ -575,6 +575,7 @@ export const esTerminalMessages: Messages = {
   'keychain.panel.keyExport': 'Exportación de clave',
   'keychain.validation.labelRequired': 'Ingresa una etiqueta para la clave',
   'keychain.validation.labelAndPrivateKeyRequired': 'La etiqueta y la clave privada son obligatorias',
+  'keychain.validation.labelAndKeyMaterialRequired': 'Se requieren la etiqueta y una clave pública o privada',
   'keychain.validation.labelAndUsernameRequired': 'La etiqueta y el nombre de usuario son obligatorios',
   'keychain.error.generationUnavailable':
     'La generación de claves no está disponible: asegúrate de que la app se esté ejecutando en Electron',
@@ -625,7 +626,7 @@ export const esTerminalMessages: Messages = {
   'keychain.generate.savePassphrase': 'Guardar frase de contraseña',
   'keychain.generate.generate': 'Generar',
   'keychain.generate.generateSave': 'Generar y guardar',
-  'keychain.import.dropHint': 'Suelta un archivo de clave aquí',
+  'keychain.import.dropHint': 'Suelta archivos de clave aquí. Selecciona una clave privada con su .pub para importarlas juntas.',
   'keychain.import.importFromFile': 'Importar desde archivo',
   'keychain.import.saveKey': 'Guardar clave',
   'keychain.import.importedKeyLabel': 'Clave importada',

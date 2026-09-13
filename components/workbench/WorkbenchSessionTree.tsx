@@ -96,6 +96,7 @@ export function WorkbenchSessionTreeRow({
   onReconnectSession,
   onEditHost,
   onConnectHost,
+  onNewHost,
   onNewGroup,
   onRenameGroup,
   onDeleteGroup,
@@ -131,6 +132,7 @@ export function WorkbenchSessionTreeRow({
   onReconnectSession: (sessionId: string) => void;
   onEditHost?: (host: Host) => void;
   onConnectHost?: (host: Host) => void;
+  onNewHost?: (defaultGroup?: string) => void;
   onNewGroup?: (parentPath?: string) => void;
   onRenameGroup?: (groupPath: string) => void;
   onDeleteGroup?: (groupPath: string) => void;
@@ -346,6 +348,9 @@ export function WorkbenchSessionTreeRow({
           {host && onEditHost && (
             <ContextMenuItem onClick={() => onEditHost(host)}>{t("terminal.layer.hostTree.editHost")}</ContextMenuItem>
           )}
+          {!isWorkspaceNode && node.type === "group" && onNewHost && (
+            <ContextMenuItem onClick={() => onNewHost(node.id)}>{t("terminal.layer.hostTree.newHost")}</ContextMenuItem>
+          )}
           {!isWorkspaceNode && node.type === "group" && onNewGroup && (
             <ContextMenuItem onClick={() => onNewGroup(node.id)}>{t("terminal.layer.hostTree.newGroup")}</ContextMenuItem>
           )}
@@ -473,6 +478,7 @@ interface WorkbenchSessionTreeProps {
   onReconnectSession: (sessionId: string) => void;
   onEditHost?: (host: Host) => void;
   onConnectHost?: (host: Host) => void;
+  onNewHost?: (defaultGroup?: string) => void;
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
@@ -508,6 +514,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   onReconnectSession,
   onEditHost,
   onConnectHost,
+  onNewHost,
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
@@ -599,6 +606,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
       onReconnectSession={onReconnectSession}
       onEditHost={onEditHost}
       onConnectHost={onConnectHost}
+      onNewHost={onNewHost}
       onNewGroup={menuActions?.onNewGroup}
       onRenameGroup={menuActions?.onRenameGroup}
       onDeleteGroup={menuActions?.onDeleteGroup}
@@ -634,6 +642,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
     onReconnectSession,
     onEditHost,
     onConnectHost,
+    onNewHost,
     menuActions,
     inlineGroupEdit,
     onRenameWorkspace,

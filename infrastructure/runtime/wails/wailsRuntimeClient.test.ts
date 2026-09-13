@@ -744,6 +744,34 @@ test("openProviderConsole forwards the allow-listed provider to the Go bridge", 
   assert.deepEqual(requested, ['github', 'google']);
 });
 
+test("port forward start normalizes Go result into the renderer contract", async () => {
+  const bindings = stubBindings();
+  const started: unknown[] = [];
+  bindings.forward = {
+    Start: async (...args: unknown[]) => {
+      started.push(args);
+      return { TunnelID: args[0], Success: true, Status: "active" };
+    },
+    Stop: async (id: string) => ({ TunnelID: id, Success: true, Status: "inactive" }),
+    StopByRuleId: async () => ({ stopped: 1 }),
+    List: async () => [{ ruleId: "rule-1", tunnelId: "pf-rule-1-1", type: "local", status: "active" }],
+    Snapshot: async (id: string) => ({ TunnelID: id, Success: true, Status: "active" }),
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.startPortForward!({
+    tunnelId: "pf-rule-1-1",
+    type: "local",
+    localPort: 18080,
+    remoteHost: "127.0.0.1",
+    remotePort: 80,
+    hostname: "lab",
+    username: "root",
+  });
+  assert.deepEqual(result, { tunnelId: "pf-rule-1-1", success: true, cancelled: false, blockedByCleanup: false, reused: false, status: "active", error: undefined });
+  assert.equal(started.length, 1);
+  assert.equal(await client.transitionBridge.stopPortForwardByRuleId?.("rule-1").then((value) => value.stopped), 1);
+});
+
 test("credentials round-trip through the Go credential provider with the enc:v1 contract", async () => {
   const sealed: string[] = [];
   const bindings = stubBindings();

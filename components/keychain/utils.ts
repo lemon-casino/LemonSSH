@@ -5,6 +5,7 @@
 import { BadgeCheck, Key } from 'lucide-react';
 import React from 'react';
 import { logger } from '../../lib/logger';
+import { detectImportedKeyType } from '../../domain/sshKeyImport';
 import { KeyType, SSHKey } from '../../types';
 
 /**
@@ -26,12 +27,7 @@ export const getKeyTypeDisplay = (key: SSHKey, isMac: boolean): string => {
 /**
  * Detect key type from private key content
  */
-export const detectKeyType = (privateKey: string): KeyType => {
-    const pk = privateKey.toLowerCase();
-    if (pk.includes('rsa')) return 'RSA';
-    if (pk.includes('ecdsa') || pk.includes('ec ')) return 'ECDSA';
-    return 'ED25519';
-};
+export const detectKeyType = (privateKey: string): KeyType => detectImportedKeyType(privateKey);
 
 /**
  * Copy text to clipboard

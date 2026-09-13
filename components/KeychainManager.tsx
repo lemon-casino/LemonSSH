@@ -62,6 +62,7 @@ import {
   IdentityPanel,
   ImportKeyPanel,
   isMacOS,
+  detectKeyType,
   KeyCard,
   type PanelMode,
   shouldShowIdentitySection,
@@ -415,35 +416,33 @@ echo $3 >> "$FILE"`);
   }, [draftKey, onSave, closePanel, generateKeyPair, showError, t]);
 
   // Handle key import
-  const handleImport = useCallback(() => {
-    if (!draftKey.label?.trim() || !draftKey.privateKey?.trim()) {
-      showError(t("keychain.validation.labelAndPrivateKeyRequired"), t("common.validation"));
+  const handleImport = useCallback((override?: Partial<SSHKey>) => {
+    const source = override && typeof override === "object" && !("nativeEvent" in override)
+      ? override
+      : draftKey;
+    const privateKey = source.privateKey?.trim() || "";
+    const publicKey = source.publicKey?.trim() || "";
+    if (!source.label?.trim() || (!privateKey && !publicKey)) {
+      showError(t("keychain.validation.labelAndKeyMaterialRequired"), t("common.validation"));
       return;
     }
 
-    // Detect key type from private key content
-    let detectedType: KeyType = "ED25519";
-    const pk = draftKey.privateKey.toLowerCase();
-    if (pk.includes("rsa")) detectedType = "RSA";
-    else if (pk.includes("ecdsa") || pk.includes("ec ")) detectedType = "ECDSA";
-    else if (pk.includes("ed25519")) detectedType = "ED25519";
-
     const newKey: SSHKey = {
       id: crypto.randomUUID(),
-      label: draftKey.label.trim(),
-      type: (draftKey.type as KeyType) || detectedType,
-      privateKey: draftKey.privateKey.trim(),
-      publicKey: draftKey.publicKey?.trim() || undefined,
-      certificate: draftKey.certificate?.trim() || undefined,
-      passphrase: draftKey.passphrase,
-      savePassphrase: draftKey.savePassphrase,
+      label: source.label.trim(),
+      type: (source.type as KeyType) || detectKeyType(privateKey || publicKey),
+      privateKey,
+      publicKey: publicKey || undefined,
+      certificate: source.certificate?.trim() || undefined,
+      passphrase: source.passphrase,
+      savePassphrase: source.savePassphrase,
       source: "imported",
-      category: draftKey.certificate ? "certificate" : "key",
+      category: source.certificate ? "certificate" : "key",
       created: Date.now(),
     };
 
     onSave(newKey);
-    closePanel();
+    if (!override) closePanel();
   }, [draftKey, onSave, closePanel, showError, t]);
 
   // Handle save identity
@@ -527,57 +526,8 @@ echo $3 >> "$FILE"`);
     return key.type;
   };
 
-  // File input ref for import
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Handle file import
-  const handleFileImport = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        if (content) {
-          // Try to detect key type from content
-          let detectedType: KeyType = "ED25519";
-          const lc = content.toLowerCase();
-          if (lc.includes("rsa")) detectedType = "RSA";
-          else if (lc.includes("ecdsa") || lc.includes("ec private"))
-            detectedType = "ECDSA";
-          else if (lc.includes("ed25519")) detectedType = "ED25519";
-
-          // Extract label from filename (remove extension)
-          const label = file.name.replace(/\.(pem|key|pub|ppk)$/i, "");
-
-          setDraftKey((prev) => ({
-            ...prev,
-            privateKey: content,
-            label: prev.label || label,
-            type: detectedType,
-          }));
-        }
-      };
-      reader.readAsText(file);
-
-      // Reset input so same file can be selected again
-      event.target.value = "";
-    },
-    [],
-  );
-
   return (
     <div className="h-full min-w-0 w-full overflow-hidden flex relative">
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pem,.key,.pub,.ppk,*"
-        className="hidden"
-        onChange={handleFileImport}
-      />
-
       {/* Main Content */}
       <div
         className={cn(

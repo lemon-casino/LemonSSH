@@ -575,6 +575,7 @@ export const enTerminalMessages: Messages = {
   'keychain.panel.keyExport': 'Key Export',
   'keychain.validation.labelRequired': 'Please enter a label for the key',
   'keychain.validation.labelAndPrivateKeyRequired': 'Label and private key are required',
+  'keychain.validation.labelAndKeyMaterialRequired': 'Label and a public or private key are required',
   'keychain.validation.labelAndUsernameRequired': 'Label and username are required',
   'keychain.error.generationUnavailable':
     'Key generation not available - please ensure the app is running in Electron',
@@ -625,7 +626,7 @@ export const enTerminalMessages: Messages = {
   'keychain.generate.savePassphrase': 'Save passphrase',
   'keychain.generate.generate': 'Generate',
   'keychain.generate.generateSave': 'Generate & Save',
-  'keychain.import.dropHint': 'Drop a key file here',
+  'keychain.import.dropHint': 'Drop key files here. Select a private key with its .pub to import them as one key.',
   'keychain.import.importFromFile': 'Import from file',
   'keychain.import.saveKey': 'Save Key',
   'keychain.import.importedKeyLabel': 'Imported Key',
