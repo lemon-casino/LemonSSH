@@ -52,11 +52,18 @@ export function useHostTreeInlineGroupActions({
       ensureAncestorPathsExpanded(parent, ensurePathExpanded);
       ensurePathExpanded(parent);
     }
-    hostTreeInlineGroupEditStore.startEdit({
-      groupPath: path,
-      initialName: name,
-      isNew: true,
-    });
+    // Defer the editor start until the triggering context menu has finished
+    // closing: Radix restores focus to the trigger row as the menu unmounts,
+    // which immediately blurs the fresh input and its blur-commit treats the
+    // untouched name as "unchanged", closing the editor in the same frame
+    // (the group stays but the editor just flashes).
+    window.setTimeout(() => {
+      hostTreeInlineGroupEditStore.startEdit({
+        groupPath: path,
+        initialName: name,
+        isNew: true,
+      });
+    }, 0);
   }, [customGroups, ensurePathExpanded, onUpdateCustomGroups, unnamedGroupLabel]);
 
   const startInlineRenameGroup = useCallback((groupPath: string) => {

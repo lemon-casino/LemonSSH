@@ -869,8 +869,16 @@ export const useVaultState = () => {
     // still hold an older value while an encrypt+locked write is in flight.
     const next = typeof data === "function" ? data(customGroupsRef.current) : data;
     customGroupsRef.current = next;
-    const groupsVer = ++customGroupsWriteVersion.current;
+    ++customGroupsWriteVersion.current;
     setCustomGroups(next);
+
+    // Groups are stored as plain strings, so they persist synchronously:
+    // vault group mutations read GROUPS back from storage inside the vault
+    // lock, where only the encrypt phase is drained. Deferring this write
+    // behind configs encryption made a transaction created right after a
+    // group change (e.g. deleting a freshly created group) validate against
+    // a stale group list and supersede itself into a slow retry loop.
+    localStorageAdapter.write(STORAGE_KEY_GROUPS, next);
 
     const cleanedGroupConfigs = buildGroupConfigsForGroups(next, groupConfigs);
     groupConfigsRef.current = cleanedGroupConfigs;
@@ -880,9 +888,6 @@ export const useVaultState = () => {
     groupConfigsEncryptPendingRef.current = encryptPromise.then(() => undefined);
     const writePromise = encryptPromise.then(async (enc) => {
       return withVaultImportLock("vault", async () => {
-        if (groupsVer === customGroupsWriteVersion.current) {
-          localStorageAdapter.write(STORAGE_KEY_GROUPS, next);
-        }
         if (configsVer === groupConfigsWriteVersion.current)
           localStorageAdapter.write(STORAGE_KEY_GROUP_CONFIGS, enc);
       });
