@@ -4,21 +4,17 @@ import {
   FileText,
   Folder,
   FolderLock,
-  Menu,
   Plus,
   X,
 } from "lucide-react";
 
 import { useI18n } from "../../application/i18n/I18nProvider";
-import {
-  useTerminalHostTreeOpen,
-  useToggleTerminalHostTree,
-} from "../../application/state/terminalHostTreeStore";
 import { terminalReconnectRegistry } from "../../application/state/terminalReconnectRegistry";
 import type { LogView } from "../../application/state/logViewState";
 import type { Host, TerminalSession, Workspace } from "../../types";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { DistroAvatar } from "../DistroAvatar";
 import { FixedSizeVirtualList, type FixedSizeVirtualListHandle } from "../ui/FixedSizeVirtualList";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger, ContextMenuItem } from "../ui/context-menu";
 import { SessionTabContextMenuContent } from "../top-tabs/SessionTabContextMenuContent";
@@ -55,6 +51,8 @@ interface TreeRow {
     sessionCount?: number;
     sessionId?: string;
     sessionIds?: string[];
+    hostId?: string;
+    hostLabel?: string;
   };
   depth: number;
 }
@@ -90,6 +88,7 @@ export function WorkbenchSessionTreeRow({
   onCopySessionToNewWindow,
   onReconnectSession,
   onEditHost,
+  onConnectHost,
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
@@ -115,6 +114,7 @@ export function WorkbenchSessionTreeRow({
   onCopySessionToNewWindow?: (sessionId: string) => void;
   onReconnectSession: (sessionId: string) => void;
   onEditHost?: (host: Host) => void;
+  onConnectHost?: (host: Host) => void;
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
@@ -174,6 +174,14 @@ export function WorkbenchSessionTreeRow({
     const workspaceId = isWorkspaceNode
       ? node.id.slice(WORKSPACE_NODE_PREFIX.length)
       : null;
+    const host = node.type === "host" && node.hostId
+      ? hostById.get(node.hostId) ?? null
+      : null;
+    // Merged tree: host rows double as the connect list, so a session-less
+    // host connects straight away and an expandable host toggles on click
+    // while double-click always connects (host-tree sidebar semantics).
+    const connect = host && onConnectHost ? () => onConnectHost(host) : null;
+    const hasChildren = (node.children?.length ?? 0) > 0;
     const expanded = expandedPaths.has(node.id);
     const label = isWorkspaceNode
       ? workspaceTitleById.get(workspaceId ?? "") ?? node.label
@@ -187,6 +195,7 @@ export function WorkbenchSessionTreeRow({
         {...(workspaceId ? getRowDragProps?.(workspaceId) : {})}
         data-section={node.type === "group" ? "workbench-tree-group" : "workbench-tree-host"}
         data-tab-id={isWorkspaceNode ? workspaceId : undefined}
+        data-host-id={host?.id}
         data-state={expanded ? "expanded" : "collapsed"}
         className="w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
         style={{ marginLeft: indent, width: `calc(100% - ${indent}px)`, height: TREE_ROW_HEIGHT }}
@@ -196,22 +205,40 @@ export function WorkbenchSessionTreeRow({
             onActivateTab(workspaceId);
             return;
           }
+          if (connect && !hasChildren) {
+            connect();
+            return;
+          }
           onTogglePath(node.id);
         }}
+        onDoubleClick={() => {
+          // Leaf hosts already connect on single click; double-click on an
+          // expandable host connects without waiting for a second toggle.
+          if (hasChildren) connect?.();
+        }}
       >
-        <button
-          aria-label={label}
-          className="p-0.5 rounded cursor-pointer hover:bg-foreground/10 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePath(node.id);
-          }}
-        >
-          <ChevronRight
-            size={12}
-            className={cn("transition-transform", expanded && "rotate-90")}
-          />
-        </button>
+        {hasChildren ? (
+          <button
+            aria-label={label}
+            className="p-0.5 rounded cursor-pointer hover:bg-foreground/10 shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePath(node.id);
+            }}
+          >
+            <ChevronRight
+              size={12}
+              className={cn("transition-transform", expanded && "rotate-90")}
+            />
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" />
+        )}
+        {host && (
+          <span className="flex h-5 shrink-0 items-center">
+            <DistroAvatar host={host} size="xs" fallback={host.label.slice(0, 1).toUpperCase()} />
+          </span>
+        )}
         <span className="truncate flex-1 text-left">{label}</span>
         {workspaceId && shortcutNumbers?.has(workspaceId) && <kbd className="shrink-0 text-[10px]">{shortcutNumbers.get(workspaceId)}</kbd>}
         {showCount && (
@@ -253,8 +280,16 @@ export function WorkbenchSessionTreeRow({
       <ContextMenu>
         <ContextMenuTrigger asChild>{rowBody}</ContextMenuTrigger>
         <ContextMenuContent>
-          {onCopySession && <ContextMenuItem onClick={() => descendantIds.forEach(onCopySession)}>{t("tabs.copyTab")}</ContextMenuItem>}
-          <ContextMenuItem className="text-destructive" onClick={() => descendantIds.forEach(id => onCloseSession(id))}>{t("common.close")}</ContextMenuItem>
+          {connect && <ContextMenuItem onClick={connect}>{t("vault.hosts.connect")}</ContextMenuItem>}
+          {host && onEditHost && (
+            <ContextMenuItem onClick={() => onEditHost(host)}>{t("terminal.layer.hostTree.editHost")}</ContextMenuItem>
+          )}
+          {descendantIds.length > 0 && onCopySession && (
+            <ContextMenuItem onClick={() => descendantIds.forEach(onCopySession)}>{t("tabs.copyTab")}</ContextMenuItem>
+          )}
+          {descendantIds.length > 0 && (
+            <ContextMenuItem className="text-destructive" onClick={() => descendantIds.forEach(id => onCloseSession(id))}>{t("common.close")}</ContextMenuItem>
+          )}
         </ContextMenuContent>
       </ContextMenu>
     );
@@ -366,10 +401,15 @@ interface WorkbenchSessionTreeProps {
   onCopySessionToNewWindow?: (sessionId: string) => void;
   onReconnectSession: (sessionId: string) => void;
   onEditHost?: (host: Host) => void;
+  onConnectHost?: (host: Host) => void;
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
   onOpenQuickSwitcher: () => void;
+  /** Toolbar rendered above the tree (host actions + search/tags). */
+  toolbar?: React.ReactNode;
+  /** Reveal every branch regardless of expandedPaths (active search/filter). */
+  expandAllRows?: boolean;
 }
 
 const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
@@ -393,18 +433,19 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   onCopySessionToNewWindow,
   onReconnectSession,
   onEditHost,
+  onConnectHost,
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
   onOpenQuickSwitcher,
+  toolbar,
+  expandAllRows = false,
 }) => {
   const { t } = useI18n();
-  const hostTreeOpen = useTerminalHostTreeOpen();
-  const toggleHostTree = useToggleTerminalHostTree();
 
   const rows = useMemo(
-    () => flattenSessionGroupTree(sections, expandedPaths),
-    [sections, expandedPaths],
+    () => flattenSessionGroupTree(sections, expandedPaths, expandAllRows),
+    [sections, expandedPaths, expandAllRows],
   );
 
   const listRef = useRef<FixedSizeVirtualListHandle>(null);
@@ -448,6 +489,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
       onCopySessionToNewWindow={onCopySessionToNewWindow}
       onReconnectSession={onReconnectSession}
       onEditHost={onEditHost}
+      onConnectHost={onConnectHost}
       onRenameWorkspace={onRenameWorkspace}
       onCopyWorkspace={onCopyWorkspace}
       onCloseWorkspace={onCloseWorkspace}
@@ -473,6 +515,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
     onCopySessionToNewWindow,
     onReconnectSession,
     onEditHost,
+    onConnectHost,
     onRenameWorkspace,
     onCopyWorkspace,
     onCloseWorkspace,
@@ -481,6 +524,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
 
   return (
     <div className="flex flex-col min-h-0 w-full" data-section="workbench-session-tree">
+      {toolbar}
       <div className="flex-1 min-h-0 px-1">
         {rows.length === 0 ? (
           <div className="h-full flex items-center justify-center px-4 text-xs text-muted-foreground/70 text-center select-none">
@@ -505,16 +549,6 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
         >
           <Plus size={14} />
           {t("workbench.tree.newSession")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          data-state={hostTreeOpen ? "active" : "inactive"}
-          onClick={toggleHostTree}
-          aria-label={hostTreeOpen ? t("terminal.layer.hostTree.collapse") : t("terminal.layer.hostTree.expand")}
-        >
-          <Menu size={14} />
         </Button>
       </div>
     </div>
@@ -544,9 +578,12 @@ export const WorkbenchSessionTree = memo(
     prev.onCopySessionToNewWindow === next.onCopySessionToNewWindow &&
     prev.onReconnectSession === next.onReconnectSession &&
     prev.onEditHost === next.onEditHost &&
+    prev.onConnectHost === next.onConnectHost &&
     prev.onRenameWorkspace === next.onRenameWorkspace &&
     prev.onCopyWorkspace === next.onCopyWorkspace &&
     prev.onCloseWorkspace === next.onCloseWorkspace &&
-    prev.onOpenQuickSwitcher === next.onOpenQuickSwitcher,
+    prev.onOpenQuickSwitcher === next.onOpenQuickSwitcher &&
+    prev.toolbar === next.toolbar &&
+    prev.expandAllRows === next.expandAllRows,
 );
 WorkbenchSessionTree.displayName = "WorkbenchSessionTree";

@@ -5,7 +5,6 @@ import { useAppearanceChromeStore } from '../state/appearanceChromeStore';
 import type { EditorTabChrome } from '../state/editorTabStore';
 import type { LogView } from '../state/logViewState';
 import { useManualTerminalChromeSurfaceInjection } from '../state/useManualTerminalChromeSurfaceInjection';
-import { useTerminalHostTreeOpen } from '../state/terminalHostTreeStore';
 import { TerminalHostTreeSidebar } from '../../components/terminalLayer/TerminalHostTreeSidebar';
 import type {
   ResolvedAppearance,
@@ -20,13 +19,6 @@ import {
 
 interface AppHostTreeLayerProps {
   enabled: boolean;
-  /**
-   * `overlay` (default) floats the host tree inside the content area and
-   * offsets content via terminalHostTreeStore.layoutWidth. `embedded` renders
-   * it as a plain box that fills its parent — the workbench sidebar section —
-   * with no layoutWidth publishing.
-   */
-  variant?: 'overlay' | 'embedded';
   hosts: Host[];
   customGroups: string[];
   groupConfigs: GroupConfig[];
@@ -59,7 +51,6 @@ function appHostTreeLayerAreEqual(
   next: AppHostTreeLayerProps,
 ): boolean {
   return prev.enabled === next.enabled
-    && prev.variant === next.variant
     && prev.hosts === next.hosts
     && prev.customGroups === next.customGroups
     && prev.groupConfigs === next.groupConfigs
@@ -83,7 +74,6 @@ function appHostTreeLayerAreEqual(
 
 const AppHostTreeLayerInner: React.FC<AppHostTreeLayerProps> = ({
   enabled,
-  variant = 'overlay',
   hosts,
   customGroups,
   groupConfigs,
@@ -104,8 +94,6 @@ const AppHostTreeLayerInner: React.FC<AppHostTreeLayerProps> = ({
 }) => {
   const activeTabId = useActiveTabId();
   const { accentMode, customAccent } = useAppearanceChromeStore();
-  const hostTreeOpen = useTerminalHostTreeOpen();
-  const embedded = variant === 'embedded';
   const sessionIds = useMemo(() => new Set(sessions.map((session) => session.id)), [sessions]);
   const workspaceIds = useMemo(() => new Set(workspaces.map((workspace) => workspace.id)), [workspaces]);
   const logViewIds = useMemo(() => new Set(logViews.map((logView) => logView.id)), [logViews]);
@@ -117,18 +105,14 @@ const AppHostTreeLayerInner: React.FC<AppHostTreeLayerProps> = ({
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
   );
-  // The embedded variant lives in the workbench sidebar, so it ignores the
-  // work-tab surface gating that hides the floating overlay behind root pages.
-  const surfaceVisible = embedded
-    ? enabled && hostTreeOpen
-    : isHostTreeWorkTabSurface({
-        enabled,
-        activeTabId,
-        logViewIds,
-        orderedTabs,
-        sessionIds,
-        workspaceIds,
-      });
+  const surfaceVisible = isHostTreeWorkTabSurface({
+    enabled,
+    activeTabId,
+    logViewIds,
+    orderedTabs,
+    sessionIds,
+    workspaceIds,
+  });
 
   const activeHostId = useMemo(() => resolveWorkTabActiveHostId({
     activeTabId,
@@ -169,18 +153,17 @@ const AppHostTreeLayerInner: React.FC<AppHostTreeLayerProps> = ({
 
   useManualTerminalChromeSurfaceInjection(
     hostTreeTheme,
-    !embedded && !followAppTerminalTheme && surfaceVisible,
+    !followAppTerminalTheme && surfaceVisible,
   );
 
   return (
     <div
-      className={embedded ? 'relative flex min-h-0 min-w-0 w-full' : 'absolute left-0 top-0 bottom-0 flex min-h-0'}
-      data-section={embedded ? 'app-host-tree-layer-embedded' : 'app-host-tree-layer'}
+      className="absolute left-0 top-0 bottom-0 flex min-h-0"
+      data-section="app-host-tree-layer"
       style={getAppHostTreeLayerStyle(surfaceVisible)}
     >
       <TerminalHostTreeSidebar
         enabled={enabled}
-        embedded={embedded}
         surfaceVisible={surfaceVisible}
         hosts={hosts}
         customGroups={customGroups}

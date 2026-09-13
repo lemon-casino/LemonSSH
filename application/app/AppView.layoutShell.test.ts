@@ -53,9 +53,10 @@ test("workbench session layer stays mounted and toggles via visibility", () => {
   );
 });
 
-test("workbench embeds the host tree in the sidebar and disables the floating overlay", () => {
+test("workbench merges the host tree into the session tree and disables the floating overlay", () => {
   // In workbench mode the host tree must not open as a second floating
-  // column next to the session tree; it renders inside the sidebar instead.
+  // column next to the session tree; the merged sidebar tree lists every
+  // host with its sessions and the host toolbar sits above the tree.
   assert.match(
     appViewSource,
     /enabled=\{showHostTreeSidebar && layoutMode !== 'workbench'\}/,
@@ -63,13 +64,13 @@ test("workbench embeds the host tree in the sidebar and disables the floating ov
   );
   assert.match(
     layerSource,
-    /data-section="app-workbench-host-tree-section"/,
-    "session layer must own the embedded host tree section",
+    /includeAllHosts: true/,
+    "merged tree must list session-less hosts as connect entries",
   );
   assert.match(
     layerSource,
-    /variant="embedded"/,
-    "embedded section must render the host tree in embedded mode",
+    /TerminalHostTreeToolbar/,
+    "host toolbar must render above the merged tree",
   );
   assert.doesNotMatch(
     appViewSource,

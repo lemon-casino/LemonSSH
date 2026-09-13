@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildSessionGroupTree, flattenSessionGroupTree, getSessionTreeAncestorIds } from './sessionGroupTree';
+import { buildSessionGroupTree, filterMergedTreeHosts, flattenSessionGroupTree, getSessionTreeAncestorIds, getSessionTreeExpandableIds } from './sessionGroupTree';
 
 it('reveals nested session and workspace ancestors without opening unrelated branches', () => {
   const tree = buildSessionGroupTree(makeOptions({
@@ -632,5 +632,108 @@ describe('flattenSessionGroupTree', () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].node.id, 'vaults');
     assert.equal(rows[0].depth, 0);
+  });
+});
+
+describe('includeAllHosts (workbench merged tree)', () => {
+  it('keeps session-less hosts as connectable host nodes and empty carrier groups', () => {
+    const tree = buildSessionGroupTree(makeOptions({
+      hosts: [
+        makeHost('h1', 'web-01', 'Prod/Web'),
+        makeHost('h2', 'idle-02', 'Prod/Web'),
+        makeHost('h3', 'solo', 'Staging'),
+        makeHost('h4', 'loose'),
+        makeHost('h5', 'shell', undefined, 'local'),
+      ],
+      sessions: [makeSession('s1', 'h1')],
+      includeAllHosts: true,
+    }));
+
+    // Grouped: every non-local host survives, even without sessions.
+    const webNode = findNode(tree.groupTree, 'Prod/Web');
+    assert.ok(webNode);
+    assert.deepEqual(
+      webNode!.children.map((child) => child.id).sort(),
+      ['h1', 'h2'],
+    );
+    const stagingNode = findNode(tree.groupTree, 'Staging');
+    assert.ok(stagingNode, 'group with hosts but no sessions survives');
+    const h3 = findNode(tree.groupTree, 'h3');
+    assert.ok(h3);
+    assert.deepEqual(h3!.sessionIds, []);
+
+    // Ungrouped: non-local hosts listed; local-protocol hosts stay out.
+    const ungroupedIds = (tree.ungrouped?.children ?? []).map((node) => node.id);
+    assert.deepEqual(ungroupedIds, ['h4']);
+  });
+
+  it('keeps the pruned session-only behavior when the flag is off', () => {
+    const tree = buildSessionGroupTree(makeOptions({
+      hosts: [makeHost('h1', 'web-01', 'Prod/Web'), makeHost('h2', 'idle-02', 'Prod/Web')],
+      sessions: [makeSession('s1', 'h1')],
+    }));
+
+    const webNode = findNode(tree.groupTree, 'Prod/Web');
+    assert.ok(webNode);
+    assert.deepEqual(webNode!.children.map((child) => child.id), ['h1']);
+  });
+
+  it('flatten expandAll reveals every branch without touching expandedPaths', () => {
+    const tree = buildSessionGroupTree(makeOptions({
+      hosts: [makeHost('h1', 'web-01', 'Prod/Web')],
+      sessions: [makeSession('s1', 'h1')],
+      includeAllHosts: true,
+    }));
+
+    const collapsed = flattenSessionGroupTree(tree, new Set());
+    assert.equal(collapsed.some((row) => row.node.id === 's1'), false);
+    const expanded = flattenSessionGroupTree(tree, new Set(), true);
+    assert.equal(expanded.some((row) => row.node.id === 's1'), true);
+    assert.equal(expanded.some((row) => row.node.id === 'Prod/Web'), true);
+  });
+
+  it('collects expandable ids for expand-all and search reveal', () => {
+    const tree = buildSessionGroupTree(makeOptions({
+      hosts: [makeHost('h1', 'web-01', 'Prod/Web'), makeHost('h2', 'loose')],
+      sessions: [makeSession('s1', 'h1')],
+      includeAllHosts: true,
+    }));
+
+    const ids = getSessionTreeExpandableIds(tree);
+    assert.ok(ids.includes('Prod'));
+    assert.ok(ids.includes('Prod/Web'));
+    assert.ok(ids.includes('h1'));
+    assert.ok(ids.includes('h2'));
+    assert.equal(ids.includes('s1'), false);
+  });
+});
+
+describe('filterMergedTreeHosts', () => {
+  const hosts = [
+    { id: 'host-1', label: 'web-01', tags: ['edge'] },
+    { id: 'host-2', label: 'idle-02', tags: ['edge'] },
+    { id: 'host-3', label: 'db-03', tags: [] },
+  ];
+  const sessionHostIds = new Set(['host-1']);
+
+  it('passes everything through when no filter is active', () => {
+    assert.deepEqual(
+      filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: '', selectedTags: [] }),
+      hosts,
+    );
+  });
+
+  it('keeps session hosts even when search matches nothing', () => {
+    assert.deepEqual(
+      filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: 'zzz', selectedTags: [] }).map((host) => host.id),
+      ['host-1'],
+    );
+  });
+
+  it('tag filters prune only the connect list', () => {
+    assert.deepEqual(
+      filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: '', selectedTags: ['edge'] }).map((host) => host.id),
+      ['host-1', 'host-2'],
+    );
   });
 });

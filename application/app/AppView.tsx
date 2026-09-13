@@ -590,11 +590,7 @@ function AppViewInner({ domains }: AppViewProps) {
         logViews={logViews}
         orderedTabs={orderedTabsWithEditors}
         showSftpTab={showSftpTab}
-        showHostTreeSidebar={showHostTreeSidebar}
         currentTerminalTheme={currentTerminalTheme}
-        followAppTerminalTheme={followAppTerminalTheme}
-        themeById={themeById}
-        resolveSessionAppearance={resolveSessionAppearance}
         onConnectHost={handleConnectToHost}
         onNewHost={workSurfaceHostEditor.openNew}
         onCreateLocalTerminal={handleCreateLocalTerminal}

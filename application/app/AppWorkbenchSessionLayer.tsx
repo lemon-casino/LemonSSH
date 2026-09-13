@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { toEditorTabId, useActiveTabId } from '../state/activeTabStore';
 import type { EditorTabChrome } from '../state/editorTabStore';
@@ -7,14 +7,12 @@ import { useWorkbenchTreeExpanded, useWorkbenchTreeWidth } from '../state/workbe
 import { useI18n } from '../i18n/I18nProvider';
 import { WorkbenchSessionTree } from '../../components/workbench/WorkbenchSessionTree';
 import type { GroupConfig, Host, TerminalSession, TerminalTheme, Workspace } from '../../types';
-import type {
-  ResolvedAppearance,
-  TerminalAppearanceHostScope,
-} from '../../domain/terminalAppearanceRuntime';
 import { resolveSessionTabTitle } from '../../domain/sessionTabTitle';
 import {
   buildSessionGroupTree,
+  filterMergedTreeHosts,
   getSessionTreeAncestorIds,
+  getSessionTreeExpandableIds,
   type BuildSessionGroupTreeOptions,
 } from '../../domain/sessionGroupTree';
 import type { DynamicTabTitleMode, KeyBinding } from '../../domain/models';
@@ -26,8 +24,13 @@ import { appendHostFromWorkspaceDrop, resolveFocusSidebarDragKind } from '../../
 import { useSettingsChromeStore } from '../state/settingsChromeStore';
 import { useShortcutModifierHeld } from '../state/useShortcutModifierHeld';
 import { buildTabShortcutNumberById } from './tabShortcutTargets';
-import { getAppHostTreeLayerStyle, AppHostTreeLayer } from './AppHostTreeLayer';
-import { useTerminalHostTreeOpen } from '../state/terminalHostTreeStore';
+import { getAppHostTreeLayerStyle } from './AppHostTreeLayer';
+import { useVaultHostTreeActions } from '../state/vaultHostTreeActionsStore';
+import {
+  TerminalHostTreeToolbar,
+  type HostTreeToolbarPanel,
+} from '../../components/terminalLayer/TerminalHostTreeToolbar';
+import { buildHostTreeThemeFromTerminalTheme } from '../../infrastructure/theme/terminalAppearanceTokens';
 
 interface AppWorkbenchSessionLayerProps {
   enabled: boolean;
@@ -47,13 +50,9 @@ interface AppWorkbenchSessionLayerProps {
   logViews: readonly LogView[];
   orderedTabs: readonly string[];
   showSftpTab: boolean;
-  /** Host-tree sidebar setting; gates the embedded host tree section. */
-  showHostTreeSidebar: boolean;
-  /** Embedded host tree section wiring (same surface the overlay receives). */
+  /** App terminal theme feeding the merged tree toolbar colors. */
   currentTerminalTheme: TerminalTheme;
-  followAppTerminalTheme: boolean;
-  themeById: ReadonlyMap<string, TerminalTheme>;
-  resolveSessionAppearance?: (hostScope: TerminalAppearanceHostScope) => ResolvedAppearance;
+  /** Connect entry for host rows in the merged host+session tree. */
   onConnectHost: (host: Host) => void;
   onNewHost?: (defaultGroup?: string) => void;
   onCreateLocalTerminal?: () => void;
@@ -94,11 +93,7 @@ function appWorkbenchSessionLayerAreEqual(
     && prev.logViews === next.logViews
     && prev.orderedTabs === next.orderedTabs
     && prev.showSftpTab === next.showSftpTab
-    && prev.showHostTreeSidebar === next.showHostTreeSidebar
     && prev.currentTerminalTheme === next.currentTerminalTheme
-    && prev.followAppTerminalTheme === next.followAppTerminalTheme
-    && prev.themeById === next.themeById
-    && prev.resolveSessionAppearance === next.resolveSessionAppearance
     && prev.onConnectHost === next.onConnectHost
     && prev.onNewHost === next.onNewHost
     && prev.onCreateLocalTerminal === next.onCreateLocalTerminal
@@ -136,11 +131,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   logViews,
   orderedTabs,
   showSftpTab,
-  showHostTreeSidebar,
   currentTerminalTheme,
-  followAppTerminalTheme,
-  themeById,
-  resolveSessionAppearance,
   onConnectHost,
   onNewHost,
   onCreateLocalTerminal,
@@ -162,10 +153,13 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   // Leaf-layer subscription: AppView must never read activeTabId itself.
   const activeTabId = useActiveTabId();
   const { width, resize } = useWorkbenchTreeWidth();
-  const { expandedPaths, togglePath, ensurePathExpanded } = useWorkbenchTreeExpanded();
-  const hostTreeOpen = useTerminalHostTreeOpen();
+  const { expandedPaths, togglePath, ensurePathExpanded, expandAll, collapseAll } = useWorkbenchTreeExpanded();
   const { t } = useI18n();
   const surfaceVisible = enabled;
+  const vaultHostTreeActions = useVaultHostTreeActions();
+  const [search, setSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [expandedPanel, setExpandedPanel] = useState<HostTreeToolbarPanel>(null);
   const { hotkeyScheme, showTabNumberBadges, shellOnlyTabNumberShortcuts } = useSettingsChromeStore();
   const modifierHeld = useShortcutModifierHeld(hotkeyScheme === 'mac' ? switchTabKeyBinding?.mac ?? null : hotkeyScheme === 'pc' ? switchTabKeyBinding?.pc ?? null : null, hotkeyScheme);
   const shortcutNumbers = useMemo(() => showTabNumberBadges && hotkeyScheme !== 'disabled' && modifierHeld
@@ -226,6 +220,28 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
     [hosts],
   );
 
+  // Merged-tree filters (host tree parity): tags narrow first, then search.
+  // Hosts carrying active sessions always stay visible so session navigation
+  // can never lose an entry; the filter only prunes the connect list.
+  const searchTerm = search.trim();
+  const filterActive = searchTerm.length > 0 || selectedTags.length > 0;
+  const sessionHostIds = useMemo(
+    () => new Set(sessions.filter((session) => session.hiddenFromTabs !== true).map((session) => session.hostId)),
+    [sessions],
+  );
+  const visibleHosts = useMemo(
+    () => filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm, selectedTags }),
+    [hosts, searchTerm, selectedTags, sessionHostIds],
+  );
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const host of hosts) {
+      for (const tag of host.tags ?? []) tags.add(tag);
+    }
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [hosts]);
+
   const sections = useMemo(() => {
     const tabIndexById = new Map(orderedTabs.map((tabId, index) => [tabId, index]));
     const visibleSessions = sessions
@@ -246,12 +262,13 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
 
     const options: BuildSessionGroupTreeOptions = {
       sessions: visibleSessions,
-      hosts: hosts.map((host) => ({
+      hosts: visibleHosts.map((host) => ({
         id: host.id,
         label: host.label,
         group: host.group,
         protocol: host.protocol,
       })),
+      includeAllHosts: true,
       customGroups: customGroups.map((group) => ({ group })),
       groupConfigs: Object.fromEntries(
         groupConfigs.map((config) => [config.path, { order: config.order }]),
@@ -276,7 +293,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
     orderedTabs,
     sessions,
     dynamicTabTitleMode,
-    hosts,
+    visibleHosts,
     customGroups,
     groupConfigs,
     logViews,
@@ -289,10 +306,57 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
     if (enabled) getSessionTreeAncestorIds(sections, activeTabId).forEach(ensurePathExpanded);
   }, [enabled, sections, activeTabId, ensurePathExpanded]);
 
+  // Search/tag filters reveal every branch so matches are always visible.
+  const expandableIds = useMemo(() => getSessionTreeExpandableIds(sections), [sections]);
+  useEffect(() => {
+    if (filterActive) expandAll(expandableIds);
+  }, [expandAll, expandableIds, filterActive]);
+
   const fixedIds = useMemo(
     () => new Set(showSftpTab ? ['vault', 'sftp'] : ['vault']),
     [showSftpTab],
   );
+
+  const toolbarTheme = useMemo(
+    () => buildHostTreeThemeFromTerminalTheme(currentTerminalTheme),
+    [currentTerminalTheme],
+  );
+  const toolbar = useMemo(() => (
+    <TerminalHostTreeToolbar
+      theme={toolbarTheme}
+      expandedPanel={expandedPanel}
+      onExpandedPanelChange={setExpandedPanel}
+      search={search}
+      onSearchChange={setSearch}
+      allTags={allTags}
+      selectedTags={selectedTags}
+      onSelectedTagsChange={setSelectedTags}
+      onNewHost={() => onNewHost?.()}
+      canNewHost={Boolean(onNewHost)}
+      onNewRootGroup={() => vaultHostTreeActions?.onNewGroup()}
+      canNewGroup={Boolean(vaultHostTreeActions)}
+      onCreateLocalTerminal={onCreateLocalTerminal}
+      canCreateLocalTerminal={Boolean(onCreateLocalTerminal)}
+      onExpandAll={() => expandAll(expandableIds)}
+      onCollapseAll={collapseAll}
+      canExpandCollapse={expandableIds.length > 0 && !filterActive}
+      onCollapse={() => {}}
+      hideCollapse
+    />
+  ), [
+    allTags,
+    collapseAll,
+    expandAll,
+    expandableIds,
+    expandedPanel,
+    filterActive,
+    onCreateLocalTerminal,
+    onNewHost,
+    search,
+    selectedTags,
+    toolbarTheme,
+    vaultHostTreeActions,
+  ]);
 
   return (
     <div
@@ -305,8 +369,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
         data-section="app-workbench-session-tree"
         style={getAppHostTreeLayerStyle(surfaceVisible)}
       >
-        <div className="flex-1 min-h-[120px] min-w-0 flex">
-          <WorkbenchSessionTree
+        <WorkbenchSessionTree
           sections={sections}
           shortcutNumbers={shortcutNumbers}
           getRowDragProps={getRowDragProps}
@@ -327,44 +390,14 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
           onCopySessionToNewWindow={onCopySessionToNewWindow}
           onReconnectSession={onReconnectSession}
           onEditHost={onEditHost}
+          onConnectHost={onConnectHost}
           onRenameWorkspace={onRenameWorkspace}
           onCopyWorkspace={onCopyWorkspace}
           onCloseWorkspace={onCloseWorkspace}
           onOpenQuickSwitcher={onOpenQuickSwitcher}
+          toolbar={toolbar}
+          expandAllRows={filterActive}
         />
-        </div>
-        {/* The host tree opens INSIDE the sidebar (below the session tree),
-            not as a second floating column: both trees serve the same
-            "pick a host / session" purpose and side-by-side columns just
-            duplicated each other. */}
-        {enabled && showHostTreeSidebar && hostTreeOpen && (
-          <div
-            data-section="app-workbench-host-tree-section"
-            className="h-[45%] min-h-[180px] shrink-0 border-t border-border/60 flex"
-          >
-            <AppHostTreeLayer
-              variant="embedded"
-              enabled
-              hosts={hosts}
-              customGroups={customGroups}
-              groupConfigs={groupConfigs}
-              sessions={sessions}
-              workspaces={workspaces}
-              editorTabs={editorTabs}
-              logViews={logViews}
-              orderedTabs={orderedTabs}
-              currentTerminalTheme={currentTerminalTheme}
-              followAppTerminalTheme={followAppTerminalTheme}
-              hostById={hostById}
-              themeById={themeById}
-              resolveSessionAppearance={resolveSessionAppearance}
-              onConnect={onConnectHost}
-              onNewHost={onNewHost}
-              onEditHost={onEditHost}
-              onCreateLocalTerminal={onCreateLocalTerminal}
-            />
-          </div>
-        )}
         <div
           role="separator"
           aria-orientation="vertical"

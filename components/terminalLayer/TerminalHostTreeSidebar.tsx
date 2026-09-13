@@ -118,13 +118,6 @@ export function resolveTerminalHostTreeDragCapabilities(input: {
 interface TerminalHostTreeSidebarProps {
   enabled?: boolean;
   surfaceVisible?: boolean;
-  /**
-   * Embedded mode (workbench sidebar section): fill the parent box instead of
-   * owning a width, hide the resize handle and never publish layoutWidth —
-   * the host column then lives inside the session-tree sidebar, so content
-   * surfaces must not offset themselves for it.
-   */
-  embedded?: boolean;
   hosts: Host[];
   customGroups: string[];
   groupConfigs?: GroupConfig[];
@@ -669,7 +662,6 @@ HostTreeFlatRowItem.displayName = 'HostTreeFlatRowItem';
 const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
   enabled = true,
   surfaceVisible = true,
-  embedded = false,
   hosts,
   customGroups,
   groupConfigs = [],
@@ -1035,14 +1027,12 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
   const prevIsVisibleRef = useRef(isVisible);
 
   const syncLayoutWidthFromShell = useCallback((fallbackWidth = targetLayoutWidth) => {
-    if (embedded) return;
     terminalHostTreeStore.setLayoutWidth(
       getTerminalHostTreeMeasuredLayoutWidth(shellRef.current, fallbackWidth),
     );
-  }, [embedded, targetLayoutWidth]);
+  }, [targetLayoutWidth]);
 
   useEffect(() => {
-    if (embedded) return;
     const el = shellRef.current;
     if (!el) return;
 
@@ -1054,10 +1044,9 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
     syncLayoutWidthFromShell();
 
     return () => ro.disconnect();
-  }, [embedded, isResizing, syncLayoutWidthFromShell]);
+  }, [isResizing, syncLayoutWidthFromShell]);
 
   useEffect(() => {
-    if (embedded) return;
     if (prevIsVisibleRef.current === isVisible) return;
     prevIsVisibleRef.current = isVisible;
 
@@ -1089,7 +1078,6 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
   }, [isVisible, syncLayoutWidthFromShell]);
 
   useEffect(() => {
-    if (embedded) return;
     const el = shellRef.current;
     if (!el) return;
 
@@ -1099,10 +1087,9 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
     };
     el.addEventListener('transitionend', onTransitionEnd);
     return () => el.removeEventListener('transitionend', onTransitionEnd);
-  }, [embedded, isResizing, syncLayoutWidthFromShell]);
+  }, [isResizing, syncLayoutWidthFromShell]);
 
   useEffect(() => {
-    if (embedded) return;
     cancelSyncLayoutWidthRef.current?.();
     cancelSyncLayoutWidthRef.current = null;
 
@@ -1134,35 +1121,22 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
     <div
       ref={shellRef}
       className="relative flex-shrink-0 h-full overflow-hidden"
-      style={embedded
-        ? { width: '100%', height: '100%', pointerEvents: isVisible ? 'auto' : 'none' }
-        : getTerminalHostTreeSidebarShellStyle(isVisible, shellWidth, shellTransition)}
+      style={getTerminalHostTreeSidebarShellStyle(isVisible, shellWidth, shellTransition)}
       data-section="terminal-host-tree-sidebar-shell"
       data-open={isVisible ? 'true' : 'false'}
       data-enabled={enabled ? 'true' : 'false'}
     >
       <div
         className="relative flex flex-col h-full"
-        style={embedded
-          ? {
-              ...getTerminalHostTreeSidebarPanelStyle({
-                isVisible,
-                displayWidth,
-                panelTransition,
-                theme,
-              }),
-              width: '100%',
-              borderRight: 'none',
-            }
-          : getTerminalHostTreeSidebarPanelStyle({
-              isVisible,
-              displayWidth,
-              panelTransition,
-              theme,
-            })}
+        style={getTerminalHostTreeSidebarPanelStyle({
+          isVisible,
+          displayWidth,
+          panelTransition,
+          theme,
+        })}
         data-section="terminal-host-tree-sidebar"
       >
-        {isVisible && !embedded && (
+        {isVisible && (
           <div
             className="absolute top-0 right-[-3px] h-full w-2 cursor-ew-resize z-30"
             onMouseDown={handleResizeStart}
@@ -1237,7 +1211,6 @@ export const TerminalHostTreeSidebar = memo(
     prev.hosts === next.hosts
     && prev.enabled === next.enabled
     && prev.surfaceVisible === next.surfaceVisible
-    && prev.embedded === next.embedded
     && prev.customGroups === next.customGroups
     && prev.activeHostId === next.activeHostId
     && themeFingerprint(prev.resolvedPreviewTheme) === themeFingerprint(next.resolvedPreviewTheme)

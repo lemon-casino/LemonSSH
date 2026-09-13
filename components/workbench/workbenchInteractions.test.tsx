@@ -11,9 +11,10 @@ test('workbench layer sends shared reorder and workspace insertion callbacks', a
   const renderer = await createDomRenderer(env.document);
   try {
     const { AppWorkbenchSessionLayer } = await import('../../application/app/AppWorkbenchSessionLayer');
+    const { TooltipProvider } = await import('../ui/tooltip');
     const calls: unknown[][] = [];
     const noop = () => {};
-    await renderer.render(<AppWorkbenchSessionLayer {...({
+    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...({
       enabled: true, hosts: [], customGroups: [], groupConfigs: [],
       sessions: [
         { id: 's1', hostId: 'deleted', hostLabel: 'one', username: 'root', hostname: 'example', status: 'connected' },
@@ -21,10 +22,7 @@ test('workbench layer sends shared reorder and workspace insertion callbacks', a
       ],
       workspaces: [{ id: 'ws1', title: 'Ops', root: { type: 'pane', id: 'p1', sessionId: 's2' } }],
       editorTabs: [], logViews: [], orderedTabs: ['s1', 'ws1'], showSftpTab: false,
-      showHostTreeSidebar: false,
       currentTerminalTheme: TERMINAL_THEMES[0],
-      followAppTerminalTheme: false,
-      themeById: new Map(),
       onConnectHost: noop,
       dynamicTabTitleMode: 'off', switchTabKeyBinding: null,
       onActivateTab: noop, onActivateWorkspaceSession: noop, onCloseSession: noop,
@@ -34,7 +32,7 @@ test('workbench layer sends shared reorder and workspace insertion callbacks', a
       onReorderTabs: (...args: unknown[]) => calls.push(['reorder', ...args]),
       onRemoveSessionFromWorkspace: noop, onAppendHostToWorkspace: noop,
       onAddSessionToWorkspace: (...args: unknown[]) => calls.push(['insert', ...args]),
-    } as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} />);
+    } as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
     const workspace = renderer.container.querySelector('[data-tab-id="ws1"]')!;
     assert.ok(workspace);
     Object.defineProperty(workspace, 'getBoundingClientRect', { value: () => ({ top: 0, bottom: 40, height: 40 }) });

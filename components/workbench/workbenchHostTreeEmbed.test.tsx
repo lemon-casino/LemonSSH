@@ -1,67 +1,139 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import { createDomRenderer, installDomEnvironment, flushEffects, runWithAct } from '../test-support/renderReactDom';
+import { createDomRenderer, installDomEnvironment, dispatchDomEvent, flushEffects } from '../test-support/renderReactDom';
 import { installTreeEnvironmentMocks } from './testEnvironmentMocks';
 import { TERMINAL_THEMES } from '../../infrastructure/config/terminalThemes';
 
-test('workbench sidebar hosts the host tree inline instead of a second floating column', async () => {
+function makeProps(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    enabled: true,
+    hosts: [
+      {
+        id: 'host-1', label: 'web-01', hostname: '10.0.0.1', username: 'root',
+        port: 22, protocol: 'ssh', tags: [], os: 'linux', group: '',
+      },
+      {
+        id: 'host-2', label: 'idle-02', hostname: '10.0.0.2', username: 'root',
+        port: 22, protocol: 'ssh', tags: [], os: 'linux', group: '',
+      },
+    ],
+    customGroups: [],
+    groupConfigs: [],
+    sessions: [
+      { id: 's1', hostId: 'host-1', hostLabel: 'web-01', username: 'root', hostname: '10.0.0.1', status: 'connected' },
+    ],
+    workspaces: [],
+    editorTabs: [],
+    logViews: [],
+    orderedTabs: ['s1'],
+    showSftpTab: false,
+    currentTerminalTheme: TERMINAL_THEMES[0],
+    onConnectHost: () => {},
+    onNewHost: () => {},
+    switchTabKeyBinding: null,
+    dynamicTabTitleMode: 'off',
+    onActivateTab: () => {}, onActivateWorkspaceSession: () => {}, onCloseSession: () => {},
+    onCloseLogView: () => {}, onOpenQuickSwitcher: () => {}, onRenameSession: () => {},
+    onReconnectSession: () => {}, onRenameWorkspace: () => {}, onCopyWorkspace: () => {}, onCloseWorkspace: () => {},
+    onStartSessionDrag: () => {}, onEndSessionDrag: () => {},
+    onReorderTabs: () => {}, onRemoveSessionFromWorkspace: () => {}, onAppendHostToWorkspace: () => {},
+    onAddSessionToWorkspace: () => {}, onEditHost: () => {},
+    ...overrides,
+  };
+}
+
+test('workbench sidebar is one merged host+session tree with the toolbar above it', async () => {
   const env = installDomEnvironment();
   const restore = installTreeEnvironmentMocks();
   const renderer = await createDomRenderer(env.document);
   try {
     const { AppWorkbenchSessionLayer } = await import('../../application/app/AppWorkbenchSessionLayer');
     const { terminalHostTreeStore } = await import('../../application/state/terminalHostTreeStore');
+    const { activeTabStore } = await import('../../application/state/activeTabStore');
     const { TooltipProvider } = await import('../ui/tooltip');
-    terminalHostTreeStore.setIsOpen(true);
-    await runWithAct(() => {});
-    const noop = () => {};
-    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...({
-      enabled: true,
-      hosts: [{
-        id: 'host-1', label: 'web-01', hostname: '10.0.0.1', username: 'root',
-        port: 22, protocol: 'ssh', tags: [], os: 'linux', group: '',
-      }],
-      customGroups: [],
-      groupConfigs: [],
-      sessions: [],
-      workspaces: [],
-      editorTabs: [],
-      logViews: [],
-      orderedTabs: [],
-      showSftpTab: false,
-      showHostTreeSidebar: true,
-      currentTerminalTheme: TERMINAL_THEMES[0],
-      followAppTerminalTheme: false,
-      themeById: new Map(),
-      onConnectHost: noop,
-      switchTabKeyBinding: null,
-      dynamicTabTitleMode: 'off',
-      onActivateTab: noop, onActivateWorkspaceSession: noop, onCloseSession: noop,
-      onCloseLogView: noop, onOpenQuickSwitcher: noop, onRenameSession: noop,
-      onReconnectSession: noop, onRenameWorkspace: noop, onCopyWorkspace: noop, onCloseWorkspace: noop,
-      onStartSessionDrag: noop, onEndSessionDrag: noop,
-      onReorderTabs: noop, onRemoveSessionFromWorkspace: noop, onAppendHostToWorkspace: noop,
-      onAddSessionToWorkspace: noop, onEditHost: noop,
-    } as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
+    const connected: string[] = [];
+    activeTabStore.setActiveTabId('s1');
+    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...(makeProps({
+      onConnectHost: (host: { id: string }) => connected.push(host.id),
+    }) as unknown as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
 
-    // The host tree renders inside the session layer column...
-    const section = renderer.container.querySelector('[data-section="app-workbench-host-tree-section"]');
-    assert.ok(section, 'embedded host tree section missing');
-    assert.ok(section.querySelector('[data-section="terminal-host-tree-sidebar"]'), 'host tree sidebar must render inside the section');
-    assert.ok(section.querySelector('[data-row-type="host"]'), 'host rows must be reachable from the sidebar');
+    // One tree: the host toolbar sits above it, and no second column/section.
+    assert.ok(renderer.container.querySelector('[data-section="terminal-host-tree-toolbar"]'), 'host toolbar must render above the merged tree');
+    assert.equal(renderer.container.querySelector('[data-section="app-workbench-host-tree-section"]'), null, 'no embedded second section');
+    assert.equal(renderer.container.querySelector('[data-section="app-host-tree-layer-embedded"]'), null);
 
-    // ...and it must not publish a layout width, or content surfaces would
-    // offset themselves for a tree that is already a flex sibling.
+    // Session-less hosts stay listed as connectable rows.
+    const idleRow = renderer.container.querySelector('[data-host-id="host-2"]');
+    assert.ok(idleRow, 'session-less host must appear in the merged tree');
+
+    // Clicking a session-less host row connects it.
+    await dispatchDomEvent(idleRow!, new env.window.MouseEvent('click', { bubbles: true }));
+    assert.deepEqual(connected, ['host-2']);
+
+    // The active session's host row exists with its session nested.
+    assert.ok(renderer.container.querySelector('[data-host-id="host-1"]'));
+    assert.ok(renderer.container.querySelector('[data-section="workbench-tree-session"]'), 'session row nested under its host');
+
+    // The merged tree must not publish a host-tree layout width, or content
+    // surfaces would offset for a tree that is a plain flex sibling.
     assert.equal(terminalHostTreeStore.getLayoutWidth(), 0);
-
-    // Closing the tree removes the section again.
-    await runWithAct(() => { terminalHostTreeStore.setIsOpen(false); });
-    await flushEffects();
-    assert.equal(renderer.container.querySelector('[data-section="app-workbench-host-tree-section"]'), null);
   } finally {
     await renderer.unmount();
     restore();
     env.cleanup();
   }
+});
+
+test('merged tree filtering keeps session hosts visible and hides non-matching connect hosts', async () => {
+  const env = installDomEnvironment();
+  const restore = installTreeEnvironmentMocks();
+  const renderer = await createDomRenderer(env.document);
+  try {
+    const { AppWorkbenchSessionLayer } = await import('../../application/app/AppWorkbenchSessionLayer');
+    const { TooltipProvider } = await import('../ui/tooltip');
+    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...(makeProps() as unknown as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
+    // The search input lives in the expandable panel *next to* the toolbar
+    // row, not inside it, so query the container directly.
+    const input = renderer.container.querySelector('input');
+    assert.ok(input, 'search input must be reachable in the toolbar');
+  } finally {
+    await renderer.unmount();
+    restore();
+    env.cleanup();
+  }
+});
+
+test('filterMergedTreeHosts prunes the connect list but never session hosts', async () => {
+  const { filterMergedTreeHosts } = await import('../../domain/sessionGroupTree');
+  const hosts = [
+    { id: 'host-1', label: 'web-01', tags: ['edge'] },
+    { id: 'host-2', label: 'idle-02', tags: ['edge'] },
+    { id: 'host-3', label: 'db-03', tags: [] },
+  ];
+  const sessionHostIds = new Set(['host-1']);
+
+  // No filter: everything passes through untouched.
+  assert.deepEqual(
+    filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: '', selectedTags: [] }),
+    hosts,
+  );
+
+  // Search that matches nothing: only the session host survives.
+  assert.deepEqual(
+    filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: 'zzz-no-match', selectedTags: [] }).map((host) => host.id),
+    ['host-1'],
+  );
+
+  // Tag filter keeps matching connect hosts and session hosts.
+  assert.deepEqual(
+    filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: '', selectedTags: ['edge'] }).map((host) => host.id),
+    ['host-1', 'host-2'],
+  );
+
+  // Label search reaches the connect list; the session host always stays.
+  assert.deepEqual(
+    filterMergedTreeHosts(hosts, sessionHostIds, { searchTerm: 'idle', selectedTags: [] }).map((host) => host.id),
+    ['host-1', 'host-2'],
+  );
 });

@@ -82,6 +82,8 @@ interface TerminalHostTreeToolbarProps {
   onCollapseAll: () => void;
   canExpandCollapse?: boolean;
   onCollapse: () => void;
+  /** Merged workbench tree: there is nothing to collapse, so no close button. */
+  hideCollapse?: boolean;
 }
 
 const iconButtonClass =
@@ -117,6 +119,7 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
   onCollapseAll,
   canExpandCollapse = true,
   onCollapse,
+  hideCollapse = false,
 }) => {
   const { t } = useI18n();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -482,26 +485,28 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
           </div>
         </ToolbarCustomizeContextMenu>
 
-        <div
-          className="flex shrink-0 items-center"
-          data-section="terminal-host-tree-toolbar-close"
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(iconButtonClass, 'mr-0.5')}
-                style={{ color: theme.mutedFg }}
-                onClick={onCollapse}
-                aria-label={t('terminal.layer.hostTree.collapse')}
-              >
-                <X size={15} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('terminal.layer.hostTree.collapse')}</TooltipContent>
-          </Tooltip>
-        </div>
+        {!hideCollapse && (
+          <div
+            className="flex shrink-0 items-center"
+            data-section="terminal-host-tree-toolbar-close"
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(iconButtonClass, 'mr-0.5')}
+                  style={{ color: theme.mutedFg }}
+                  onClick={onCollapse}
+                  aria-label={t('terminal.layer.hostTree.collapse')}
+                >
+                  <X size={15} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t('terminal.layer.hostTree.collapse')}</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
 
       <div
