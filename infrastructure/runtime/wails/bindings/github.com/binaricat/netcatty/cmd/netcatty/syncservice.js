@@ -40,13 +40,40 @@ export function CancelOAuthCallback(sessionID) {
 }
 
 /**
+ * CloudSyncClearSessionPassword forgets the remembered master key.
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function CloudSyncClearSessionPassword() {
+    return $Call.ByID(1066400102);
+}
+
+/**
+ * CloudSyncGetSessionPassword returns the remembered master key, if any.
+ * @returns {$CancellablePromise<[string, boolean]>}
+ */
+export function CloudSyncGetSessionPassword() {
+    return $Call.ByID(140114145);
+}
+
+/**
+ * CloudSyncResetEverything forgets the master key and every cloud sync
+ * identity key so the user can start over with a new master key.
+ * @returns {$CancellablePromise<string[]>}
+ */
+export function CloudSyncResetEverything() {
+    return $Call.ByID(2998246898).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * CloudSyncS3Delete removes the remote snapshot.
  * @param {json$0.RawMessage} config
  * @returns {$CancellablePromise<$models.CloudSyncDeleteResult>}
  */
 export function CloudSyncS3Delete(config) {
     return $Call.ByID(3082083209, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType2($result);
     }));
 }
 
@@ -57,7 +84,7 @@ export function CloudSyncS3Delete(config) {
  */
 export function CloudSyncS3Download(config) {
     return $Call.ByID(3819402278, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType3($result);
     }));
 }
 
@@ -69,7 +96,7 @@ export function CloudSyncS3Download(config) {
  */
 export function CloudSyncS3Initialize(config) {
     return $Call.ByID(2671827412, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
 }
 
@@ -81,8 +108,18 @@ export function CloudSyncS3Initialize(config) {
  */
 export function CloudSyncS3Upload(config, syncedFile) {
     return $Call.ByID(1283970227, config, syncedFile).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
+}
+
+/**
+ * CloudSyncSetSessionPassword remembers the vault master key for this
+ * session (and seals a copy so a restart does not re-prompt).
+ * @param {string} password
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function CloudSyncSetSessionPassword(password) {
+    return $Call.ByID(3457586941, password);
 }
 
 /**
@@ -92,7 +129,7 @@ export function CloudSyncS3Upload(config, syncedFile) {
  */
 export function CloudSyncWebdavDelete(config) {
     return $Call.ByID(2705735630, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType2($result);
     }));
 }
 
@@ -103,7 +140,7 @@ export function CloudSyncWebdavDelete(config) {
  */
 export function CloudSyncWebdavDownload(config) {
     return $Call.ByID(666948821, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType3($result);
     }));
 }
 
@@ -115,7 +152,7 @@ export function CloudSyncWebdavDownload(config) {
  */
 export function CloudSyncWebdavInitialize(config) {
     return $Call.ByID(317520223, config).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
 }
 
@@ -127,7 +164,7 @@ export function CloudSyncWebdavInitialize(config) {
  */
 export function CloudSyncWebdavUpload(config, syncedFile) {
     return $Call.ByID(3312783184, config, syncedFile).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
 }
 
@@ -153,7 +190,7 @@ export function GithubCancelDeviceFlowPoll(pollID) {
  */
 export function GithubDeleteSyncFile(options) {
     return $Call.ByID(4101237643, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType5($result);
     }));
 }
 
@@ -171,7 +208,7 @@ export function GithubDownloadGistRawContent(options) {
  */
 export function GithubDownloadSyncFile(options) {
     return $Call.ByID(51204524, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType6($result);
     }));
 }
 
@@ -181,7 +218,7 @@ export function GithubDownloadSyncFile(options) {
  */
 export function GithubFindSyncFile(options) {
     return $Call.ByID(2323842771, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -191,7 +228,7 @@ export function GithubFindSyncFile(options) {
  */
 export function GithubGetGistHistory(options) {
     return $Call.ByID(3536758768, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType8($result);
+        return $$createType9($result);
     }));
 }
 
@@ -201,7 +238,7 @@ export function GithubGetGistHistory(options) {
  */
 export function GithubGetUserInfo(options) {
     return $Call.ByID(1159881876, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType9($result);
+        return $$createType10($result);
     }));
 }
 
@@ -211,7 +248,7 @@ export function GithubGetUserInfo(options) {
  */
 export function GithubPollDeviceFlowToken(options) {
     return $Call.ByID(2906562015, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType10($result);
+        return $$createType11($result);
     }));
 }
 
@@ -221,7 +258,7 @@ export function GithubPollDeviceFlowToken(options) {
  */
 export function GithubStartDeviceFlow(options) {
     return $Call.ByID(696828065, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType11($result);
+        return $$createType12($result);
     }));
 }
 
@@ -231,7 +268,7 @@ export function GithubStartDeviceFlow(options) {
  */
 export function GithubUploadSyncFile(options) {
     return $Call.ByID(1083299301, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -241,7 +278,7 @@ export function GithubUploadSyncFile(options) {
  */
 export function GoogleDriveCreateSyncFile(options) {
     return $Call.ByID(976626762, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -251,7 +288,7 @@ export function GoogleDriveCreateSyncFile(options) {
  */
 export function GoogleDriveDeleteSyncFile(options) {
     return $Call.ByID(1871458781, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType5($result);
     }));
 }
 
@@ -261,7 +298,7 @@ export function GoogleDriveDeleteSyncFile(options) {
  */
 export function GoogleDriveDownloadSyncFile(options) {
     return $Call.ByID(2715818782, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType6($result);
     }));
 }
 
@@ -271,7 +308,7 @@ export function GoogleDriveDownloadSyncFile(options) {
  */
 export function GoogleDriveFindSyncFile(options) {
     return $Call.ByID(1688271021, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -281,7 +318,7 @@ export function GoogleDriveFindSyncFile(options) {
  */
 export function GoogleDriveUpdateSyncFile(options) {
     return $Call.ByID(104825143, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType5($result);
     }));
 }
 
@@ -291,7 +328,7 @@ export function GoogleDriveUpdateSyncFile(options) {
  */
 export function GoogleExchangeCodeForTokens(options) {
     return $Call.ByID(2903839302, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType13($result);
     }));
 }
 
@@ -301,7 +338,7 @@ export function GoogleExchangeCodeForTokens(options) {
  */
 export function GoogleGetUserInfo(options) {
     return $Call.ByID(2397403636, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType9($result);
+        return $$createType10($result);
     }));
 }
 
@@ -311,7 +348,7 @@ export function GoogleGetUserInfo(options) {
  */
 export function GoogleRefreshAccessToken(options) {
     return $Call.ByID(2697578239, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType13($result);
     }));
 }
 
@@ -322,7 +359,7 @@ export function GoogleRefreshAccessToken(options) {
  */
 export function Merge(local, remote) {
     return $Call.ByID(3140789034, local, remote).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType14($result);
+        return $$createType15($result);
     }));
 }
 
@@ -332,7 +369,7 @@ export function Merge(local, remote) {
  */
 export function OnedriveDeleteSyncFile(options) {
     return $Call.ByID(4121454560, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType5($result);
     }));
 }
 
@@ -342,7 +379,7 @@ export function OnedriveDeleteSyncFile(options) {
  */
 export function OnedriveDownloadSyncFile(options) {
     return $Call.ByID(828855427, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType6($result);
     }));
 }
 
@@ -352,7 +389,7 @@ export function OnedriveDownloadSyncFile(options) {
  */
 export function OnedriveExchangeCodeForTokens(options) {
     return $Call.ByID(2946340819, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType13($result);
     }));
 }
 
@@ -362,7 +399,7 @@ export function OnedriveExchangeCodeForTokens(options) {
  */
 export function OnedriveFindSyncFile(options) {
     return $Call.ByID(2960220208, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -372,7 +409,7 @@ export function OnedriveFindSyncFile(options) {
  */
 export function OnedriveGetUserInfo(options) {
     return $Call.ByID(2982913789, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType9($result);
+        return $$createType10($result);
     }));
 }
 
@@ -382,7 +419,7 @@ export function OnedriveGetUserInfo(options) {
  */
 export function OnedriveRefreshAccessToken(options) {
     return $Call.ByID(3645062504, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType13($result);
     }));
 }
 
@@ -392,7 +429,7 @@ export function OnedriveRefreshAccessToken(options) {
  */
 export function OnedriveUploadSyncFile(options) {
     return $Call.ByID(2347963314, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType7($result);
     }));
 }
 
@@ -422,24 +459,25 @@ export function OpenProviderConsole(provider) {
  */
 export function PrepareOAuthCallback() {
     return $Call.ByID(1694338819).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType15($result);
+        return $$createType16($result);
     }));
 }
 
 // Private type creation functions
 const $$createType0 = cloudsync$0.CallbackResult.createFrom;
-const $$createType1 = $models.CloudSyncDeleteResult.createFrom;
-const $$createType2 = $models.CloudSyncDownloadResult.createFrom;
-const $$createType3 = $models.CloudSyncResource.createFrom;
-const $$createType4 = cloudsync$0.OKResult.createFrom;
-const $$createType5 = cloudsync$0.DownloadResult.createFrom;
-const $$createType6 = cloudsync$0.FileResult.createFrom;
-const $$createType7 = cloudsync$0.GistRevision.createFrom;
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = cloudsync$0.UserInfo.createFrom;
-const $$createType10 = cloudsync$0.DeviceToken.createFrom;
-const $$createType11 = cloudsync$0.DeviceCode.createFrom;
-const $$createType12 = cloudsync$0.OAuthTokens.createFrom;
-const $$createType13 = syncengine$0.Entry.createFrom;
-const $$createType14 = $Create.Map($Create.Any, $$createType13);
-const $$createType15 = cloudsync$0.CallbackSession.createFrom;
+const $$createType1 = $Create.Array($Create.Any);
+const $$createType2 = $models.CloudSyncDeleteResult.createFrom;
+const $$createType3 = $models.CloudSyncDownloadResult.createFrom;
+const $$createType4 = $models.CloudSyncResource.createFrom;
+const $$createType5 = cloudsync$0.OKResult.createFrom;
+const $$createType6 = cloudsync$0.DownloadResult.createFrom;
+const $$createType7 = cloudsync$0.FileResult.createFrom;
+const $$createType8 = cloudsync$0.GistRevision.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = cloudsync$0.UserInfo.createFrom;
+const $$createType11 = cloudsync$0.DeviceToken.createFrom;
+const $$createType12 = cloudsync$0.DeviceCode.createFrom;
+const $$createType13 = cloudsync$0.OAuthTokens.createFrom;
+const $$createType14 = syncengine$0.Entry.createFrom;
+const $$createType15 = $Create.Map($Create.Any, $$createType14);
+const $$createType16 = cloudsync$0.CallbackSession.createFrom;
