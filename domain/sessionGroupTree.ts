@@ -72,9 +72,11 @@ export interface BuildSessionGroupTreeOptions {
   fixedItems: Array<{ id: string; label: string }>;
   /**
    * When true (workbench merged tree), hosts without sessions are kept as
-   * connectable leaf host nodes instead of being pruned, and empty groups
-   * survive as long as they contain hosts. Local-protocol hosts stay out —
-   * local terminals are reachable through their own section/toolbar action.
+   * connectable leaf host nodes, and every user-created custom group survives
+   * even while empty — inline "new group" creates an empty customGroup entry
+   * first, and pruning it would make the freshly created group invisible.
+   * Local-protocol hosts stay out — local terminals are reachable through
+   * the toolbar action.
    */
   includeAllHosts?: boolean;
 }
@@ -258,12 +260,11 @@ export function buildSessionGroupTree(
 
   const hasSessions = (node: GroupNode): boolean =>
     node.hosts.length > 0 || Object.values(node.children).some(hasSessions);
-  // With includeAllHosts the tree is also the connect list, so groups survive
-  // on hosts alone; otherwise only branches carrying sessions are kept.
-  const groupSurvives = includeAllHosts
-    ? (node: GroupNode): boolean =>
-        node.hosts.length > 0 || Object.values(node.children).some(groupSurvives)
-    : hasSessions;
+  // With includeAllHosts the tree is also the connect list: every host group
+  // survives (they all originate from Host.group) and every custom group
+  // survives too — pruning empties would hide a group the user just created
+  // inline. Without the flag only branches carrying sessions are kept.
+  const groupSurvives = includeAllHosts ? (): boolean => true : hasSessions;
 
   const convertGroupNode = (
     node: GroupNode,

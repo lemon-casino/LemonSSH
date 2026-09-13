@@ -104,6 +104,60 @@ test('merged tree filtering keeps session hosts visible and hides non-matching c
   }
 });
 
+test('new-group inline editor appears on the merged tree and commits via vault actions', async () => {
+  const env = installDomEnvironment();
+  const restore = installTreeEnvironmentMocks();
+  const descriptors = Object.getOwnPropertyDescriptors(globalThis);
+  Object.assign(globalThis, { requestAnimationFrame: () => 1, cancelAnimationFrame: () => {} });
+  const renderer = await createDomRenderer(env.document);
+  const { hostTreeInlineGroupEditStore } = await import('../../application/state/hostTreeInlineGroupEditStore');
+  const { vaultHostTreeActionsStore } = await import('../../application/state/vaultHostTreeActionsStore');
+  try {
+    const { AppWorkbenchSessionLayer } = await import('../../application/app/AppWorkbenchSessionLayer');
+    const { TooltipProvider } = await import('../ui/tooltip');
+    const committed: string[] = [];
+    vaultHostTreeActionsStore.setActions({
+      onDeleteHost: () => {}, onDuplicateHost: () => {}, onCopyCredentials: () => {},
+      onRenameHost: () => {}, onNewGroup: () => {}, onRenameGroup: () => {},
+      onDeleteGroup: () => {},
+      commitInlineGroupRename: (name: string) => {
+        committed.push(name);
+        hostTreeInlineGroupEditStore.clear();
+        return true;
+      },
+      cancelInlineGroupEdit: () => hostTreeInlineGroupEditStore.clear(),
+      commitInlineHostRename: () => {}, cancelInlineHostEdit: () => {},
+      moveHostToGroup: () => {}, moveGroup: () => {}, reorderHost: () => {}, reorderGroup: () => false,
+    });
+    await renderer.render(<TooltipProvider><AppWorkbenchSessionLayer {...(makeProps({
+      customGroups: ['New Group'],
+    }) as unknown as React.ComponentProps<typeof AppWorkbenchSessionLayer>)} /></TooltipProvider>);
+
+    // Simulate what startInlineNewGroup leaves behind: an empty custom group
+    // plus an active inline edit for it.
+    hostTreeInlineGroupEditStore.startEdit({ groupPath: 'New Group', initialName: 'New Group', isNew: true });
+    await flushEffects();
+    const input = renderer.container.querySelector<HTMLInputElement>('input[data-inline-group-edit="true"]');
+    assert.ok(input, 'inline new-group editor must render on the merged tree');
+    assert.equal(input!.value, 'New Group');
+
+    // Enter commits through the registered vault action.
+    await dispatchDomEvent(input!, new env.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await flushEffects();
+    assert.deepEqual(committed, ['New Group']);
+    assert.equal(renderer.container.querySelector('input[data-inline-group-edit="true"]'), null, 'editor closes after commit');
+  } finally {
+    vaultHostTreeActionsStore.setActions(null);
+    await renderer.unmount();
+    for (const key of ['requestAnimationFrame', 'cancelAnimationFrame'] as const) {
+      if (descriptors[key]) Object.defineProperty(globalThis, key, descriptors[key]);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+    restore();
+    env.cleanup();
+  }
+});
+
 test('filterMergedTreeHosts prunes the connect list but never session hosts', async () => {
   const { filterMergedTreeHosts } = await import('../../domain/sessionGroupTree');
   const hosts = [

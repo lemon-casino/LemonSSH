@@ -9,12 +9,19 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "../../application/i18n/I18nProvider";
+import {
+  hostTreeInlineGroupEditStore,
+  useHostTreeInlineGroupEdit,
+} from "../../application/state/hostTreeInlineGroupEditStore";
+import { useVaultHostTreeActions } from "../../application/state/vaultHostTreeActionsStore";
+import { setVaultNavSection } from "../../application/state/vaultNavStore";
 import { terminalReconnectRegistry } from "../../application/state/terminalReconnectRegistry";
 import type { LogView } from "../../application/state/logViewState";
 import type { Host, TerminalSession, Workspace } from "../../types";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { DistroAvatar } from "../DistroAvatar";
+import { HostTreeGroupInlineRenameInput } from "../host/HostTreeGroupInlineRenameInput";
 import { FixedSizeVirtualList, type FixedSizeVirtualListHandle } from "../ui/FixedSizeVirtualList";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger, ContextMenuItem } from "../ui/context-menu";
 import { SessionTabContextMenuContent } from "../top-tabs/SessionTabContextMenuContent";
@@ -89,6 +96,13 @@ export function WorkbenchSessionTreeRow({
   onReconnectSession,
   onEditHost,
   onConnectHost,
+  onNewGroup,
+  onRenameGroup,
+  onDeleteGroup,
+  onCommitInlineGroupRename,
+  onCancelInlineGroupEdit,
+  inlineGroupPath,
+  inlineGroupInitialName,
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
@@ -115,6 +129,13 @@ export function WorkbenchSessionTreeRow({
   onReconnectSession: (sessionId: string) => void;
   onEditHost?: (host: Host) => void;
   onConnectHost?: (host: Host) => void;
+  onNewGroup?: (parentPath?: string) => void;
+  onRenameGroup?: (groupPath: string) => void;
+  onDeleteGroup?: (groupPath: string) => void;
+  onCommitInlineGroupRename?: (name: string) => boolean | void | Promise<boolean | void>;
+  onCancelInlineGroupEdit?: () => void;
+  inlineGroupPath?: string;
+  inlineGroupInitialName?: string;
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
@@ -183,6 +204,10 @@ export function WorkbenchSessionTreeRow({
     const connect = host && onConnectHost ? () => onConnectHost(host) : null;
     const hasChildren = (node.children?.length ?? 0) > 0;
     const expanded = expandedPaths.has(node.id);
+    const isInlineEditing = !isWorkspaceNode
+      && node.type === "group"
+      && inlineGroupPath === node.id
+      && Boolean(onCommitInlineGroupRename);
     const label = isWorkspaceNode
       ? workspaceTitleById.get(workspaceId ?? "") ?? node.label
       : node.label;
@@ -200,6 +225,7 @@ export function WorkbenchSessionTreeRow({
         className="w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
         style={{ marginLeft: indent, width: `calc(100% - ${indent}px)`, height: TREE_ROW_HEIGHT }}
         onClick={() => {
+          if (isInlineEditing) return;
           // Workspace nodes double as tab shortcuts; plain groups toggle.
           if (isWorkspaceNode && workspaceId) {
             onActivateTab(workspaceId);
@@ -212,8 +238,13 @@ export function WorkbenchSessionTreeRow({
           onTogglePath(node.id);
         }}
         onDoubleClick={() => {
-          // Leaf hosts already connect on single click; double-click on an
-          // expandable host connects without waiting for a second toggle.
+          if (isInlineEditing) return;
+          // Double-click on a group renames it inline (host-tree parity);
+          // on an expandable host it connects.
+          if (node.type === "group") {
+            onRenameGroup?.(node.id);
+            return;
+          }
           if (hasChildren) connect?.();
         }}
       >
@@ -239,7 +270,16 @@ export function WorkbenchSessionTreeRow({
             <DistroAvatar host={host} size="xs" fallback={host.label.slice(0, 1).toUpperCase()} />
           </span>
         )}
-        <span className="truncate flex-1 text-left">{label}</span>
+        {isInlineEditing ? (
+          <HostTreeGroupInlineRenameInput
+            initialName={inlineGroupInitialName ?? ""}
+            onCommit={onCommitInlineGroupRename!}
+            onCancel={onCancelInlineGroupEdit ?? (() => {})}
+            className="flex-1 text-xs"
+          />
+        ) : (
+          <span className="truncate flex-1 text-left">{label}</span>
+        )}
         {workspaceId && shortcutNumbers?.has(workspaceId) && <kbd className="shrink-0 text-[10px]">{shortcutNumbers.get(workspaceId)}</kbd>}
         {showCount && (
           <span className="shrink-0 px-1.5 rounded-full bg-foreground/10 text-[10px] text-muted-foreground">
@@ -283,6 +323,15 @@ export function WorkbenchSessionTreeRow({
           {connect && <ContextMenuItem onClick={connect}>{t("vault.hosts.connect")}</ContextMenuItem>}
           {host && onEditHost && (
             <ContextMenuItem onClick={() => onEditHost(host)}>{t("terminal.layer.hostTree.editHost")}</ContextMenuItem>
+          )}
+          {!isWorkspaceNode && node.type === "group" && onNewGroup && (
+            <ContextMenuItem onClick={() => onNewGroup(node.id)}>{t("terminal.layer.hostTree.newGroup")}</ContextMenuItem>
+          )}
+          {!isWorkspaceNode && node.type === "group" && onRenameGroup && (
+            <ContextMenuItem onClick={() => onRenameGroup(node.id)}>{t("common.rename")}</ContextMenuItem>
+          )}
+          {!isWorkspaceNode && node.type === "group" && onDeleteGroup && (
+            <ContextMenuItem className="text-destructive" onClick={() => onDeleteGroup(node.id)}>{t("common.delete")}</ContextMenuItem>
           )}
           {descendantIds.length > 0 && onCopySession && (
             <ContextMenuItem onClick={() => descendantIds.forEach(onCopySession)}>{t("tabs.copyTab")}</ContextMenuItem>
@@ -410,6 +459,8 @@ interface WorkbenchSessionTreeProps {
   toolbar?: React.ReactNode;
   /** Reveal every branch regardless of expandedPaths (active search/filter). */
   expandAllRows?: boolean;
+  /** Expand a branch in the merged tree's own expanded-paths state. */
+  onEnsurePathExpanded?: (path: string) => void;
 }
 
 const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
@@ -440,8 +491,11 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   onOpenQuickSwitcher,
   toolbar,
   expandAllRows = false,
+  onEnsurePathExpanded,
 }) => {
   const { t } = useI18n();
+  const inlineGroupEdit = useHostTreeInlineGroupEdit();
+  const menuActions = useVaultHostTreeActions();
 
   const rows = useMemo(
     () => flattenSessionGroupTree(sections, expandedPaths, expandAllRows),
@@ -453,6 +507,37 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   useEffect(() => {
     listRef.current?.scrollToIndex(activeRowIndex);
   }, [activeTabId, activeRowIndex]);
+
+  // Inline group creation/rename reveals its row (same contract as the
+  // host-tree sidebar's scroll-into-view effect). Ancestor branches are
+  // expanded in this tree's own expanded-paths state, which is independent
+  // from the vault tree the actions hook expanded.
+  useEffect(() => {
+    if (!inlineGroupEdit) return;
+    const parts = inlineGroupEdit.groupPath.split('/').filter(Boolean);
+    for (let index = 1; index < parts.length; index += 1) {
+      onEnsurePathExpanded?.(parts.slice(0, index).join('/'));
+    }
+  }, [inlineGroupEdit, onEnsurePathExpanded]);
+
+  useEffect(() => {
+    if (!inlineGroupEdit?.shouldScrollIntoView) return;
+    const index = rows.findIndex(({ node }) => node.id === inlineGroupEdit.groupPath);
+    if (index < 0) return;
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex(index, 'center');
+      hostTreeInlineGroupEditStore.markScrollHandled();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [rows, inlineGroupEdit]);
+
+  const handleListPointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!inlineGroupEdit || !menuActions) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('[data-inline-group-edit="true"]')) return;
+    menuActions.cancelInlineGroupEdit();
+  }, [inlineGroupEdit, menuActions]);
 
   const sessionById = useMemo(
     () => new Map(sessions.map((session) => [session.id, session])),
@@ -490,6 +575,13 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
       onReconnectSession={onReconnectSession}
       onEditHost={onEditHost}
       onConnectHost={onConnectHost}
+      onNewGroup={menuActions?.onNewGroup}
+      onRenameGroup={menuActions?.onRenameGroup}
+      onDeleteGroup={menuActions?.onDeleteGroup}
+      onCommitInlineGroupRename={menuActions?.commitInlineGroupRename}
+      onCancelInlineGroupEdit={menuActions?.cancelInlineGroupEdit}
+      inlineGroupPath={inlineGroupEdit?.groupPath}
+      inlineGroupInitialName={inlineGroupEdit?.initialName}
       onRenameWorkspace={onRenameWorkspace}
       onCopyWorkspace={onCopyWorkspace}
       onCloseWorkspace={onCloseWorkspace}
@@ -516,16 +608,25 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
     onReconnectSession,
     onEditHost,
     onConnectHost,
+    menuActions,
+    inlineGroupEdit,
     onRenameWorkspace,
     onCopyWorkspace,
     onCloseWorkspace,
     t,
   ]);
 
+  const handleNewSession = useCallback(() => {
+    // "New session" lands on the hosts page where the user picks a host to
+    // connect; a quick-switcher here only ever felt like switching tabs.
+    setVaultNavSection("hosts");
+    onActivateTab("vault");
+  }, [onActivateTab]);
+
   return (
     <div className="flex flex-col min-h-0 w-full" data-section="workbench-session-tree">
       {toolbar}
-      <div className="flex-1 min-h-0 px-1">
+      <div className="flex-1 min-h-0 px-1" onPointerDownCapture={handleListPointerDownCapture}>
         {rows.length === 0 ? (
           <div className="h-full flex items-center justify-center px-4 text-xs text-muted-foreground/70 text-center select-none">
             {t("workbench.tree.empty")}
@@ -545,7 +646,7 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
           variant="ghost"
           size="sm"
           className="flex-1 justify-start gap-2 h-7 text-xs"
-          onClick={onOpenQuickSwitcher}
+          onClick={handleNewSession}
         >
           <Plus size={14} />
           {t("workbench.tree.newSession")}
@@ -584,6 +685,7 @@ export const WorkbenchSessionTree = memo(
     prev.onCloseWorkspace === next.onCloseWorkspace &&
     prev.onOpenQuickSwitcher === next.onOpenQuickSwitcher &&
     prev.toolbar === next.toolbar &&
-    prev.expandAllRows === next.expandAllRows,
+    prev.expandAllRows === next.expandAllRows &&
+    prev.onEnsurePathExpanded === next.onEnsurePathExpanded,
 );
 WorkbenchSessionTree.displayName = "WorkbenchSessionTree";

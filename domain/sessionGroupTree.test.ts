@@ -737,3 +737,20 @@ describe('filterMergedTreeHosts', () => {
     );
   });
 });
+
+describe('includeAllHosts empty custom groups', () => {
+  it('keeps a freshly created empty custom group visible for inline editing', () => {
+    // startInlineNewGroup writes an empty customGroup entry first; pruning
+    // it would make the new group invisible in the merged tree.
+    const tree = buildSessionGroupTree(makeOptions({
+      hosts: [makeHost('h1', 'web-01', 'Prod')],
+      sessions: [makeSession('s1', 'h1')],
+      customGroups: [{ group: 'Prod' }, { group: 'New Group' }],
+      includeAllHosts: true,
+    }));
+
+    const newNode = findNode(tree.groupTree, 'New Group');
+    assert.ok(newNode, 'empty custom group must survive');
+    assert.deepEqual(newNode!.children, []);
+  });
+});
