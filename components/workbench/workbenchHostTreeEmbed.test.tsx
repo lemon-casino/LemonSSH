@@ -34,7 +34,7 @@ function makeProps(overrides: Record<string, unknown> = {}): Record<string, unkn
     switchTabKeyBinding: null,
     dynamicTabTitleMode: 'off',
     onActivateTab: () => {}, onActivateWorkspaceSession: () => {}, onCloseSession: () => {},
-    onCloseLogView: () => {}, onOpenQuickSwitcher: () => {}, onRenameSession: () => {},
+    onCloseLogView: () => {}, onRenameSession: () => {},
     onReconnectSession: () => {}, onRenameWorkspace: () => {}, onCopyWorkspace: () => {}, onCloseWorkspace: () => {},
     onStartSessionDrag: () => {}, onEndSessionDrag: () => {},
     onReorderTabs: () => {}, onRemoveSessionFromWorkspace: () => {}, onAppendHostToWorkspace: () => {},

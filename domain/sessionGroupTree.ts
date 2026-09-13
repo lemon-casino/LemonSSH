@@ -498,7 +498,15 @@ export function flattenSessionGroupTree(
     sections.others,
   ];
   for (const section of sectionNodes) {
-    if (section) walk(section);
+    if (!section) continue;
+    // The grouped-sessions container has no header of its own — its
+    // top-level groups speak for themselves — so emitting the section node
+    // would render an empty placeholder row.
+    if (section.id === 'sessionGroups') {
+      for (const child of section.children) walk(child);
+      continue;
+    }
+    walk(section);
   }
   return rows;
 }

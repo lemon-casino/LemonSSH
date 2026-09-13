@@ -4,7 +4,6 @@ import {
   FileText,
   Folder,
   FolderLock,
-  Plus,
   X,
 } from "lucide-react";
 
@@ -14,7 +13,6 @@ import {
   useHostTreeInlineGroupEdit,
 } from "../../application/state/hostTreeInlineGroupEditStore";
 import { useVaultHostTreeActions } from "../../application/state/vaultHostTreeActionsStore";
-import { setVaultNavSection } from "../../application/state/vaultNavStore";
 import { terminalReconnectRegistry } from "../../application/state/terminalReconnectRegistry";
 import type { LogView } from "../../application/state/logViewState";
 import type { Host, TerminalSession, Workspace } from "../../types";
@@ -454,7 +452,6 @@ interface WorkbenchSessionTreeProps {
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
-  onOpenQuickSwitcher: () => void;
   /** Toolbar rendered above the tree (host actions + search/tags). */
   toolbar?: React.ReactNode;
   /** Reveal every branch regardless of expandedPaths (active search/filter). */
@@ -488,7 +485,6 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
-  onOpenQuickSwitcher,
   toolbar,
   expandAllRows = false,
   onEnsurePathExpanded,
@@ -616,13 +612,6 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
     t,
   ]);
 
-  const handleNewSession = useCallback(() => {
-    // "New session" lands on the hosts page where the user picks a host to
-    // connect; a quick-switcher here only ever felt like switching tabs.
-    setVaultNavSection("hosts");
-    onActivateTab("vault");
-  }, [onActivateTab]);
-
   return (
     <div className="flex flex-col min-h-0 w-full" data-section="workbench-session-tree">
       {toolbar}
@@ -640,17 +629,6 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
             renderItem={renderRow}
           />
         )}
-      </div>
-      <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-t border-border/60 app-no-drag">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex-1 justify-start gap-2 h-7 text-xs"
-          onClick={handleNewSession}
-        >
-          <Plus size={14} />
-          {t("workbench.tree.newSession")}
-        </Button>
       </div>
     </div>
   );
@@ -683,7 +661,6 @@ export const WorkbenchSessionTree = memo(
     prev.onRenameWorkspace === next.onRenameWorkspace &&
     prev.onCopyWorkspace === next.onCopyWorkspace &&
     prev.onCloseWorkspace === next.onCloseWorkspace &&
-    prev.onOpenQuickSwitcher === next.onOpenQuickSwitcher &&
     prev.toolbar === next.toolbar &&
     prev.expandAllRows === next.expandAllRows &&
     prev.onEnsurePathExpanded === next.onEnsurePathExpanded,

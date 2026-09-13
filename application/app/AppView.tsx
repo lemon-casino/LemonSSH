@@ -599,7 +599,6 @@ function AppViewInner({ domains }: AppViewProps) {
         onActivateWorkspaceSession={setWorkspaceFocusedSession}
         onCloseSession={closeSession}
         onCloseLogView={closeLogView}
-        onOpenQuickSwitcher={handleOpenQuickSwitcher}
         onRenameSession={startSessionRename}
         onCopySession={copySessionWithCurrentShell}
         onCopySessionToNewWindow={copySessionToNewWindowWithCurrentShell}

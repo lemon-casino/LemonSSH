@@ -561,9 +561,10 @@ describe('flattenSessionGroupTree', () => {
     const rowIds = rows.map((row) => row.node.id);
     // Fixed items first.
     assert.deepEqual(rowIds.slice(0, 2), ['vaults', 'sftp']);
-    // The group tree section and its collapsed top-level group appear,
-    // but nested groups, hosts, and sessions do not.
-    assert.equal(rowIds.includes('sessionGroups'), true);
+    // The group tree container emits no placeholder row of its own; its
+    // collapsed top-level group appears directly, but nested groups, hosts,
+    // and sessions do not.
+    assert.equal(rowIds.includes('sessionGroups'), false);
     assert.equal(rowIds.includes('Prod'), true);
     assert.equal(rowIds.includes('Prod/Web'), false);
     assert.equal(rowIds.includes('h-web'), false);

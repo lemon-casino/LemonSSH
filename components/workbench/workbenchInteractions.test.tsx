@@ -26,7 +26,7 @@ test('workbench layer sends shared reorder and workspace insertion callbacks', a
       onConnectHost: noop,
       dynamicTabTitleMode: 'off', switchTabKeyBinding: null,
       onActivateTab: noop, onActivateWorkspaceSession: noop, onCloseSession: noop,
-      onCloseLogView: noop, onOpenQuickSwitcher: noop, onRenameSession: noop,
+      onCloseLogView: noop, onRenameSession: noop,
       onReconnectSession: noop, onRenameWorkspace: noop, onCopyWorkspace: noop, onCloseWorkspace: noop,
       onStartSessionDrag: noop, onEndSessionDrag: noop,
       onReorderTabs: (...args: unknown[]) => calls.push(['reorder', ...args]),

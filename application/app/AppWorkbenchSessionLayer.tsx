@@ -61,7 +61,6 @@ interface AppWorkbenchSessionLayerProps {
   onActivateWorkspaceSession: (workspaceId: string, sessionId: string) => void;
   onCloseSession: (sessionId: string, e?: React.MouseEvent) => void;
   onCloseLogView: (logViewId: string) => void;
-  onOpenQuickSwitcher: () => void;
   onRenameSession: (sessionId: string) => void;
   onCopySession?: (sessionId: string) => void;
   onCopySessionToNewWindow?: (sessionId: string) => void;
@@ -102,7 +101,6 @@ function appWorkbenchSessionLayerAreEqual(
     && prev.onActivateWorkspaceSession === next.onActivateWorkspaceSession
     && prev.onCloseSession === next.onCloseSession
     && prev.onCloseLogView === next.onCloseLogView
-    && prev.onOpenQuickSwitcher === next.onOpenQuickSwitcher
     && prev.onRenameSession === next.onRenameSession
     && prev.onCopySession === next.onCopySession
     && prev.onCopySessionToNewWindow === next.onCopySessionToNewWindow
@@ -140,7 +138,6 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   onActivateWorkspaceSession,
   onCloseSession,
   onCloseLogView,
-  onOpenQuickSwitcher,
   onRenameSession,
   onCopySession,
   onCopySessionToNewWindow,
@@ -394,9 +391,9 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
           onRenameWorkspace={onRenameWorkspace}
           onCopyWorkspace={onCopyWorkspace}
           onCloseWorkspace={onCloseWorkspace}
-          onOpenQuickSwitcher={onOpenQuickSwitcher}
           toolbar={toolbar}
           expandAllRows={filterActive}
+          onEnsurePathExpanded={ensurePathExpanded}
         />
         <div
           role="separator"

@@ -26,7 +26,7 @@ test('active session outside the virtual window scrolls into view', async () => 
       fixedIds: new Set(['vault', 'sftp']), expandedPaths: new Set(), activeTabId: 's99',
       onTogglePath: noop, onActivateTab: noop, onActivateWorkspaceSession: noop,
       onCloseSession: noop, onCloseLogView: noop, onRenameSession: noop, onReconnectSession: noop,
-      onRenameWorkspace: noop, onCopyWorkspace: noop, onCloseWorkspace: noop, onOpenQuickSwitcher: noop,
+      onRenameWorkspace: noop, onCopyWorkspace: noop, onCloseWorkspace: noop, 
       shortcutNumbers: new Map([['s99', 3]]),
     });
     const active = renderer.container.querySelector('[data-tab-id="s99"]');
@@ -168,7 +168,7 @@ test("workbench tree renders fixed entries, group badge and pruned sessions", as
       onRenameWorkspace: noop,
       onCopyWorkspace: noop,
       onCloseWorkspace: noop,
-      onOpenQuickSwitcher: noop,
+      
     });
     await flushEffects();
 
@@ -243,7 +243,7 @@ test("workbench tree interactions: group toggle, session activate, workspace act
       onRenameWorkspace: noop,
       onCopyWorkspace: noop,
       onCloseWorkspace: noop,
-      onOpenQuickSwitcher: noop,
+      
     };
     await renderTree(WorkbenchSessionTree, renderer, props);
     await flushEffects();
@@ -317,7 +317,7 @@ test("workbench tree keeps the tree mounted across data updates", async () => {
       onRenameWorkspace: noop,
       onCopyWorkspace: noop,
       onCloseWorkspace: noop,
-      onOpenQuickSwitcher: noop,
+      
     };
     await renderTree(WorkbenchSessionTree, renderer, props);
     await flushEffects();
@@ -383,7 +383,7 @@ test("workbench tree context menu reuses the TopTabs session actions", async () 
       onRenameWorkspace: noop,
       onCopyWorkspace: noop,
       onCloseWorkspace: noop,
-      onOpenQuickSwitcher: noop,
+      
     };
     await renderTree(WorkbenchSessionTree, renderer, props);
     await flushEffects();
