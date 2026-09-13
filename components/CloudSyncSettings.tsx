@@ -10,7 +10,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Key,
+    Loader2,
     ShieldCheck,
+    Trash2,
 } from 'lucide-react';
 import { useCloudSync } from '../application/state/useCloudSync';
 import {
@@ -40,6 +42,7 @@ import {
 import type { ShrinkFinding } from '../domain/syncGuards';
 import { SyncBlockedBanner } from './sync/SyncBlockedBanner';
 import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from './ui/toast';
 
 // ============================================================================
@@ -225,6 +228,8 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
     const [showMasterKey, setShowMasterKey] = useState(false);
     const [isChangingKey, setIsChangingKey] = useState(false);
     const [changeKeyError, setChangeKeyError] = useState<string | null>(null);
+    const [showResetSyncConfirm, setShowResetSyncConfirm] = useState(false);
+    const [isResettingSync, setIsResettingSync] = useState(false);
 
     // One-time unlock prompt (for existing users before password is persisted)
     const [showUnlockDialog, setShowUnlockDialog] = useState(false);
@@ -537,6 +542,19 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
             }
         } finally {
             endPendingConnect('onedrive');
+        }
+    };
+
+    const handleResetSyncInit = async () => {
+        setIsResettingSync(true);
+        try {
+            const removed = await sync.resetSyncEverything();
+            toast.success(t('cloudSync.unlock.forgotDoneToast', { count: removed?.length ?? 0 }));
+            setShowResetSyncConfirm(false);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : t('cloudSync.unlock.forgotFailed'), t('cloudSync.unlock.forgotFailed'));
+        } finally {
+            setIsResettingSync(false);
         }
     };
 
@@ -886,6 +904,15 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
                         <Key size={14} />
                         {t('cloudSync.changeKey')}
                     </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-destructive hover:text-destructive"
+                        onClick={() => setShowResetSyncConfirm(true)}
+                    >
+                        <Trash2 size={14} />
+                        {t('cloudSync.resetInit.button')}
+                    </Button>
                 </div>
             </div>
 
@@ -903,6 +930,32 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
                     onForcePush={() => setShowForcePushConfirm(true)}
                 />
             )}
+
+            <Dialog open={showResetSyncConfirm} onOpenChange={setShowResetSyncConfirm}>
+                <DialogContent className="sm:max-w-[460px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-destructive">
+                            <Trash2 size={16} />
+                            {t('cloudSync.resetInit.title')}
+                        </DialogTitle>
+                        <DialogDescription>{t('cloudSync.resetInit.desc')}</DialogDescription>
+                    </DialogHeader>
+                    <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                        <li>{t('cloudSync.resetInit.itemKey')}</li>
+                        <li>{t('cloudSync.resetInit.itemConnections')}</li>
+                        <li>{t('cloudSync.resetInit.itemLocalSafe')}</li>
+                    </ul>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowResetSyncConfirm(false)} disabled={isResettingSync}>
+                            {t('cloudSync.unlock.forgotCancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={handleResetSyncInit} disabled={isResettingSync} className="gap-1">
+                            {isResettingSync ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {t('cloudSync.unlock.forgotConfirmButton')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <CloudSyncDashboardTabs
                 activeTab={activeTab}
