@@ -1,6 +1,10 @@
 import type { Messages } from '../types';
 
 export const enCoreMessages: Messages = {
+  'profile.persistenceFailed': 'Your profile could not be updated. Recent changes may not have been saved. Please try again.',
+  'terminal.menu.receiveZmodem': 'Receive with ZMODEM',
+  'terminal.zmodem.receiveReady': 'Waiting for ZMODEM. Run sz <file> in the remote terminal to send a file.',
+  'terminal.zmodem.receiveFailed': 'ZMODEM receive failed. Please try again.',
   // Common
   'common.save': 'Save',
   'common.cancel': 'Cancel',
@@ -1123,6 +1127,9 @@ Highlight the focused split pane:
   'settings.plugins.title': 'Plugin settings',
   'settings.plugins.description': 'Native, validated settings contributed by development plugins.',
   'settings.plugins.loading': 'Loading plugin settings…',
+  'settings.plugins.allow.once': 'Allow once',
+  'settings.plugins.allow.session': 'Allow for session',
+  'settings.plugins.legacyGuidance': 'Request a WASM build using manifest v2 from the plugin author. Legacy JavaScript/Node packages cannot be loaded.',
   'settings.plugins.empty': 'No enabled plugin contributes settings.',
   'settings.plugins.scopeContext': 'Open this setting in its {scope} context.',
   'settings.plugins.pressKeybinding': 'Press a key combination',

@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestTempServiceWriteReadRemove(t *testing.T) {
@@ -34,6 +36,224 @@ func TestTempServiceWriteReadRemove(t *testing.T) {
 	}
 	if _, err := service.ReadFile("sftp/download/report.txt"); err == nil {
 		t.Fatal("removed file must be gone")
+	}
+}
+
+func TestTempOrphanCleanupAcrossServiceLifetimes(t *testing.T) {
+	root := t.TempDir()
+	previous, err := NewTempService(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stage, err := previous.CreateStagingFile("unfinished.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stage.Close(); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := previous.CreateDir(TransferTempPrefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "upload.zip"), []byte("partial"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	external, err := previous.ReserveFilePath("external-edit.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(external, []byte("unsaved work"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if count, err := previous.CleanupOrphans(); err != nil || count != 0 {
+		t.Fatalf("same lifetime cleanup removed active work: %d, %v", count, err)
+	}
+	// Simulate process restart: the previous instance is no longer used.
+	current, err := NewTempService(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count, err := current.CleanupOrphans(); err != nil || count != 2 {
+		t.Fatalf("startup cleanup: %d, %v", count, err)
+	}
+	for _, path := range []string{stage.Name(), dir} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("orphan remains: %s, %v", path, err)
+		}
+	}
+	if data, err := os.ReadFile(external); err != nil || string(data) != "unsaved work" {
+		t.Fatalf("startup touched external edit: %q, %v", data, err)
+	}
+}
+
+func TestTempLeasesSurviveClearUntilRelease(t *testing.T) {
+	service, err := NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := service.CreateStagingFile("paused.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-365 * 24 * time.Hour)
+	if err := os.Chtimes(file.Name(), old, old); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := service.CreateDir(TransferTempPrefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	external, err := service.ReserveFilePath("download.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(external); !os.IsNotExist(err) {
+		t.Fatalf("reservation created placeholder: %v", err)
+	}
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(external, []byte("download"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if count, err := service.ClearInactive(); err != nil || count != 0 {
+		t.Fatalf("active cleanup: %d, %v", count, err)
+	}
+	for _, path := range []string{file.Name(), dir, external} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("active artifact lost: %s, %v", path, err)
+		}
+		if err := service.Release(path); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if count, err := service.ClearInactive(); err != nil || count != 3 {
+		t.Fatalf("released cleanup: %d, %v", count, err)
+	}
+}
+
+func TestTempDiscardWaitsForAllIOPins(t *testing.T) {
+	service, err := NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := service.CreateDir(TransferTempPrefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "archive.zip")
+	if err := os.WriteFile(path, []byte("upload"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	first, err := service.Acquire(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.Acquire(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Remove(filepath.Base(dir)); err != nil {
+		t.Fatal(err)
+	}
+	first()
+	first() // Release callbacks are idempotent.
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("discard deleted pinned archive: %v", err)
+	}
+	if _, err := service.Acquire(path); err == nil {
+		t.Fatal("new I/O acquired a discarded path")
+	}
+	second()
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("final pin did not remove archive directory: %v", err)
+	}
+}
+
+func TestTempParallelAllocationAndClear(t *testing.T) {
+	service, err := NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var workers sync.WaitGroup
+	workers.Add(5)
+	go func() {
+		defer workers.Done()
+		for range 120 {
+			if err := service.Clear(); err != nil {
+				t.Error(err)
+			}
+			if _, err := service.CleanupOrphans(); err != nil {
+				t.Error(err)
+			}
+		}
+	}()
+	for range 4 {
+		go func() {
+			defer workers.Done()
+			for range 30 {
+				dir, err := service.CreateDir(TransferTempPrefix)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if err := os.WriteFile(filepath.Join(dir, "upload.zip"), []byte("archive"), 0600); err != nil {
+					t.Error(err)
+				}
+				if err := service.Release(dir); err != nil {
+					t.Error(err)
+				}
+				external, err := service.ReserveFilePath("download.txt")
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if err := os.WriteFile(external, []byte("download"), 0600); err != nil {
+					t.Error(err)
+				}
+				if data, err := os.ReadFile(external); err != nil || string(data) != "download" {
+					t.Errorf("active download cleared: %q, %v", data, err)
+				}
+				if err := service.Release(external); err != nil {
+					t.Error(err)
+				}
+				file, err := service.CreateStagingFile("race.txt")
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if _, err := file.WriteString("still active"); err != nil {
+					t.Error(err)
+				}
+				if err := file.Close(); err != nil {
+					t.Error(err)
+				}
+				if err := service.AppendStaging(file.Name(), 12, []byte("!")); err != nil {
+					t.Error(err)
+				}
+				if data, err := os.ReadFile(file.Name()); err != nil || string(data) != "still active!" {
+					t.Errorf("active allocation cleared: %q, %v", data, err)
+				}
+				if err := service.Release(file.Name()); err != nil {
+					t.Error(err)
+				}
+			}
+		}()
+	}
+	workers.Wait()
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(service.Root())
+	if err != nil || len(entries) != 0 || len(service.active) != 0 {
+		t.Fatalf("released allocations remain: %v, %v, leases=%d", entries, err, len(service.active))
 	}
 }
 

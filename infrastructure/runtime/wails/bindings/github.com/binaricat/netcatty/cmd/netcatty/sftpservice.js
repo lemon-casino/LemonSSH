@@ -23,6 +23,16 @@ import * as sftp$0 from "../../internal/terminal/sftp/models.js";
 import * as $models from "./models.js";
 
 /**
+ * @param {string} sessionID
+ * @param {string} target
+ * @param {string} permissions
+ * @returns {$CancellablePromise<void>}
+ */
+export function Chmod(sessionID, target, permissions) {
+    return $Call.ByID(3836466009, sessionID, target, permissions);
+}
+
+/**
  * Close releases the SFTP client and returns the transport to the pool.
  * @param {string} sessionID
  * @returns {$CancellablePromise<void>}
@@ -86,11 +96,21 @@ export function Mkdir(sessionID, dir) {
 
 /**
  * Open dials (or borrows) a transport for host and registers an SFTP session.
- * @param {$models.SSHConnectRequest} request
+ * @param {$models.SFTPOpenRequest} request
  * @returns {$CancellablePromise<string>}
  */
 export function Open(request) {
     return $Call.ByID(3618100000, request);
+}
+
+/**
+ * OpenForTerminal opens only a subsystem on the exact authenticated transport.
+ * It owns the SFTP channel, never the terminal's SSH connection or credentials.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<string>}
+ */
+export function OpenForTerminal(sessionID) {
+    return $Call.ByID(3653999587, sessionID);
 }
 
 /**

@@ -55,6 +55,88 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
   };
 }
 
+test("Complete resolves authoritative clean/error/closed exit metadata", async () => {
+  for (const status of [{ reason: "exited" as const, exitCode: 0 }, { reason: "exited" as const, exitCode: 7 }, { reason: "closed" as const }, { reason: "error" as const, error: "transport lost" }]) {
+    const bindings = stubBindings({ GetExitStatus: async () => ({ sessionId: "term-1", ...status }) });
+    let complete: (() => void) | undefined;
+    bindings.openDataPlane = options => { complete = options.onComplete; return { dispose() {} }; };
+    const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+    await bridge.startSSHSession({ hostname: "host", username: "user" });
+    const received = new Promise(resolve => bridge.onSessionExit("term-1", resolve));
+    complete!();
+    assert.deepEqual(await received, { sessionId: "term-1", ...status });
+  }
+});
+
+test("native exit remains authoritative when Complete is lost with the socket", async () => {
+  const bindings = stubBindings({ GetExitStatus: async () => ({ sessionId: "term-1", reason: "exited", exitCode: 0 }) });
+  let disconnect: (() => void) | undefined;
+  bindings.openDataPlane = options => { disconnect = options.onDisconnect; return { dispose() {} }; };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ hostname: "host", username: "user" });
+  const result = new Promise(resolve => bridge.onSessionExit("term-1", resolve));
+  disconnect!();
+  assert.deepEqual(await Promise.race([result, new Promise(resolve => setTimeout(() => resolve("missing exit"), 100))]), { sessionId: "term-1", reason: "exited", exitCode: 0 });
+  await bridge.closeSession("term-1");
+});
+
+test("OSC notification bridge reports native delivery and failure", async () => {
+  const bindings = stubBindings();
+  bindings.settings = { Open: async () => true, Close: async () => {}, ShowSystemNotification: async payload => ({ shown: payload.body === "ready" }) };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.deepEqual(await bridge.showSystemNotification!({ title: "Host", body: "ready" }), { shown: true });
+  bindings.settings.ShowSystemNotification = async () => { throw new Error("unavailable"); };
+  assert.deepEqual(await bridge.showSystemNotification!({ title: "Host", body: "ready" }), { shown: false, reason: "Error: unavailable" });
+});
+
+test("clipboard image bridge uses managed native files and exact terminal aliases", async () => {
+  const bindings = stubBindings();
+  const opened: string[] = [];
+  bindings.sftp.OpenForTerminal = async id => { opened.push(id); return `sftp-${id}`; };
+  const image = { path: "C:\\Netcatty\\temp\\shot.png", name: "shot.png", mediaType: "image/png", size: 123 };
+  bindings.filesystem = { ReadClipboardImage: async () => image };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ sessionId: "ui-image", hostname: "host", username: "user" });
+  assert.deepEqual(await bridge.readClipboardImage!(), image);
+  assert.equal(await bridge.openSftpForSession!("ui-image"), "sftp-term-1");
+  assert.equal(await bridge.openSftpForSession!("native-other"), "sftp-native-other");
+  assert.deepEqual(opened, ["term-1", "native-other"]);
+  bindings.filesystem.ReadClipboardImage = async () => null;
+  assert.equal(await bridge.readClipboardImage!(), null);
+  bindings.sftp.OpenForTerminal = async () => { throw new Error("closed terminal"); };
+  await assert.rejects(bridge.openSftpForSession!("ui-image"), /closed terminal/);
+});
+
+test("autocomplete bridge lists the aliased terminal without PTY writes", async () => {
+  const bindings = stubBindings({
+    ListAutocompleteDirectory: async (id, directory, foldersOnly) => ({
+      success: id === 'term-1' && directory === '/data' && foldersOnly,
+      entries: [{ name: 'Mihomo', type: 'directory' }],
+    }),
+    Write: () => { throw new Error('completion must never write to PTY'); },
+  });
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ sessionId: 'ui-completion', hostname: 'host', username: 'user' });
+  const result = await bridge.listAutocompleteRemoteDir!('ui-completion', '/data', true);
+  assert.equal(result.success, true);
+  assert.equal(result.entries[0].name, 'Mihomo');
+});
+
+test("system unlock keeps unavailable native status and rejected authentication fail closed", async () => {
+  const bindings = stubBindings();
+  bindings.appLock = {
+    GetRuntimeState: async () => ({initialized:true,locked:true,reason:"manual",version:1,lastLockedAt:1,lastUnlockedAt:null,lastActivityAt:null}),
+    GetSystemUnlockStatus: async () => ({supported:true,available:false,enabled:false,platform:"win32",label:"Windows Hello",reason:"not configured"}),
+    UnlockWithBiometrics: async () => ({success:false,error:"disabled"}),
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.equal((await bridge.getAppLockSystemUnlockStatus!()).available, false);
+  assert.deepEqual(await bridge.requestAppLockSystemUnlock!(), {ok:false,error:"disabled"});
+  bindings.appLock.UnlockWithBiometrics = async () => ({success:true});
+  assert.deepEqual(await bridge.requestAppLockSystemUnlock!(), {ok:true});
+  assert.deepEqual(await createWailsRuntimeClient(stubBindings()).transitionBridge.requestAppLockSystemUnlock!(), {ok:false,error:"unsupported"});
+});
+
 test("local browsing uses native paths through the bridge and fails without filesystem bindings", async () => {
   let listing!: ReturnType<typeof useSftpDirectoryListing>;
   function Probe() {
@@ -74,7 +156,10 @@ test("local browsing uses native paths through the bridge and fails without file
         return [{ name: "real.pdf", type: "file", size: "7", lastModified: "2026-09-11T00:00:00Z" }];
       },
     };
-    bindings.sftp.Upload = async (_sessionId, path) => { uploads.push(path); return 7; };
+    bindings.transfer = {
+      Start: async request => { uploads.push(request.sourcePath); return { taskId: request.taskId, state: 'completed', totalBytes: 7, doneBytes: 7 }; },
+      Progress: async () => { throw new Error('Already completed'); },
+    };
     const client = createWailsRuntimeClient(bindings);
     setActiveRuntimeClient(client);
     assert.equal(await client.sftp.getHomeDir!(), home);
@@ -112,6 +197,28 @@ test("local browsing uses native paths through the bridge and fails without file
   }
 });
 
+test("SFTP terminal actions resolve UI IDs and keep native clipboard text intact", async () => {
+  const writes: unknown[][] = [];
+  const bindings = stubBindings({
+    Connect: async () => "native-a",
+    Write: (...args) => { writes.push(args); },
+    GetSessionPwd: async (id, options) => {
+      assert.deepEqual(options, { allowHomeFallback: false, allowLoginShellFallback: false, timeoutMs: 350 });
+      return { success: id === "native-a", cwd: "/srv/a b'\u76ee\u5f55" };
+    },
+    GetSessionRemoteInfo: async () => ({ success: true, remoteSshVersion: "OpenSSH_9" }),
+  });
+  let clipboard = "";
+  bindings.clipboard = { SetText: async text => { clipboard = text; return true; }, Text: async () => clipboard };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession({ sessionId: "ui-a", hostname: "h", username: "u" });
+  client.transitionBridge.writeToSession("ui-a", "cd '/srv/a b'\r");
+  assert.equal(writes[0][0], "native-a");
+  assert.equal((await client.terminal.getSessionPwd!("ui-a", { allowHomeFallback: false, timeoutMs: 350 })).cwd, "/srv/a b'\u76ee\u5f55");
+  await client.transitionBridge.writeClipboardText!("/srv/a b'\u76ee\u5f55");
+  assert.equal(await client.transitionBridge.readClipboardText!(), "/srv/a b'\u76ee\u5f55");
+});
+
 test("transitionBridge startSSHSession attaches the data plane", async () => {
   const bindings = stubBindings();
   const client = createWailsRuntimeClient(bindings);
@@ -135,15 +242,15 @@ test("transitionBridge closeSession disposes the data plane", async () => {
   assert.equal(disposed, true);
 });
 
-test("optional-chain startup calls do not throw on missing bridge methods", () => {
+test("optional startup methods remain safe and missing native settings reject explicitly", async () => {
   const client = createWailsRuntimeClient(stubBindings());
   const bridge = client.transitionBridge;
   assert.doesNotThrow(() => {
-    bridge.setLanguage?.("en");
-    void bridge.getAppLockSettings?.();
     void bridge.rendererReady?.();
     void bridge.notifySettingsChanged?.({ key: "x", value: "y" });
   });
+  await bridge.setLanguage?.("en");
+  await assert.rejects(bridge.getAppLockSettings!(), /App lock settings unavailable/);
 });
 
 test("openSettingsWindow creates or focuses a dedicated settings window", async () => {
@@ -188,6 +295,82 @@ test("startLocalSession attaches the data plane", async () => {
   const client = createWailsRuntimeClient(bindings);
   const id = await client.transitionBridge.startLocalSession?.({ shell: "cmd.exe" });
   assert.equal(id, "local-1");
+});
+
+test("startMoshSession and startEtSession forward proxy and jump hosts to the Go bridge", async () => {
+  const seen: Array<Record<string, unknown>> = [];
+  const bindings = stubBindings({
+    StartMosh: async (request) => {
+      seen.push(request as Record<string, unknown>);
+      return "mosh-1";
+    },
+    StartEt: async (request) => {
+      seen.push(request as Record<string, unknown>);
+      return "et-1";
+    },
+  });
+  const client = createWailsRuntimeClient(bindings);
+  const options = {
+    hostname: "h",
+    username: "u",
+    proxy: { type: "socks5", host: "127.0.0.1", port: 1080, username: "p", password: "s" },
+    jumpHosts: [{ hostname: "jump", username: "bastion", port: 2222 }],
+  };
+  await client.transitionBridge.startMoshSession!(options);
+  await client.transitionBridge.startEtSession!(options);
+  assert.equal(seen.length, 2);
+  for (const request of seen) {
+    assert.equal(request.proxyUrl, "socks5://p:s@127.0.0.1:1080");
+    assert.deepEqual(request.proxyCommand, "");
+    assert.equal((request.jumpHosts as Array<Record<string, unknown>>)[0].hostname, "jump");
+    assert.equal((request.jumpHosts as Array<Record<string, unknown>>)[0].port, 2222);
+  }
+});
+
+test("onHelperLifecycle fans mosh/et lifecycle events and restartHelperSession maps aliases", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const restarted: string[] = [];
+  const bindings = stubBindings({
+    StartMosh: async () => "mosh-1",
+    RestartHelper: async (sessionID) => {
+      if (sessionID !== "mosh-1") throw new Error("helper session not found");
+      restarted.push(sessionID);
+      return { state: "running", attempt: 0, sessionId: sessionID };
+    },
+  });
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ state: string; sessionId: string }> = [];
+  const dispose = client.transitionBridge.onHelperLifecycle!("ui-mosh", (evt) => seen.push({ state: evt.state, sessionId: evt.sessionId }));
+  // Listeners may also register under the native session id directly.
+  const etSeen: Array<{ state: string; sessionId: string }> = [];
+  client.transitionBridge.onHelperLifecycle!("et-1", (evt) => etSeen.push({ state: evt.state, sessionId: evt.sessionId }));
+  await client.transitionBridge.startMoshSession!({ sessionId: "ui-mosh", hostname: "h", username: "u" });
+  listeners.get("mosh:lifecycle")?.[0]({ data: { state: "failed", attempt: 3, sessionId: "mosh-1", kind: "mosh" } });
+  listeners.get("et:lifecycle")?.[0]({ data: { state: "running", attempt: 0, sessionId: "et-1" } });
+  // The mosh listener matches via its alias and must not see other sessions.
+  assert.deepEqual(seen, [{ state: "failed", sessionId: "mosh-1" }]);
+  assert.deepEqual(etSeen, [{ state: "running", sessionId: "et-1" }]);
+  dispose();
+  listeners.get("mosh:lifecycle")?.[0]({ data: { state: "failed", sessionId: "mosh-1" } });
+  assert.equal(seen.length, 1);
+
+  assert.deepEqual(
+    await client.transitionBridge.restartHelperSession!("ui-mosh"),
+    { success: true, state: { state: "running", attempt: 0, sessionId: "mosh-1" } },
+  );
+  assert.deepEqual(restarted, ["mosh-1"]);
+  assert.deepEqual(
+    await client.transitionBridge.restartHelperSession!("gone"),
+    { success: false, error: "helper session not found" },
+  );
 });
 
 test("startSSHSession maps jump and MFA onto one Connect payload", async () => {
@@ -292,10 +475,13 @@ test("native file and folder drops upload to the original tab and complete witho
     ],
   };
   bindings.sftp.Stat = async () => { throw new Error("no such file"); };
-  bindings.sftp.Upload = async (id, source, target) => {
-    assert.equal(id, "original-sftp");
-    uploaded.push(`${source} -> ${target}`);
-    return 3;
+  bindings.transfer = {
+    Start: async request => {
+      assert.equal(request.targetSessionId, 'original-sftp');
+      uploaded.push(`${request.sourcePath} -> ${request.targetPath}`);
+      return { taskId: request.taskId, state: 'completed', totalBytes: 3, doneBytes: 3 };
+    },
+    Progress: async () => { throw new Error('Already completed'); },
   };
   bindings.sftp.Mkdir = async (_id, path) => { directories.push(path); };
   let operations!: ReturnType<typeof useSftpExternalOperations>;
@@ -309,8 +495,13 @@ test("native file and folder drops upload to the original tab and complete witho
     });
     return null;
   }
+  let unsubscribeTransferEvents: (() => void) | undefined;
   try {
-    setActiveRuntimeClient(createWailsRuntimeClient(bindings));
+    const client = createWailsRuntimeClient(bindings);
+    setActiveRuntimeClient(client);
+    unsubscribeTransferEvents = client.transitionBridge.onGlobalSftpTransferEvent?.(event => {
+      sftpTransferCenterStore.ingestBackgroundEvent(event);
+    });
     renderToStaticMarkup(createElement(Probe));
     const results = await operations.uploadExternalPaths("left", ["C:\\drop\\one.txt", "C:\\drop\\folder"]);
     assert.ok(results.length >= 2 && results.every((result) => result.success), JSON.stringify(results));
@@ -323,6 +514,7 @@ test("native file and folder drops upload to the original tab and complete witho
     assert.ok(tasks.length >= 2);
     assert.ok(tasks.every((task) => task.status === "completed"), JSON.stringify(tasks.map((task) => [task.fileName, task.status])));
   } finally {
+    unsubscribeTransferEvents?.();
     for (const task of sftpTransferCenterStore.getSnapshot().tasks) {
       if (task.ownerId === "native-drop-regression") sftpTransferCenterStore.dismiss(task.id);
     }
@@ -385,6 +577,8 @@ test("pauseTransfer reaches the Go transfer service", async () => {
   const paused: string[] = [];
   const bindings = stubBindings();
   bindings.transfer = {
+    Start: async () => ({ taskId: 't-1', state: 'running', totalBytes: 10, doneBytes: 2 }),
+    Progress: async () => ({ taskId: 't-1', state: 'paused', totalBytes: 10, doneBytes: 2 }),
     Pause: async (taskID) => {
       paused.push(taskID);
     },
@@ -425,12 +619,14 @@ test("startCompressedUpload fails closed until a compressed-upload owner exists"
   assert.equal(result?.success, false);
 });
 
-test("startCompressedUpload calls UploadCompressedFolder", async () => {
+test("startCompressedUpload calls the scheduler compressed owner", async () => {
   const seen: string[] = [];
   const bindings = stubBindings();
-  bindings.sftp.UploadCompressedFolder = async (sftpID, localFolder, remoteZipPath) => {
-    seen.push(sftpID, localFolder, remoteZipPath);
-    return 12;
+  bindings.transfer = {
+    Start: async () => { throw new Error('wrong start'); },
+    StartCompressed: async request => { seen.push(request.targetSessionId, request.sourcePath, request.targetPath); return { taskId:request.taskId,state:'completed',totalBytes:12,doneBytes:12 }; },
+    Progress: async () => ({taskId:'c1',state:'completed',totalBytes:12,doneBytes:12}),
+    Pause:async()=>{},Resume:async()=>{},Cancel:async()=>{},
   };
   const client = createWailsRuntimeClient(bindings);
   const result = await client.transitionBridge.startCompressedUpload?.({
@@ -511,4 +707,113 @@ test("onSessionData fans out chunks from the data plane", async () => {
   dispose();
   deliver?.("ignored");
   assert.deepEqual(seen, ["prompt$ "]);
+});
+
+test("cloud OAuth methods surface on the sync port and transition bridge", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    GithubStartDeviceFlow: async (options: { clientId?: string; scope?: string }) => {
+      calls.push("device-flow");
+      assert.equal(options.clientId, "cid");
+      return { deviceCode: "dc", userCode: "uc", verificationUri: "https://github.com/login/device", expiresAt: 1 };
+    },
+    GoogleGetUserInfo: async (options: { accessToken: string }) => ({ email: "me@example.com" }),
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(typeof client.sync.githubStartDeviceFlow, "function", "sync port must expose the camelCase facade");
+  const device = await client.transitionBridge.githubStartDeviceFlow!({ clientId: "cid" });
+  assert.equal(device.userCode, "uc");
+  assert.equal(typeof client.transitionBridge.googleGetUserInfo, "function");
+  assert.deepEqual(calls, ["device-flow"]);
+});
+
+test("openProviderConsole forwards the allow-listed provider to the Go bridge", async () => {
+  const requested: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    OpenProviderConsole: async (provider: 'github' | 'google' | 'onedrive') => {
+      requested.push(provider);
+    },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(typeof client.transitionBridge.openProviderConsole, "function");
+  await client.transitionBridge.openProviderConsole!('github');
+  assert.deepEqual(requested, ['github']);
+  await client.sync.openProviderConsole!('google');
+  assert.deepEqual(requested, ['github', 'google']);
+});
+
+test("credentials round-trip through the Go credential provider with the enc:v1 contract", async () => {
+  const sealed: string[] = [];
+  const bindings = stubBindings();
+  bindings.credential = {
+    Available: async () => true,
+    Seal: async (plaintextBase64: string, purpose: string) => {
+      assert.equal(purpose, "cloud-sync-credentials");
+      sealed.push(plaintextBase64);
+      return Buffer.from(`sealed(${Buffer.from(plaintextBase64, "base64").toString("utf8")})`).toString("base64");
+    },
+    Open: async (envelopeBase64: string, purpose: string) => {
+      assert.equal(purpose, "cloud-sync-credentials");
+      const decoded = Buffer.from(envelopeBase64, "base64").toString("utf8");
+      const inner = decoded.startsWith("sealed(") ? decoded.slice(7, -1) : decoded;
+      return Buffer.from(inner, "utf8").toString("base64");
+    },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(await client.files.credentialsAvailable?.(), true);
+  const envelope = await client.files.credentialsEncrypt?.("github-token");
+  assert.match(envelope, /^enc:v1:/);
+  const storedSealed = sealed[0];
+  assert.equal(await client.files.credentialsDecrypt?.(envelope), "github-token");
+  assert.equal(sealed.length, 1);
+  // A plaintext passthrough value decrypts unchanged, matching the Electron contract.
+  assert.equal(await client.files.credentialsDecrypt?.("plain-value"), "plain-value");
+  void storedSealed;
+});
+
+test("cloud sync session and reset methods are reachable on both surfaces", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    // Mirror the generated wire shape: []string arrives wrapped.
+    CloudSyncResetEverything: async () => { calls.push("reset"); return { removedKeys: ["key-a"] }; },
+    CloudSyncSetSessionPassword: async () => { calls.push("set"); return true; },
+    CloudSyncGetSessionPassword: async () => { calls.push("get"); return { password: "p", found: true }; },
+    CloudSyncClearSessionPassword: async () => { calls.push("clear"); return { success: true }; },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.deepEqual(await client.sync.cloudSyncResetEverything(), ["key-a"]);
+  await client.sync.cloudSyncSetSessionPassword!("p");
+  assert.equal(await client.sync.cloudSyncGetSessionPassword!(), "p");
+  assert.deepEqual(await client.sync.cloudSyncClearSessionPassword!(), { success: true });
+  assert.deepEqual(calls, ["reset", "set", "get", "clear"]);
+  assert.equal(typeof client.transitionBridge.cloudSyncResetEverything, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncSetSessionPassword, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncGetSessionPassword, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncClearSessionPassword, "function");
+});
+
+test("vault backup methods are reachable on both surfaces", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    GetVaultBackupCapabilities: async () => { calls.push("caps"); return { encryptionAvailable: true }; },
+    CreateVaultBackup: async () => { calls.push("create"); return { created: true, backup: { id: "b1" } }; },
+    ListVaultBackups: async () => { calls.push("list"); return { backups: [{ id: "b1" }] }; },
+    ReadVaultBackup: async () => { calls.push("read"); return { backup: { id: "b1" }, payload: { hosts: [] } }; },
+    TrimVaultBackups: async () => { calls.push("trim"); return { deletedCount: 0, keptCount: 1 }; },
+    OpenVaultBackupDir: async () => { calls.push("open"); return { success: true, path: "/tmp" }; },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.deepEqual(await client.sync.getVaultBackupCapabilities(), { encryptionAvailable: true });
+  assert.equal((await client.sync.createVaultBackup({ payload: { hosts: [] }, reason: "before_restore" })).created, true);
+  assert.equal((await client.sync.listVaultBackups()).length, 1);
+  assert.equal((await client.sync.readVaultBackup({ id: "b1" })).backup.id, "b1");
+  await client.sync.trimVaultBackups({ maxCount: 20 });
+  await client.sync.openVaultBackupDir();
+  assert.deepEqual(calls, ["caps", "create", "list", "read", "trim", "open"]);
+  assert.equal(typeof client.transitionBridge.createVaultBackup, "function");
+  assert.equal(typeof client.transitionBridge.listVaultBackups, "function");
 });

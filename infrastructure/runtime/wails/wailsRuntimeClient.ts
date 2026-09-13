@@ -3,13 +3,14 @@
 // ESLint). Ports without a Go owner reject every call fail-closed instead of
 // pretending parity; they are implemented domain by domain from P2 onward.
 
-import { Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
+import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
 import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
 import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
+import * as credentialService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/credentialservice";
 import * as pluginService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/pluginservice";
 import * as deepLinkService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/deeplinkservice";
 import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/filesystemservice";
@@ -37,7 +38,16 @@ import type { RuntimeClient } from "../runtimeClient";
 import type { RemoteFile } from "../../../domain/models/workspace";
 import { openDataPlaneSession } from "./dataPlaneSession";
 import type { DataPlaneSessionHandle } from "./dataPlaneSession";
+import { createLocalShellBridge, type NativeLocalShellBindings } from './localShellBridge';
+import { createCloudOAuthFacade, type CloudOAuthBindings } from '../../services/cloudSync/cloudSyncFacade';
+import { createMonitoringBridge, type MonitoringBindings } from './monitoringBridge';
 import { readLocalTree } from "./localTree";
+import { createTransferBridge, type TransferBindings } from "./transferBridge";
+import { createNativeFileActions, type NativeFileBindings } from "./nativeFileActions";
+import * as profileBindings from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/profileservice";
+import { createZmodemBridge } from './zmodemBridge';
+import { subscribePopupConfig } from './popupConfigSubscription';
+import { configureProfileBindings } from "../profile/profileClient";
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -68,7 +78,10 @@ function missingBridgeMethod(property: string | symbol): never {
 }
 
 export interface WailsBindingDeps {
-  terminal: {
+  terminal: NativeLocalShellBindings & MonitoringBindings & {
+    ListAutocompleteDirectory?: (sessionID: string, directory: string, foldersOnly: boolean, prefix: string, limit: number) => Promise<{ success: boolean; entries: Array<{ name: string; type: 'file' | 'directory' | 'symlink' }>; error?: string }>;
+    GetSessionPwd?: (sessionID: string, options: { allowHomeFallback: boolean; allowLoginShellFallback: boolean; timeoutMs: number }) => Promise<{ success: boolean; cwd?: string; error?: string }>;
+    GetSessionRemoteInfo?: (sessionID: string) => Promise<{ success: boolean; remoteSshVersion?: string; error?: string }>;
     Connect: (request: unknown) => Promise<string>;
     RespondKeyboardInteractive?: (requestID: string, responses: string[], cancelled: boolean) => Promise<unknown>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
@@ -84,6 +97,8 @@ export interface WailsBindingDeps {
       productId?: string;
       pnpId?: string;
     }>>;
+    SendZmodem?: (sessionID: string, filePath: string, remoteName: string, command: string) => Promise<unknown>;
+    ReceiveZmodem?: (sessionID: string, destinationDir: string) => Promise<unknown>;
     CancelZmodem?: (sessionID: string) => Promise<unknown>;
     SendSerialYmodem?: (sessionID: string, filePath: string) => Promise<{
       fileName: string;
@@ -102,14 +117,18 @@ export interface WailsBindingDeps {
       remoteEcho?: boolean;
       localEcho?: boolean;
     }>;
+    RestartHelper?: (sessionID: string) => Promise<NetcattyHelperSessionState>;
     Write: (...args: unknown[]) => unknown;
     Resize: (...args: unknown[]) => unknown;
     Signal: (...args: unknown[]) => unknown;
+    GetExitStatus?: (sessionID: string) => Promise<SessionExitEvent | null>;
     Close: (sessionID: string) => Promise<unknown>;
     Bootstrap: (sessionID: string) => Promise<WailsRouteBootstrap>;
+    Reconnect?: (sessionID: string) => Promise<WailsRouteBootstrap>;
     ListenAddr: () => Promise<string> | string;
   };
   sftp: {
+    OpenForTerminal?: (sessionId: string) => Promise<string>;
     Open: (request: unknown) => Promise<string>;
     Download?: (sftpID: string, remotePath: string, localPath: string) => Promise<number>;
     Upload?: (sftpID: string, localPath: string, remotePath: string) => Promise<number>;
@@ -119,6 +138,7 @@ export interface WailsBindingDeps {
     Rename: (sftpID: string, oldPath: string, newPath: string) => Promise<unknown>;
     Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
     Close: (sftpID: string) => Promise<unknown>;
+    Chmod?: (sftpID: string, path: string, mode: string) => Promise<unknown>;
     Read?: (sftpID: string, path: string) => Promise<string>;
     WriteText?: (sftpID: string, path: string, content: string) => Promise<unknown>;
     HomeDir?: (sftpID: string) => Promise<string>;
@@ -134,6 +154,7 @@ export interface WailsBindingDeps {
     IsFullscreen: () => Promise<boolean>;
   };
   settings?: {
+    ShowSystemNotification?: NonNullable<NetcattyBridge["showSystemNotification"]>;
     Open: () => Promise<boolean>;
     Show?: () => Promise<unknown>;
     PaintReady?: () => Promise<boolean>;
@@ -149,6 +170,11 @@ export interface WailsBindingDeps {
     OpenFile: (options: Record<string, unknown>) => Promise<string | string[]>;
     SaveFile: (options: Record<string, unknown>) => Promise<string>;
   };
+  credential?: {
+    Available?: () => Promise<boolean>;
+    Seal?: (plaintextBase64: string, purpose: string) => Promise<string>;
+    Open?: (envelopeBase64: string, purpose: string) => Promise<string>;
+  };
   appLock?: {
     GetRuntimeState: () => Promise<{
       initialized: boolean;
@@ -163,12 +189,20 @@ export interface WailsBindingDeps {
     Enable?: (password: string) => Promise<unknown>;
     Unlock?: (password: string) => Promise<unknown>;
     Disable?: (password: string) => Promise<unknown>;
+    UnlockWithBiometrics?: () => Promise<{ success: boolean; error?: string }>;
+    GetSettings?: () => ReturnType<NonNullable<NetcattyBridge["getAppLockSettings"]>>;
+    GetSystemUnlockStatus?: () => ReturnType<NonNullable<NetcattyBridge["getAppLockSystemUnlockStatus"]>>;
+    SetSystemUnlockEnabled?: (enabled: boolean, password: string, autoPrompt: boolean) => Promise<{ systemUnlockEnabled: boolean; systemUnlockAutoPromptEnabled: boolean }>;
     SetRuntimeLocked?: (reason: string) => Promise<unknown>;
   };
   plugins?: {
     List: () => Promise<unknown[]>;
     Install?: (pluginID: string, version: string, sha256Hex: string, manifestJSON: string) => Promise<unknown>;
     SetEnabled?: (pluginID: string, enabled: boolean) => Promise<unknown>;
+    UISchema?: (pluginID: string) => Promise<unknown>;
+    Settings?: (pluginID: string) => Promise<Record<string, string | number | boolean>>;
+    SetSetting?: (pluginID: string, settingID: string, valueJSON: string) => Promise<unknown>;
+    GrantPermission?: (pluginID: string, kind: string, resource: string, mode: string, lifetime: string) => Promise<unknown>;
   };
   deepLink?: {
     Parse?: (rawURL: string) => Promise<unknown>;
@@ -179,7 +213,11 @@ export interface WailsBindingDeps {
     GetOSProtocolStatus?: () => Promise<{ success: boolean; registered: boolean; error?: string }>;
     SetOSProtocol?: (enabled: boolean) => Promise<{ success: boolean; registered: boolean; error?: string }>;
   };
-  filesystem?: {
+  filesystem?: NativeFileBindings & {
+    ReadClipboardImage?: () => Promise<{ path: string; name: string; mediaType: string; size?: number } | null>;
+    TempInfo?: () => Promise<{ path: string; fileCount: number; totalSize: number }>;
+    TempFilePath?: (name: string) => Promise<string>;
+    ClearTemp?: () => Promise<{ success: boolean; deletedCount: number }>;
     HomeDir?: () => Promise<string>;
     ListDir?: (path: string) => Promise<RemoteFile[]>;
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
@@ -190,6 +228,25 @@ export interface WailsBindingDeps {
     StageDiscard?: (tempPath: string) => Promise<unknown>;
   };
   sync?: {
+    CloudSyncSetSessionPassword?: (password: string) => Promise<boolean>;
+    CloudSyncGetSessionPassword?: () => Promise<{ password?: string; found?: boolean }>;
+    CloudSyncClearSessionPassword?: () => Promise<{ success?: boolean }>;
+    CloudSyncResetEverything?: () => Promise<string[]>;
+    GetVaultBackupCapabilities?: () => Promise<{ encryptionAvailable?: boolean }>;
+    CreateVaultBackup?: (payload: unknown) => Promise<{ created?: boolean; backup?: unknown }>;
+    ListVaultBackups?: () => Promise<{ backups?: unknown[] } | unknown[]>;
+    ReadVaultBackup?: (payload: unknown) => Promise<unknown>;
+    TrimVaultBackups?: (payload: unknown) => Promise<{ deletedCount?: number; keptCount?: number }>;
+    OpenVaultBackupDir?: () => Promise<{ success?: boolean; path?: string }>;
+    PrepareOAuthCallback?: () => Promise<{ sessionId: string; port: number; redirectUri: string }>;
+    OpenProviderConsole?: (provider: 'github' | 'google' | 'onedrive') => Promise<void>;
+    GithubStartDeviceFlow?: (options: { clientId?: string; scope?: string }) => Promise<unknown>;
+    GithubGetUserInfo?: (options: unknown) => Promise<unknown>;
+    GithubFindSyncFile?: (options: unknown) => Promise<unknown>;
+    GoogleGetUserInfo?: (options: unknown) => Promise<unknown>;
+    GoogleExchangeCodeForTokens?: (options: unknown) => Promise<unknown>;
+    GoogleDriveGetRevisionHistory?: (options: unknown) => Promise<{ revisions?: Array<{ version: string; date: string }> } | Array<{ version: string; date: string }>>;
+    OnedriveGetUserInfo?: (options: unknown) => Promise<unknown>;
     CloudSyncWebdavInitialize?: (config: unknown) => Promise<{ resourceId: string | null }>;
     CloudSyncWebdavUpload?: (config: unknown, syncedFile: unknown) => Promise<{ resourceId: string }>;
     CloudSyncWebdavDownload?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
@@ -199,17 +256,16 @@ export interface WailsBindingDeps {
     CloudSyncS3Download?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
     CloudSyncS3Delete?: (config: unknown) => Promise<{ ok: true }>;
   };
-  transfer?: {
+  transfer?: Partial<TransferBindings> & {
     Enqueue?: (spec: unknown) => Promise<unknown>;
-    Pause?: (taskID: string) => Promise<unknown>;
-    Resume?: (taskID: string) => Promise<unknown>;
-    Cancel?: (taskID: string) => Promise<unknown>;
   };
   events?: {
     On: (name: string, callback: (event: { data?: unknown }) => void) => () => void;
   };
   popup?: {
     Open: (payload: unknown) => Promise<{ success: boolean; popupId?: string; error?: string }>;
+    GetConfig?: (popupId: string, token: string) => Promise<unknown>;
+    Heartbeat?: (popupId: string, token: string) => Promise<unknown>;
   };
   shortcuts?: {
     Register?: (raw: string) => Promise<{ success: boolean; enabled?: boolean; error?: string; accelerator?: string }>;
@@ -223,10 +279,12 @@ export interface WailsBindingDeps {
     SetLanguage?: (language: string) => Promise<boolean>;
     Quit?: () => Promise<void>;
   };
+  clipboard?: { SetText: (text: string) => Promise<boolean>; Text: () => Promise<string> };
   openDataPlane?: typeof openDataPlaneSession;
 }
 
   const defaultBindings: WailsBindingDeps = {
+    clipboard: Clipboard,
     terminal: terminalService as unknown as WailsBindingDeps["terminal"],
     sftp: sftpService as unknown as WailsBindingDeps["sftp"],
     window: wailsWindow,
@@ -234,6 +292,7 @@ export interface WailsBindingDeps {
     forward: forwardService as unknown as WailsBindingDeps["forward"],
     dialogs: Dialogs as unknown as WailsBindingDeps["dialogs"],
     appLock: appLockService as unknown as WailsBindingDeps["appLock"],
+    credential: credentialService as unknown as WailsBindingDeps["credential"],
     plugins: pluginService as unknown as WailsBindingDeps["plugins"],
     events: Events as unknown as WailsBindingDeps["events"],
     deepLink: deepLinkService as unknown as WailsBindingDeps["deepLink"],
@@ -247,60 +306,223 @@ export interface WailsBindingDeps {
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
-type SessionExitCallback = (evt: { sessionId: string; code?: number }) => void;
+type SessionExitEvent = { sessionId: string; exitCode?: number; reason?: "exited" | "error" | "closed" | "timeout"; error?: string; intentional?: boolean };
+type SessionExitCallback = (evt: SessionExitEvent) => void;
+type HelperLifecycleCallback = Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1];
 
 export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBindings): RuntimeClient {
+  // Field-level credential storage over the Go credential provider. The
+  // envelope keeps the Electron enc:v1: sentinel so renderer-side detection
+  // (no double encryption, migration) behaves identically.
+  const CREDENTIAL_ENC_PREFIX = "enc:v1:";
+  const CREDENTIAL_PURPOSE = "cloud-sync-credentials";
+  const credentialsAvailable = async () => bindings.credential?.Available?.() ?? false;
+  const credentialsEncrypt = async (plaintext: string) => {
+    if (!bindings.credential?.Seal) missingBridgeMethod("credentialsEncrypt");
+    if (plaintext.startsWith(CREDENTIAL_ENC_PREFIX)) return plaintext;
+    const sealed = await bindings.credential.Seal(bytesToBase64(new TextEncoder().encode(plaintext)), CREDENTIAL_PURPOSE);
+    return CREDENTIAL_ENC_PREFIX + sealed;
+  };
+  const credentialsDecrypt = async (value: string) => {
+    if (typeof value !== "string" || value.length === 0 || !value.startsWith(CREDENTIAL_ENC_PREFIX)) return value;
+    if (!bindings.credential?.Open) missingBridgeMethod("credentialsDecrypt");
+    const opened = await bindings.credential.Open(value.slice(CREDENTIAL_ENC_PREFIX.length), CREDENTIAL_PURPOSE);
+    const plainBytes = Uint8Array.from(atob(opened), (ch) => ch.charCodeAt(0));
+    return new TextDecoder().decode(plainBytes);
+  };
+  const zmodem = createZmodemBridge(bindings.terminal, bindings.filesystem, (name, callback) =>
+    (bindings.events?.On ?? Events.On)(name, callback), () => selectDirectory());
+  const transfers = createTransferBridge(bindings.transfer as TransferBindings | undefined);
+  const platform = typeof navigator === 'undefined' ? '' : navigator.platform;
+  const nativeFileActions = createNativeFileActions(bindings.filesystem, bindings.dialogs, transfers.startStreamTransfer,
+    /Win/i.test(platform) ? 'win32' : /Mac/i.test(platform) ? 'darwin' : 'linux');
   const unimplemented = <T extends object>(portName: string): T => portWith<T>(portName, {});
+  const sessionAliases = new Map<string, string>();
+  const nativeSessionId = (id: string) => sessionAliases.get(id) ?? id;
+  const monitoring = createMonitoringBridge(bindings.terminal, nativeSessionId);
+  // Cloud OAuth facade: maps the generated PascalCase sync bindings onto the
+  // camelCase bridge surface the cloud sync adapters and UI already call.
+  const cloudOAuth = createCloudOAuthFacade(bindings.sync as unknown as CloudOAuthBindings);
+  const cloudSyncSetSessionPassword = (async (password: string) => {
+    if (!bindings.sync?.CloudSyncSetSessionPassword) missingBridgeMethod("cloudSyncSetSessionPassword");
+    return bindings.sync.CloudSyncSetSessionPassword(password);
+  }) as unknown as NetcattyBridge["cloudSyncSetSessionPassword"];
+  const cloudSyncGetSessionPassword = (async () => {
+    const result = await bindings.sync?.CloudSyncGetSessionPassword?.();
+    return result?.password ?? null;
+  }) as unknown as NetcattyBridge["cloudSyncGetSessionPassword"];
+  const cloudSyncClearSessionPassword = (async () => {
+    return (await bindings.sync?.CloudSyncClearSessionPassword?.()) ?? { success: false };
+  }) as unknown as NetcattyBridge["cloudSyncClearSessionPassword"];
+  const cloudSyncResetEverything = (async () => {
+    if (!bindings.sync?.CloudSyncResetEverything) missingBridgeMethod("cloudSyncResetEverything");
+    // Wails wraps the []string return as { removedKeys: string[] }.
+    const result = await bindings.sync.CloudSyncResetEverything();
+    return result?.removedKeys ?? [];
+  }) as unknown as NetcattyBridge["cloudSyncResetEverything"];
+  const getVaultBackupCapabilities = (async () => {
+    if (!bindings.sync?.GetVaultBackupCapabilities) missingBridgeMethod("getVaultBackupCapabilities");
+    const result = await bindings.sync.GetVaultBackupCapabilities();
+    return { encryptionAvailable: Boolean(result?.encryptionAvailable) };
+  }) as unknown as NetcattyBridge["getVaultBackupCapabilities"];
+  const createVaultBackup = (async (payload) => {
+    if (!bindings.sync?.CreateVaultBackup) missingBridgeMethod("createVaultBackup");
+    return bindings.sync.CreateVaultBackup(payload);
+  }) as unknown as NetcattyBridge["createVaultBackup"];
+  const listVaultBackups = (async () => {
+    if (!bindings.sync?.ListVaultBackups) missingBridgeMethod("listVaultBackups");
+    const result = await bindings.sync.ListVaultBackups();
+    return Array.isArray(result) ? result : result?.backups ?? [];
+  }) as unknown as NetcattyBridge["listVaultBackups"];
+  const readVaultBackup = (async (payload) => {
+    if (!bindings.sync?.ReadVaultBackup) missingBridgeMethod("readVaultBackup");
+    return bindings.sync.ReadVaultBackup(payload);
+  }) as unknown as NetcattyBridge["readVaultBackup"];
+  const trimVaultBackups = (async (payload) => {
+    if (!bindings.sync?.TrimVaultBackups) missingBridgeMethod("trimVaultBackups");
+    return bindings.sync.TrimVaultBackups(payload);
+  }) as unknown as NetcattyBridge["trimVaultBackups"];
+  const openVaultBackupDir = (async () => {
+    if (!bindings.sync?.OpenVaultBackupDir) missingBridgeMethod("openVaultBackupDir");
+    return bindings.sync.OpenVaultBackupDir();
+  }) as unknown as NetcattyBridge["openVaultBackupDir"];
+  const openProviderConsole = (async (provider: 'github' | 'google' | 'onedrive') => {
+    if (!bindings.sync?.OpenProviderConsole) missingBridgeMethod("openProviderConsole");
+    await bindings.sync.OpenProviderConsole(provider);
+  }) as unknown as NetcattyBridge["openProviderConsole"];
+  const rememberSession = (uiId: string | undefined, nativeId: string) => {
+    if (uiId) sessionAliases.set(uiId, nativeId);
+  };
+  const getSessionPwd = async (id: string, options?: Parameters<NonNullable<NetcattyBridge["getSessionPwd"]>>[1]) => {
+    try {
+      return await bindings.terminal.GetSessionPwd?.(nativeSessionId(id), {
+        allowHomeFallback: options?.allowHomeFallback ?? true,
+        allowLoginShellFallback: options?.allowLoginShellFallback ?? options?.allowHomeFallback ?? true,
+        timeoutMs: Number.isFinite(options?.timeoutMs) ? Math.min(5000, Math.max(100, options!.timeoutMs!)) : 2000,
+      })
+        ?? { success: false, error: "Terminal directory tracking unavailable" };
+    } catch (error) { return { success: false, error: String(error) }; }
+  };
+  const getSessionRemoteInfo = async (id: string) =>
+    await bindings.terminal.GetSessionRemoteInfo?.(nativeSessionId(id)) ?? { success: false };
+  const writeClipboardText = (text: string) => (bindings.clipboard ?? Clipboard).SetText(text);
+  const readClipboardText = () => (bindings.clipboard ?? Clipboard).Text();
+  const readClipboardImage = () => bindings.filesystem?.ReadClipboardImage?.() ?? Promise.resolve(null);
+  const openSftpForSession = (id: string) => {
+    if (!bindings.sftp.OpenForTerminal) return Promise.reject(new Error("Terminal SFTP unavailable"));
+    return bindings.sftp.OpenForTerminal(nativeSessionId(id));
+  };
   const dataListeners = new Map<string, Set<SessionDataCallback>>();
   const exitListeners = new Map<string, Set<SessionExitCallback>>();
   const planes = new Map<string, DataPlaneSessionHandle>();
+  const routeStates = new Map<string, { version: number; retries: number; timer?: ReturnType<typeof setTimeout>; closed: boolean }>();
 
   function emitData(sessionID: string, chunk: string): void {
     for (const listener of dataListeners.get(sessionID) ?? []) listener(chunk);
   }
 
-  function emitExit(sessionID: string): void {
-    for (const listener of exitListeners.get(sessionID) ?? []) listener({ sessionId: sessionID });
+  function emitExit(sessionID: string, status: SessionExitEvent = { sessionId: sessionID }): void {
+    for (const listener of exitListeners.get(sessionID) ?? []) listener({ ...status, sessionId: sessionID });
   }
 
-  async function attachDataPlane(sessionID: string): Promise<void> {
+  async function emitNativeExit(sessionID: string): Promise<void> {
+    try {
+      const status = await bindings.terminal.GetExitStatus?.(sessionID);
+      emitExit(sessionID, status ?? { sessionId: sessionID });
+    } catch (error) {
+      emitExit(sessionID, { sessionId: sessionID, reason: "error", error: String(error) });
+    }
+  }
+
+  const showSystemNotification: NonNullable<NetcattyBridge["showSystemNotification"]> = async payload => {
+    try {
+      return await bindings.settings?.ShowSystemNotification?.(payload) ?? { shown: false, reason: "Native notifications unavailable" };
+    } catch (error) { return { shown: false, reason: String(error) }; }
+  };
+
+  async function attachDataPlane(sessionID: string, reconnect = false): Promise<void> {
+    let state = routeStates.get(sessionID);
+    if (!state) {
+      state = { version: 0, retries: 0, closed: false };
+      routeStates.set(sessionID, state);
+    }
+    const owner = state;
+    const version = ++owner.version;
+    const current = () => !owner.closed && routeStates.get(sessionID) === owner && owner.version === version;
     planes.get(sessionID)?.dispose();
     const [bootstrap, listenAddr] = await Promise.all([
-      bindings.terminal.Bootstrap(sessionID),
+      reconnect
+        ? (bindings.terminal.Reconnect ? bindings.terminal.Reconnect(sessionID) : Promise.reject(new Error('Terminal route reconnect unavailable')))
+        : bindings.terminal.Bootstrap(sessionID),
       Promise.resolve(bindings.terminal.ListenAddr()),
     ]);
+    if (!current()) return;
+    const retry = () => {
+      if (!current() || owner.timer) return;
+      // Invalidate old callbacks before replacing the route. A dropped socket
+      // is not a native process exit and must never restart Mosh/ET/SSH here.
+      owner.version++;
+      planes.get(sessionID)?.dispose();
+      const schedule = () => {
+        if (owner.closed || routeStates.get(sessionID) !== owner) return;
+        if (owner.retries >= 6) {
+          owner.closed = true;
+          console.error('Terminal transport reconnect exhausted', sessionID);
+          emitData(sessionID, '\r\n[Netcatty] Terminal connection could not be restored. Please reconnect.\r\n');
+          emitExit(sessionID, { sessionId: sessionID, reason: "error", error: "Terminal transport reconnect exhausted" });
+          return;
+        }
+        const delay = Math.min(1000 * 2 ** owner.retries++, 30000);
+        owner.timer = setTimeout(() => {
+          owner.timer = undefined;
+          void attachDataPlane(sessionID, true).catch(error => {
+            console.error('Terminal route reconnect failed', error);
+            schedule();
+          });
+        }, delay);
+      };
+      schedule();
+    };
     planes.set(sessionID, (bindings.openDataPlane ?? openDataPlaneSession)({
       listenAddr,
       bootstrap,
-      onData: (chunk) => emitData(sessionID, chunk),
-      onComplete: () => emitExit(sessionID),
+      onData: (chunk) => { if (current()) { owner.retries = 0; emitData(sessionID, chunk); } },
+      onComplete: () => {
+        if (!current()) return;
+        owner.closed = true;
+        if (owner.timer) clearTimeout(owner.timer);
+        void emitNativeExit(sessionID);
+      },
+      onDisconnect: () => {
+        if (!bindings.terminal.GetExitStatus) { retry(); return; }
+        void bindings.terminal.GetExitStatus(sessionID).then(status => {
+          if (!current()) return;
+          if (!status) { retry(); return; }
+          owner.closed = true;
+          if (owner.timer) clearTimeout(owner.timer);
+          emitExit(sessionID, status);
+        }).catch(() => retry());
+      },
     }));
   }
 
   const startSSHSession = (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
     const args = pickSSHConnectArgs(options);
     return bindings.terminal.Connect(args).then(async (sessionID) => {
+      rememberSession(options.sessionId, sessionID);
       await attachDataPlane(sessionID);
       return sessionID;
     });
   };
-  const startLocalSession = async (options: {
-    shell?: string;
-    cwd?: string;
-    cols?: number;
-    rows?: number;
-  } = {}) => {
-    if (!bindings.terminal.StartLocal) missingBridgeMethod("startLocalSession");
-    const sessionID = await bindings.terminal.StartLocal(
-      options.shell ?? "",
-      options.cwd ?? "",
-      options.cols ?? 80,
-      options.rows ?? 24,
-    );
-    await attachDataPlane(sessionID);
-    return sessionID;
-  };
+  const { startLocalSession, getDefaultShell, discoverShells, validatePath } = createLocalShellBridge(
+    bindings.terminal,
+    async (alias, id) => {
+      rememberSession(alias, id);
+      await attachDataPlane(id);
+    },
+  );
   const startTelnetSession = async (options: {
+    sessionId?: string;
     hostname: string;
     port?: number;
     cols?: number;
@@ -320,10 +542,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       autoLogin: options.autoLogin ?? false,
       promptTimeoutSecs: 0,
     });
+    rememberSession(options.sessionId, sessionID);
     await attachDataPlane(sessionID);
     return sessionID;
   };
   const startSerialSession = async (options: {
+    sessionId?: string;
     path: string;
     baudRate?: number;
     dataBits?: number;
@@ -340,6 +564,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       parity: options.parity ?? "none",
       flowControl: options.flowControl ?? "none",
     });
+    rememberSession(options.sessionId, sessionID);
     await attachDataPlane(sessionID);
     return sessionID;
   };
@@ -355,12 +580,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }));
   };
   const writeToSession = (sessionID: string, data: string) =>
-    bindings.terminal.Write(sessionID, bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
+    bindings.terminal.Write(nativeSessionId(sessionID), bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
   const resizeSession = (sessionID: string, cols: number, rows: number) =>
-    bindings.terminal.Resize(sessionID, cols, rows) as unknown as void;
+    bindings.terminal.Resize(nativeSessionId(sessionID), cols, rows) as unknown as void;
   const interruptSession = (sessionID: string) =>
-    bindings.terminal.Signal(sessionID, "INT") as unknown as void;
+    bindings.terminal.Signal(nativeSessionId(sessionID), "INT") as unknown as void;
   const closeSession = async (sessionID: string) => {
+    sessionID = nativeSessionId(sessionID);
+    for (const [alias, nativeId] of sessionAliases) {
+      if (nativeId === sessionID) sessionAliases.delete(alias);
+    }
+    const route = routeStates.get(sessionID);
+    if (route) {
+      route.closed = true;
+      if (route.timer) clearTimeout(route.timer);
+      routeStates.delete(sessionID);
+    }
     planes.get(sessionID)?.dispose();
     planes.delete(sessionID);
     await bindings.terminal.Close(sessionID);
@@ -395,12 +630,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const openSftp = (options: Parameters<NetcattyBridge["openSftp"]>[0]) => {
     const args = pickSSHConnectArgs(options);
-    return bindings.sftp.Open(args);
+    return bindings.sftp.Open({ ...args, sudo: options.sudo ?? false });
   };
-  const downloadSftp = (sftpID: string, remotePath: string, localPath: string) =>
-    bindings.sftp.Download?.(sftpID, remotePath, localPath) as Promise<number>;
-  const uploadSftp = (sftpID: string, localPath: string, remotePath: string) =>
-    bindings.sftp.Upload?.(sftpID, localPath, remotePath) as Promise<number>;
   const listSftp = async (sftpID: string, path: string): Promise<RemoteFile[]> => {
     const entries = await bindings.sftp.List(sftpID, path);
     return entries.map(entryToRemoteFile);
@@ -441,15 +672,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
   const notifySettingsPainted = () => bindings.settings?.PaintReady?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
-  const selectFile = async () => {
-    const selected = await bindings.dialogs?.OpenFile({ CanChooseFiles: true, CanChooseDirectories: false });
-    return typeof selected === "string" ? selected : selected?.[0] ?? "";
-  };
-  const selectDirectory = async () => {
-    const selected = await bindings.dialogs?.OpenFile({ CanChooseFiles: false, CanChooseDirectories: true });
-    return typeof selected === "string" ? selected : selected?.[0] ?? "";
-  };
-  const showSaveDialog = async () => bindings.dialogs?.SaveFile({}) ?? "";
+  const { selectFile, selectDirectory, showSaveDialog } = nativeFileActions;
   const startPortForward = (options: {
     tunnelId: string;
     type: string;
@@ -609,6 +832,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const telnetLoginListeners = new Map<string, Set<TelnetLoginCallback>>();
   const telnetCancelListeners = new Map<string, Set<TelnetLoginCallback>>();
   const moshReadyListeners = new Map<string, Set<MoshReadyCallback>>();
+  const helperLifecycleListeners = new Map<string, Set<HelperLifecycleCallback>>();
   let terminalEventsSubscribed = false;
   const subscribeTerminalEvents = () => {
     if (terminalEventsSubscribed) return;
@@ -642,6 +866,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       const sessionId = payload.sessionId ?? "";
       for (const listener of moshReadyListeners.get(sessionId) ?? []) listener({ sessionId });
     });
+    // Supervised mosh/et helper lifecycle. The Go payload carries the native
+    // session id; fans out to listeners registered under that id and to any
+    // renderer alias mapped to it (mirrors writeToSession/closeSession).
+    for (const name of ["mosh:lifecycle", "et:lifecycle"]) {
+      eventsOn(name, (event) => {
+        const payload = (event?.data ?? event) as NetcattyHelperSessionState | null;
+        if (!payload || typeof payload.sessionId !== "string") return;
+        const ids = new Set([payload.sessionId]);
+        for (const [alias, native] of sessionAliases) {
+          if (native === payload.sessionId) ids.add(alias);
+        }
+        for (const id of ids) {
+          for (const listener of helperLifecycleListeners.get(id) ?? []) listener(payload);
+        }
+      });
+    }
   };
   const onTelnetEchoMode = ((sessionId: string, cb: TelnetEchoCallback) => {
     subscribeTerminalEvents();
@@ -671,8 +911,54 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     moshReadyListeners.set(sessionId, set);
     return () => set.delete(cb);
   }) as unknown as NetcattyBridge["onMoshSessionReady"];
+  const onHelperLifecycle = ((sessionId: string, cb: HelperLifecycleCallback) => {
+    subscribeTerminalEvents();
+    const set = helperLifecycleListeners.get(sessionId) ?? new Set();
+    set.add(cb);
+    helperLifecycleListeners.set(sessionId, set);
+    return () => {
+      set.delete(cb);
+      if (set.size === 0) helperLifecycleListeners.delete(sessionId);
+    };
+  }) as unknown as NetcattyBridge["onHelperLifecycle"];
+  const restartHelperSession = (async (sessionId: string) => {
+    if (!bindings.terminal.RestartHelper) {
+      return { success: false, error: "restartHelperSession unavailable" };
+    }
+    try {
+      const state = await bindings.terminal.RestartHelper(nativeSessionId(sessionId));
+      return { success: true, state };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }) as unknown as NetcattyBridge["restartHelperSession"];
 
   const implementedBridge: Partial<NetcattyBridge> = {
+    ...monitoring,
+    ...cloudOAuth,
+    openProviderConsole,
+    credentialsAvailable,
+    credentialsEncrypt,
+    credentialsDecrypt,
+    cloudSyncSetSessionPassword,
+    cloudSyncGetSessionPassword,
+    cloudSyncClearSessionPassword,
+    cloudSyncResetEverything,
+    getVaultBackupCapabilities,
+    createVaultBackup,
+    listVaultBackups,
+    readVaultBackup,
+    trimVaultBackups,
+    openVaultBackupDir,
+    getDefaultShell,
+    discoverShells,
+    validatePath,
+    getSessionPwd,
+    getSessionRemoteInfo,
+    showSystemNotification,
+    writeClipboardText,
+    readClipboardText,
+    readClipboardImage,
     startSSHSession,
     startLocalSession,
     startTelnetSession,
@@ -688,7 +974,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     onTelnetAutoLoginComplete,
     onTelnetAutoLoginCancelled,
     onMoshSessionReady,
+    onHelperLifecycle,
+    restartHelperSession,
     openSftp,
+    openSftpForSession,
     listSftp,
     mkdirSftp,
     deleteSftp,
@@ -733,10 +1022,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         throw error;
       }
     }) as unknown as NetcattyBridge["stageUploadFile"],
-    deleteTempFile: (async (filePath: string) => {
-      await bindings.filesystem?.StageDiscard?.(filePath);
-      return { success: true };
-    }) as unknown as NetcattyBridge["deleteTempFile"],
+    ...nativeFileActions,
+    listAutocompleteRemoteDir: async (id: string, directory: string, foldersOnly: boolean, prefix = '', limit = 100) => {
+      try { return await bindings.terminal.ListAutocompleteDirectory?.(nativeSessionId(id), directory, foldersOnly, prefix, limit) ?? { success: false, entries: [] }; }
+      catch { return { success: false, entries: [] }; }
+    },
+    listAutocompleteLocalDir: async (directory: string, foldersOnly: boolean, prefix = '', limit = 100) => {
+      try { return await bindings.terminal.ListAutocompleteDirectory?.('', directory, foldersOnly, prefix, limit) ?? { success: false, entries: [] }; }
+      catch { return { success: false, entries: [] }; }
+    },
+    chmodSftp: async (sftpID: string, path: string, mode: string) => {
+      if (!bindings.sftp.Chmod) throw new Error('SFTP permissions unavailable');
+      await bindings.sftp.Chmod(sftpID, path, mode);
+    },
     onFilesDropped,
     setLanguage: (async (language: string) => {
       const changed = await bindings.tray?.SetLanguage?.(language);
@@ -745,25 +1043,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     quitApp: (async () => {
       await bindings.tray?.Quit?.();
     }) as unknown as NetcattyBridge["quitApp"],
-    startStreamTransfer: (async (options: {
-      sourceType: "local" | "sftp";
-      targetType: "local" | "sftp";
-      sourcePath: string;
-      targetPath: string;
-      sourceSftpId?: string;
-      targetSftpId?: string;
-      transferId: string;
-    }) => {
-      if (options.sourceType === "sftp" && options.targetType === "local" && options.sourceSftpId) {
-        await downloadSftp(options.sourceSftpId, options.sourcePath, options.targetPath);
-        return { transferId: options.transferId };
-      }
-      if (options.sourceType === "local" && options.targetType === "sftp" && options.targetSftpId) {
-        await uploadSftp(options.targetSftpId, options.sourcePath, options.targetPath);
-        return { transferId: options.transferId };
-      }
-      return { transferId: options.transferId, error: "stream transfer shape not migrated yet" };
-    }) as unknown as NetcattyBridge["startStreamTransfer"],
+    startStreamTransfer: transfers.startStreamTransfer,
+    onGlobalSftpTransferEvent: transfers.onGlobalSftpTransferEvent,
     extractLocalArchive: (async (archivePath: string) => {
       if (!bindings.filesystem?.ExtractArchive) return { success: false };
       const parent = archivePath.replace(/[\\/][^\\/]+$/, "") || ".";
@@ -805,13 +1086,11 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       if (!bindings.popup?.Open) return { success: false, error: "openTerminalPopup unavailable" };
       return bindings.popup.Open(payload);
     }) as unknown as NetcattyBridge["openTerminalPopup"],
-    onTerminalPopupConfig: ((cb) => {
-      const eventsOn = bindings.events?.On ?? Events.On;
-      if (typeof eventsOn !== "function") return () => undefined;
-      return eventsOn("terminal:popup-config", (event) => {
-        cb((event?.data ?? event) as import("../../../domain/systemManager/types").TerminalPopupPayload);
-      });
-    }) as unknown as NetcattyBridge["onTerminalPopupConfig"],
+    onTerminalPopupConfig: ((cb) => subscribePopupConfig(
+      typeof window === 'undefined' ? '' : window.location.search,
+      bindings.popup,
+      config => cb(config as import("../../../domain/systemManager/types").TerminalPopupPayload),
+    )) as unknown as NetcattyBridge["onTerminalPopupConfig"],
     onKeyboardInteractive,
     respondKeyboardInteractive,
     selectFile,
@@ -832,10 +1111,59 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     openSettingsWindow,
     notifySettingsPainted,
     closeSettingsWindow: closeSettingsWindow as unknown as NetcattyBridge["closeSettingsWindow"],
+    getAppLockSettings: async () => {
+      if (!bindings.appLock?.GetSettings) throw new Error("App lock settings unavailable");
+      return bindings.appLock.GetSettings();
+    },
+    getAppLockSystemUnlockStatus: async () => {
+      if (!bindings.appLock?.GetSystemUnlockStatus) return { supported: false, available: false, enabled: false, platform: "unsupported", label: null, reason: "Native app lock unavailable" };
+      return bindings.appLock.GetSystemUnlockStatus();
+    },
+    requestAppLockSystemUnlock: async () => {
+      if (!bindings.appLock?.UnlockWithBiometrics) return { ok: false, error: "unsupported" };
+      try {
+        const result = await bindings.appLock.UnlockWithBiometrics();
+        if (result.success) return { ok: true };
+        return { ok: false, error: result.error === "disabled" || result.error === "not-locked" ? result.error : "failed" };
+      } catch { return { ok: false, error: "failed" }; }
+    },
+    setAppLockSystemUnlockEnabled: async (input) => {
+      if (!bindings.appLock?.SetSystemUnlockEnabled || !bindings.appLock.GetSettings) return { ok: false, error: "unsupported" };
+      try {
+        await bindings.appLock.SetSystemUnlockEnabled(input.enabled, input.currentPassword ?? "", input.autoPromptEnabled ?? false);
+        return bindings.appLock.GetSettings();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = (["empty-current", "incorrect", "locked", "unsupported", "unavailable", "cancelled"] as const).find(value => message.includes(value));
+        return { ok: false, error: code ?? "failed" };
+      }
+    },
     getAppLockRuntimeState: (() =>
       bindings.appLock?.GetRuntimeState()) as unknown as NetcattyBridge["getAppLockRuntimeState"],
     reportAppLockActivity: (() =>
       bindings.appLock?.ReportActivity?.()) as unknown as NetcattyBridge["reportAppLockActivity"],
+    pluginV2: {
+      list: async () => {
+        if (!bindings.plugins?.List) throw new Error('Plugin service is not available');
+        return bindings.plugins.List();
+      },
+      uiSchema: async (id: string) => {
+        if (!bindings.plugins?.UISchema) throw new Error('Plugin UI is not available');
+        return bindings.plugins.UISchema(id);
+      },
+      settings: async (id: string) => {
+        if (!bindings.plugins?.Settings) throw new Error('Plugin settings are not available');
+        return bindings.plugins.Settings(id);
+      },
+      setSetting: async (id: string, key: string, valueJSON: string) => {
+        if (!bindings.plugins?.SetSetting) throw new Error('Plugin settings are not available');
+        await bindings.plugins.SetSetting(id, key, valueJSON);
+      },
+      grantPermission: async (id: string, kind: string, resource: string, mode: string, lifetime: string) => {
+        if (!bindings.plugins?.GrantPermission) throw new Error('Plugin permissions are not available');
+        await bindings.plugins.GrantPermission(id, kind, resource, mode, lifetime);
+      },
+    },
     listPlugins: (() =>
       Promise.resolve(bindings.plugins?.List() ?? [])) as unknown as NetcattyBridge["listPlugins"],
     requestAppLockPasswordChange: (async (input: { currentPassword?: string; nextPassword: string }) => {
@@ -848,8 +1176,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         }
       }
       try {
-        await bindings.appLock?.Enable?.(input.nextPassword);
-        return { enabled: true, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: { version: 1, algorithm: "PBKDF2-SHA256", iterations: 210000, salt: "", hash: "" } };
+        if (!bindings.appLock?.Enable || !bindings.appLock.GetSettings) throw new Error("App lock unavailable");
+        await bindings.appLock.Enable(input.nextPassword);
+        return bindings.appLock.GetSettings();
       } catch {
         return { ok: false, error: "incorrect" };
       }
@@ -871,12 +1200,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         return { ok: false, error: "incorrect" };
       }
     }) as unknown as NetcattyBridge["requestAppLockDisable"],
-    pauseTransfer: ((transferId: string) =>
-      bindings.transfer?.Pause?.(transferId)) as unknown as NetcattyBridge["pauseTransfer"],
-    resumeTransfer: ((transferId: string) =>
-      bindings.transfer?.Resume?.(transferId)) as unknown as NetcattyBridge["resumeTransfer"],
-    cancelTransfer: ((transferId: string) =>
-      bindings.transfer?.Cancel?.(transferId)) as unknown as NetcattyBridge["cancelTransfer"],
+    pauseTransfer: transfers.pauseTransfer,
+    resumeTransfer: transfers.resumeTransfer,
+    cancelTransfer: transfers.cancelTransfer,
+    startZmodemDragDropUpload: zmodem.startZmodemDragDropUpload,
+    receiveZmodem: zmodem.receiveZmodem,
+    onZmodemEvent: zmodem.onZmodemEvent,
     cancelZmodem: (async (sessionID: string) => {
       if (!bindings.terminal.CancelZmodem) return { success: false, error: "cancelZmodem unavailable" };
       await bindings.terminal.CancelZmodem(sessionID);
@@ -914,15 +1243,14 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       await bindings.sftp.ExtractArchive(sftpId, remotePath);
       return { success: true };
     }) as unknown as NetcattyBridge["extractSftpArchive"],
-    startCompressedUpload: (async (options: { sftpId: string; folderPath: string; targetPath: string; folderName: string; compressionId: string }) => {
-      if (!bindings.sftp.UploadCompressedFolder) {
-        return { success: false, error: "compressed upload is not wired on the Wails runtime yet", compressionId: options.compressionId };
-      }
-      const remoteZip = `${options.targetPath.replace(/\/$/, "")}/${options.folderName}.zip`;
-      await bindings.sftp.UploadCompressedFolder(options.sftpId, options.folderPath, remoteZip);
-      return { success: true, compressionId: options.compressionId };
-    }) as unknown as NetcattyBridge["startCompressedUpload"],
-    checkCompressedUploadSupport: (async () => ({ supported: Boolean(bindings.sftp.UploadCompressedFolder), localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
+    getTempDirInfo: async () => { if (!bindings.filesystem?.TempInfo) missingBridgeMethod('getTempDirInfo'); return bindings.filesystem.TempInfo(); },
+    getTempDirPath: async () => { if (!bindings.filesystem?.TempInfo) missingBridgeMethod('getTempDirPath'); return (await bindings.filesystem.TempInfo()).path; },
+    clearTempDir: async () => { if (!bindings.filesystem?.ClearTemp) missingBridgeMethod('clearTempDir'); const result=await bindings.filesystem.ClearTemp(); return { deletedCount:result.deletedCount, failedCount:0 }; },
+    startCompressedUpload: transfers.startCompressedUpload,
+    pauseCompressedUpload: transfers.pauseTransfer,
+    resumeCompressedUpload: transfers.resumeTransfer,
+    cancelCompressedUpload: async (id: string) => { await transfers.cancelTransfer(id); return { success: true }; },
+    checkCompressedUploadSupport: (async () => ({ supported: Boolean((bindings.transfer as TransferBindings | undefined)?.StartCompressed), localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
     registerGlobalHotkey: (async (hotkey: string) => {
       if (!bindings.shortcuts?.Register) return { success: false, error: "registerGlobalHotkey unavailable" };
       return bindings.shortcuts.Register(hotkey);
@@ -948,6 +1276,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         requiresMfa: options.requiresMfa,
         useSshAgent: options.useSshAgent,
         identityFilePaths: options.identityFilePaths,
+        proxy: options.proxy,
+        jumpHosts: options.jumpHosts,
         cols: options.cols,
         rows: options.rows,
       });
@@ -958,6 +1288,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         cols: options.cols ?? 80,
         rows: options.rows ?? 24,
       });
+      rememberSession(options.sessionId, sessionID);
       await attachDataPlane(sessionID);
       return sessionID;
     }) as unknown as NetcattyBridge["startMoshSession"],
@@ -974,6 +1305,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         requiresMfa: options.requiresMfa,
         useSshAgent: options.useSshAgent,
         identityFilePaths: options.identityFilePaths,
+        proxy: options.proxy,
+        jumpHosts: options.jumpHosts,
         cols: options.cols,
         rows: options.rows,
       });
@@ -984,6 +1317,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         cols: options.cols ?? 80,
         rows: options.rows ?? 24,
       });
+      rememberSession(options.sessionId, sessionID);
       await attachDataPlane(sessionID);
       return sessionID;
     }) as unknown as NetcattyBridge["startEtSession"],
@@ -1010,9 +1344,15 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       },
     }),
     agent: unimplemented("agent"),
-    files: unimplemented("files"),
+    files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
     script: unimplemented("script"),
     terminal: portWith("terminal", {
+      getDefaultShell,
+      discoverShells,
+      validatePath,
+      getServerStats: monitoring.getServerStats,
+      getSessionPwd,
+      getSessionRemoteInfo,
       startSSHSession,
       startLocalSession,
       startTelnetSession,
@@ -1031,6 +1371,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       listLocalTree,
       cancelLocalTreeScan,
       openSftp,
+    openSftpForSession,
       listSftp,
       mkdirSftp,
       deleteSftp,
@@ -1042,6 +1383,21 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       getSftpHomeDir,
     }),
     sync: portWith("sync", {
+      // Cloud OAuth surface (camelCase) mapped from the generated sync
+      // bindings, so cloudSyncBridge.get() and the adapters reach the Go
+      // OAuth/device-flow/file operations under Wails.
+      ...cloudOAuth,
+      openProviderConsole,
+      cloudSyncSetSessionPassword,
+      cloudSyncGetSessionPassword,
+      cloudSyncClearSessionPassword,
+      cloudSyncResetEverything,
+      getVaultBackupCapabilities,
+      createVaultBackup,
+      listVaultBackups,
+      readVaultBackup,
+      trimVaultBackups,
+      openVaultBackupDir,
       cloudSyncWebdavInitialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
         return bindings.sync.CloudSyncWebdavInitialize(config);
@@ -1075,7 +1431,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         return bindings.sync.CloudSyncS3Delete(config);
       }) as unknown as NetcattyBridge["cloudSyncS3Delete"],
     }),
-    system: unimplemented("system"),
+    system: portWith("system", monitoring),
     plugin: unimplemented("plugin"),
     transitionBridge,
   };
@@ -1123,6 +1479,7 @@ export function installWailsRuntimeClient(): boolean {
   const host = window as typeof window & { wails?: { Window?: typeof wailsWindow } };
   host.wails ??= {};
   host.wails.Window = wailsWindow;
+  configureProfileBindings(profileBindings);
   setActiveRuntimeClient(createWailsRuntimeClient());
   return true;
 }

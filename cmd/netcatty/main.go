@@ -21,6 +21,7 @@ import (
 	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/applog"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
@@ -143,11 +144,30 @@ func main() {
 		applock.New(credentialProvider),
 		profileStore,
 	)
-	pluginService := newPluginService()
+	pluginService, err := newPluginServiceAt(filepath.Join(filepath.Dir(profileStore.Path()), "plugins", "inventory.json"))
+	if err != nil {
+		log.Fatalf("open plugin inventory: %v", err)
+	}
+	managedTemp, err := filesystem.NewTempService(filepath.Join(baseProfileDir(), "temp"))
+	if err != nil {
+		log.Fatalf("open application temp directory: %v", err)
+	}
+	sweepTempOrphans(managedTemp)
 	filesystemService := newFilesystemService()
+	filesystemService.setTempService(managedTemp)
 	transferService := newTransferService()
-	shortcutService := newShortcutService()
+	transferService.setTempService(managedTemp)
+	shortcutService := newNativeShortcutService(func() {
+		if win, ok := wailsApp.Window.GetByName("main"); ok {
+			if win.IsVisible() {
+				win.Hide()
+			} else {
+				restoreMainWindow(appRestoreWindow{win})
+			}
+		}
+	})
 	syncService := newSyncService()
+	syncService.setSessionDependencies(profileStore, baseProfileDir(), credentialProvider)
 	diagnosticLogService := newDiagnosticLogService()
 
 	// Terminal data plane (loopback WebSocket) + SSH terminal service.
@@ -161,13 +181,16 @@ func main() {
 	sshPool := sshpool.New(ssh.Dial)
 	defer sshPool.Shutdown()
 	terminalSvc := NewTerminalService(routeController, dpServer, knownHosts)
-	terminalSvc.SetChallengeEmitter(func(challenge ssh.KeyboardChallenge) {
+	terminalSvc.setChallengeEmitter(func(challenge ssh.KeyboardChallenge) {
 		wailsApp.Event.Emit("ssh:keyboard-interactive", challenge)
 	})
-	terminalSvc.SetEventEmitter(func(name string, payload any) {
+	terminalSvc.setEventEmitter(func(name string, payload any) {
 		wailsApp.Event.Emit(name, payload)
 	})
 	sftpService := NewSFTPService(sshPool, knownHosts)
+	sftpService.setTempService(managedTemp)
+	sftpService.setTerminalService(terminalSvc)
+	transferService.setSFTPService(sftpService)
 	forwardService := NewForwardService(sshPool, knownHosts)
 
 	wailsApp.RegisterService(application.NewService(service))

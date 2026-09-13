@@ -12,11 +12,14 @@ interface SftpPermissionsDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     file: SftpFileEntry | null;
-    onSave: (file: SftpFileEntry, permissions: string) => void;
+    onSave: (file: SftpFileEntry, permissions: string) => Promise<void>;
 }
 
 const SftpPermissionsDialogInner: React.FC<SftpPermissionsDialogProps> = ({ open, onOpenChange, file, onSave }) => {
     const { t } = useI18n();
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    useEffect(() => { setError(null); }, [open, file]);
     const [permissions, setPermissions] = useState({
         owner: { read: false, write: false, execute: false },
         group: { read: false, write: false, execute: false },
@@ -98,10 +101,17 @@ const SftpPermissionsDialogInner: React.FC<SftpPermissionsDialogProps> = ({ open
         return getSym(permissions.owner) + getSym(permissions.group) + getSym(permissions.others);
     };
 
-    const handleSave = () => {
-        if (file) {
-            onSave(file, getOctalPermissions());
+    const handleSave = async () => {
+        if (!file || saving) return;
+        setSaving(true);
+        setError(null);
+        try {
+            await onSave(file, getOctalPermissions());
             onOpenChange(false);
+        } catch (error) {
+            setError(error instanceof Error ? error.message : String(error));
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -117,6 +127,7 @@ const SftpPermissionsDialogInner: React.FC<SftpPermissionsDialogProps> = ({ open
                     <label key={perm} className="flex items-center gap-1.5 cursor-pointer">
                         <input
                             type="checkbox"
+                            disabled={saving}
                             checked={permissions[role][perm]}
                             onChange={() => togglePerm(role, perm)}
                             className="rounded border-border"
@@ -129,7 +140,7 @@ const SftpPermissionsDialogInner: React.FC<SftpPermissionsDialogProps> = ({ open
     );
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!saving) onOpenChange(nextOpen); }}>
             <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
                     <DialogTitle>{t('sftp.permissions.title')}</DialogTitle>
@@ -155,11 +166,12 @@ const SftpPermissionsDialogInner: React.FC<SftpPermissionsDialogProps> = ({ open
                     </div>
                 </div>
 
+                {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button disabled={saving} variant="outline" onClick={() => onOpenChange(false)}>
                         {t('common.cancel')}
                     </Button>
-                    <Button onClick={handleSave}>
+                    <Button disabled={saving} onClick={handleSave}>
                         {t('common.apply')}
                     </Button>
                 </DialogFooter>

@@ -2,6 +2,8 @@ package dataplane
 
 import (
 	"bytes"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -82,6 +84,82 @@ func TestDropOutput(t *testing.T) {
 	}
 	// Dropping an unknown session is a no-op.
 	server.DropOutput("never-existed")
+}
+
+func TestPublishBeforeCreditIsBounded(t *testing.T) {
+	server := NewServer(NewRouteController(), "")
+	if err := server.Publish("bounded", make([]byte, ReceiveWindowBytes)); err != nil {
+		t.Fatal(err)
+	}
+	if err := server.Publish("bounded", []byte("overflow")); !errors.Is(err, ErrOutputBackpressure) {
+		t.Fatalf("Publish must propagate backpressure: %v", err)
+	}
+	queue := server.queueFor("bounded")
+	var size int
+	for _, chunk := range queue.chunks {
+		size += len(chunk)
+	}
+	if size > int(ReceiveWindowBytes) {
+		t.Fatalf("buffered %d bytes without credit, limit %d", size, ReceiveWindowBytes)
+	}
+}
+
+func TestPublishOwnsBufferedBytes(t *testing.T) {
+	server := NewServer(NewRouteController(), "")
+	data := []byte("original")
+	server.Publish("copy", data)
+	copy(data, "modified")
+	chunk, _ := server.queueFor("copy").pop()
+	if string(chunk) != "original" {
+		t.Fatalf("producer reuse corrupted buffered output: %q", chunk)
+	}
+}
+
+func TestOutputAdmissionErrorsAndRelease(t *testing.T) {
+	queue := newOutputQueue()
+	if err := queue.push(make([]byte, ReceiveWindowBytes-1)); err != nil {
+		t.Fatal(err)
+	}
+	if err := queue.push([]byte("ab")); !errors.Is(err, ErrOutputBackpressure) {
+		t.Fatalf("overflow must reject atomically: %v", err)
+	}
+	pending, _ := queue.pop()
+	if err := queue.push([]byte("ab")); !errors.Is(err, ErrOutputBackpressure) {
+		t.Fatalf("pending writer bytes must still consume capacity: %v", err)
+	}
+	queue.release(len(pending))
+	if err := queue.push([]byte("ab")); err != nil {
+		t.Fatalf("sent bytes must release capacity: %v", err)
+	}
+	queue.close()
+	if err := queue.push([]byte("late")); !errors.Is(err, ErrOutputClosed) {
+		t.Fatalf("dying queue must explicitly reject publish: %v", err)
+	}
+	if chunk, ok := queue.pop(); ok || chunk != nil {
+		t.Fatal("closed queue retained abandoned output")
+	}
+}
+
+func TestConcurrentOutputAdmissionAndClose(t *testing.T) {
+	queue := newOutputQueue()
+	var workers sync.WaitGroup
+	for i := 0; i < 32; i++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for j := 0; j < 64; j++ {
+				err := queue.push(make([]byte, 1024))
+				if err != nil && !errors.Is(err, ErrOutputClosed) && !errors.Is(err, ErrOutputBackpressure) {
+					t.Errorf("unexpected admission error: %v", err)
+				}
+			}
+		}()
+	}
+	queue.close()
+	workers.Wait()
+	if err := queue.push([]byte("late")); !errors.Is(err, ErrOutputClosed) {
+		t.Fatalf("closed queue accepted bytes: %v", err)
+	}
 }
 
 func TestOriginAllowed(t *testing.T) {

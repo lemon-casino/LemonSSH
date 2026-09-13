@@ -11,14 +11,37 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
+ * GetConfig is a pull handshake: configuration cannot race the renderer's event listener.
+ * The per-window capability appears only in that window's URL, never app-wide events.
+ * @param {string} popupID
+ * @param {string} token
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function GetConfig(popupID, token) {
+    return $Call.ByID(983039211, popupID, token).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @param {string} popupID
+ * @param {string} token
+ * @returns {$CancellablePromise<void>}
+ */
+export function Heartbeat(popupID, token) {
+    return $Call.ByID(967793813, popupID, token);
+}
+
+/**
  * @param {{ [_ in string]?: any }} payload
  * @returns {$CancellablePromise<$models.PopupOpenResult>}
  */
 export function Open(payload) {
     return $Call.ByID(4284198019, payload).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType1($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = $models.PopupOpenResult.createFrom;
+const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = $models.PopupOpenResult.createFrom;

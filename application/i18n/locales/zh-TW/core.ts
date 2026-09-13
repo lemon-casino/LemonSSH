@@ -1,6 +1,10 @@
 import type { Messages } from '../types';
 
 export const zhTWCoreMessages: Messages = {
+  'profile.persistenceFailed': '無法更新你的設定。最近的變更可能尚未儲存，請重試。',
+  'terminal.menu.receiveZmodem': 'ZMODEM 接收',
+  'terminal.zmodem.receiveReady': '正在等候 ZMODEM。請在遠端終端執行 sz <檔案> 傳送檔案。',
+  'terminal.zmodem.receiveFailed': 'ZMODEM 接收失敗，請重試。',
   // Common
   'common.save': '儲存',
   'common.cancel': '取消',
@@ -1092,6 +1096,9 @@ export const zhTWCoreMessages: Messages = {
   'settings.plugins.title': '外掛程式設定',
   'settings.plugins.description': '由開發外掛程式提供、經 Netcatty 原生元件驗證的設定。',
   'settings.plugins.loading': '正在載入外掛程式設定…',
+  'settings.plugins.allow.once': '僅允許一次',
+  'settings.plugins.allow.session': '本次工作階段允許',
+  'settings.plugins.legacyGuidance': '請向外掛程式作者取得使用 manifest v2 的 WASM 版本。無法載入舊版 JavaScript/Node 套件。',
   'settings.plugins.empty': '目前沒有已啟用外掛程式提供設定。',
   'settings.plugins.scopeContext': '請在對應的 {scope} 情境中開啟此設定。',
   'settings.plugins.pressKeybinding': '請按下組合鍵',

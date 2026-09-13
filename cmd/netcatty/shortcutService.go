@@ -8,9 +8,11 @@ import (
 )
 
 type ShortcutService struct {
-	mu       sync.Mutex
-	registry *shortcuts.Registry
-	current  string
+	mu             sync.Mutex
+	registry       *shortcuts.Registry
+	current        string
+	registerNative func(string) (func() error, error)
+	release        func() error
 }
 
 type HotkeyResult struct {
@@ -69,24 +71,40 @@ func (s *ShortcutService) Register(raw string) HotkeyResult {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.current != "" && s.current != accel {
+	if s.current == accel {
+		return HotkeyResult{Success: true, Enabled: true, Accelerator: accel}
+	}
+	if s.registerNative == nil {
+		return HotkeyResult{Error: "native global hotkey application owner unavailable", Accelerator: accel}
+	}
+	release, err := s.registerNative(accel)
+	if err != nil {
+		return HotkeyResult{Error: err.Error(), Accelerator: accel}
+	}
+	if s.release != nil {
+		if err := s.release(); err != nil {
+			_ = release()
+			return HotkeyResult{Error: err.Error(), Accelerator: accel}
+		}
 		_ = s.registry.Unregister(s.current)
 	}
-	if err := s.registry.Register(accel, "toggle-window"); err != nil && !strings.Contains(err.Error(), "conflict") {
-		return HotkeyResult{Success: false, Error: err.Error(), Accelerator: accel}
+	if err := s.registry.Register(accel, "toggle-window"); err != nil {
+		_ = release()
+		return HotkeyResult{Error: err.Error(), Accelerator: accel}
 	}
-	s.current = accel
-	return HotkeyResult{
-		Success:     false,
-		Enabled:     false,
-		Accelerator: accel,
-		Error:       "native global hotkeys are not available on Wails v3.0.0-alpha.63",
-	}
+	s.current, s.release = accel, release
+	return HotkeyResult{Success: true, Enabled: true, Accelerator: accel}
 }
 
 func (s *ShortcutService) Unregister() HotkeyResult {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.release != nil {
+		if err := s.release(); err != nil {
+			return HotkeyResult{Error: err.Error(), Enabled: true, Accelerator: s.current}
+		}
+		s.release = nil
+	}
 	if s.current != "" {
 		_ = s.registry.Unregister(s.current)
 	}

@@ -72,13 +72,128 @@ export function Connect(request) {
 }
 
 /**
+ * @returns {$CancellablePromise<$models.DiscoveredShell[]>}
+ */
+export function DiscoverShells() {
+    return $Call.ByID(2771791745).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<string>}
+ */
+export function GetDefaultShell() {
+    return $Call.ByID(2641412138);
+}
+
+/**
+ * @param {$models.DockerStatsOptions} options
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function GetDockerStats(options) {
+    return $Call.ByID(612413738, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * GetExitStatus is the reliable side channel for binary Complete frames. Records
+ * are published before route teardown and bounded to the last 256 exits.
+ * @param {string} id
+ * @returns {$CancellablePromise<$models.TerminalExitStatus | null>}
+ */
+export function GetExitStatus(id) {
+    return $Call.ByID(222198297, id).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType5($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.HelperSessionState>}
+ */
+export function GetHelperSessionState(sessionID) {
+    return $Call.ByID(796067590, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function GetServerStats(sessionID) {
+    return $Call.ByID(2973806447, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @param {$models.TerminalPwdOptions} options
+ * @returns {$CancellablePromise<$models.TerminalPwdResult>}
+ */
+export function GetSessionPwd(sessionID, options) {
+    return $Call.ByID(1679513552, sessionID, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType7($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.TerminalRemoteInfo>}
+ */
+export function GetSessionRemoteInfo(sessionID) {
+    return $Call.ByID(3844699739, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType8($result);
+    }));
+}
+
+/**
  * GetTelnetEchoMode reports whether the server currently echoes input.
  * @param {string} sessionID
  * @returns {$CancellablePromise<{ [_ in string]?: any }>}
  */
 export function GetTelnetEchoMode(sessionID) {
     return $Call.ByID(2459092297, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType9($result);
+    }));
+}
+
+/**
+ * ListAutocompleteDirectory uses a separate SFTP channel on the terminal's
+ * authenticated transport. It never writes to the interactive shell.
+ * @param {string} sessionID
+ * @param {string} directory
+ * @param {boolean} foldersOnly
+ * @param {string} prefix
+ * @param {number} limit
+ * @returns {$CancellablePromise<$models.AutocompleteDirectoryResult>}
+ */
+export function ListAutocompleteDirectory(sessionID, directory, foldersOnly, prefix, limit) {
+    return $Call.ByID(1485152420, sessionID, directory, foldersOnly, prefix, limit).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType10($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListDockerContainers(sessionID) {
+    return $Call.ByID(3885403661, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListDockerImages(sessionID) {
+    return $Call.ByID(1903017463, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
     }));
 }
 
@@ -88,6 +203,26 @@ export function GetTelnetEchoMode(sessionID) {
  */
 export function ListSerialPorts() {
     return $Call.ByID(663993127).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType12($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListSystemProcesses(sessionID) {
+    return $Call.ByID(3602454473, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListTmuxSessions(sessionID) {
+    return $Call.ByID(3524218066, sessionID).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType3($result);
     }));
 }
@@ -101,6 +236,16 @@ export function ListenAddr() {
 }
 
 /**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ProbeSystemCapabilities(sessionID) {
+    return $Call.ByID(2006892894, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
  * ReceiveSerialYmodem downloads files from the serial peer into destinationDir.
  * @param {string} sessionID
  * @param {string} destinationDir
@@ -108,7 +253,30 @@ export function ListenAddr() {
  */
 export function ReceiveSerialYmodem(sessionID, destinationDir) {
     return $Call.ByID(3045917549, sessionID, destinationDir).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType14($result);
+    }));
+}
+
+/**
+ * ReceiveZmodem refuses existing targets; transfer bytes are written only after
+ * validated metadata, and partial files are removed if negotiation fails.
+ * @param {string} sessionID
+ * @param {string} destinationDir
+ * @returns {$CancellablePromise<void>}
+ */
+export function ReceiveZmodem(sessionID, destinationDir) {
+    return $Call.ByID(3664406058, sessionID, destinationDir);
+}
+
+/**
+ * Reconnect rotates only the renderer route. Native Mosh/ET processes retain
+ * their protocol keys and roaming state; no new remote server is bootstrapped.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<dataplane$0.RouteBootstrap>}
+ */
+export function Reconnect(sessionID) {
+    return $Call.ByID(2144418350, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
     }));
 }
 
@@ -135,6 +303,20 @@ export function RespondKeyboardInteractive(requestID, responses, cancelled) {
 }
 
 /**
+ * RestartHelper relaunches the supervised helper inside the same terminal
+ * session after a "failed" lifecycle event. The follow-up "running" event
+ * arrives through the existing lifecycle callback. Rejected for closing or
+ * missing sessions and for helpers whose run loop is still alive.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.HelperSessionState>}
+ */
+export function RestartHelper(sessionID) {
+    return $Call.ByID(2694891548, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
+}
+
+/**
  * SendSerialYmodem uploads the file at filePath over the session's serial port
  * using the YMODEM block protocol.
  * @param {string} sessionID
@@ -143,26 +325,21 @@ export function RespondKeyboardInteractive(requestID, responses, cancelled) {
  */
 export function SendSerialYmodem(sessionID, filePath) {
     return $Call.ByID(4074171664, sessionID, filePath).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType15($result);
     }));
 }
 
 /**
- * @param {any} emit
+ * SendZmodem holds the session's raw byte stream until the peer acknowledges
+ * completion. The native terminal writer is shared by data and protocol replies.
+ * @param {string} sessionID
+ * @param {string} filePath
+ * @param {string} remoteName
+ * @param {string} command
  * @returns {$CancellablePromise<void>}
  */
-export function SetChallengeEmitter(emit) {
-    return $Call.ByID(3085412466, emit);
-}
-
-/**
- * SetEventEmitter wires renderer-visible events (telnet echo mode, auto-login
- * completion/cancellation) to the Wails event bus.
- * @param {any} emit
- * @returns {$CancellablePromise<void>}
- */
-export function SetEventEmitter(emit) {
-    return $Call.ByID(829485873, emit);
+export function SendZmodem(sessionID, filePath, remoteName, command) {
+    return $Call.ByID(695933495, sessionID, filePath, remoteName, command);
 }
 
 /**
@@ -199,6 +376,14 @@ export function StartLocal(shell, cwd, cols, rows) {
 }
 
 /**
+ * @param {$models.LocalStartRequest} request
+ * @returns {$CancellablePromise<string>}
+ */
+export function StartLocalWithOptions(request) {
+    return $Call.ByID(4092120380, request);
+}
+
+/**
  * StartMosh runs the mosh bootstrap over SSH and supervises the local
  * mosh-client. The remote handshake scrapes the MOSH CONNECT line, then the
  * client process streams through the same data plane as other sessions.
@@ -231,6 +416,17 @@ export function StartTelnet(request) {
 }
 
 /**
+ * @param {string} path
+ * @param {string} kind
+ * @returns {$CancellablePromise<$models.PathValidation>}
+ */
+export function ValidatePath(path, kind) {
+    return $Call.ByID(1211764756, path, kind).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType16($result);
+    }));
+}
+
+/**
  * Write sends raw stdin bytes to the remote shell.
  * @param {string} sessionID
  * @param {string} data
@@ -242,9 +438,19 @@ export function Write(sessionID, data) {
 
 // Private type creation functions
 const $$createType0 = dataplane$0.RouteBootstrap.createFrom;
-const $$createType1 = $Create.Map($Create.Any, $Create.Any);
-const $$createType2 = serialport$0.Info.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = ymodem$0.ReceiveResult.createFrom;
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = ymodem$0.SendResult.createFrom;
+const $$createType1 = $models.DiscoveredShell.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.MonitoringResult.createFrom;
+const $$createType4 = $models.TerminalExitStatus.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $models.HelperSessionState.createFrom;
+const $$createType7 = $models.TerminalPwdResult.createFrom;
+const $$createType8 = $models.TerminalRemoteInfo.createFrom;
+const $$createType9 = $Create.Map($Create.Any, $Create.Any);
+const $$createType10 = $models.AutocompleteDirectoryResult.createFrom;
+const $$createType11 = serialport$0.Info.createFrom;
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = ymodem$0.ReceiveResult.createFrom;
+const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = ymodem$0.SendResult.createFrom;
+const $$createType16 = $models.PathValidation.createFrom;

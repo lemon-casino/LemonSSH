@@ -2,12 +2,15 @@ package sftp
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkg/sftp"
 )
@@ -172,7 +175,7 @@ func TestReadRange(t *testing.T) {
 }
 
 func TestSessionClientBound(t *testing.T) {
-	session := NewSession(2)
+	session := newSessionWithWait(2, 20*time.Millisecond)
 	release1, err := session.Acquire()
 	if err != nil {
 		t.Fatal(err)
@@ -181,8 +184,8 @@ func TestSessionClientBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := session.Acquire(); err == nil {
-		t.Fatal("third concurrent client must be rejected")
+	if _, err := session.Acquire(); !errors.Is(err, ErrTooManyClients) {
+		t.Fatalf("third concurrent client must be rejected after the wait, got %v", err)
 	}
 	release1()
 	release2()
@@ -191,6 +194,48 @@ func TestSessionClientBound(t *testing.T) {
 		t.Fatal(err)
 	}
 	release3()
+}
+
+func TestSessionAcquireQueuesUntilRelease(t *testing.T) {
+	session := newSessionWithWait(1, 2*time.Second)
+	release, err := session.Acquire()
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		release()
+	}()
+	queued, err := session.Acquire()
+	if err != nil {
+		t.Fatalf("queued acquire must succeed once a slot frees, got %v", err)
+	}
+	queued()
+}
+
+func TestSessionDefaultWaitAbsorbsParallelBurst(t *testing.T) {
+	session := NewSession(2)
+	const burst = 6
+	var wg sync.WaitGroup
+	errs := make([]error, burst)
+	for i := 0; i < burst; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			release, err := session.Acquire()
+			if err != nil {
+				errs[i] = err
+				return
+			}
+			release()
+		}(i)
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("parallel burst acquire %d must queue, not fail: %v", i, err)
+		}
+	}
 }
 
 func TestNormalizePath(t *testing.T) {

@@ -54,6 +54,8 @@ import {
   STORAGE_KEY_CLOSE_BEHAVIOR,
   STORAGE_KEY_LAYOUT_MODE,
 } from '../../infrastructure/config/storageKeys';
+import { hostStorageAdapter, hasHostProfileClient } from '../../infrastructure/persistence/hostStorageAdapter';
+import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from '../../infrastructure/persistence/localStorageAdapter';
 import { resolveAppearanceStorageEvent } from './appearanceSync';
 import {
   isValidUiFontId,
@@ -220,7 +222,7 @@ export function useSettingsStorageSync({
   // Listen for storage changes from other windows (cross-window sync)
   useEffect(() => {
     if (!enabled) return;
-    const handleStorageChange = (e: StorageEvent) => {
+    const handleStorageChange = (e: Pick<StorageEvent, 'key' | 'newValue'>) => {
       const s = settingsSnapshotRef.current;
       const appearance = resolveAppearanceStorageEvent(s, e.key, e.newValue);
       if (appearance.handled) {
@@ -540,8 +542,22 @@ export function useSettingsStorageSync({
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const handleBrowserStorageChange = (event: StorageEvent) => {
+      // Canonical storage treats browser events as invalidations. Its refresh
+      // publishes an adapter event only after the authoritative cache is ready.
+      if (!hasHostProfileClient()) handleStorageChange(event);
+    };
+    const handleAdapterChange = (event: Event) => {
+      const key = (event as CustomEvent<{ key: string }>).detail?.key;
+      if (typeof key !== 'string') return;
+      handleStorageChange({ key, newValue: hostStorageAdapter.readString(key) });
+    };
+    window.addEventListener('storage', handleBrowserStorageChange);
+    window.addEventListener(LOCAL_STORAGE_ADAPTER_CHANGED_EVENT, handleAdapterChange);
+    return () => {
+      window.removeEventListener('storage', handleBrowserStorageChange);
+      window.removeEventListener(LOCAL_STORAGE_ADAPTER_CHANGED_EVENT, handleAdapterChange);
+    };
   }, [
     enabled,
     applyIncomingCustomKeyBindings,

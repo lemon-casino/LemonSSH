@@ -3,8 +3,26 @@
  *
  * - `connect` (default): single click immediately connects / opens
  * - `select`: first click focuses; click the focused item again to activate
+ *
+ * Sidebar (terminal host tree / workbench merged tree) double-click is a
+ * separate contract: group → inline rename; host → new active session via
+ * connectToHost. It is never duplicate-host and never TopTabs copy-session.
  */
 export type HostClickBehavior = 'connect' | 'select';
+
+export type SidebarTreeDoubleClickTarget =
+  | { kind: 'group'; isWorkspace?: boolean; isInlineEditing?: boolean }
+  | { kind: 'host'; isInlineEditing?: boolean };
+
+export type SidebarTreeDoubleClickAction = 'rename-group' | 'connect-host' | 'none';
+
+export function resolveSidebarTreeDoubleClick(
+  target: SidebarTreeDoubleClickTarget,
+): SidebarTreeDoubleClickAction {
+  if (target.isInlineEditing) return 'none';
+  if (target.kind === 'group') return target.isWorkspace ? 'none' : 'rename-group';
+  return 'connect-host';
+}
 
 export const DEFAULT_HOST_CLICK_BEHAVIOR: HostClickBehavior = 'connect';
 

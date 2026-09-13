@@ -93,6 +93,9 @@ func (b *Broker) Grant(principalID, resource string, lifetime Lifetime, ttl time
 // Check authorizes (principal, resource, mode). Default is deny: no grant,
 // expired grant, or a write attempt over a read grant all fail.
 func (b *Broker) Check(principalID, resource, mode string) error {
+	if mode != "read" && mode != "write" {
+		return ErrNotGranted
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	byResource, ok := b.grants[principalID]
@@ -108,6 +111,9 @@ func (b *Broker) Check(principalID, resource, mode string) error {
 	}
 	if mode == "write" && !strings.HasSuffix(grant.Resource, ":write") && !grant.writeAllowed() {
 		return ErrNotGranted
+	}
+	if grant.Lifetime == LifetimeOnce {
+		delete(byResource, resource)
 	}
 	return nil
 }

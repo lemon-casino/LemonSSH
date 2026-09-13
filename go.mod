@@ -55,6 +55,7 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	golang.design/x/hotkey v0.4.1 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

@@ -118,6 +118,9 @@ export type TerminalSessionStartOptions = {
 };
 
 export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContext) => {
+  // Wails owns SSH bootstrap/tunneling in Go. Electron's native client path
+  // retains its existing proxy and jump-chain limits.
+  const supportsGoSshBootstrap = typeof window !== "undefined" && "_wails" in window;
   const globalTerminalSettings = {
     verifyHostKeys: true,
     keepaliveInterval: 30,
@@ -1057,7 +1060,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
       const hasConfiguredJumpHostChain =
         (ctx.host.hostChain?.hostIds?.length || 0) > 0 ||
         ctx.resolvedChainHosts.length > 0;
-      if (hasConfiguredJumpHostChain) {
+      if (hasConfiguredJumpHostChain && !supportsGoSshBootstrap) {
         stopMosh("Mosh does not support jump host chains. Use SSH for this host or remove the jump hosts from this connection.");
         return;
       }
@@ -1075,6 +1078,43 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         stopMosh("Mosh does not support proxy connections. Use SSH for this host or remove the proxy from this connection.");
         return;
       }
+
+      const missingChainHostIds = getMissingChainHostIds(ctx.host, ctx.resolvedChainHosts);
+      if (missingChainHostIds.length > 0) {
+        stopMosh(`A configured jump host is missing. Repair the jump host chain. (${missingChainHostIds.join(", ")})`);
+        return;
+      }
+      const jumpHosts = ctx.resolvedChainHosts.map<NetcattyJumpHost>((jumpHost) => {
+        const auth = resolveHostAuth({ host: jumpHost, keys: ctx.keys, identities: ctx.identities });
+        const jumpKey = auth.authMethod === "password" ? undefined : auth.key;
+        const agent = resolveBridgeSshAgentAuth(jumpHost, jumpKey, auth.authMethod);
+        const identityFilePaths = auth.authMethod === "password"
+          ? undefined
+          : jumpKey?.source === "reference" && jumpKey.filePath
+            ? [jumpKey.filePath]
+            : !auth.keyId ? jumpHost.identityFilePaths : undefined;
+        const password = sanitizeCredentialValue(auth.password);
+        const privateKey = sanitizeCredentialValue(jumpKey?.privateKey);
+        const passphrase = sanitizeCredentialValue(auth.passphrase || jumpKey?.passphrase);
+        if (auth.authMethod !== "auto" && !password && !privateKey && !agent.useSshAgent && !identityFilePaths?.length
+          && [auth.password, jumpKey?.privateKey, auth.passphrase].some(isEncryptedCredentialPlaceholder)) {
+          throw new Error(`Jump host credentials cannot be decrypted: ${jumpHost.label || jumpHost.hostname}`);
+        }
+        return {
+          hostname: jumpHost.hostname,
+          hostId: jumpHost.id,
+          username: auth.username || "root",
+          port: jumpHost.port || 22,
+          authMethod: auth.authMethod,
+          requiresMfa: !!jumpHost.requiresMfa,
+          password,
+          privateKey: jumpKey?.source === "reference" ? undefined : privateKey,
+          certificate: jumpKey?.certificate,
+          passphrase,
+          identityFilePaths,
+          ...agent,
+        };
+      });
 
       const pendingAuth = ctx.pendingAuthRef.current;
       const resolvedAuth = resolveHostAuth({
@@ -1196,6 +1236,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         ...moshAgentAuth,
         port: ctx.host.port || 22,
         moshServerPath: ctx.host.moshServerPath,
+        ...(supportsGoSshBootstrap && jumpHosts.length > 0 ? { jumpHosts } : {}),
         agentForwarding: ctx.host.agentForwarding,
         // Forwarded for the host-info stats companion SSH connection (#1198):
         // Mosh's own handshake uses the system ssh (which reads ~/.ssh/config),
@@ -1289,7 +1330,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         return;
       }
 
-      if (hasUsableProxyConfig(ctx.host.proxyConfig)) {
+      if (hasUsableProxyConfig(ctx.host.proxyConfig) && !supportsGoSshBootstrap) {
         stopEt(tr(
           "terminal.et.proxyUnsupported",
           "EternalTerminal does not currently support Netcatty proxy settings. Use SSH or remove the proxy for this host.",
@@ -1302,7 +1343,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
       // would otherwise slip past a resolved-length check and silently drop to
       // a single (or zero) hop.
       const configuredChainHostCount = ctx.host.hostChain?.hostIds?.length ?? 0;
-      if (configuredChainHostCount > 1 || ctx.resolvedChainHosts.length > 1) {
+      if (!supportsGoSshBootstrap && (configuredChainHostCount > 1 || ctx.resolvedChainHosts.length > 1)) {
         stopEt(tr(
           "terminal.et.multiJumpUnsupported",
           "EternalTerminal currently supports at most one jump host in Netcatty.",
@@ -1347,6 +1388,12 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         stopEt(formatIncompleteProxyIdentityMessage(
           incompleteJumpProxyIdentityHost.label || incompleteJumpProxyIdentityHost.hostname,
         ));
+        return;
+      }
+
+      if (supportsGoSshBootstrap && [ctx.host, ...ctx.resolvedChainHosts].some((host) =>
+        hasUsableProxyConfig(host.proxyConfig) && hasUnreadableProxyCredential(host.proxyConfig, ctx.identities))) {
+        stopEt("Proxy credentials cannot be decrypted on this device. Re-enter the proxy password.");
         return;
       }
 
@@ -1421,7 +1468,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         const jumpPrivateKey = sanitizeCredentialValue(rawJumpPrivateKey);
         const jumpPassphrase = sanitizeCredentialValue(rawJumpPassphrase);
 
-        if (hasUsableProxyConfig(jumpHost.proxyConfig)) {
+        if (hasUsableProxyConfig(jumpHost.proxyConfig) && !supportsGoSshBootstrap) {
           unsupportedJumpProxies.push(jumpHost.label || jumpHost.hostname);
         }
 
@@ -1467,6 +1514,12 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
           etPort: jumpHost.etPort,
           username: jumpAuth.username || "root",
           authMethod: jumpAuth.authMethod,
+          ...(supportsGoSshBootstrap ? {
+            requiresMfa: !!jumpHost.requiresMfa,
+            proxy: hasUsableProxyConfig(jumpHost.proxyConfig)
+              ? resolveProxyConfigAuth(jumpHost.proxyConfig!, ctx.identities)
+              : undefined,
+          } : {}),
           password: jumpPassword,
           privateKey: (jumpAgentAuth.useSshAgent && !jumpKey?.certificate) || jumpKey?.source === 'reference' ? undefined : jumpPrivateKey,
           certificate: jumpKey?.certificate,
@@ -1518,6 +1571,12 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
         ...etAgentAuth,
         port: ctx.host.port || 22,
         etPort: ctx.host.etPort,
+        ...(supportsGoSshBootstrap ? {
+          requiresMfa: !!ctx.host.requiresMfa,
+          proxy: hasUsableProxyConfig(ctx.host.proxyConfig)
+            ? resolveProxyConfigAuth(ctx.host.proxyConfig!, ctx.identities)
+            : undefined,
+        } : {}),
         legacyAlgorithms: ctx.host.legacyAlgorithms,
         skipEcdsaHostKey: ctx.host.skipEcdsaHostKey,
         algorithmOverrides: ctx.host.algorithms,

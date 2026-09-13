@@ -18,11 +18,19 @@ import {
   shouldClearSftpFilterForPathChange,
 } from "./utils";
 import { buildCacheKey, setSharedRemoteHostCache } from "./sharedRemoteHostCache";
+import { runBoundedConcurrency } from "./transferConcurrency";
 import {
   getDirectoryCacheEntry,
   setDirectoryCacheEntry,
   type DirectoryListingCache,
 } from "./directoryListingCache";
+
+/**
+ * The backend runs at most 4 SFTP operations per session concurrently
+ * (internal/terminal/sftp Session bound); firing more deletes in parallel adds
+ * queue latency without throughput, so cap the fan-out at the drain width.
+ */
+const SFTP_DELETE_PARALLELISM = 4;
 
 /** Shared empty set for navigation resets — never mutate this. */
 const EMPTY_SET = new Set<string>();
@@ -725,22 +733,23 @@ export const useSftpPaneActions = ({
 
       try {
         // Parallel deletes — sequential await made multi-select feel like a
-        // recursive crawl even for flat files.
+        // recursive crawl even for flat files. Bounded to the backend drain
+        // width so a large selection cannot exceed the per-session SFTP limit.
         if (pane.connection.isLocal) {
-          await Promise.all(fileNames.map(async (name) => {
+          await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             const fullPath = joinPath(pane.connection!.currentPath, name);
             await netcattyBridge.get()?.deleteLocalFile?.(fullPath);
-          }));
+          });
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
           if (!sftpId) {
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          await Promise.all(fileNames.map(async (name) => {
+          await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             const fullPath = joinPath(pane.connection!.currentPath, name);
             await netcattyBridge.get()?.deleteSftp?.(sftpId, fullPath, pane.filenameEncoding);
-          }));
+          });
         }
         await refresh(side);
       } catch (err) {
@@ -772,15 +781,16 @@ export const useSftpPaneActions = ({
       }
 
       try {
-        // Fire deletes in parallel. Each directory is still one server-side
-        // recursive remove (rm -rf / rmdir -r), not a renderer-side walk.
+        // Fire deletes in parallel (bounded to the per-session drain width).
+        // Each directory is still one server-side recursive remove
+        // (rm -rf / rmdir -r), not a renderer-side walk.
         if (pane.connection.isLocal) {
           if (!bridge.deleteLocalFile) {
             throw new Error("Local delete unavailable");
           }
-          await Promise.all(fileNames.map(async (name) => {
+          await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             await bridge.deleteLocalFile!(joinPath(path, name));
-          }));
+          });
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
           if (!sftpId) {
@@ -791,9 +801,9 @@ export const useSftpPaneActions = ({
           if (!bridge.deleteSftp) {
             throw new Error("SFTP delete unavailable");
           }
-          await Promise.all(fileNames.map(async (name) => {
+          await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             await bridge.deleteSftp!(sftpId, joinPath(path, name), pane.filenameEncoding);
-          }));
+          });
         }
 
         clearCacheForConnection(pane.connection.id);
@@ -1010,25 +1020,25 @@ export const useSftpPaneActions = ({
     ) => {
       const pane = getActivePane(side);
       if (!pane?.connection || pane.connection.isLocal) {
-        logger.warn("Cannot change permissions on local files");
-        return;
+        throw new Error("Cannot change permissions without a remote connection");
       }
 
       const sftpId = sftpSessionsRef.current.get(pane.connection.id);
-      if (!sftpId || !netcattyBridge.get()?.chmodSftp) {
-        handleSessionError(side, new Error("SFTP session not found"));
-        return;
+      const bridge = netcattyBridge.get();
+      if (!sftpId) {
+        const error = new Error("SFTP session not found");
+        handleSessionError(side, error);
+        throw error;
       }
+      if (!bridge?.chmodSftp) throw new Error("SFTP permissions are not supported");
 
       try {
-        await netcattyBridge.get()!.chmodSftp!(sftpId, filePath, mode, pane.filenameEncoding);
+        await bridge.chmodSftp(sftpId, filePath, mode, pane.filenameEncoding);
         await refresh(side);
       } catch (err) {
-        if (isSessionError(err)) {
-          handleSessionError(side, err as Error);
-          return;
-        }
+        if (isSessionError(err)) handleSessionError(side, err as Error);
         logger.error("Failed to change permissions:", err);
+        throw err;
       }
     },
     [getActivePane, refresh, handleSessionError, sftpSessionsRef, isSessionError],

@@ -65,6 +65,7 @@ import { keepOnlyPaneSelections } from "./sftp/hooks/selectionScope";
 import { KeyBinding, HotkeyScheme } from "../domain/models";
 import {
   mergeLatestFollowTerminalCwdHostSetting,
+  runManualTerminalCwdNavigation,
   runInitialFollowTerminalCwdSync,
   resolveHostFollowTerminalCwd,
   shouldApplyFollowTerminalCwdSyncResult,
@@ -1304,6 +1305,8 @@ const SftpSidePanelInteractiveBody: React.FC<SftpSidePanelInteractiveBodyProps> 
     invalidateInFlightFollowSync();
   }, [
     activeTerminalCwd,
+    activeSessionId,
+    focusedSessionId,
     followTerminalCwdHost?.id,
     connectionId,
     invalidateInFlightFollowSync,
@@ -1352,10 +1355,19 @@ const SftpSidePanelInteractiveBody: React.FC<SftpSidePanelInteractiveBodyProps> 
 
   const handleGoToTerminalCwd = useCallback(async () => {
     if (!onGetTerminalCwd) return;
-    const cwd = await onGetTerminalCwd({ preferFreshBackend: true });
-    if (!cwd) return;
-    const navigateResult = await sftpRef.current.navigateTo("left", cwd);
-    if (navigateResult === "reached") {
+    const generation = followSyncGenerationRef.current;
+    const expectedConnection = connectionIdRef.current;
+    const shouldApply = () => generation === followSyncGenerationRef.current
+      && expectedConnection !== null
+      && expectedConnection === connectionIdRef.current
+      && expectedConnection === sftpRef.current.leftPane.connection?.id
+      && isVisibleRef.current;
+    const cwd = await runManualTerminalCwdNavigation({
+      getCwd: () => onGetTerminalCwd({ preferFreshBackend: true, allowRendererFallback: false }),
+      shouldApply,
+      navigate: (path, guard) => sftpRef.current.navigateTo("left", path, { shouldApply: guard }),
+    });
+    if (cwd) {
       blockedFollowRef.current = null;
       const connection = sftpRef.current.leftPane.connection;
       if (connection?.id) {

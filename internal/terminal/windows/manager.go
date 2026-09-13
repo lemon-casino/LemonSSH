@@ -42,6 +42,7 @@ type Window struct {
 	Role        string          `json:"role"`
 	Token       string          `json:"token"` // opaque capability token presented on control calls
 	Generations map[uint32]bool `json:"-"`
+	RendererTag string          `json:"-"`
 }
 
 // Manager owns all windows for the process.
@@ -62,10 +63,12 @@ func NewManager() *Manager {
 	}
 }
 
-func newToken() string {
+func newToken() (string, error) {
 	raw := make([]byte, 32)
-	_, _ = rand.Read(raw)
-	return hex.EncodeToString(raw)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(raw), nil
 }
 
 // Create registers a window of the given role. Single-instance roles refuse
@@ -83,10 +86,18 @@ func (m *Manager) Create(role string) (*Window, error) {
 			}
 		}
 	}
+	id, err := newToken()
+	if err != nil {
+		return nil, err
+	}
+	token, err := newToken()
+	if err != nil {
+		return nil, err
+	}
 	window := &Window{
-		ID:          newToken()[16:],
+		ID:          id[16:],
 		Role:        role,
-		Token:       newToken(),
+		Token:       token,
 		Generations: make(map[uint32]bool),
 	}
 	m.windows[window.ID] = window
@@ -110,22 +121,22 @@ func (m *Manager) Get(windowID, token string) (*Window, error) {
 
 // SetCloseVeto arms or disarms the close veto for a window.
 func (m *Manager) SetCloseVeto(windowID, token string, veto bool) error {
-	if _, err := m.Get(windowID, token); err != nil {
-		return err
-	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if window := m.windows[windowID]; window == nil || window.Token != token {
+		return ErrWindowNotFound
+	}
 	m.veto[windowID] = veto
 	return nil
 }
 
 // SetDirty marks the dirty-editor guard for a window.
 func (m *Manager) SetDirty(windowID, token string, dirty bool) error {
-	if _, err := m.Get(windowID, token); err != nil {
-		return err
-	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if window := m.windows[windowID]; window == nil || window.Token != token {
+		return ErrWindowNotFound
+	}
 	m.dirty[windowID] = dirty
 	return nil
 }
@@ -133,11 +144,11 @@ func (m *Manager) SetDirty(windowID, token string, dirty bool) error {
 // CloseAttempt runs the full close gate for a window: token check, dirty
 // editor guard, close veto. Returns nil when the close may proceed.
 func (m *Manager) CloseAttempt(windowID, token string) error {
-	if _, err := m.Get(windowID, token); err != nil {
-		return err
-	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if window := m.windows[windowID]; window == nil || window.Token != token {
+		return ErrWindowNotFound
+	}
 	if m.dirty[windowID] {
 		return fmt.Errorf("%w: %s", ErrDirtyEditor, windowID)
 	}
@@ -149,11 +160,11 @@ func (m *Manager) CloseAttempt(windowID, token string) error {
 
 // Destroy removes a closed window and drops its session routes.
 func (m *Manager) Destroy(windowID, token string) error {
-	if _, err := m.Get(windowID, token); err != nil {
-		return err
-	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if window := m.windows[windowID]; window == nil || window.Token != token {
+		return ErrWindowNotFound
+	}
 	window := m.windows[windowID]
 	role := window.Role
 	delete(m.windows, windowID)
@@ -171,19 +182,40 @@ func (m *Manager) Destroy(windowID, token string) error {
 
 // CrashCleanup drops every window of a crashed renderer (identified by a
 // renderer generation tag) without requiring tokens.
+func (m *Manager) BindRenderer(windowID, token, rendererTag string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	window := m.windows[windowID]
+	if window == nil || window.Token != token || rendererTag == "" {
+		return ErrWindowNotFound
+	}
+	window.RendererTag = rendererTag
+	return nil
+}
+
 func (m *Manager) CrashCleanup(rendererTag string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if rendererTag == "" {
+		return 0
+	}
 	removed := 0
-	// A crashed renderer invalidates vetoes and dirty state, never data.
-	for id := range m.veto {
+	for id, window := range m.windows {
+		if window.RendererTag != rendererTag {
+			continue
+		}
+		delete(m.windows, id)
 		delete(m.veto, id)
+		delete(m.dirty, id)
+		ids := m.byRole[window.Role][:0]
+		for _, existing := range m.byRole[window.Role] {
+			if existing != id {
+				ids = append(ids, existing)
+			}
+		}
+		m.byRole[window.Role] = ids
 		removed++
 	}
-	for id := range m.dirty {
-		delete(m.dirty, id)
-	}
-	_ = rendererTag
 	return removed
 }
 

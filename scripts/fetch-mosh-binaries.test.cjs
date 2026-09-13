@@ -35,8 +35,9 @@ function makeTarGz(t, entries) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, contents);
   }
-  const tarPath = path.join(makeTmp(t), "bundle.tar.gz");
-  execFileSync("tar", ["-czf", tarPath, "-C", dir, "."], { stdio: "pipe" });
+  const outDir = makeTmp(t);
+  const tarPath = path.join(outDir, "bundle.tar.gz");
+  execFileSync("tar", ["-czf", "bundle.tar.gz", "-C", dir, "."], { cwd: outDir, stdio: "pipe" });
   return fs.readFileSync(tarPath);
 }
 
@@ -304,8 +305,9 @@ test("fetch-mosh-binaries rejects symlinks inside tarballs", { skip: process.pla
   const srcDir = makeTmp(t);
   fs.writeFileSync(path.join(srcDir, "mosh-client.exe"), "exe");
   fs.symlinkSync("mosh-client.exe", path.join(srcDir, "link.exe"));
-  const tarPath = path.join(makeTmp(t), "symlink.tar.gz");
-  execFileSync("tar", ["-czf", tarPath, "-C", srcDir, "mosh-client.exe", "link.exe"], { stdio: "pipe" });
+  const outDir = makeTmp(t);
+  const tarPath = path.join(outDir, "symlink.tar.gz");
+  execFileSync("tar", ["-czf", "symlink.tar.gz", "-C", srcDir, "mosh-client.exe", "link.exe"], { cwd: outDir, stdio: "pipe" });
   const tar = fs.readFileSync(tarPath);
   const baseUrl = await serveAssets(t, {
     "mosh-client-win32-x64.tar.gz": tar,

@@ -1,6 +1,7 @@
 import type { ProviderValidationIssue } from "@netcatty/plugin-contract";
 
 export type TerminalSessionExitEvent = {
+  intentional?: boolean;
   exitCode?: number;
   signal?: number;
   error?: string;

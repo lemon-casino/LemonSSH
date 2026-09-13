@@ -9,10 +9,24 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as store$0 from "../../internal/plugin/store/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as ui$0 from "../../internal/plugin/ui/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * @param {string} pluginID
+ * @param {string} kind
+ * @param {string} resource
+ * @param {string} mode
+ * @returns {$CancellablePromise<void>}
+ */
+export function AuthorizePermission(pluginID, kind, resource, mode) {
+    return $Call.ByID(3054282790, pluginID, kind, resource, mode);
+}
 
 /**
  * CallNative sends one framed RPC request to a live native plugin.
@@ -44,6 +58,19 @@ export function CommitStaged(pluginID) {
  */
 export function GrantNative(pluginID) {
     return $Call.ByID(1628560271, pluginID);
+}
+
+/**
+ * GrantPermission is a trusted host UI approval entrypoint, never a plugin RPC.
+ * @param {string} pluginID
+ * @param {string} kind
+ * @param {string} resource
+ * @param {string} mode
+ * @param {string} lifetime
+ * @returns {$CancellablePromise<void>}
+ */
+export function GrantPermission(pluginID, kind, resource, mode, lifetime) {
+    return $Call.ByID(686146315, pluginID, kind, resource, mode, lifetime);
 }
 
 /**
@@ -104,6 +131,26 @@ export function SetEnabled(pluginID, enabled) {
 }
 
 /**
+ * @param {string} pluginID
+ * @param {string} settingID
+ * @param {string} valueJSON
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetSetting(pluginID, settingID, valueJSON) {
+    return $Call.ByID(51032698, pluginID, settingID, valueJSON);
+}
+
+/**
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function Settings(pluginID) {
+    return $Call.ByID(2510290035, pluginID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
  * StageInstall begins a two-phase publish: validate, stage, then commit.
  * @param {string} pluginID
  * @param {string} version
@@ -135,7 +182,20 @@ export function StopNative(pluginID) {
     return $Call.ByID(4098639113, pluginID);
 }
 
+/**
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<ui$0.Schema | null>}
+ */
+export function UISchema(pluginID) {
+    return $Call.ByID(587981467, pluginID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType5($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = store$0.PackageRecord.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = ui$0.Schema.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);

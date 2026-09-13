@@ -56,9 +56,11 @@ function installPlugin(database, pluginManifest) {
 
 function setup(context, pluginManifest, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-contributions-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const database = new PluginDatabase(path.join(root, "plugins.sqlite"));
-  context.after(() => database.close());
+  context.after(() => {
+    database.close();
+    fs.rmSync(root, { recursive: true, force: true });
+  });
   installPlugin(database, pluginManifest);
   const secrets = new Map();
   const secretStore = {

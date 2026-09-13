@@ -692,6 +692,69 @@ export async function getGistRevisionHistoryImpl(this: any): Promise<Array<{ ver
     return adapter.getHistory();
   }
 
+/**
+ * List stored revisions for any OAuth provider that supports them
+ * (GitHub Gist, Google Drive). Newest first; empty when the provider
+ * is not connected or keeps no history.
+ */
+export async function getProviderRevisionHistoryImpl(this: any,provider: CloudProvider): Promise<Array<{ version: string; date: Date }>> {
+    if (provider === 'github') return getGistRevisionHistoryImpl.call(this);
+    let adapter: any;
+    try {
+      adapter = await this.getConnectedAdapter(provider);
+    } catch {
+      return [];
+    }
+    if (!adapter?.getHistory) return [];
+    return adapter.getHistory();
+  }
+
+/**
+ * Download and decrypt a stored revision for any history-capable provider.
+ * Shared preview shape with the Gist path so the restore dialog is provider
+ * agnostic.
+ */
+export async function downloadProviderRevisionImpl(this: any,provider: CloudProvider, sha: string): Promise<{
+    payload: SyncPayload;
+    meta: SyncFileMeta;
+    preview: {
+      hostCount: number;
+      keyCount: number;
+      snippetCount: number;
+      noteCount: number;
+      identityCount: number;
+      portForwardingRuleCount: number;
+    };
+  } | null> {
+    if (this.state.securityState !== 'UNLOCKED' || !this.masterPassword) {
+      throw new Error('Vault is locked');
+    }
+    if (provider === 'github') return downloadGistRevisionImpl.call(this, sha);
+    let adapter: any;
+    try {
+      adapter = await this.getConnectedAdapter(provider);
+    } catch {
+      throw new Error(`${provider} adapter not available`);
+    }
+    if (!adapter?.downloadRevision) throw new Error(`${provider} adapter not available`);
+    const syncedFile = await adapter.downloadRevision(sha);
+    if (!syncedFile) return null;
+
+    const payload = await EncryptionService.decryptPayload(syncedFile, this.masterPassword);
+    return {
+      payload,
+      meta: syncedFile.meta,
+      preview: {
+        hostCount: payload.hosts?.length ?? 0,
+        keyCount: payload.keys?.length ?? 0,
+        snippetCount: payload.snippets?.length ?? 0,
+        noteCount: payload.notes?.length ?? 0,
+        identityCount: payload.identities?.length ?? 0,
+        portForwardingRuleCount: payload.portForwardingRules?.length ?? 0,
+      },
+    };
+  }
+
 export async function downloadGistRevisionImpl(this: any,sha: string): Promise<{
   payload: SyncPayload;
   meta: SyncFileMeta;

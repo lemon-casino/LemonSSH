@@ -5,8 +5,11 @@ package pty
 import (
 	"context"
 	"fmt"
+	"sync"
+	"syscall"
 
 	conpty "github.com/UserExistsError/conpty"
+	"golang.org/x/sys/windows"
 )
 
 type conptyBackend struct{}
@@ -18,8 +21,13 @@ type conptyBackend struct{}
 func NewPlatformBackend() Backend { return &conptyBackend{} }
 
 type conptyProcess struct {
-	pty  *conpty.ConPty
-	quit chan struct{}
+	pty        *conpty.ConPty
+	quit       chan struct{}
+	mu         sync.Mutex
+	closeOnce  sync.Once
+	waitOnce   sync.Once
+	waitHandle windows.Handle
+	waitErr    error
 }
 
 func (*conptyBackend) Start(ctx context.Context, config Config) (Process, error) {
@@ -34,15 +42,29 @@ func (*conptyBackend) Start(ctx context.Context, config Config) (Process, error)
 	}
 	ptyInstance, err := conpty.Start(commandLine, options...)
 	if err != nil {
-		return nil, fmt.Errorf("ConPTY start %s: %w", commandLine, err)
+		return nil, fmt.Errorf("ConPTY start: %w", err)
 	}
-	return &conptyProcess{pty: ptyInstance, quit: make(chan struct{})}, nil
+	handle, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(ptyInstance.Pid()))
+	if err != nil {
+		_ = ptyInstance.Close()
+		return nil, err
+	}
+	return &conptyProcess{pty: ptyInstance, quit: make(chan struct{}), waitHandle: handle}, nil
 }
 
 func (p *conptyProcess) Read(data []byte) (int, error)  { return p.pty.Read(data) }
 func (p *conptyProcess) Write(data []byte) (int, error) { return p.pty.Write(data) }
-func (p *conptyProcess) Close() error                   { return p.pty.Close() }
-func (p *conptyProcess) Resize(cols, rows uint16) error { return p.pty.Resize(int(cols), int(rows)) }
+func (p *conptyProcess) Close() error                   { return p.Kill() }
+func (p *conptyProcess) Resize(cols, rows uint16) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	select {
+	case <-p.quit:
+		return ErrSessionNotFound
+	default:
+	}
+	return p.pty.Resize(int(cols), int(rows))
+}
 func (p *conptyProcess) Interrupt() error {
 	_, err := p.Write([]byte{3})
 	return err
@@ -50,24 +72,29 @@ func (p *conptyProcess) Interrupt() error {
 
 // Kill closes the ConPTY, which terminates the attached child tree.
 func (p *conptyProcess) Kill() error {
-	select {
-	case <-p.quit:
-		return nil
-	default:
+	p.closeOnce.Do(func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
 		close(p.quit)
-	}
-	return p.pty.Close()
+		_ = p.pty.Close()
+	})
+	return nil
 }
 
 func (p *conptyProcess) Wait() error {
-	select {
-	case <-p.quit:
-		// Kill/Close already tore the ConPTY down; the handle is gone.
-		return nil
-	default:
-	}
-	_, err := p.pty.Wait(context.Background())
-	return err
+	p.waitOnce.Do(func() {
+		defer windows.CloseHandle(p.waitHandle)
+		_, p.waitErr = windows.WaitForSingleObject(p.waitHandle, windows.INFINITE)
+		if p.waitErr != nil {
+			return
+		}
+		var code uint32
+		p.waitErr = windows.GetExitCodeProcess(p.waitHandle, &code)
+		if p.waitErr == nil && code != 0 {
+			p.waitErr = ExitError{Code: int(code)}
+		}
+	})
+	return p.waitErr
 }
 
 func (p *conptyProcess) PID() int { return p.pty.Pid() }
@@ -88,10 +115,7 @@ func formatCommand(shell string, args []string) string {
 }
 
 func quoteIfNeeded(value string) string {
-	if value != "" && !containsSpace(value) {
-		return value
-	}
-	return `"` + value + `"`
+	return syscall.EscapeArg(value)
 }
 
 func containsSpace(value string) bool {

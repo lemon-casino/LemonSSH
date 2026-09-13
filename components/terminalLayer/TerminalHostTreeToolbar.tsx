@@ -16,6 +16,7 @@ import { useToolbarItemLayout } from '../../application/state/useToolbarItemLayo
 import type { ToolbarItemLayoutDefaults } from '../../domain/toolbarItemLayout';
 import { STORAGE_KEY_TERMINAL_HOST_TREE_TOOLBAR_LAYOUT } from '../../infrastructure/config/storageKeys';
 import { cn } from '../../lib/utils';
+import { toggleSelectedTag } from '../host/HostTagChips';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -82,6 +83,8 @@ interface TerminalHostTreeToolbarProps {
   onCollapseAll: () => void;
   canExpandCollapse?: boolean;
   onCollapse: () => void;
+  /** Merged workbench tree: there is nothing to collapse, so no close button. */
+  hideCollapse?: boolean;
 }
 
 const iconButtonClass =
@@ -117,6 +120,7 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
   onCollapseAll,
   canExpandCollapse = true,
   onCollapse,
+  hideCollapse = false,
 }) => {
   const { t } = useI18n();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -141,11 +145,7 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
   }, [expandedPanel]);
 
   const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      onSelectedTagsChange(selectedTags.filter((item) => item !== tag));
-    } else {
-      onSelectedTagsChange([...selectedTags, tag]);
-    }
+    onSelectedTagsChange(toggleSelectedTag(selectedTags, tag));
   };
 
   const availableIds = useMemo(() => [...HOST_TREE_TOOLBAR_ITEM_IDS], []);
@@ -482,26 +482,28 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
           </div>
         </ToolbarCustomizeContextMenu>
 
-        <div
-          className="flex shrink-0 items-center"
-          data-section="terminal-host-tree-toolbar-close"
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(iconButtonClass, 'mr-0.5')}
-                style={{ color: theme.mutedFg }}
-                onClick={onCollapse}
-                aria-label={t('terminal.layer.hostTree.collapse')}
-              >
-                <X size={15} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('terminal.layer.hostTree.collapse')}</TooltipContent>
-          </Tooltip>
-        </div>
+        {!hideCollapse && (
+          <div
+            className="flex shrink-0 items-center"
+            data-section="terminal-host-tree-toolbar-close"
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(iconButtonClass, 'mr-0.5')}
+                  style={{ color: theme.mutedFg }}
+                  onClick={onCollapse}
+                  aria-label={t('terminal.layer.hostTree.collapse')}
+                >
+                  <X size={15} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t('terminal.layer.hostTree.collapse')}</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
 
       <div

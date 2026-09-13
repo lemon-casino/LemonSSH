@@ -7,7 +7,7 @@
 
 import type { PluginSyncSidecarBundle } from '../domain/pluginSyncSidecar';
 import { SYNC_STORAGE_KEYS } from '../domain/sync';
-import { localStorageAdapter } from '../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../infrastructure/persistence/hostStorageAdapter';
 
 /** Ordinary upload fallback when collect cannot reach the host. */
 const LAST_KNOWN_SIDECARS_KEY = SYNC_STORAGE_KEYS.PLUGIN_SIDECARS_LAST_KNOWN;

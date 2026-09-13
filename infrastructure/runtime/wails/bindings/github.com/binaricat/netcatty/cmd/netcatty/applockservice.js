@@ -38,6 +38,24 @@ export function GetRuntimeState() {
 }
 
 /**
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function GetSettings() {
+    return $Call.ByID(1126324894).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.BiometricStatus>}
+ */
+export function GetSystemUnlockStatus() {
+    return $Call.ByID(431412744).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * @returns {$CancellablePromise<void>}
  */
 export function ReportActivity() {
@@ -55,6 +73,18 @@ export function SetRuntimeLocked(reason) {
 }
 
 /**
+ * @param {boolean} enabled
+ * @param {string} password
+ * @param {boolean} autoPrompt
+ * @returns {$CancellablePromise<$models.BiometricSettings>}
+ */
+export function SetSystemUnlockEnabled(enabled, password, autoPrompt) {
+    return $Call.ByID(3477591759, enabled, password, autoPrompt).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
  * @param {string} password
  * @returns {$CancellablePromise<void>}
  */
@@ -67,10 +97,13 @@ export function Unlock(password) {
  */
 export function UnlockWithBiometrics() {
     return $Call.ByID(1610545362).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType4($result);
     }));
 }
 
 // Private type creation functions
 const $$createType0 = $models.AppLockRuntimeState.createFrom;
-const $$createType1 = $models.BiometricUnlockResult.createFrom;
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
+const $$createType2 = $models.BiometricStatus.createFrom;
+const $$createType3 = $models.BiometricSettings.createFrom;
+const $$createType4 = $models.BiometricUnlockResult.createFrom;

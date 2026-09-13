@@ -37,6 +37,8 @@ export const zhCNTerminalMessages: Messages = {
   'terminal.connection.protocol.plugin': '插件连接',
   'terminal.et.proxyUnsupported': 'EternalTerminal 目前不支持 Netcatty 的代理设置。请改用 SSH，或移除该主机的代理。',
   'terminal.et.multiJumpUnsupported': 'EternalTerminal 目前在 Netcatty 中最多支持一个跳板机。',
+  'terminal.helperFailure.notice': '{kind} 助手进程已退出，且无法恢复其加密会话。点击“重新启动”将在当前会话中开启一个新的远程 shell。',
+  'terminal.helperFailure.restart': '重新启动',
   // Command history side panel
   'history.scope.label': '历史范围',
   'history.tab.host': '主机',

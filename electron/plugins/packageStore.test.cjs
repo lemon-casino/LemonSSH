@@ -44,11 +44,11 @@ async function createPackage(root, overrides = {}) {
 
 function createStore(context, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-store-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const paths = createPluginPaths(root);
   const database = new PluginDatabase(paths.database);
   context.after(() => {
     try { database.close(); } catch {}
+    fs.rmSync(root, { recursive: true, force: true });
   });
   const store = new PackageStore({
     paths,

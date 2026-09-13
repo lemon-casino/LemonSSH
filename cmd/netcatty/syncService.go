@@ -3,16 +3,95 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/binaricat/netcatty/internal/platform/cloudsync"
+	"github.com/binaricat/netcatty/internal/platform/credentials"
+	"github.com/binaricat/netcatty/internal/profile/store"
 	"github.com/binaricat/netcatty/internal/syncengine"
 )
 
-type SyncService struct{}
+type SyncService struct {
+	oauth     *cloudsync.OAuthClient
+	callbacks *cloudsync.CallbackServer
+	passwords *cloudSyncSessionPassword
+	reset     *CloudSyncResetService
+	backups   *VaultBackupService
+}
 
-func newSyncService() *SyncService { return &SyncService{} }
+func newSyncService() *SyncService {
+	return &SyncService{oauth: cloudsync.NewOAuthClient(), callbacks: cloudsync.NewCallbackServer()}
+}
+
+func (s *SyncService) setSessionDependencies(profile *store.Store, profileDir string, provider credentials.Provider) {
+	s.passwords = newCloudSyncSessionPassword(profileDir, provider)
+	s.reset = newCloudSyncResetService(profile, s.passwords)
+	s.backups = newVaultBackupService(profileDir, provider)
+}
+
+// CloudSyncResetEverything forgets the master key and every cloud sync
+// identity key so the user can start over with a new master key.
+func (s *SyncService) CloudSyncResetEverything(ctx context.Context) ([]string, error) {
+	if s.reset == nil {
+		return nil, errSyncResetUnavailable
+	}
+	return s.reset.ResetSyncEverything(ctx)
+}
+
+type VaultBackupListResult struct {
+	Backups []VaultBackupSummary `json:"backups"`
+}
+
+func (s *SyncService) GetVaultBackupCapabilities() VaultBackupCapabilities {
+	if s.backups == nil {
+		return VaultBackupCapabilities{}
+	}
+	return s.backups.GetVaultBackupCapabilities()
+}
+
+func (s *SyncService) CreateVaultBackup(req VaultBackupCreateRequest) (VaultBackupCreateResult, error) {
+	if s.backups == nil {
+		return VaultBackupCreateResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.CreateVaultBackup(req)
+}
+
+func (s *SyncService) ListVaultBackups() (VaultBackupListResult, error) {
+	if s.backups == nil {
+		return VaultBackupListResult{}, nil
+	}
+	backups, err := s.backups.ListVaultBackups()
+	return VaultBackupListResult{Backups: backups}, err
+}
+
+func (s *SyncService) ReadVaultBackup(req VaultBackupReadRequest) (VaultBackupReadResult, error) {
+	if s.backups == nil {
+		return VaultBackupReadResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.ReadVaultBackup(req)
+}
+
+func (s *SyncService) TrimVaultBackups(req VaultBackupTrimRequest) (VaultBackupTrimResult, error) {
+	if s.backups == nil {
+		return VaultBackupTrimResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.TrimVaultBackups(req)
+}
+
+func (s *SyncService) OpenVaultBackupDir() (VaultBackupOpenDirResult, error) {
+	if s.backups == nil {
+		return VaultBackupOpenDirResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.OpenVaultBackupDir()
+}
+
+func (s *SyncService) ServiceShutdown() error {
+	s.callbacks.Close()
+	s.oauth.Close()
+	return nil
+}
 
 func (s *SyncService) Merge(local, remote map[string]syncengine.Entry) map[string]syncengine.Entry {
 	return syncengine.Merge(local, remote)
@@ -221,12 +300,12 @@ func s3ClientFromConfig(config json.RawMessage) (cloudsync.S3Client, error) {
 		return cloudsync.S3Client{}, fmt.Errorf("s3 config: %w", err)
 	}
 	return *cloudsync.NewS3Client(cloudsync.S3Config{
-		Endpoint:      parsed.Endpoint,
-		Region:        parsed.Region,
-		Bucket:        parsed.Bucket,
-		AccessKeyID:   parsed.AccessKeyID,
+		Endpoint:        parsed.Endpoint,
+		Region:          parsed.Region,
+		Bucket:          parsed.Bucket,
+		AccessKeyID:     parsed.AccessKeyID,
 		SecretAccessKey: parsed.SecretKey,
-		SessionToken:  parsed.SessionToken,
-		UsePathStyle:  parsed.UsePathStyle,
+		SessionToken:    parsed.SessionToken,
+		UsePathStyle:    parsed.UsePathStyle,
 	}), nil
 }

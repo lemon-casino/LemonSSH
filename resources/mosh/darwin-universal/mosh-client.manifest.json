@@ -1,0 +1,45 @@
+{
+  "name": "mosh",
+  "path": "mosh-client",
+  "os": "darwin",
+  "arch": "amd64",
+  "sha256": "460662ccb768e8ffcc7f0c07f58bb5dd1c32202c3b7e4062207a91a722eb83ed",
+  "provenance": {
+    "repository": "binaricat/MoshCatty",
+    "tag": "moshcatty-0.1.8",
+    "source": {
+      "repository": "binaricat/MoshCatty",
+      "tag": "moshcatty-0.1.8",
+      "commit": "554b9d305e7ac4b11de740d764bbc3e05f816d7b"
+    },
+    "build": {
+      "repository": "binaricat/MoshCatty",
+      "commit": "554b9d305e7ac4b11de740d764bbc3e05f816d7b",
+      "workflow": ".github/workflows/release.yml",
+      "run": "https://github.com/binaricat/MoshCatty/actions/runs/29559896639"
+    },
+    "archive": {
+      "url": "https://github.com/binaricat/MoshCatty/releases/download/moshcatty-0.1.8/mosh-client-darwin-universal.tar.gz",
+      "assetId": 480053007,
+      "sha256": "daa2da20d2f135190fdbebf952a692d80eed0e21d48cee252a28e901bccc2402"
+    },
+    "checksums": {
+      "assetId": 480053009,
+      "sha256": "34eb27712d1102417a1642bf315b7d7f31ff24c0acd9939a19d1ba53a4d076fd"
+    }
+  },
+  "files": [
+    {
+      "path": "mosh-client",
+      "sha256": "460662ccb768e8ffcc7f0c07f58bb5dd1c32202c3b7e4062207a91a722eb83ed",
+      "executable": true
+    }
+  ],
+  "licenses": [
+    {
+      "path": "MoshCatty.txt",
+      "url": "https://raw.githubusercontent.com/binaricat/MoshCatty/554b9d305e7ac4b11de740d764bbc3e05f816d7b/LICENSE",
+      "sha256": "6f0c3757f5f9ee475aa36cff8a10e40328ccd6fa93a5208c1bc3b9789f6bb3e8"
+    }
+  ]
+}

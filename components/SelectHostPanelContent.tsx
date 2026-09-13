@@ -20,6 +20,7 @@ import {
 import { Host, ProxyProfile, SSHKey } from '../types';
 import { ManagedSource } from '../domain/models';
 import { DistroAvatar } from './DistroAvatar';
+import { HostTagChips, toggleSelectedTag } from './host/HostTagChips';
 import HostDetailsPanel from './HostDetailsPanel';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -496,14 +497,22 @@ export const SelectHostPanelContent: React.FC<SelectHostPanelContentProps> = ({
           size="md"
         />
         <div className="flex-1 min-w-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-[13px] font-medium truncate">{host.label}</div>
-            </TooltipTrigger>
-            <TooltipContent side="top" align="start">
-              <p>{host.label}</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-[13px] font-medium truncate">{host.label}</div>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start">
+                <p>{host.label}</p>
+              </TooltipContent>
+            </Tooltip>
+            <HostTagChips
+              tags={host.tags}
+              selectedTags={selectedTags}
+              onToggleTag={(tag) => setSelectedTags((current) => toggleSelectedTag(current, tag))}
+              compact
+            />
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-[11px] text-muted-foreground truncate">{connectionStr}</div>
@@ -527,6 +536,7 @@ export const SelectHostPanelContent: React.FC<SelectHostPanelContentProps> = ({
     navigableIndexByKey,
     optionDomId,
     selectedHostIdSet,
+    selectedTags,
     t,
   ]);
 

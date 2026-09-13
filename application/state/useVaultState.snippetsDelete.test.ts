@@ -215,7 +215,7 @@ test("snippet storage events reject payloads older than current disk", () => {
   // adopted, the next edit would persist that resurrected catalog.
   assert.match(
     source,
-    /if \(key === STORAGE_KEY_SNIPPETS\) \{[\s\S]*event\.newValue !== localStorageAdapter\.readString\(STORAGE_KEY_SNIPPETS\)[\s\S]*return;/,
+    /if \(key === STORAGE_KEY_SNIPPETS\) \{[\s\S]*raw !== localStorageAdapter\.readString\(STORAGE_KEY_SNIPPETS\)[\s\S]*return;/,
   );
 });
 

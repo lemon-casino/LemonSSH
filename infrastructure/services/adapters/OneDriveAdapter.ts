@@ -21,7 +21,8 @@ import {
   type SyncedFile,
   type PKCEChallenge,
 } from '../../../domain/sync';
-import { netcattyBridge } from '../netcattyBridge';
+import { resolveOAuthClientId } from '../cloudSync/oauthClientIds';
+import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
 import { arrayBufferToBase64, generateRandomBytes } from '../EncryptionService';
 
 // ============================================================================
@@ -150,7 +151,7 @@ export const buildAuthUrl = async (
   const pkce = await generatePKCEChallenge();
 
   const params = new URLSearchParams({
-    client_id: SYNC_CONSTANTS.ONEDRIVE_CLIENT_ID,
+    client_id: resolveOAuthClientId('onedrive'),
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: ONEDRIVE_SCOPE,
@@ -178,7 +179,7 @@ export const exchangeCodeForTokens = async (
   const bridge = netcattyBridge.get();
   if (bridge?.onedriveExchangeCodeForTokens) {
     return bridge.onedriveExchangeCodeForTokens({
-      clientId: SYNC_CONSTANTS.ONEDRIVE_CLIENT_ID,
+      clientId: resolveOAuthClientId('onedrive'),
       code,
       codeVerifier,
       redirectUri,
@@ -191,7 +192,7 @@ export const exchangeCodeForTokens = async (
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
-      client_id: SYNC_CONSTANTS.ONEDRIVE_CLIENT_ID,
+      client_id: resolveOAuthClientId('onedrive'),
       code,
       code_verifier: codeVerifier,
       grant_type: 'authorization_code',
@@ -223,7 +224,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
   const bridge = netcattyBridge.get();
   if (bridge?.onedriveRefreshAccessToken) {
     return bridge.onedriveRefreshAccessToken({
-      clientId: SYNC_CONSTANTS.ONEDRIVE_CLIENT_ID,
+      clientId: resolveOAuthClientId('onedrive'),
       refreshToken,
       scope: ONEDRIVE_SCOPE,
     });
@@ -234,7 +235,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
-      client_id: SYNC_CONSTANTS.ONEDRIVE_CLIENT_ID,
+      client_id: resolveOAuthClientId('onedrive'),
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
       scope: ONEDRIVE_SCOPE,
@@ -535,7 +536,9 @@ export class OneDriveAdapter {
    * persisting the new refresh token the stored one eventually goes stale and
    * forces the user to reconnect (#1189).
    */
-  private onTokensRefreshed: ((tokens: OAuthTokens) => void) | null = null;
+  private onTokensRefreshed: ((tokens: OAuthTokens) => unknown) | null = null;
+  private refreshing: Promise<OAuthTokens> | null = null;
+  private tokensNeedPersistence = false;
 
   constructor(tokens?: OAuthTokens, fileId?: string) {
     if (tokens) {
@@ -548,7 +551,7 @@ export class OneDriveAdapter {
    * Register a callback that receives refreshed tokens so the caller can
    * persist them. Passing null removes the callback.
    */
-  setOnTokensRefreshed(callback: ((tokens: OAuthTokens) => void) | null): void {
+  setOnTokensRefreshed(callback: ((tokens: OAuthTokens) => unknown) | null): void {
     this.onTokensRefreshed = callback;
   }
 
@@ -559,6 +562,12 @@ export class OneDriveAdapter {
    * OneDriveReauthRequiredError so callers can prompt for reconnect.
    */
   private async refreshTokens(refreshToken: string): Promise<OAuthTokens> {
+    if (this.refreshing) return this.refreshing;
+    this.refreshing = this.performTokenRefresh(refreshToken).finally(() => { this.refreshing = null; });
+    return this.refreshing;
+  }
+
+  private async performTokenRefresh(refreshToken: string): Promise<OAuthTokens> {
     let refreshed: OAuthTokens;
     try {
       refreshed = await refreshAccessToken(refreshToken);
@@ -573,12 +582,9 @@ export class OneDriveAdapter {
       throw error;
     }
     this.tokens = refreshed;
-    try {
-      this.onTokensRefreshed?.(refreshed);
-    } catch {
-      // Persistence is best-effort; a failed save must not abort the sync that
-      // triggered the refresh — the fresh tokens still work for this session.
-    }
+    this.tokensNeedPersistence = true;
+    await this.onTokensRefreshed?.(refreshed);
+    this.tokensNeedPersistence = false;
     return refreshed;
   }
 
@@ -658,6 +664,7 @@ export class OneDriveAdapter {
    * Ensure token is fresh
    */
   private async ensureValidToken(): Promise<string> {
+    if (this.refreshing) await this.refreshing;
     if (!this.tokens) {
       throw new Error('Not authenticated');
     }
@@ -672,6 +679,10 @@ export class OneDriveAdapter {
       }
     }
 
+    if (this.tokensNeedPersistence) {
+      await this.onTokensRefreshed?.(this.tokens);
+      this.tokensNeedPersistence = false;
+    }
     return this.tokens.accessToken;
   }
 

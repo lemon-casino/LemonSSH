@@ -103,6 +103,22 @@ test('host tree sidebar memo tracks surface visibility and theme changes', () =>
   assert.match(source, /themeFingerprint\(prev\.resolvedPreviewTheme\) === themeFingerprint\(next\.resolvedPreviewTheme\)/);
 });
 
+test('host tree sidebar double-click renames groups and connects hosts without copying', () => {
+  assert.match(sidebarSource, /resolveSidebarTreeDoubleClick\(\{ kind: 'group'/);
+  assert.match(sidebarSource, /menuActions\?\.onRenameGroup\(node\.path\)/);
+  assert.match(sidebarSource, /resolveSidebarTreeDoubleClick\(\{ kind: 'host'/);
+  assert.match(sidebarSource, /onConnect\(row\.host\)/);
+  assert.doesNotMatch(sidebarSource, /onDoubleClick=\{\(\) => \{\s*if \(!isInlineEditing\) onConnect/);
+  assert.doesNotMatch(
+    sidebarSource,
+    /onDoubleClick=\{\(\) => \{[\s\S]{0,180}onDuplicateHost/,
+  );
+  assert.doesNotMatch(
+    sidebarSource,
+    /onDoubleClick=\{\(\) => \{[\s\S]{0,180}onCopySession/,
+  );
+});
+
 test('host tree sidebar wires app-level host creation and editing actions', () => {
   assert.match(sidebarSource, /onNewHost\?: \(defaultGroup\?: string\) => void/);
   assert.match(sidebarSource, /onEditHost\?: \(host: Host\) => void/);

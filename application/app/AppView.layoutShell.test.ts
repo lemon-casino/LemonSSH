@@ -53,6 +53,31 @@ test("workbench session layer stays mounted and toggles via visibility", () => {
   );
 });
 
+test("workbench merges the host tree into the session tree and disables the floating overlay", () => {
+  // In workbench mode the host tree must not open as a second floating
+  // column next to the session tree; the merged sidebar tree lists every
+  // host with its sessions and the host toolbar sits above the tree.
+  assert.match(
+    appViewSource,
+    /enabled=\{showHostTreeSidebar && layoutMode !== 'workbench'\}/,
+    "overlay host tree must be disabled in workbench mode",
+  );
+  assert.match(
+    layerSource,
+    /includeAllHosts: true/,
+    "merged tree must list session-less hosts as connect entries",
+  );
+  assert.match(
+    layerSource,
+    /TerminalHostTreeToolbar/,
+    "host toolbar must render above the merged tree",
+  );
+  assert.doesNotMatch(
+    appViewSource,
+    /layoutMode === 'workbench' &&\s*\n?\s*<AppHostTreeLayer/,
+  );
+});
+
 test("workbench session layer owns the activeTabId subscription, not AppView", () => {
   assert.match(layerSource, /useActiveTabId\(\)/);
   assert.match(layerSource, /memo\(/);

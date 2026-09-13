@@ -1,6 +1,7 @@
 
 declare global {
   interface NetcattyBridge {
+    pluginV2?: import('../../infrastructure/runtime/pluginClient').PluginV2Client;
     // Auto-update
     checkForUpdate?(): Promise<{
       available: boolean;

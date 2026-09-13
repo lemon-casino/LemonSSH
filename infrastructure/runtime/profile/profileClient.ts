@@ -3,7 +3,27 @@
 // transports them base64-encoded, so the base64 form is this client's wire
 // currency and text/JSON helpers encode and decode around it.
 
-import * as bindings from "../wails/bindings/github.com/binaricat/netcatty/cmd/netcatty/profileservice.js";
+export interface ProfileBindings {
+  Revision(): Promise<number>;
+  GetRaw(domain: string, key: string): Promise<string>;
+  SetRaw(domain: string, key: string, value: string): Promise<void>;
+  DeleteRaw(domain: string, key: string): Promise<void>;
+  Write(expectedRevision: number, mutations: Array<{ Domain: string; Key: string; Value: string | null; Delete: boolean }>): Promise<{ Revision: number }>;
+  Domains(): Promise<string[]>;
+  DomainKeys(domain: string): Promise<string[]>;
+}
+
+let installedBindings: ProfileBindings | undefined;
+
+/** Only the Wails runtime boundary installs generated service bindings. */
+export function configureProfileBindings(bindings: ProfileBindings | undefined): void {
+  installedBindings = bindings;
+}
+
+function requireBindings(): ProfileBindings {
+  if (!installedBindings) throw new Error("Profile bindings are not configured");
+  return installedBindings;
+}
 
 export interface ProfileMutation {
   domain: string;
@@ -39,26 +59,23 @@ function toWireMutations(mutations: ProfileMutation[]): Array<{ Domain: string; 
 
 export function createProfileClient(): ProfileClient {
   return {
-    revision: async () => Number(await bindings.Revision()),
+    revision: async () => Number(await requireBindings().Revision()),
     getRawBase64: async (domain, key) => {
       try {
-        return await bindings.GetRaw(domain, key);
+        return await requireBindings().GetRaw(domain, key);
       } catch (error) {
         if (error instanceof Error && error.message.includes("profile key not found")) return undefined;
         throw error;
       }
     },
-    setRawBase64: (domain, key, valueBase64) => bindings.SetRaw(domain, key, valueBase64),
-    deleteRaw: (domain, key) => bindings.DeleteRaw(domain, key),
+    setRawBase64: (domain, key, valueBase64) => requireBindings().SetRaw(domain, key, valueBase64),
+    deleteRaw: (domain, key) => requireBindings().DeleteRaw(domain, key),
     write: async (expectedRevision, mutations) => {
-      const result = await bindings.Write(expectedRevision, toWireMutations(mutations));
+      const result = await requireBindings().Write(expectedRevision, toWireMutations(mutations));
       return { revision: Number(result.Revision) };
     },
-    domains: () => bindings.Domains(),
-    domainKeys: async (domain) => {
-      const listed = await (bindings as { DomainKeys?: (domain: string) => Promise<string[]> }).DomainKeys?.(domain);
-      return listed ?? [];
-    },
+    domains: () => requireBindings().Domains(),
+    domainKeys: async (domain) => requireBindings().DomainKeys(domain),
   };
 }
 

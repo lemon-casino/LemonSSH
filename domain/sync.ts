@@ -236,6 +236,24 @@ export const isProviderReadyForSync = (
   || connection.status === 'syncing'
   || (connection.status === 'error' && hasProviderConnectionData(connection));
 
+/**
+ * Whether the Connect button on another cloud provider should stay disabled.
+ * In-flight OAuth still serializes to one browser flow. A ready provider no
+ * longer blocks connecting GitHub, Drive, OneDrive, WebDAV or S3 together.
+ */
+export function isCloudProviderConnectDisabled(input: {
+  provider: CloudProvider;
+  connection?: Pick<ProviderConnection, 'status' | 'tokens' | 'config'> | null;
+  pendingConnectProvider?: CloudProvider | null;
+  hasConnectingProvider: boolean;
+}): boolean {
+  const { provider, connection, pendingConnectProvider, hasConnectingProvider } = input;
+  if (pendingConnectProvider && pendingConnectProvider !== provider) return true;
+  if (pendingConnectProvider === provider) return true;
+  if (hasConnectingProvider && connection?.status !== 'connecting') return true;
+  return false;
+}
+
 // ============================================================================
 // Encrypted Sync File Schema
 // ============================================================================

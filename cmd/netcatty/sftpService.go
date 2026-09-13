@@ -7,9 +7,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/binaricat/netcatty/internal/platform/applog"
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
@@ -21,6 +24,8 @@ import (
 // one SFTP subsystem client and registers it under an opaque session ID;
 // operations are bounded by the per-session client limit.
 type SFTPService struct {
+	terminal   *TerminalService
+	temp       *filesystem.TempService
 	mu         sync.Mutex
 	pool       *sshpool.Pool
 	knownHosts *netcattyssh.KnownHosts
@@ -28,7 +33,53 @@ type SFTPService struct {
 	counter    int
 }
 
+func (s *SFTPService) setTempService(temp *filesystem.TempService) { s.temp = temp }
+
+func parseSFTPPermissions(text string) (os.FileMode, error) {
+	if len(text) < 3 || len(text) > 4 {
+		return 0, fmt.Errorf("permissions must contain 3 or 4 octal digits")
+	}
+	for _, digit := range text {
+		if digit < '0' || digit > '7' {
+			return 0, fmt.Errorf("invalid octal permissions %q", text)
+		}
+	}
+	value, err := strconv.ParseUint(text, 8, 12)
+	if err != nil {
+		return 0, err
+	}
+	mode := os.FileMode(value & 0777)
+	if value&04000 != 0 {
+		mode |= os.ModeSetuid
+	}
+	if value&02000 != 0 {
+		mode |= os.ModeSetgid
+	}
+	if value&01000 != 0 {
+		mode |= os.ModeSticky
+	}
+	return mode, nil
+}
+
+func (s *SFTPService) Chmod(sessionID, target, permissions string) error {
+	mode, err := parseSFTPPermissions(permissions)
+	if err != nil {
+		return err
+	}
+	client, done, err := s.acquire(sessionID)
+	if err != nil {
+		return err
+	}
+	defer done()
+	resolved, err := sftp.NormalizePath(".", target)
+	if err != nil {
+		return err
+	}
+	return client.raw.Chmod(resolved, mode)
+}
+
 type sftpClient struct {
+	channel io.Closer
 	fs      *sftp.ClientFS
 	lease   *sshpool.Lease
 	raw     *pkgsftp.Client
@@ -44,15 +95,20 @@ func NewSFTPService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *SFT
 	}
 }
 
+type SFTPOpenRequest struct {
+	SSHConnectRequest
+	Sudo bool `json:"sudo"`
+}
+
 // Open dials (or borrows) a transport for host and registers an SFTP session.
-func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
+func (s *SFTPService) Open(request SFTPOpenRequest) (string, error) {
 	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
 	if request.Port == 0 {
 		request.Port = 22
 	}
-	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request), netcattyssh.StrictPolicy(s.knownHosts), nil)
+	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request.SSHConnectRequest), netcattyssh.StrictPolicy(s.knownHosts), nil)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +116,15 @@ func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
 	}
-	raw, err := pkgsftp.NewClient(lease.Client())
+	var raw *pkgsftp.Client
+	var channel io.Closer
+	if request.Sudo {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		raw, channel, err = sftp.OpenElevated(ctx, lease.Client())
+	} else {
+		raw, err = pkgsftp.NewClient(lease.Client())
+	}
 	if err != nil {
 		lease.Discard()
 		return "", fmt.Errorf("sftp subsystem: %w", err)
@@ -71,6 +135,7 @@ func (s *SFTPService) Open(request SSHConnectRequest) (string, error) {
 	s.counter++
 	id := fmt.Sprintf("sftp-%d", s.counter)
 	s.sessions[id] = &sftpClient{
+		channel: channel,
 		fs:      sftp.NewClientFS(raw),
 		lease:   lease,
 		raw:     raw,
@@ -211,6 +276,11 @@ func (s *SFTPService) HomeDir(sessionID string) (string, error) {
 
 // Download streams a remote file to a local destination path.
 func (s *SFTPService) Download(sessionID, remotePath, localPath string) (int64, error) {
+	release, err := s.temp.Acquire(localPath)
+	if err != nil {
+		return 0, err
+	}
+	defer release()
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return 0, err
@@ -238,6 +308,11 @@ func (s *SFTPService) Download(sessionID, remotePath, localPath string) (int64, 
 
 // Upload streams a local file to a remote destination path.
 func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, error) {
+	release, err := s.temp.Acquire(localPath)
+	if err != nil {
+		return 0, err
+	}
+	defer release()
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return 0, err
@@ -273,11 +348,14 @@ func openLocalForUpload(localPath string) (*os.File, error) {
 // ExtractArchive downloads a remote zip, extracts it locally with zip-slip
 // protection, and uploads the files next to the archive.
 func (s *SFTPService) ExtractArchive(sessionID, remotePath string) (int, error) {
-	tempDir, err := os.MkdirTemp("", "lemonssh-extract-")
+	if s.temp == nil {
+		return 0, fmt.Errorf("managed temp unavailable")
+	}
+	tempDir, err := s.temp.CreateDir(filesystem.TransferTempPrefix + "extract-")
 	if err != nil {
 		return 0, err
 	}
-	defer os.RemoveAll(tempDir)
+	defer s.temp.Remove(filepath.Base(tempDir))
 	localZip := filepath.Join(tempDir, "archive.zip")
 	if _, err := s.Download(sessionID, remotePath, localZip); err != nil {
 		return 0, err
@@ -316,12 +394,15 @@ func (s *SFTPService) ExtractArchive(sessionID, remotePath string) (int, error) 
 
 // UploadCompressedFolder zips a local folder and uploads the archive.
 func (s *SFTPService) UploadCompressedFolder(sessionID, localFolder, remoteZipPath string) (int64, error) {
-	temp, err := os.CreateTemp("", "lemonssh-upload-*.zip")
+	if s.temp == nil {
+		return 0, fmt.Errorf("managed temp unavailable")
+	}
+	temp, err := s.temp.CreateFile(filesystem.TransferTempPrefix + "upload-*.zip")
 	if err != nil {
 		return 0, err
 	}
 	tempPath := temp.Name()
-	defer os.Remove(tempPath)
+	defer s.temp.Remove(filepath.Base(tempPath))
 	zipWriter := zip.NewWriter(temp)
 	err = filepath.Walk(localFolder, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -376,7 +457,12 @@ func (s *SFTPService) Close(sessionID string) error {
 		return nil
 	}
 	_ = client.raw.Close()
-	client.lease.Return()
+	if client.channel != nil {
+		_ = client.channel.Close()
+	}
+	if client.lease != nil {
+		client.lease.Return()
+	}
 	return nil
 }
 

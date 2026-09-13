@@ -31,3 +31,16 @@ export function profileDomainForKey(key: string): "vault" | "sessions" | "settin
   if (SESSION_KEYS.has(key)) return "sessions";
   return "settings";
 }
+
+// Domains the canonical cutover (SYNC-01) hydrates from the Go profile store.
+// The "logs" and "plugin-v1" domains are host-internal and never surface as
+// hook-readable storage keys.
+export const CANONICAL_PROFILE_DOMAINS = ["settings", "vault", "sessions"] as const;
+
+// AI-related storage stays localStorage-canonical until P6-05 lands; it must
+// never be promoted into the Go profile store nor hydrated out of it.
+const AI_DEBUG_KEYS = new Set(["netcatty.aiDebug.hide", "netcatty.aiDebug.profile"]);
+
+export function isAIManagedStorageKey(key: string): boolean {
+  return key.startsWith("netcatty_ai_") || AI_DEBUG_KEYS.has(key);
+}

@@ -16,11 +16,17 @@ import (
 // returns the ACK payload.
 type UrgentHandler func(sessionID string, payload []byte) []byte
 
-// outputQueue is the bounded producer buffer for one route generation.
+var (
+	ErrOutputBackpressure = errors.New("terminal output buffer full")
+	ErrOutputClosed       = errors.New("terminal output queue closed")
+)
+
+// outputQueue bounds queued and writer-pending bytes to one receive window.
 type outputQueue struct {
 	mu     sync.Mutex
 	cond   *sync.Cond
 	chunks [][]byte
+	bytes  int
 	closed bool
 }
 
@@ -30,20 +36,39 @@ func newOutputQueue() *outputQueue {
 	return queue
 }
 
-func (q *outputQueue) push(data []byte) {
+func (q *outputQueue) push(data []byte) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.closed {
-		return
+		return ErrOutputClosed
 	}
-	q.chunks = append(q.chunks, data)
+	if len(data) > int(ReceiveWindowBytes)-q.bytes {
+		return ErrOutputBackpressure
+	}
+	q.bytes += len(data)
+	for len(data) > 0 {
+		n := min(len(data), MaxPayloadBytes)
+		q.chunks = append(q.chunks, append([]byte(nil), data[:n]...))
+		data = data[n:]
+	}
 	q.cond.Signal()
+	return nil
+}
+
+func (q *outputQueue) release(size int) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if !q.closed {
+		q.bytes -= size
+	}
 }
 
 func (q *outputQueue) close() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	q.closed = true
+	q.chunks = nil
+	q.bytes = 0
 	q.cond.Broadcast()
 }
 
@@ -63,6 +88,7 @@ func (q *outputQueue) pop() ([]byte, bool) {
 		return nil, false
 	}
 	chunk := q.chunks[0]
+	q.chunks[0] = nil
 	q.chunks = q.chunks[1:]
 	return chunk, true
 }
@@ -71,16 +97,10 @@ func (q *outputQueue) pop() ([]byte, bool) {
 // Data larger than MaxPayloadBytes is split into frame-bounded chunks. The
 // queue is created lazily so output produced before the renderer attaches is
 // buffered (admitted only after the first credit grant) instead of dropped.
-func (s *Server) Publish(sessionID string, data []byte) {
-	queue := s.queueFor(sessionID)
-	for len(data) > 0 {
-		chunk := data
-		if len(chunk) > MaxPayloadBytes {
-			chunk = chunk[:MaxPayloadBytes]
-		}
-		queue.push(chunk)
-		data = data[len(chunk):]
-	}
+// Admission owns a copy and is all-or-nothing. Producers must propagate errors;
+// rejected bytes have not been queued and must not be treated as delivered.
+func (s *Server) Publish(sessionID string, data []byte) error {
+	return s.queueFor(sessionID).push(data)
 }
 
 // DropOutput discards the session's output queue (session teardown).
@@ -165,8 +185,8 @@ func (s *Server) writeLoop(connection *websocket.Conn, sessionID string, generat
 	// queue and tearing the connection down.
 	readErr := make(chan error, 1)
 	go func() {
-		defer queue.close()
 		defer connection.CloseNow()
+		defer queue.close()
 		var lastErr error
 		for {
 			_, data, err := connection.Read(ctx)
@@ -234,6 +254,7 @@ func (s *Server) writeLoop(connection *websocket.Conn, sessionID string, generat
 		if !s.sendFrame(ctx, connection, frame) {
 			return
 		}
+		queue.release(len(frame.Payload))
 	}
 }
 

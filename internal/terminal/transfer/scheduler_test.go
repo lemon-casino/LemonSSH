@@ -40,6 +40,68 @@ func (m *memSink) WriteChunk(_ context.Context, _ TaskSpec, chunk Chunk, data []
 	return nil
 }
 
+func TestSchedulerCancelWaitsForWorkers(t *testing.T) {
+	s := New()
+	_, _ = s.Enqueue(TaskSpec{TaskID: "cancel-wait", HostKey: "local", TotalBytes: 1})
+	entered, release := make(chan struct{}), make(chan struct{})
+	source := fakeSourceFunc(func(context.Context, TaskSpec, Chunk) ([]byte, error) {
+		close(entered)
+		<-release
+		return []byte("x"), nil
+	})
+	_ = s.Start(context.Background(), "cancel-wait", source, &memSink{})
+	<-entered
+	_ = s.Cancel("cancel-wait")
+	done := make(chan struct{})
+	go func() { _ = s.Wait(context.Background(), "cancel-wait"); close(done) }()
+	select {
+	case <-done:
+		t.Fatal("wait returned while worker still owns files")
+	case <-time.After(10 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("worker never joined")
+	}
+}
+
+func TestSchedulerEmptyFileCompletes(t *testing.T) {
+	s := New()
+	if _, err := s.Enqueue(TaskSpec{TaskID: "empty", HostKey: "local", TotalBytes: 0}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Start(context.Background(), "empty", &memSource{}, &memSink{}); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(10 * time.Millisecond)
+	p, _ := s.Progress("empty")
+	if p.State != StateCompleted {
+		t.Fatalf("empty: %+v", p)
+	}
+}
+
+func TestSchedulerRejectsShortSource(t *testing.T) {
+	s := New()
+	_, _ = s.Enqueue(TaskSpec{TaskID: "short", HostKey: "local", TotalBytes: 5})
+	if err := s.Start(context.Background(), "short", &memSource{data: []byte("x")}, &memSink{}); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		p, _ := s.Progress("short")
+		if p.State == StateFailed {
+			return
+		}
+		if p.State == StateCompleted {
+			t.Fatal("short read reported success")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("transfer did not settle")
+}
+
 func TestSchedulerCompletesAndAggregates(t *testing.T) {
 	payload := make([]byte, 10000)
 	for i := range payload {
@@ -131,12 +193,19 @@ func TestSchedulerPauseResume(t *testing.T) {
 	if err := scheduler.Pause("t3"); err != nil {
 		t.Fatal(err)
 	}
+	paused, _ := scheduler.Progress("t3")
+	if paused.LifecycleEpoch != 1 {
+		t.Fatalf("pause epoch = %d", paused.LifecycleEpoch)
+	}
 	if err := scheduler.Resume("t3"); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		progress, _ := scheduler.Progress("t3")
+		if progress.LifecycleEpoch != 2 {
+			t.Fatalf("resume epoch = %d", progress.LifecycleEpoch)
+		}
 		if progress.State == StateCompleted {
 			return
 		}

@@ -1,6 +1,8 @@
-import React, { type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import React, { useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { AlertTriangle, Cloud, Database, Download, History, Key, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
 import type { CloudProvider, ConflictResolution, SyncPayload, SyncResult, WebDAVAuthType } from '../../domain/sync';
+import { isProviderReadyForSync } from '../../domain/sync';
+import { updateCloudSyncMasterKey } from '../../application/state/useCloudSyncMasterKey';
 import type { ShrinkFinding } from '../../domain/syncGuards';
 import { stripSyncPayloadEncryptedCredentials } from '../../domain/credentials';
 import type { useCloudSync } from '../../application/state/useCloudSync';
@@ -249,8 +251,11 @@ export const CloudSyncDialogs: React.FC<CloudSyncDialogsProps> = ({
   setShowForcePushConfirm,
   blockedFinding,
   setBlockedFinding
-}) => (
-  <>
+}) => {
+    const [confirmForgotKey, setConfirmForgotKey] = useState(false);
+    const [isResettingSync, setIsResettingSync] = useState(false);
+  return (
+            <>
             {/* Modals */}
             <GitHubDeviceFlowModal
                 isOpen={showGitHubModal}
@@ -710,32 +715,29 @@ export const CloudSyncDialogs: React.FC<CloudSyncDialogsProps> = ({
                                     return;
                                 }
 
-                                let payloadForReencrypt: SyncPayload | null = null;
-                                if (sync.hasAnyConnectedProvider) {
-                                    const payload = await onBuildPayload();
-                                    if (!ensureSyncablePayload(payload)) {
-                                        setChangeKeyError(t('sync.credentialsUnavailable'));
-                                        return;
-                                    }
-                                    payloadForReencrypt = payload;
-                                }
-
                                 setIsChangingKey(true);
                                 try {
-                                    const ok = await sync.changeMasterKey(currentMasterKey, newMasterKey);
+                                    let payloadForReencrypt: SyncPayload | null = null;
+                                    const expectedProviders = Object.values(sync.providers).filter(isProviderReadyForSync).map(provider => provider.provider);
+                                    if (expectedProviders.length) {
+                                        const payload = await onBuildPayload();
+                                        if (!ensureSyncablePayload(payload)) {
+                                            setChangeKeyError(t('sync.credentialsUnavailable'));
+                                            return;
+                                        }
+                                        payloadForReencrypt = payload;
+                                    }
+                                    const ok = await updateCloudSyncMasterKey(sync, currentMasterKey, newMasterKey, payloadForReencrypt, onApplyConvergentPayload);
                                     if (!ok) {
                                         setChangeKeyError(t('cloudSync.changeKey.incorrectCurrent'));
                                         return;
                                     }
 
-                                    if (payloadForReencrypt) {
-                                        await sync.syncNow(payloadForReencrypt, {
-                                            applyConvergentPayload: onApplyConvergentPayload,
-                                        });
-                                    }
-
                                     toast.success(t('cloudSync.changeKey.updatedToast'));
                                     setShowChangeKeyDialog(false);
+                                    setCurrentMasterKey('');
+                                    setNewMasterKey('');
+                                    setConfirmNewMasterKey('');
                                 } catch (error) {
                                     setChangeKeyError(error instanceof Error ? error.message : t('cloudSync.changeKey.failed'));
                                 } finally {
@@ -786,12 +788,64 @@ export const CloudSyncDialogs: React.FC<CloudSyncDialogsProps> = ({
                         {unlockError && (
                             <p className="text-sm text-red-500">{unlockError}</p>
                         )}
+                        {confirmForgotKey ? (
+                            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                                <p className="text-xs text-foreground">
+                                    {t('cloudSync.unlock.forgotConfirmDesc')}
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={() => setConfirmForgotKey(false)}
+                                        disabled={isResettingSync}
+                                    >
+                                        {t('cloudSync.unlock.forgotCancel')}
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1"
+                                        disabled={isResettingSync}
+                                        onClick={async () => {
+                                            setIsResettingSync(true);
+                                            setUnlockError(null);
+                                            try {
+                                                const removed = await sync.resetSyncEverything();
+                                                toast.success(t('cloudSync.unlock.forgotDoneToast', { count: removed?.length ?? 0 }));
+                                                setShowUnlockDialog(false);
+                                            } catch (error) {
+                                                setUnlockError(error instanceof Error ? error.message : t('cloudSync.unlock.forgotFailed'));
+                                            } finally {
+                                                setIsResettingSync(false);
+                                                setConfirmForgotKey(false);
+                                            }
+                                        }}
+                                    >
+                                        {isResettingSync ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                        {t('cloudSync.unlock.forgotConfirmButton')}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                onClick={() => setConfirmForgotKey(true)}
+                            >
+                                {t('cloudSync.unlock.forgotLink')}
+                            </button>
+                        )}
                     </div>
 
                     <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={() => setShowUnlockDialog(false)}
+                            onClick={() => {
+                                setConfirmForgotKey(false);
+                                setShowUnlockDialog(false);
+                            }}
                             disabled={isUnlocking}
                         >
                             {t('cloudSync.unlock.notNow')}
@@ -936,5 +990,7 @@ export const CloudSyncDialogs: React.FC<CloudSyncDialogsProps> = ({
                     </DialogContent>
                 </Dialog>
             )}
-  </>
-);
+        </>
+    );
+};
+

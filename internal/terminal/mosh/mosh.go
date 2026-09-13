@@ -63,11 +63,11 @@ func ParseConnect(data []byte) (connect Connect, matchEnd int, ok bool, err erro
 	rest = stripControl(rest)
 	fields := strings.Fields(rest)
 	if len(fields) < 2 {
-		return Connect{}, 0, false, fmt.Errorf("%w: %q", ErrNoConnectLine, line)
+		return Connect{}, 0, false, ErrNoConnectLine
 	}
 	portValue, parseErr := strconv.Atoi(fields[0])
 	if parseErr != nil || portValue <= 0 || portValue > 65535 {
-		return Connect{}, 0, false, fmt.Errorf("%w: %q", ErrBadPort, fields[0])
+		return Connect{}, 0, false, ErrBadPort
 	}
 	key := strings.TrimSpace(fields[1])
 	if key == "" {
@@ -149,6 +149,25 @@ func ServerCommand(moshServerPath string) string {
 // shellQuote wraps a value in single quotes, escaping embedded quotes.
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
+}
+
+// ClientLaunch delegates roaming to the native clients. ET bootstraps its own
+// persistent transport over SSH and must never receive MOSH credentials.
+func ClientLaunch(kind, host, user string, sshPort uint16, connect Connect) ([]string, map[string]string, error) {
+	switch kind {
+	case "mosh":
+		if connect.Port == 0 || connect.Key == "" {
+			return nil, nil, ErrNoConnectLine
+		}
+		return ClientArgs(host, connect), map[string]string{"MOSH_KEY": connect.Key}, nil
+	case "et":
+		if sshPort == 0 {
+			sshPort = 22
+		}
+		return []string{user + "@" + host, "--ssh-option", "Port=" + strconv.Itoa(int(sshPort))}, nil, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown helper %q", kind)
+	}
 }
 
 // ClientArgs builds the arguments for the locally supervised mosh-client. The

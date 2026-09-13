@@ -37,6 +37,8 @@ export const zhTWTerminalMessages: Messages = {
   'terminal.connection.protocol.plugin': '外掛連線',
   'terminal.et.proxyUnsupported': 'EternalTerminal 目前不支援 Netcatty 的代理設定。請改用 SSH，或移除該主機的代理。',
   'terminal.et.multiJumpUnsupported': 'EternalTerminal 目前在 Netcatty 中最多支援一個跳板機。',
+  'terminal.helperFailure.notice': '{kind} 助手行程已結束，且無法恢復其加密工作階段。點擊「重新啟動」將在目前工作階段中開啟一個新的遠端 shell。',
+  'terminal.helperFailure.restart': '重新啟動',
   // Command history side panel
   'history.scope.label': '歷史範圍',
   'history.tab.host': '主機',

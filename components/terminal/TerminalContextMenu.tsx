@@ -17,6 +17,7 @@ import {
   Upload,
 } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
+import { useZmodemReceive } from '../../application/state/useZmodemReceive';
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { KeyBinding, RightClickBehavior } from '../../domain/models';
 import {
@@ -225,6 +226,7 @@ export const TerminalContextMenu: React.FC<TerminalContextMenuProps> = ({
   onDetach,
 }) => {
   const { t } = useI18n();
+  const onReceiveZmodem = useZmodemReceive(sessionId, status === 'connected');
   const [menuOpen, setMenuOpen] = useState(false);
   const terminalContext = buildTerminalPluginContributionContext({
     surface: 'terminal/context',
@@ -405,13 +407,19 @@ export const TerminalContextMenu: React.FC<TerminalContextMenuProps> = ({
             </>
           )}
 
-          {(onSendYmodem || onReceiveYmodem) && (
+          {(onSendYmodem || onReceiveYmodem || onReceiveZmodem) && (
             <>
               <ContextMenuSeparator />
               {onSendYmodem && (
                 <ContextMenuItem onClick={onSendYmodem}>
                   <Upload size={14} className="mr-2" />
                   {t('terminal.menu.sendYmodem')}
+                </ContextMenuItem>
+              )}
+              {onReceiveZmodem && (
+                <ContextMenuItem onClick={onReceiveZmodem}>
+                  <Download size={14} className="mr-2" />
+                  {t('terminal.menu.receiveZmodem')}
                 </ContextMenuItem>
               )}
               {onReceiveYmodem && (

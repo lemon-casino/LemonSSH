@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 
+import { useOpenExternal } from '../../application/state/useOpenExternal';
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { useCloudSync } from '../../application/state/useCloudSync';
 
@@ -460,6 +461,7 @@ export const GitHubDeviceFlowModal: React.FC<GitHubDeviceFlowModalProps> = ({
     onClose,
 }) => {
     const { t } = useI18n();
+    const openVerificationUri = useOpenExternal();
     const [copied, setCopied] = useState(false);
 
     const copyCode = useCallback(() => {
@@ -501,7 +503,7 @@ export const GitHubDeviceFlowModal: React.FC<GitHubDeviceFlowModalProps> = ({
                     </div>
 
                     <Button
-                        onClick={() => window.open(verificationUri, "_blank", "noopener,noreferrer")}
+                        onClick={() => { void openVerificationUri(verificationUri); }}
                         className="w-full gap-2 mb-4"
                     >
                         <ExternalLink size={14} />

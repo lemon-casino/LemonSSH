@@ -135,6 +135,12 @@ export interface WailsSSHConnectArgs {
   identityFilePaths: string[];
   cols: number;
   rows: number;
+  term: string;
+  verifyHostKeys: boolean;
+  keepaliveInterval: number;
+  keepaliveCountMax: number;
+  forwardX11: boolean;
+  x11Display: string;
   jumpHosts: WailsSSHConnectArgs[];
 }
 
@@ -158,6 +164,15 @@ export interface WailsSSHConnectOptions {
   certificate?: string;
   passphrase?: string;
   requiresMfa?: boolean;
+  term?: string;
+  env?: Record<string, string>;
+  verifyHostKeys?: boolean;
+  /** Seconds, already resolved against host overrides by the caller. */
+  keepaliveInterval?: number;
+  keepaliveCountMax?: number;
+  x11Forwarding?: boolean;
+  forwardX11?: boolean;
+  x11Display?: string;
   jumpHosts?: WailsSSHConnectOptions[];
   proxy?: WailsProxyConfig;
   useSshAgent?: boolean;
@@ -207,6 +222,12 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     identityFilePaths: options.identityFilePaths ?? [],
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
+    term: options.term || options.env?.TERM || "xterm-256color",
+    verifyHostKeys: options.verifyHostKeys !== false,
+    keepaliveInterval: options.keepaliveInterval ?? 30,
+    keepaliveCountMax: options.keepaliveCountMax ?? 3,
+    forwardX11: options.x11Forwarding ?? options.forwardX11 ?? false,
+    x11Display: options.x11Display ?? "",
     jumpHosts: (options.jumpHosts ?? []).map((hop) => pickSSHConnectArgs(hop)),
   };
 }

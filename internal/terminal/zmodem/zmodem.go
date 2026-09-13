@@ -6,10 +6,10 @@ package zmodem
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -18,9 +18,14 @@ const (
 	ZDLE    byte = 0x18
 	ZPAD    byte = 0x2A // '*'
 	ZRQINIT byte = 0x00
-	ZRINIT  byte = 0x04
-	ZSINIT  byte = 0x08
-	ZFILE   byte = 0x0C
+	ZRINIT  byte = 0x01
+	ZSINIT  byte = 0x02
+	ZACK    byte = 0x03
+	ZFILE   byte = 0x04
+	ZSKIP   byte = 0x05
+	ZNAK    byte = 0x06
+	ZABORT  byte = 0x07
+	ZRPOS   byte = 0x09
 	ZDATA   byte = 0x0A
 	ZEOF    byte = 0x0B
 	ZFIN    byte = 0x08
@@ -73,21 +78,25 @@ type FileMeta struct {
 // enforces filesystem safety: no separators, no traversal, no reserved names,
 // size within cap. Zero size means "unknown" and is allowed.
 func ParseFileMeta(payload []byte, maxBytes int64) (FileMeta, error) {
-	fields := strings.Fields(string(payload))
-	if len(fields) == 0 {
-		return FileMeta{}, fmt.Errorf("%w: empty ZFILE payload", ErrFileUnsafe)
+	name, attributes, raw := strings.Cut(string(payload), "\x00")
+	if !raw {
+		fields := strings.Fields(name)
+		if len(fields) == 0 {
+			return FileMeta{}, fmt.Errorf("%w: empty ZFILE payload", ErrFileUnsafe)
+		}
+		name = fields[0]
+		attributes = strings.Join(fields[1:], " ")
 	}
-	name := fields[0]
 	if err := validateName(name); err != nil {
 		return FileMeta{}, err
 	}
 	size := int64(0)
-	if len(fields) > 1 {
-		for _, r := range fields[1] {
-			if r < '0' || r > '9' {
-				return FileMeta{}, fmt.Errorf("%w: non-numeric size", ErrFileUnsafe)
-			}
-			size = size*10 + int64(r-'0')
+	fields := strings.Fields(strings.TrimRight(attributes, "\x00"))
+	if len(fields) > 0 {
+		var err error
+		size, err = strconv.ParseInt(fields[0], 10, 64)
+		if err != nil {
+			return FileMeta{}, fmt.Errorf("%w: invalid size", ErrFileUnsafe)
 		}
 	}
 	if err := ValidateSize(size, maxBytes); err != nil {
@@ -99,6 +108,11 @@ func ParseFileMeta(payload []byte, maxBytes int64) (FileMeta, error) {
 func validateName(name string) error {
 	if name == "" || len(name) > 255 {
 		return fmt.Errorf("%w: name length", ErrFileUnsafe)
+	}
+	for _, r := range name {
+		if r < 32 || r == 127 {
+			return fmt.Errorf("%w: control character in name", ErrFileUnsafe)
+		}
 	}
 	if name != path.Base(name) {
 		return fmt.Errorf("%w: name carries a path", ErrFileUnsafe)
@@ -161,30 +175,13 @@ type Frame struct {
 	CRCValid bool
 }
 
-// ParseBinaryHeader locates and parses a ZMODEM binary header from a buffer:
-// ZPAD ZDLE 'B' type crc0 crc1 (16-bit CRC variant). Returns the frame and
-// the number of bytes consumed; ErrFrameMalformed when the prefix is partial
-// or the CRC fails.
+// ParseBinaryHeader parses standard hex, binary CRC16, and binary CRC32 headers.
 func ParseBinaryHeader(data []byte) (Frame, int, error) {
-	// Scan for ZPAD ZDLE 'B'.
-	for start := 0; start+3 <= len(data); start++ {
-		if data[start] != ZPAD || data[start+1] != ZDLE || data[start+2] != 'B' {
-			continue
-		}
-		if start+6 > len(data) {
-			return Frame{}, 0, ErrFrameMalformed
-		}
-		frameType := data[start+3]
-		crcBytes := data[start+4 : start+6]
-		// CRC-16 covers type + crc bytes as transmitted (ZDLE-decoded form).
-		body := []byte{'B', frameType}
-		expected := binary.BigEndian.Uint16([]byte{crcBytes[0], crcBytes[1]})
-		if CRC16(body) != expected {
-			return Frame{}, 0, ErrCRCMismatch
-		}
-		return Frame{Type: frameTypeName(frameType), CRCValid: true}, start + 6, nil
+	h, used, err := parseHeader(data)
+	if err != nil {
+		return Frame{}, 0, err
 	}
-	return Frame{}, 0, ErrFrameMalformed
+	return Frame{Type: frameTypeName(h.kind), Sequence: h.position, CRCValid: true}, used, nil
 }
 
 func frameTypeName(t byte) string {
@@ -219,7 +216,10 @@ type Receiver struct {
 	// state carries per-file routing across streaming Feed calls (session.go).
 	state *feedState
 	// decoder buffers partial framed units across FeedSession calls.
-	decoder *frameDecoder
+	decoder   *wireDecoder
+	Write     func([]byte) error
+	OnFileEnd func(FileMeta) error
+	Done      bool
 }
 
 // Feed processes one transport buffer. Cancellation is checked between

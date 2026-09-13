@@ -21,6 +21,7 @@ interface TerminalAutocompleteKeyEventContext {
   renderPreviewSelection: (index: number) => void;
   acceptPreviewlessSelection: (index: number) => boolean;
   acceptSnippet: (snippet: Snippet) => boolean;
+  refreshDirectorySuggestions?: () => void;
   /** Deadline (ms) until which `.` / `_` are treated as readline Meta follow-ups. */
   escMetaPrefixUntilRef: MutableRefObject<number>;
   now?: () => number;
@@ -100,6 +101,20 @@ export function handleTerminalAutocompleteKeyEvent(
   const s = stateRef.current;
   const ghost = ghostAddonRef.current;
 
+  if (settingsRef.current.showGhostText && !settingsRef.current.showPopupMenu && ghost?.isActive()
+      && (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+      && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+    const candidates = s.suggestions.filter(item => item.source !== 'snippet' && item.text.startsWith(typedInputBufferRef.current));
+    if (candidates.length > 1) {
+      const current = candidates.findIndex(item => item.text === ghost.getSuggestion());
+      const next = (current + (e.key === 'ArrowDown' ? 1 : candidates.length - 1)) % candidates.length;
+      e.preventDefault();
+      ghost.show(candidates[next].text, typedInputBufferRef.current);
+      setState(prev => ({ ...prev, selectedIndex: s.suggestions.indexOf(candidates[next]) }));
+      return false;
+    }
+  }
+
   // Right arrow: if popup has selected directory with sub-dir panel, enter it
   // Skip this handler entirely when sub-dir panels are focused — let the
   // sub-panel navigation block handle → for deeper expansion.
@@ -158,6 +173,9 @@ export function handleTerminalAutocompleteKeyEvent(
         }
         ghost.hide();
         clearState();
+        if (s.suggestions.some(item => item.text === fullSuggestion && item.source === 'path' && item.fileType === 'directory')) {
+          context.refreshDirectorySuggestions?.();
+        }
       } else {
         ghost.hide();
       }

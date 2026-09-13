@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+// macOS /var is a system symlink; tests use the physical temp directory so
+// helper path checks can continue rejecting symlink ancestors.
+const tempRoot = await realpath(tmpdir());
 
 import {
   artifactBasename,
@@ -13,6 +17,8 @@ import {
   purityInventory,
   shouldUseShell,
   windowsGuiLdflags,
+  verifyHelper,
+  writeProtocolResources,
 } from "./package-wails.mjs";
 
 test("artifactBasename applies the platform executable suffix", () => {
@@ -51,7 +57,7 @@ test("parseArgs accepts the documented flags", () => {
 });
 
 test("checksumEntries hashes files deterministically", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "pkg-wails-"));
+  const dir = await mkdtemp(path.join(tempRoot, "pkg-wails-"));
   const fileA = path.join(dir, "a.txt");
   const fileB = path.join(dir, "b.txt");
   await writeFile(fileA, "alpha");
@@ -88,6 +94,45 @@ test("shouldUseShell runs npm through the shell on Windows", () => {
   assert.equal(shouldUseShell("npm", "linux"), true);
   assert.equal(shouldUseShell("go", "linux"), false);
   assert.equal(shouldUseShell("go", "win32"), true);
+});
+
+test("helper verification rejects altered content and wrong machine architecture", async () => {
+  const { createHash } = await import("node:crypto");
+  const pe = Buffer.alloc(128);
+  pe.write("MZ"); pe.writeUInt32LE(64, 60); pe.write("PE\0\0", 64); pe.writeUInt16LE(0x8664, 68);
+  const pin = { os: "windows", arch: "amd64", sha256: createHash("sha256").update(pe).digest("hex") };
+  assert.doesNotThrow(() => verifyHelper(pe, pin, "windows", "amd64"));
+  assert.throws(() => verifyHelper(Buffer.from("tampered"), pin, "windows", "amd64"), /hash/);
+  assert.throws(() => verifyHelper(pe, pin, "windows", "arm64"), /target/);
+  const wrong = { ...pin, arch: "arm64" };
+  assert.throws(() => verifyHelper(pe, wrong, "windows", "arm64"), /architecture/);
+});
+
+test("ad-hoc helper installation stays removed; the lock gates all provisioning", async () => {
+  // Ad-hoc installs were removed: provisioning goes exclusively through the
+  // reviewed lock flow (scripts/fetch-wails-helpers.mjs), whose digest and
+  // provenance gates run before any byte reaches the cache or resources.
+  const mod = await import("./package-wails.mjs");
+  assert.ok(!("installHelper" in mod), "legacy ad-hoc helper install must stay removed");
+  const { validateLock } = await import("./fetch-wails-helpers.mjs");
+  // A lock without trusted digests and provenance is rejected before any
+  // download or install can start.
+  assert.throws(
+    () => validateLock({ schemaVersion: 1, releases: {}, assets: [{}] }),
+    /invalid helper release|trusted sha256|provenance/i,
+  );
+});
+
+test("protocol resources register all supported schemes", async () => {
+  const dir = await mkdtemp(path.join(tempRoot, "protocol-wails-"));
+  const linux = await writeProtocolResources(dir, "linux", "LemonSSH");
+  const desktop = await readFile(linux[0], "utf8");
+  assert.match(desktop, /Exec=LemonSSH %u/);
+  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(desktop.includes(`x-scheme-handler/${scheme};`));
+  const mac = await writeProtocolResources(dir, "darwin", "LemonSSH");
+  const plist = await readFile(mac[0], "utf8");
+  assert.match(plist, /<key>CFBundleIdentifier<\/key><string>app\.lemonssh\.desktop<\/string>/);
+  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(plist.includes(`<string>${scheme}</string>`));
 });
 
 test("helperResourcePath follows the fetch-mosh layout", () => {

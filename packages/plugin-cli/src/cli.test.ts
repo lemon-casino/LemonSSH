@@ -125,7 +125,7 @@ function replaceCentralEntryMode(archive: Buffer, entryName: string, mode: numbe
 
 function manifest(overrides: Record<string, unknown> = {}) {
   return {
-    manifestVersion: 1,
+    manifestVersion: 1 as const,
     id: "com.example.package-test",
     name: "package-test",
     version: "1.0.0",

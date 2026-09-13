@@ -129,7 +129,7 @@ test('setTokens refreshes an expired token and persists the refreshed tokens', a
   }
 });
 
-test('a persistence callback that throws does not abort the operation', async () => {
+test('failed token persistence aborts the operation and retries persistence before reuse', async () => {
   const refreshed: OAuthTokens = {
     accessToken: 'fresh-access',
     refreshToken: 'old-refresh',
@@ -148,10 +148,12 @@ test('a persistence callback that throws does not abort the operation', async ()
       throw new Error('persist boom');
     });
 
-    // Refresh succeeds, the throwing callback is swallowed, the op completes.
-    const result = await adapter.download();
-    assert.deepEqual(result, remoteSyncedFile);
+    await assert.rejects(adapter.download(), /persist boom/);
     assert.deepEqual(adapter.getTokens(), refreshed);
+    let persisted = false;
+    adapter.setOnTokensRefreshed(async () => { persisted = true; });
+    assert.deepEqual(await adapter.download(), remoteSyncedFile);
+    assert.equal(persisted, true);
   } finally {
     restore();
   }

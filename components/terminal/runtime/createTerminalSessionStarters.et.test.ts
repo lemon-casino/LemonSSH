@@ -5,6 +5,15 @@ import { createTerminalSessionStarters } from "./createTerminalSessionStarters";
 
 const noop = () => undefined;
 
+const useWails = (t: test.TestContext) => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { _wails: {} } });
+  t.after(() => {
+    if (previous) Object.defineProperty(globalThis, "window", previous);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+};
+
 const armSudoPrompt = (
   autofill: { armForCommand: (command: string) => void } | null,
 ): string => {
@@ -436,6 +445,84 @@ test("startEt connects directly when no jump host is configured", async () => {
   assert.equal(error, "");
   assert.ok(captured);
   assert.equal(captured.jumpHosts, undefined);
+});
+
+for (const type of ["http", "socks5", "command"]) {
+  test(`Wails ET forwards ${type} proxy and multiple SSH jump auth options`, async (t) => {
+    useWails(t);
+    let captured: Record<string, unknown> | undefined;
+    let error = "";
+    const proxy = { type, host: "proxy.test", port: 3128, command: "connect %h %p", username: "proxy-user", password: "proxy-secret" };
+    const ctx = makeCtx({
+      password: "target-secret",
+      requiresMfa: true,
+      proxyConfig: proxy,
+      hostChain: { hostIds: ["one", "two"] },
+    }, [
+      { id: "one", hostname: "one.test", username: "first", password: "hop-secret", requiresMfa: true },
+      { id: "two", hostname: "two.test", username: "second", authMethod: "key", identityFilePaths: ["/keys/hop"] },
+    ], makeBackend((options) => { captured = options; }), { setError: (message) => { error = message; } });
+    await createTerminalSessionStarters(ctx as never).startEt(term as never);
+    assert.equal(error, "");
+    assert.ok(captured);
+    assert.deepEqual(captured.proxy, proxy);
+    assert.equal(captured.password, "target-secret");
+    assert.equal(captured.requiresMfa, true);
+    const hops = captured.jumpHosts as Array<Record<string, unknown>>;
+    assert.equal(hops.length, 2);
+    assert.equal(hops[0].password, "hop-secret");
+    assert.equal(hops[0].requiresMfa, true);
+    assert.deepEqual(hops[1].identityFilePaths, ["/keys/hop"]);
+  });
+}
+
+test("Wails ET validates missing hops and unreadable proxy credentials", async (t) => {
+  useWails(t);
+  let starts = 0;
+  let error = "";
+  const backend = makeBackend(() => { starts++; });
+  const ctx = makeCtx({ hostChain: { hostIds: ["one", "missing"] } }, [{ id: "one", hostname: "one.test" }], backend,
+    { setError: (value) => { error = value; } });
+  await createTerminalSessionStarters(ctx as never).startEt(term as never);
+  assert.match(error, /jump host is missing/i);
+  assert.equal(starts, 0);
+  const proxyCtx = makeCtx({ proxyConfig: { type: "http", host: "proxy.test", port: 80, username: "user", password: "enc:v1:djEwdGVzdAAAAAAAAAAAAAAAAA==" } }, [], backend,
+    { setError: (value) => { error = value; } });
+  await createTerminalSessionStarters(proxyCtx as never).startEt(term as never);
+  assert.match(error, /cannot be decrypted/i);
+  assert.equal(starts, 0);
+});
+
+test("Electron ET retains proxy rejection", async () => {
+  let starts = 0;
+  let error = "";
+  const ctx = makeCtx({ proxyConfig: { type: "socks5", host: "proxy.test", port: 1080 } }, [], makeBackend(() => { starts++; }),
+    { setError: (value) => { error = value; } });
+  await createTerminalSessionStarters(ctx as never).startEt(term as never);
+  assert.equal(starts, 0);
+  assert.match(error, /does not currently support Netcatty proxy/);
+});
+
+test("Wails Mosh permits SSH bootstrap jump chains while retaining UDP proxy limit", async (t) => {
+  useWails(t);
+  let captured: Record<string, unknown> | undefined;
+  let error = "";
+  const backend = { ...makeBackend(), startMoshSession: async (options: Record<string, unknown>) => { captured = options; return "mosh-session"; } };
+  const hops = [
+    { id: "one", hostname: "one.test", password: "hop-secret" },
+    { id: "two", hostname: "two.test", identityFilePaths: ["/keys/hop"], authMethod: "key" },
+  ];
+  const ctx = makeCtx({ hostChain: { hostIds: ["one", "two"] } }, hops, backend,
+    { setError: (value) => { error = value; } });
+  await createTerminalSessionStarters(ctx as never).startMosh(term as never);
+  assert.equal(error, "");
+  assert.equal((captured?.jumpHosts as unknown[]).length, 2);
+  captured = undefined;
+  const proxyCtx = makeCtx({ ...ctx.host, proxyConfig: { type: "socks5", host: "proxy.test", port: 1080 } }, hops, backend,
+    { setError: (value) => { error = value; } });
+  await createTerminalSessionStarters(proxyCtx as never).startMosh(term as never);
+  assert.equal(captured, undefined);
+  assert.match(error, /does not support proxy/);
 });
 
 test("startEt forwards known hosts and algorithm options for stats companion parity", async () => {

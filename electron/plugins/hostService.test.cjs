@@ -30,11 +30,10 @@ function transportContext() {
 
 test("host RPC registry configuration is complete before runtime initialization", (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const service = createPluginHostService(createOptions(root, (registry) => {
     registry.registerRequest("custom.test", () => null);
   }));
-  context.after(() => service.database.close());
+  context.after(() => { service.database.close(); fs.rmSync(root, { recursive: true, force: true }); });
   const routes = service.rpcRegistry.createRoutes({
     pluginId: "com.example.service",
     pluginVersion: "1.0.0",
@@ -56,14 +55,13 @@ test("async host RPC registry configuration fails before a service can start", (
 
 test("host service forwards the transport quota guard to the runtime supervisor", (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   let guarded;
   const runtimeMessageGuard = (identity, message) => { guarded = { identity, message }; };
   const service = createPluginHostService({
     ...createOptions(root),
     runtimeMessageGuard,
   });
-  context.after(() => service.database.close());
+  context.after(() => { service.database.close(); fs.rmSync(root, { recursive: true, force: true }); });
   const identity = { runtimeId: "runtime-1" };
   const message = { jsonrpc: "2.0" };
   service.runtimeSupervisor.runtimeMessageGuard(identity, message);
@@ -72,9 +70,8 @@ test("host service forwards the transport quota guard to the runtime supervisor"
 
 test("host service seeds the latest contribution environment before runtime activation", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const service = createPluginHostService(createOptions(root));
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const environment = { locale: "zh-CN", theme: "dark", reducedMotion: true, highContrast: false };
 
   await service.contributionService.setEnvironment(environment);
@@ -84,9 +81,8 @@ test("host service seeds the latest contribution environment before runtime acti
 
 test("runtime cleanup revokes leases before awaiting companion teardown", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const service = createPluginHostService(createOptions(root));
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const events = [];
   let releaseCompanions;
   service.leaseStore.revokeRuntime = (runtimeId) => {
@@ -115,7 +111,6 @@ test("runtime cleanup revokes leases before awaiting companion teardown", async 
 
 test("runtime trust placement precedes required and advanced permission prompts", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const events = [];
   const service = createPluginHostService({
     ...createOptions(root),
@@ -128,7 +123,7 @@ test("runtime trust placement precedes required and advanced permission prompts"
       return { requestId: request.requestId, decision: "allow", scope: "application" };
     },
   });
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const manifest = {
     manifestVersion: 1,
     id: "com.example.advanced",
@@ -154,7 +149,6 @@ test("runtime trust placement precedes required and advanced permission prompts"
 
 test("first-party placement selects the utility runtime for companion manifests", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const requested = [];
   const service = createPluginHostService({
     ...createOptions(root),
@@ -163,7 +157,7 @@ test("first-party placement selects the utility runtime for companion manifests"
       return { requestId: request.requestId, decision: "allow", scope: "application" };
     },
   });
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const manifest = {
     manifestVersion: 1,
     id: "com.example.companion-placement",
@@ -202,7 +196,6 @@ test("first-party placement selects the utility runtime for companion manifests"
 
 test("first-party placement selects utility for dual-entrypoint terminal interceptors", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const requested = [];
   const service = createPluginHostService({
     ...createOptions(root),
@@ -211,7 +204,7 @@ test("first-party placement selects utility for dual-entrypoint terminal interce
       return { requestId: request.requestId, decision: "allow", scope: "application" };
     },
   });
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const manifest = {
     manifestVersion: 1,
     id: "com.example.interceptor-placement",
@@ -250,9 +243,8 @@ test("first-party placement selects utility for dual-entrypoint terminal interce
 
 test("secure host methods fail closed without an approver while public logging remains available", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const service = createPluginHostService(createOptions(root));
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const routes = service.rpcRegistry.createRoutes({
     pluginId: "com.example.service",
     pluginVersion: "1.0.0",
@@ -275,7 +267,6 @@ test("secure host methods fail closed without an approver while public logging r
 
 test("approved host capabilities reuse application grants through the registry", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   let prompts = 0;
   const service = createPluginHostService({
     ...createOptions(root),
@@ -284,7 +275,7 @@ test("approved host capabilities reuse application grants through the registry",
       return { requestId: request.requestId, decision: "allow", scope: "application" };
     },
   });
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const pluginManifest = {
     manifestVersion: 1,
     id: "com.example.service",
@@ -319,7 +310,6 @@ test("approved host capabilities reuse application grants through the registry",
 
 test("host service wires a handle-bound directory adapter without changing the RPC seam", async (context) => {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-")));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const directoryPath = path.join(root, "enumerate");
   await fsp.mkdir(directoryPath);
   await fsp.writeFile(path.join(directoryPath, "entry.txt"), "entry");
@@ -343,7 +333,7 @@ test("host service wires a handle-bound directory adapter without changing the R
       };
     },
   });
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const pluginManifest = {
     id: "com.example.directory",
     name: "directory",
@@ -369,11 +359,10 @@ test("host service wires a handle-bound directory adapter without changing the R
 
 test("custom host methods without an explicit authorization classification are denied", async (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-plugin-host-service-"));
-  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const service = createPluginHostService(createOptions(root, (registry) => {
     registry.registerRequest("custom.unclassified", () => ({ value: true }));
   }));
-  context.after(() => service.manager.shutdown());
+  context.after(async () => { await service.manager.shutdown(); fs.rmSync(root, { recursive: true, force: true }); });
   const routes = service.rpcRegistry.createRoutes({
     pluginId: "com.example.service",
     pluginVersion: "1.0.0",

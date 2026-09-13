@@ -129,6 +129,39 @@ test.beforeEach(() => {
   bridgeState.remoteDelayMs = 0;
 });
 
+test("escaped space prefixes remain appendable in inline completion", async () => {
+  bridgeState.remoteEntriesByPath.set('/spaces/', [{ name: 'My files 中文', type: 'directory' }]);
+  for (const input of ['cd /spaces/My', 'cd /spaces/My\\ files']) {
+    const items = await getCompletions(input, {sessionId:'spaces-test', protocol:'ssh', os:'linux'});
+    assert.ok(items.some(item => item.text === 'cd /spaces/My\\ files\\ 中文/' && item.text.startsWith(input)));
+  }
+});
+
+test("local Windows drive paths keep their drive instead of joining terminal cwd", async () => {
+  const { resolvePathComponents } = await import('./autocomplete/remotePathCompleter.ts');
+  assert.equal(resolvePathComponents('C:/data/M', 'C:/Users/me').dirToList, 'C:/data/');
+});
+
+test("cd previews exact-directory children without history and preserves sibling matches", async () => {
+  bridgeState.remoteEntriesByPath.set('/', [{ name: 'data', type: 'directory' }, { name: 'database', type: 'directory' }]);
+  bridgeState.remoteEntriesByPath.set('/data', [{ name: 'Mihomo', type: 'directory' }]);
+  bridgeState.remoteEntriesByPath.set('/data/', [{ name: 'Mihomo', type: 'directory' }]);
+  for (const input of ['cd /data', 'cd /data/']) {
+    const items = await getCompletions(input, { sessionId: 'preview-children', protocol: 'ssh', os: 'linux' });
+    assert.ok(items.some(item => item.text === 'cd /data/Mihomo/' && item.source === 'path'), input);
+    if (input === 'cd /data') assert.ok(items.some(item => item.text === 'cd /database/'));
+  }
+});
+
+test("quoted directory candidates escape shell expansions and embedded quotes", async () => {
+  bridgeState.remoteEntriesByPath.set('/quoted/', [{ name: 'a"$HOME`id`', type: 'directory' }, { name: "a'quote", type: 'directory' }]);
+  const options = { sessionId: 'quoted-test', protocol: 'ssh', os: 'linux' as const };
+  const double = await getCompletions('cd "/quoted/a', options);
+  assert.ok(double.some(item => item.text === 'cd "/quoted/a\\"\\$HOME\\`id\\`/'));
+  const single = await getCompletions("cd '/quoted/a", options);
+  assert.ok(single.some(item => item.text === "cd '/quoted/a'\\''quote/"));
+});
+
 test("getCompletions prioritizes spec-driven path suggestions over history", async () => {
   recordCommand("story open package-lock.json", "host-1");
 

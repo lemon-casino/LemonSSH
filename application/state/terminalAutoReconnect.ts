@@ -37,6 +37,7 @@ export function shouldAutoReconnectAfterExit({
   terminalSettings?: AutoReconnectSettings;
   hasEverConnected: boolean;
 }): boolean {
+  if (evt.intentional) return false;
   if (!hasEverConnected) return false;
   if (!isTerminalAutoReconnectEnabled(terminalSettings)) return false;
   if (!isAutoReconnectableSshHost(host)) return false;

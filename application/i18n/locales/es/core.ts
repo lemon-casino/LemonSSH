@@ -1,6 +1,10 @@
 import type { Messages } from '../types';
 
 export const esCoreMessages: Messages = {
+  'profile.persistenceFailed': 'No se pudo actualizar tu perfil. Es posible que los cambios recientes no se hayan guardado. Inténtalo de nuevo.',
+  'terminal.menu.receiveZmodem': 'Recibir con ZMODEM',
+  'terminal.zmodem.receiveReady': 'Esperando ZMODEM. Ejecuta sz <archivo> en el terminal remoto para enviar un archivo.',
+  'terminal.zmodem.receiveFailed': 'Error al recibir con ZMODEM. Inténtalo de nuevo.',
   // Common
   'common.save': 'Guardar',
   'common.cancel': 'Cancelar',
@@ -1087,6 +1091,9 @@ Resalta el panel dividido enfocado:
   'settings.plugins.title': 'Configuración de plugins',
   'settings.plugins.description': 'Ajustes nativos y validados que aportan los plugins de desarrollo.',
   'settings.plugins.loading': 'Cargando ajustes del plugin…',
+  'settings.plugins.allow.once': 'Permitir una vez',
+  'settings.plugins.allow.session': 'Permitir durante la sesión',
+  'settings.plugins.legacyGuidance': 'Solicita al autor una versión WASM con manifest v2. No se pueden cargar paquetes JavaScript/Node antiguos.',
   'settings.plugins.empty': 'Ningún plugin activado aporta ajustes.',
   'settings.plugins.scopeContext': 'Abre este ajuste en su contexto de {scope}.',
   'settings.plugins.pressKeybinding': 'Presiona una combinación de teclas',

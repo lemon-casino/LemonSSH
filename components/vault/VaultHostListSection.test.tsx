@@ -47,14 +47,14 @@ Object.defineProperty(globalThis, "localStorage", {
   },
 });
 
-const makeHost = (id: string, label: string): Host => ({
+const makeHost = (id: string, label: string, tags: string[] = []): Host => ({
   id,
   label,
   hostname: "router.example.com",
   username: "netops",
   port: 22,
   os: "linux",
-  tags: [],
+  tags,
   notes: "Maintenance notes",
   createdAt: 1,
 });
@@ -175,6 +175,7 @@ const renderHostList = ({
       selectedGroupPath: null,
       selectedGroupPaths,
       selectedHostIds,
+      selectedTags: [],
       sessionCount: 0,
       setDeleteTargetPath: noop,
       setDragOverDropTarget: noop,
@@ -184,6 +185,7 @@ const renderHostList = ({
       setLastPinnedId: noop,
       setNewFolderName: noop,
       setSelectedGroupPath: noop,
+      setSelectedTags: noop,
       setTargetParentPath: noop,
       shouldHideEmptyRootHostsSection: false,
       showRecentHosts,
@@ -311,6 +313,25 @@ test("VaultHostListSection keeps grouped host edit actions beside labels without
   });
 
   assertGridHostPlacement(gridMarkup, groupedHost);
+});
+
+test("VaultHostListSection paints host tags in list and grid cards", () => {
+  const taggedHost = makeHost("tagged-host", "Tagged Router", ["edge"]);
+  const listMarkup = renderHostList({
+    viewMode: "list",
+    displayedGroups: [],
+    displayedHosts: [taggedHost],
+    visibleDisplayedHosts: [taggedHost],
+  });
+  assert.match(listMarkup, /data-host-tag="edge"/);
+
+  const gridMarkup = renderHostList({
+    viewMode: "grid",
+    displayedGroups: [],
+    displayedHosts: [taggedHost],
+    visibleDisplayedHosts: [taggedHost],
+  });
+  assert.match(gridMarkup, /data-host-tag="edge"/);
 });
 
 test("VaultHostListSection keeps list group edit action beside the group label without changing grid", () => {

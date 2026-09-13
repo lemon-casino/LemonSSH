@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Lock, Plus, Settings, Sparkles } from 'lucide-react';
+import { Lock, Menu, Plus, Settings, Sparkles } from 'lucide-react';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import {
@@ -79,6 +79,11 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
     };
   }, [isFullscreen, isMacClient, onFullscreenChanged]);
 
+  // Compact menu defaults to expanded so the sections stay visible; the
+  // toggle collapses them to the ☰ button when the bar is needed for drag.
+  // Selecting a section never collapses the bar — the menu must stay where
+  // the user left it (feedback: menus "disappearing" after a click).
+  const [navigationOpen, setNavigationOpen] = useState(true);
   const handleSelectSection = useCallback((section: VaultSection) => {
     setVaultNavSection(section);
     onSelectVaultSection(section);
@@ -103,6 +108,7 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
       }}
       onDoubleClick={handleTitleBarDoubleClick}
     >
+      <div className="absolute inset-x-0 top-0 h-1 app-drag" style={dragRegionStyle} aria-hidden />
       <div
         className="h-[45px] flex items-center gap-2 app-drag min-w-0"
         style={{
@@ -113,17 +119,36 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
         <div className="flex items-center app-no-drag shrink-0 self-center h-7">
           <AppLogo className="h-6 w-6" />
         </div>
-        <VaultNavItems
-          orientation="horizontal"
-          currentSection={currentSection}
-          onSelectSection={handleSelectSection}
-          sidebarCollapsed={false}
-          t={t}
-        />
+        <div className="hidden min-[1440px]:block app-no-drag">
+          <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
+        </div>
+        <div className="min-[1440px]:hidden app-no-drag shrink-0 flex items-center min-w-0">
+          {/* Toggle: one click expands the sections inline into the bar, a
+              second click collapses them back to the ☰ button. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={'h-7 w-7 shrink-0 app-no-drag' + (navigationOpen ? ' bg-foreground/10 text-foreground' : '')}
+            aria-label={t('topTabs.vaults')}
+            aria-expanded={navigationOpen}
+            onClick={() => setNavigationOpen(open => !open)}
+          >
+            <Menu size={16} />
+          </Button>
+          {navigationOpen && (
+            <div
+              data-section="workbench-chrome-inline-nav"
+              className="ml-1.5 min-w-0 overflow-x-auto"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
+              <VaultNavItems orientation="horizontal" currentSection={currentSection} onSelectSection={handleSelectSection} sidebarCollapsed={false} t={t} />
+            </div>
+          )}
+        </div>
         <div className="flex-1 min-w-4 app-drag" style={dragRegionStyle} />
         <div
-          className="shrink-0 flex items-center gap-0.5 app-drag self-center h-7 overflow-visible"
-          style={dragRegionStyle}
+          className="shrink-0 flex items-center gap-0.5 app-no-drag self-center h-7 overflow-visible"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           data-section="workbench-chrome-actions"
         >
           <GlobalSftpTransferCenter />

@@ -62,6 +62,7 @@ function createContext(overrides: Record<string, unknown> = {}) {
           debounceMs: 100,
           minChars: 1,
           maxSuggestions: 8,
+          historyScope: 'host' as const,
           livePreview: false,
           allowLineReplacement: false,
           shiftEnterNewlineEnabled: true,
@@ -92,6 +93,51 @@ function createContext(overrides: Record<string, unknown> = {}) {
     },
   };
 }
+
+test("directory popup navigation previews without execution and preview-off Enter fills", () => {
+  for (const livePreview of [true, false]) {
+    const { context, writes } = createContext();
+    context.settingsRef.current.livePreview = livePreview;
+    context.typedInputBufferRef.current = 'cd /data';
+    context.stateRef.current.suggestions = [{ ...suggestion('cd /data/Mihomo/'), source: 'path' as never, fileType: 'directory' } as never];
+    context.renderPreviewSelection = index => { if (index >= 0) context.writeToTerminal('/Mihomo/'); };
+    context.acceptPreviewlessSelection = () => { context.writeToTerminal('/Mihomo/'); return true; };
+    assert.equal(handleTerminalAutocompleteKeyEvent(keyEvent('ArrowDown'), context), false);
+    assert.equal(context.stateRef.current.selectedIndex, 0);
+    if (!livePreview) assert.equal(handleTerminalAutocompleteKeyEvent(keyEvent('Enter'), context), false);
+    assert.deepEqual(writes, ['/Mihomo/']);
+  }
+});
+
+test("inline directory arrows cycle alternatives before right-arrow acceptance", () => {
+  let active = 'cd /data/Mihomo/';
+  const { context, writes } = createContext({ ghostAddonRef: { current: {
+    isActive: () => true, getSuggestion: () => active, hide() {}, show(text: string) { active = text; },
+  } } });
+  context.settingsRef.current.showGhostText = true;
+  context.settingsRef.current.showPopupMenu = false;
+  context.stateRef.current.popupVisible = false;
+  context.stateRef.current.suggestions = [suggestion('cd /data/Mihomo/'), suggestion('cd /data/Other/')];
+  context.stateRef.current.selectedIndex = 0;
+  context.typedInputBufferRef.current = 'cd /data';
+  assert.equal(handleTerminalAutocompleteKeyEvent(keyEvent('ArrowDown'), context), false);
+  assert.equal(active, 'cd /data/Other/');
+  assert.deepEqual(writes, []);
+  assert.equal(handleTerminalAutocompleteKeyEvent(keyEvent('ArrowRight'), context), false);
+  assert.deepEqual(writes, ['/Other/']);
+});
+
+test("directory ghost accepts only its suffix and never submits", () => {
+  const { context, writes } = createContext({ ghostAddonRef: { current: {
+    isActive: () => true, getSuggestion: () => 'cd /data/Mihomo/', hide() {},
+  } } });
+  context.stateRef.current.popupVisible = false;
+  context.settingsRef.current.showGhostText = true;
+  context.typedInputBufferRef.current = 'cd /data';
+  assert.equal(handleTerminalAutocompleteKeyEvent(keyEvent('ArrowRight'), context), false);
+  assert.deepEqual(writes, ['/Mihomo/']);
+  assert.equal(context.typedInputBufferRef.current, 'cd /data/Mihomo/');
+});
 
 test("serial-style popup navigation does not render candidates into the input line", () => {
   const { context, previews } = createContext();

@@ -1,3 +1,14 @@
+export async function runManualTerminalCwdNavigation({ getCwd, shouldApply, navigate }: {
+  getCwd: () => Promise<string | null | undefined>;
+  shouldApply: () => boolean;
+  navigate: (cwd: string, shouldApply: () => boolean) => Promise<"reached" | "failed" | "aborted" | "superseded">;
+}): Promise<string | null> {
+  const cwd = await getCwd();
+  if (!cwd || !shouldApply()) return null;
+  const result = await navigate(cwd, shouldApply);
+  return result === "reached" && shouldApply() ? cwd : null;
+}
+
 export type SftpFollowTerminalCwdBlock = {
   connectionId: string;
   terminalCwd: string;

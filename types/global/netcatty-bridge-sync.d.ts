@@ -105,10 +105,12 @@ declare global {
     onAppLockSettingsChanged?(cb: (settings: AppLockSettings) => void): () => void;
     onAppLockRuntimeStateChanged?(cb: (state: AppLockRuntimeState) => void): () => void;
 
-    // Cloud sync master password (stored in-memory + persisted via Electron safeStorage)
+    // Cloud sync master password (in-memory + sealed by the OS keyring provider)
     cloudSyncSetSessionPassword?(password: string): Promise<boolean>;
     cloudSyncGetSessionPassword?(): Promise<string | null>;
-    cloudSyncClearSessionPassword?(): Promise<boolean>;
+    cloudSyncClearSessionPassword?(): Promise<{ success?: boolean }>;
+    /** Forgets the master key: removes every cloud sync identity key from the profile store. */
+    cloudSyncResetEverything?(): Promise<string[]>;
 
     // Cloud sync network operations (proxied via main process)
     cloudSyncWebdavInitialize?(config: WebDAVConfig): Promise<{ resourceId: string | null }>;
@@ -157,6 +159,8 @@ declare global {
     // either the system browser or the in-app fallback BrowserWindow.
     // Rejects only in the rare case where both paths fail.
     openExternal?(url: string): Promise<void>;
+    /** Opens the provider's OAuth application registration page (allow-listed). */
+    openProviderConsole?(provider: 'github' | 'google' | 'onedrive'): Promise<void>;
     openPath?(path: string): Promise<{ success: boolean; error?: string }>;
 
     // App info (name/version/platform) for About screens
@@ -325,7 +329,8 @@ declare global {
     googleDriveFindSyncFile?(options: { accessToken: string; fileName?: string }): Promise<{ fileId: string | null }>;
     googleDriveCreateSyncFile?(options: { accessToken: string; fileName?: string; syncedFile: unknown }): Promise<{ fileId: string }>;
     googleDriveUpdateSyncFile?(options: { accessToken: string; fileId: string; syncedFile: unknown }): Promise<{ ok: true }>;
-    googleDriveDownloadSyncFile?(options: { accessToken: string; fileId: string }): Promise<{ syncedFile: unknown | null }>;
+    googleDriveDownloadSyncFile?(options: { accessToken: string; fileId: string; revisionId?: string }): Promise<{ syncedFile: unknown | null }>;
+    googleDriveGetRevisionHistory?(options: { accessToken: string; fileId: string }): Promise<Array<{ version: string; date: string }>>;
     googleDriveDeleteSyncFile?(options: { accessToken: string; fileId: string }): Promise<{ ok: true }>;
 
     // OneDrive OAuth + Graph (cloud sync) - proxied via main process to avoid CORS

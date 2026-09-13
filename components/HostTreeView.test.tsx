@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
@@ -39,6 +40,20 @@ const installLocalStorageMock = () => {
     },
   });
 };
+
+test("HostTreeView group double-click starts inline rename instead of connecting", () => {
+  const source = readFileSync(new URL("./HostTreeView.tsx", import.meta.url), "utf8");
+  assert.match(source, /resolveSidebarTreeDoubleClick\(\{ kind: 'group'/);
+  assert.match(source, /onRenameGroup\(node\.path\)/);
+  assert.doesNotMatch(
+    source,
+    /onDoubleClick=\{\(event\) => \{[\s\S]{0,240}onConnect/,
+  );
+  assert.doesNotMatch(
+    source,
+    /onDoubleClick=\{\(event\) => \{[\s\S]{0,240}onDuplicateHost/,
+  );
+});
 
 test("HostTreeView display details include inherited telnet defaults", () => {
   const host: Host = {
@@ -115,6 +130,8 @@ test("HostTreeView renders the host edit action beside the host label", () => {
   assert.ok(editButtonIndex > labelIndex);
   assert.ok(notesIndex > editButtonIndex);
   assert.ok(protocolIndex > notesIndex);
+  assert.match(markup, /data-host-tag="edge"/);
+  assert.doesNotMatch(markup, /opacity-0 transition-opacity group-hover:opacity-100/);
 });
 
 test("HostTreeView renders the group edit action beside the group label", () => {

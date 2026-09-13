@@ -3444,3 +3444,503 @@ capability row, source paths, verification output or CI run.
 - Residual risks: live command proxy helper dial has a test-framework-specific failure (transport itself verified); MFA and agent lab still absent; single host
 - Next safe slice: multi-host matrix and grade A cross-platform evidence
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L113 - 2026-09-12 - Vault canonical cutover (SYNC-01)
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Non-AI reads cut over to the Go profile store as the durable owner. One boot convergence pass before React mounts promotes legacy localStorage-only values into the Go store (first-run import and rollback path), hydrates the local read cache from Go for fresh profiles, and heals mirror divergences toward the local value so a failed best-effort write never loses data; divergences are counted and logged. The sessions domain joins settings and vault. AI-managed keys are excluded in every branch and stay localStorage-canonical until P6-05.
+- Go canonical owner: cmd/netcatty/profileService.go (unchanged; DomainKeys and GetRaw/SetRaw already expose the store)
+- Frontend adapter: infrastructure/persistence/canonicalHydration.ts, infrastructure/persistence/profileDomain.ts (CANONICAL_PROFILE_DOMAINS plus isAIManagedStorageKey), infrastructure/runtime/bootstrap.ts hydrateWailsProfile, index.tsx hydrateReady catch
+- Electron owner affected: none; Electron keeps configureHostProfileClient(undefined) and plain localStorage semantics
+- Preserved invariants: hydration is fail-open (a broken profile store boots from the local cache instead of a white screen); reads stay synchronous behind hydrateReady; renderer remains the only writer during a session
+- Data/schema impact: none; no storage keys added or removed
+- Security impact: AI keys (netcatty_ai_ prefix and netcatty.aiDebug) never cross the boundary in either direction, verified by test
+- Verification: node --test --import tsx infrastructure/persistence/*.test.ts 18 pass including the new canonicalHydration suite (hydrate/promote/heal/skip branches, lossless byte equality through promotion, AI boundary, three-phase cutover boot simulation); node scripts/migration/check-wails-migration-docs.mjs consistent
+- Platforms covered: platform-independent
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: the localStorage canonical path retires from the settings/vault/sessions domains once live multi-machine restore evidence lands; AI stores stay until P6-05
+- Documentation updated: capability matrix, ledger, pre-acceptance-backlog
+- Residual risks: conflict policy prefers the local value when both sources diverge, which restores a Go-side external restore only after that restore is also mirrored into localStorage; differential counts are console-level until a diagnostics view exists
+- Next safe slice: layout-modes P4 interactions
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L114 - 2026-09-12 - Correct premature canonical cutover claim
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `implemented -> probe`
+- Scope change: none
+- Goal: Correct WV3-L113: its implementation still reads localStorage, prefers local values over host values, and enumerates only host keys at boot. Those behaviors do not establish the requested canonical memory cache or first-run local-only import.
+- Go canonical owner: cmd/netcatty/profileService.go
+- Frontend adapter: infrastructure/persistence/hostStorageAdapter.ts, infrastructure/persistence/canonicalHydration.ts, infrastructure/runtime/bootstrap.ts
+- Electron owner affected: none
+- Preserved invariants: no verified or Non-AI Completion Gate claim; the prior test results only cover their tested helper behavior
+- Data/schema impact: none in this correction record
+- Security impact: none
+- Verification: source review of c4899a2c; hostStorageAdapter.read delegates to localStorageAdapter.read; boot uses DomainKeys without a local key union
+- Platforms covered: source review on Windows
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain the localStorage rollback carrier until canonical adapter tests and live restore evidence pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: true canonical hydration, deletion fencing, cross-window cache refresh and write error handling are being implemented and must pass their tests before advancement
+- Next safe slice: complete and verify A1 canonical adapter
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L115 - 2026-09-12 - A1 canonical profile adapter after correction
+
+- Capability rows: `SYNC-01`
+- Plan task: `P2-07`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Go profile hydration now populates the synchronous memory read layer before React mounts; Go wins divergence; first-run local-only import is one-time and deletion fencing prevents legacy resurrection; cross-window refresh and write failures are explicit.
+- Go canonical owner: cmd/netcatty/profileService.go; internal/profile
+- Frontend adapter: infrastructure/persistence/hostStorageAdapter.ts; canonicalHydration.ts; infrastructure/runtime/bootstrap.ts; index.tsx
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: A1 uses existing profile keys and compatible legacy import; no new AI storage owner.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: A owner: 20 core hydration/bootstrap/profile tests and 208 syncPayload/sidecar/cloudsync/port-forward regression tests passed; main independent delayed index boot, adapter and real Go profile checks passed (12 plus 8 adapter tests).
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Live multi-machine restore and three-platform crash/rollback remain pending; AI keys stay localStorage-canonical until P6-05.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L116 - 2026-09-12 - Batch B and D shell code evidence
+
+- Capability rows: `FND-04`, `SYS-02`, `SYS-03`, `SYS-04`
+- Plan task: `P4-02`, `P4-03`, `P4-04`, `P4-05`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Session-tree menus, ordering/workspace drop, numbered switching, reveal, width and menu overflow interactions are implemented; popup role fencing/cleanup and native shortcut, protocol-registration and biometric adapters are wired. Preserve probe pending live platform acceptance.
+- Go canonical owner: internal/window; internal/platform/applock; internal/platform/deeplink; internal/terminal/shortcuts; cmd/netcatty/popupWindowService.go
+- Frontend adapter: components/workbench; application/app/AppWorkbenchSessionLayer.tsx; application/state workbench view state
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: B owner: 98/98 targeted workbench, shell isolation, ordering, view-state, dual-window sync and i18n tests. D owner: go test ./internal/platform/applock ./internal/platform/deeplink ./internal/terminal/shortcuts and focused cmd Test(Biometric|Shortcut|Popup|OSProtocol|WailsAccelerator) passed; Windows RegisterHotKey conflict/release passed; Hello IsSupported returned false on this host; CGO_ENABLED=0 Linux/darwin crossbuild passed.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: GUI acceptance, multi-monitor/crash, macOS/Linux native execution, successful Hello/Touch ID authentication and installed protocol delivery remain pending; crossbuild is not native verification.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L117 - 2026-09-12 - Batch C raw transfer and F bounded data-plane evidence
+
+- Capability rows: `TERM-01`, `TERM-03.3`, `TERM-03.4`
+- Plan task: `P3-01`, `P3-08`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Output admission atomically copies and bounds queued plus writer-pending bytes to 1 MiB; closed/full queue errors reach all producers. Mosh/ET reconnect retains native process/bootstrap state. Private ZMODEM length-prefix units are replaced by standard headers/subpackets, duplex handshake, ACK progress and CAN cancellation. Helper provisioning scripts validate external hash and architecture.
+- Go canonical owner: internal/terminal/dataplane; internal/terminal/zmodem; cmd/netcatty/terminalService.go; scripts/package-wails.mjs
+- Frontend adapter: infrastructure/runtime/wails terminal bridge; lib/textZip.ts; packages/plugin-cli/src/cli.test.ts; port-forward rule fixtures; .gitignore
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: F owner: go test -race ./internal/terminal/dataplane and focused cmd TestTerminalPublishFailureReportsAndCloses passed; 94 targeted Node tests plus 3 domain rule tests passed; 13 scoped tsc errors cleared while global tsc remains red. C2: go test -race ./internal/terminal/zmodem ./internal/terminal/ymodem passed; independent zmodem.js send/receive peers transferred all-byte 4096-byte payloads; independent CRC32 and hex fixtures plus cancellation/corruption/incomplete-file tests passed. C owner: focused cmd TestTerminalPublish/TestZmodemCapture passed; package-wails 12 tests passed.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Actual lrzsz peer unavailable and unverified; corrupt input aborts rather than automatic retry. SendFile closes one session per file. Native roaming/network and three-platform benchmarks pending. Provisioning scripts do not establish shipped Windows/macOS helper binaries or signed variants.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L118 - 2026-09-12 - Batch C SFTP and transfer center code evidence
+
+- Capability rows: `SFTP-01`, `SFTP-02`
+- Plan task: `P3-05`, `P3-06`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: sudo SFTP starts the subsystem through the existing SSH owner and reports failures explicitly. TransferService tasks, pause/resume/cancel and progress are connected to the renderer transfer center; reload snapshots and event epoch handling are integrated.
+- Go canonical owner: cmd/netcatty/sftpService.go; cmd/netcatty/transferService.go; internal/sftp
+- Frontend adapter: infrastructure/runtime/wails/transferBridge.ts; application/state/sftpTransferCenterStore.ts
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C owner: focused cmd TestTransferStart and transfer tests passed; main reports transfer reload and epoch tests added. Final integrated renderer verification to be recorded by main after the concurrent batch settles.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Real sudo server authorization and high-RTT/corruption/resume matrix remain pending; no verified or renderer-close survival claim from code tests alone.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L119 - 2026-09-12 - Wails plugin implementation and final product build evidence
+
+- Capability rows: `PLUG-01`, `PLUG-02`
+- Plan task: `P5-01`, `P5-02`, `P5-03`, `P5-04`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Go/Wails host settings/list/card contributions, explicit plugin permission broker, encrypted secrets and durable recovery implemented. E3 is partial legacy Electron evidence, not Wails acceptance. Capability status remains probe: PLUG-02 requires stable child-row decomposition before implementation advancement; code completion does not bypass that gate.
+- Go canonical owner: internal/plugin/host; internal/plugin/store; internal/plugin/permissions; cmd/netcatty/pluginService.go
+- Frontend adapter: components/plugins/DeclarativePluginHost.tsx; infrastructure/runtime/wails plugin adapter
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: Main reports seven frontend plugin tests, all Go/plugin and targeted cmd tests, scoped eslint and check:plugin-contract passed; integrated persistence/runtime/workbench/plugin Node suite 101/101 passed. npm run wails:build and npm run build PASS exit 0; final bindings generation 20 services / 138 methods without warnings. Real Electron smoke PASS (PLUGIN_RUNTIME_SMOKE_OK). Fresh go test -race ./cmd/netcatty ./internal/terminal/dataplane ./internal/terminal/transfer ./internal/terminal/zmodem ./internal/terminal/ymodem PASS exit 0; existing multiple-manifest linker warning remains.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Regular legacy Electron plugin-runtime suite remains hanging with two pre-existing NUL SQLite sidecar failures; investigation stopped at the user-authorized Wails scope boundary. npm run pack:dir not run (legacy Electron target), not required for this Wails build evidence. GUI, signed-package and three-platform acceptance pending. C4 compressed-upload incremental progress still in progress; ET inline auth/proxy/jump unsupported outside original roaming scope; process-death recovery absent beyond living-process roaming.
+- Next safe slice: Collect missing live evidence and finish remaining plugin/integration checks without advancing P6-05
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L120 - 2026-09-12 - Advance independent plugin contract and store capability
+
+- Capability rows: `PLUG-01`
+- Plan task: `P5-01`, `P5-02`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: Advance PLUG-01 independently on the completed contract, permission broker, encrypted settings, durable recovery and localized v1 rejection evidence recorded in L119. PLUG-02 decomposition is not a dependency of PLUG-01; PLUG-02 alone remains probe pending that gate.
+- Go canonical owner: internal/plugin/host; internal/plugin/store; internal/plugin/permissions; cmd/netcatty/pluginService.go
+- Frontend adapter: components/plugins/DeclarativePluginHost.tsx; infrastructure/runtime/wails plugin adapter
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: Main reports seven frontend plugin tests, all Go/plugin and targeted cmd tests, scoped eslint and check:plugin-contract passed; integrated persistence/runtime/workbench/plugin Node suite 101/101 passed. npm run wails:build and npm run build PASS exit 0; final bindings generation 20 services / 138 methods without warnings. Real Electron smoke PASS (PLUGIN_RUNTIME_SMOKE_OK). Fresh go test -race ./cmd/netcatty ./internal/terminal/dataplane ./internal/terminal/transfer ./internal/terminal/zmodem ./internal/terminal/ymodem PASS exit 0; existing multiple-manifest linker warning remains.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: Native platform, attack/crash acceptance and signed-package evidence remain pending; no verified claim. Legacy Electron E3 remains partial and does not redefine the Wails target. PLUG-02 still requires stable child decomposition before its own advancement.
+- Next safe slice: Main records final C4 evidence separately; retain PLUG-02 probe until legitimate decomposition and child status replay.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L121 - 2026-09-12 - Compressed upload scheduler and transfer center completion
+
+- Capability rows: `SFTP-02`
+- Plan task: `P3-06`
+- Status change: `probe -> implemented`
+- Scope change: none
+- Goal: StartCompressed stages a ZIP under managed temp and uploads through the same scheduler task ID. Pause/resume/cancel apply during compression and upload; backend epochs and List restore renderer observation after reload.
+- Go canonical owner: cmd/netcatty/transferService.go; internal/terminal/transfer/scheduler.go
+- Frontend adapter: infrastructure/runtime/wails/transferBridge.ts; application/state/sftpTransferCenterStore.ts
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C4 owner reports Go TestCompressed/TestTransfer/TestStage/TestLocalBrowse PASS; main targeted TypeScript suite 33/33 PASS. Main final pinned generation PASS: 20 services, 142 methods, 50 models, no warnings. npm run wails:build PASS produced bin/LemonSSH.exe version 0.0.1. go test -race ./cmd/netcatty ./internal/terminal/transfer ./internal/terminal/dataplane ./internal/terminal/zmodem ./internal/plugin/... PASS; existing multiple-manifest linker warning. Frozen final integrated Node suite 102/102 PASS, including compression; TS33 includes raw 1000-byte source to 10-byte ZIP accounting. Compression reports zero transferred bytes until actual ZIP upload. Upload sends the ZIP archive without implicit extraction, matching the existing UploadCompressedFolder behavior. Final metric-corrected npm run wails:build also completed PASS, exit 0.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: High-RTT/corruption/resume, renderer-close survival and live server acceptance remain pending. ClearTemp conservatively skips staged prefixes, so orphan staged files may remain. E3 legacy test gaps and actual helper/native acceptance are unchanged.
+- Next safe slice: Record final integrated verification when it finishes; retain explicit helper, legacy Electron and native acceptance limits.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L122 - 2026-09-12 - Shared managed temp and final native hardening evidence
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Filesystem and transfer services receive the same filepath.Join(baseProfileDir(), temp) root via dependency injection; TempInfo, TempFilePath and ClearTemp are wired to existing UI paths. Preserve probe pending native filesystem/dialog matrix.
+- Go canonical owner: cmd/netcatty/filesystemService.go; cmd/netcatty/transferService.go; cmd/netcatty/main.go
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts; existing System temp UI
+- Electron owner affected: none retired; existing Electron release carrier retained
+- Preserved invariants: No verified/migrated, NONAI-COMPLETE or Phase 7 advancement; local code evidence only.
+- Data/schema impact: No capability scope change; existing public storage contracts retained.
+- Security impact: Fail-closed validation and existing permission boundaries retained; no credentials in evidence.
+- Verification: C4 owner reports Go TestStage/TestLocalBrowse and transfer tests PASS; main targeted TypeScript suite 33/33 PASS. Final generation, Wails build and Go race success are recorded in L121; frozen final integrated Node suite 102/102 PASS.
+- Platforms covered: Windows local tests; crossbuilds only where explicitly listed
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: retain Electron until required three-platform capability evidence and authorized cutover gates pass
+- Documentation updated: capability-matrix, migration-ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: ClearTemp skips staged prefixes conservatively; orphan stage cleanup remains limited. UNC/long-path/native dialog and installed platform acceptance pending. D hardening focused race passed separately: no re-enable overwrite, empty-reason unlock rejected, corrupt/read failures fail closed, Disable persists atomically before state. Darwin plist app.lemonssh.desktop is corrected, but bare binary plus plist is not an installed .app and runtime refuses bare-binary registration.
+- Next safe slice: Record final integrated verification when it finishes; retain explicit helper, legacy Electron and native acceptance limits.
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L123 - 2026-09-12 - Locked Mosh/ET helper supply, verification and release packaging
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-03`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Deliver the reproducible Mosh/ET helper supply chain. A committed lock (scripts/fetch-wails-helpers.lock.json) pins MoshCatty moshcatty-0.1.8 and Netcatty et-bin-6.2.10-1 with source/build provenance, pinned SHA256SUMS, per-file digests, GitHub asset IDs and licenses (et adds BUILD-PROVENANCE bound to upstream EternalTerminal et-v6.2.10). scripts/fetch-wails-helpers.mjs downloads pinned HTTPS bytes (fetch or gh transport), verifies archive inventory, per-file digests and PE/Mach-O-universal/ELF machine architecture before anything is published, installs into resources/ with provenance sidecars, and packaging (package-wails) verifies the installed helpers against the lock, bundles helper + sidecar + licenses, writes helper-supply.lock.json and records helper pins in artifact-manifest.json and installer-resources.json. The legacy package-wails --install-helper ad-hoc path was removed so untrusted self-computed pins cannot poison resources. npm scripts: wails:helpers and wails:helpers:verify.
+- Go canonical owner: cmd/netcatty/terminalSupervised.go (runtime enforces manifest os/arch/sha256 via internal/terminal/supervised Verify on every launch and PTY factory)
+- Frontend adapter: scripts/fetch-wails-helpers.mjs, scripts/package-wails.mjs, package.json scripts
+- Electron owner affected: none
+- Preserved invariants: binaries are never committed; supply is lock-only; digest/provenance failures never fall back to another source; sidecars are rewritten only from the trusted lock; runtime refuses os/arch/hash mismatch at launch
+- Data/schema impact: helper-supply.lock.json and sidecar manifests travel with packaged artifacts
+- Security impact: every helper byte is pinned to reviewed upstream releases (MoshCatty CI and Netcatty et-bin CI run IDs recorded); et provenance additionally binds the upstream EternalTerminal commit
+- Verification: node --test scripts/fetch-wails-helpers.test.mjs 20 pass, scripts/package-wails.test.mjs 12 pass, scripts/fetch-mosh-binaries.test.cjs pass; node scripts/fetch-wails-helpers.mjs --verify-only --all verified all eight installed targets (mosh/et x win32-x64, linux-x64, linux-arm64, darwin-universal) against the lock; end-to-end node scripts/package-wails.mjs --skip-frontend for windows/amd64 produced the exe plus helpers, sidecars, 19 license files, helper-supply.lock.json, installer-resources.json and artifact-manifest.helpers pins
+- Platforms covered: Windows 10 22H2 x64 host (supply, verification and packaging); darwin/linux helper bytes verified by header/architecture inspection only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron helper bridges stay until Wails roaming live evidence and installed-package acceptance pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: mosh lock has no upstream build-provenance attestation (et does); real network roaming and installed-package helper launches on macOS/Linux remain acceptance work; helper bytes on other hosts require network access or a populated build/wails-helper-cache
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host; P4/P5 real-machine regression
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L124 - 2026-09-12 - ET bridge auth passthrough and supervised helper restart recovery
+
+- Capability rows: `TERM-03.3`
+- Plan task: `P3-03`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Close the two real gaps behind "ET advanced auth/proxy/jump" and "Mosh/ET process-death recovery". The renderer StartMosh/StartEt payloads now forward proxy and jumpHosts so UI configurations reach the existing ET Go-SSH bridge mode (Go SSH dials with credentials/MFA/proxy/jumps and bootstraps etterminal; credentials never enter argv). Supervised helpers gain crash recovery that keeps the terminal session: supervised.Terminal.Restart() re-arms a finished run loop (fresh context/done, same factory and callbacks); the service keeps the session alive on MaxRestarts-exhausted "failed" (clean "exited" still closes; initial Start errors still close), emits the kind-scoped lifecycle event, and a new RestartHelper(sessionID) relaunches the helper as a new remote shell inside the same session (scrollback and session id preserved; mosh MOSH_KEY/et state still cannot resume, documented). Renderer listens to the kind-scoped helper lifecycle events and shows the existing disconnect-notice style banner with a manual restart button (no auto-restart chaining); "running" clears it. Bridge additions: restartHelperSession, onHelperLifecycle (nativeSessionId alias-mapped).
+- Go canonical owner: internal/terminal/supervised/terminal.go, cmd/netcatty/terminalSupervised.go (RestartHelper), cmd/netcatty/terminalEt.go (unchanged bridge mode)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts, types/global/netcatty-bridge-session.d.ts, components/Terminal.tsx, components/terminal/TerminalView.tsx, application/state/useTerminalBackend.ts, five locale terminal.ts files
+- Electron owner affected: none
+- Preserved invariants: manual restart only (no auto-restart chaining); "exited" (user typed exit) and initial Start failures still close the session; helper launch re-verifies the pinned manifest on every attempt; ET credentials stay out of argv
+- Data/schema impact: none
+- Security impact: proxy/jump credentials flow only through the Go SSH layer as before; no new secret surfaces
+- Verification: go test -race ./internal/terminal/supervised; go test ./cmd/netcatty -run 'TestHelper|TestSupervised|TestTerminalRecovery' -race; node --test wailsRuntimeClient.test.ts 34/34; locale suites 24/24; bindings regenerated (20 services / 197 methods) exposing TerminalService.RestartHelper
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live mosh/et roaming remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-003`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron helper bridges stay until Wails roaming live evidence and installed-package acceptance pass
+- Documentation updated: capability matrix, ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: restart re-runs the full SSH/mosh handshake (new remote shell by design); repeated dead helpers keep requiring manual restarts; banner UI not yet GUI-verified
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L125 - 2026-09-12 - Boot-time staging orphan sweep over leased temp entries
+
+- Capability rows: `SYS-01`
+- Plan task: `P4-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Close the residual orphan-temp risk. The managed temp lease registry (owned entries, I/O pin refcounts, staged-inode checks) already protects active work from ClearTemp; the missing piece was a caller for TempService.CleanupOrphans. Boot now sweeps the dedicated temp root: a fresh process holds no leases, so leftover staged-upload files and active-transfer directories from a previous session are removed once at startup, external-edit downloads are preserved, and entries leased by the running process are never touched. The sweep is idempotent, failures are logged without blocking boot, and cmd-level tests lock the semantics (previous-process leftovers removed; this-process leases survive; second sweep removes nothing).
+- Go canonical owner: cmd/netcatty/temp_orphan_sweep.go (sweepTempOrphans), internal/platform/filesystem/filesystem.go (existing lease registry and CleanupOrphans)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: no lease-protected entry is ever deleted; external-edit downloads survive; single-instance lock means a fresh process cannot race a live session's temp files
+- Data/schema impact: none
+- Security impact: sweep stays inside the managed temp root and only touches known staging prefixes
+- Verification: go test ./cmd/netcatty -run TestSweepTempOrphans (red for the missing helper, green after wiring); go test -race ./internal/platform/filesystem; go test ./cmd/netcatty ./internal/platform/filesystem; migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron temp bridges stay until installed-package acceptance passes
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: a runtime-abandoned staged upload (renderer died mid-stage without discard) stays until the next boot, by lease design; external-edit downloads accumulate until the user clears temp from Settings
+- Next safe slice: live mosh/et roaming matrix on the Debian 13 host
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L126 - 2026-09-12 - Cloud OAuth device/PKCE flows and master key rotation through the native bridge
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Wire the completed cloud auth backend into the runtime bridge so the existing UI works under Wails. The Go side already exposes GitHub device flow (start/poll/cancel), Google and OneDrive PKCE exchange/refresh, user info, and GitHub Gist plus Google Drive and OneDrive snapshot file operations with a loopback OAuth callback server (internal/platform/cloudsync/oauth_client.go, oauth_callback.go, oauth_snapshots.go, cmd/netcatty/syncAuthService.go). The missing link was the runtime surface: the generated syncservice bindings were never mapped onto the camelCase bridge the adapters and cloudSyncBridge.get() consume, so Wails silently fell back to renderer-direct fetch, which cannot complete Google/OneDrive token exchange (CORS). createCloudOAuthFacade(syncServiceBinding) now maps every method (refresh preserves the prior refresh token, deletions verify the ok flag) onto both the transition bridge and the sync port, built from injectable bindings for tests. UI flows already present: GitHub device-flow modal, Google/OneDrive connect, and the master key rotation dialog driving updateCloudSyncMasterKey through changeMasterKey and propagateMasterKeyRotation, whose multi-key profile transaction is guarded by the Go CAS Write (sync_rotation_test.go proves atomicity and durability across reopen).
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go, internal/platform/cloudsync/oauth_callback.go, cmd/netcatty/syncAuthService.go
+- Frontend adapter: infrastructure/services/cloudSync/cloudSyncFacade.ts, infrastructure/runtime/wails/wailsRuntimeClient.ts (sync port plus transition bridge), application/state/useCloudSync.ts, application/state/useCloudSyncMasterKey.ts, components/cloud-sync/CloudSyncDialogs.tsx
+- Electron owner affected: none; adapters keep renderer-fetch fallback for the Electron shell
+- Preserved invariants: tokens never appear in argv or logs; refresh keeps the previous refresh token when the provider omits one; rotation writes every sync key in one CAS transaction, so a failed rotation leaves the profile untouched; Wails never falls back to renderer fetch for provider ports
+- Data/schema impact: none; rotation reuses the existing master key config, replica, baseline and snapshot keys
+- Security impact: client secrets stay in the Go process; PKCE verifiers and device codes cross the bridge once and are not persisted
+- Verification: node --test infrastructure/services/cloudSync/*.test.ts plus runtime client 134/134; rotation suites useCloudSyncMasterKey, masterKeyRotation, masterKeyPropagation 6/6; Go go vet clean; bindings already expose the OAuth methods (syncservice.js); new wiring test asserts githubStartDeviceFlow reaches the injected binding through both the sync port and the transition bridge
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live provider authorization remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence on three platforms passes
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: OAuth applications are user-registered (client id/secret supplied at runtime); OneDrive/GitHub file operations are exercised by fixtures, not live accounts; rotation rollback under mid-flight crash is covered by the store transaction but not by a live kill test
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L127 - 2026-09-12 - Runtime OAuth client IDs after the provider 400 reports
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the live authorization failures reported for all three providers (Google 400 invalid_request "Missing required parameter: client_id", OneDrive AADSTS900144, GitHub "OAuth client ID is required"). Root cause: the client IDs came only from build-time VITE_SYNC_*_CLIENT_ID variables and default to empty, so the authorize URLs opened with a blank client_id. Client IDs are public values and each user registers their own desktop-app OAuth client, so they are now runtime-configurable: a new settings-domain key (netcatty_sync_oauth_client_ids_v1) holds per-provider IDs, all adapter reads resolve through resolveOAuthClientId (runtime override wins, build constant falls back), startProviderAuth refuses before any browser hop with a clear message when an ID is missing, and the Cloud Sync settings tab gains an OAuth applications section (GitHub/Google/OneDrive fields, five locales) served by the useOAuthClientIds state hook. No client secret is required for GitHub Device Flow or loopback-PKCE desktop clients, so no secret storage was added.
+- Go canonical owner: none (renderer-side configuration only)
+- Frontend adapter: infrastructure/services/cloudSync/oauthClientIds.ts, infrastructure/services/cloudSync/authMethods.ts, infrastructure/services/adapters/{GitHubAdapter,GoogleDriveAdapter,OneDriveAdapter}.ts, application/state/useOAuthClientIds.ts, components/cloud-sync/OAuthClientIdsSection.tsx, components/CloudSyncSettings.tsx, infrastructure/config/storageKeys.ts
+- Electron owner affected: none; the build-time constants remain the fallback
+- Preserved invariants: client IDs are public values (no secret storage); an unconfigured provider never opens a provider URL; the settings-domain key flows through the canonical host adapter
+- Data/schema impact: new settings-domain key netcatty_sync_oauth_client_ids_v1
+- Security impact: positive; users bring their own registered OAuth clients instead of a baked-in application
+- Verification: node --test infrastructure/services/cloudSync/oauthClientIds.test.ts (fallback, override, guard, snapshot immutability); full cloud suites plus master key 104/104; runtime client 35/35; locale suites 24/24; eslint clean on new and touched files
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work, pre-acceptance-backlog
+- Residual risks: the authorize URLs are now correct only after the user registers OAuth clients and pastes the IDs; distribution builds can still pin IDs at build time
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L128 - 2026-09-12 - Allow-listed provider console opener for apply links
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the silent dead click on the OAuth apply links added in WV3-L127. They routed through OpenOAuthExternal, whose strict validation only permits device-flow and PKCE authorize endpoints, so the console pages were rejected and the swallowed error looked like a dead button. A new SyncService.OpenProviderConsole(provider) opens the exact registration page for an allow-listed provider name (github, google, onedrive) — the bridge takes a provider enum, never a raw URL, so no arbitrary link can turn the app into a URL opener; the browser launcher is a package-level seam covered by tests. The renderer component calls openProviderConsole on the transition bridge and sync port and logs failures instead of swallowing them.
+- Go canonical owner: cmd/netcatty/syncAuthService.go (OpenProviderConsole, openExternalLauncher seam)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts, types/global/netcatty-bridge-sync.d.ts, components/cloud-sync/OAuthClientIdsSection.tsx
+- Electron owner affected: none
+- Preserved invariants: OAuth authorize validation is untouched; only the three fixed console URLs are reachable; launcher failures surface in the console instead of vanishing
+- Data/schema impact: none
+- Security impact: allow-list is closed (provider enum plus exact URLs); no user-controlled URL ever reaches the launcher
+- Verification: go test ./cmd/netcatty -run TestOpenProviderConsoleAllowlist (unknown provider rejected, three known URLs hit the launcher seam verbatim); node runtime client 36/36 including the passthrough test on both bridge surfaces; cloud suites 127/127; race clean on the touched paths
+- Platforms covered: Windows 10 22H2 x64 tests; launcher commands remain platform-specific
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: console page layouts are provider-controlled; a failed browser launch still only logs (settings has no toast port in this section)
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L129 - 2026-09-12 - GitHub device-flow 400 pending fix and client ID hover guides
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the live "GitHub connect failed: Cloud provider HTTP 400". The device-flow token endpoint answers HTTP 400 with the real status in the JSON body (authorization_pending while the user is still typing the code), but PollDevice treated 400 as fatal before parsing the body, killing the poll the moment it started. The token poll now accepts 200 and 400, reads the JSON error field, and only surfaces non-protocol statuses; slow_down keeps returning to the polling loop. Existing tests covered pending only over HTTP 200, so a regression test now pins 400-authorization-pending and slow_down-then-success over real 400 responses. Per the same feedback, every client ID field gains a hover ? tooltip (five locales) with step-by-step registration guidance including the redirect-URI answers, and the external-link control is folded into that icon.
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go (PollDevice 400 handling)
+- Frontend adapter: components/cloud-sync/OAuthClientIdsSection.tsx (guide tooltips), five locale files
+- Electron owner affected: none
+- Preserved invariants: token bodies are still never relayed (ErrorDescription stays stripped); polling loop ownership and cancellation are unchanged
+- Data/schema impact: none
+- Security impact: none; provider error descriptions remain suppressed
+- Verification: go test -race ./internal/platform/cloudsync (new TestOAuthPollDeviceTreats400AsPending covers 400-authorization-pending non-fatal and slow_down re-poll); node cloud suites plus runtime client 141/141; locale suites 24/24; migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; live device flow authorization remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: slow_down interval growth is owned by the renderer loop; a user typing a wrong client ID still gets provider-side errors that are intentionally generic
+- Next safe slice: live OAuth authorization evidence for GitHub, Google and OneDrive
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L130 - 2026-09-12 - Live-confirmed device_flow_disabled start error surfaced
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Diagnose the still-failing GitHub connect with the user's real client ID (authorized live probe). POST /login/device/code answers 400 with body device_flow_disabled ("Device Flow must be explicitly enabled for this App") because the app has not enabled device flow — and the failure came from StartDevice, which WV3-L129's poll fix did not cover. StartDevice now parses the 400 body like the poll does and maps device-flow error codes to actionable messages (device_flow_disabled names the exact settings toggle; unverified_user_email names the fix; other codes surface their code). The provider error description is still never relayed.
+- Go canonical owner: internal/platform/cloudsync/oauth_client.go (StartDevice 400 handling, deviceFlowErrorText)
+- Frontend adapter: none (error message flows through the existing provider error surface)
+- Electron owner affected: none
+- Preserved invariants: provider error descriptions remain stripped; only the error code reaches the user
+- Data/schema impact: none
+- Security impact: none
+- Verification: live probe against github.com/login/device/code with the user-provided client ID reproduced 400 device_flow_disabled; new TestOAuthStartDeviceSurfacesDisabledFlow asserts the actionable message; go test -race ./internal/platform/cloudsync passes
+- Platforms covered: live probe from Windows 10 22H2 x64 against github.com
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron cloud bridges stay until live OAuth authorization evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: the user must enable device flow on their GitHub app; the actionable message is currently English-only
+- Next safe slice: retry GitHub connect after the user enables device flow
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L131 - 2026-09-12 - Native credential storage for provider tokens and system-browser device flow
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the two failures from the live GitHub authorization run: after the browser step succeeded, saving the token threw "Secure credential storage is unavailable", and the verification page opened inside the app WebView instead of the system browser. Root causes: the Wails runtime bridge never implemented credentialsEncrypt/credentialsDecrypt/credentialsAvailable (the Go CredentialService with purpose-bound AES-GCM over the OS keyring was registered but unreachable), and the device-flow modal opened the verification URI with window.open. The runtime bridge now exposes the three methods over the Go provider (Seal/Open with a fixed cloud-sync-credentials purpose), keeping the Electron enc:v1: envelope sentinel so renderer-side encrypted-value detection behaves identically, with plaintext passthrough for legacy values. The modal opens the allow-listed github.com/login/device URI through a new useOpenExternal state hook (window.open fallback for Electron), honoring the OAuth URL allow-list on the Go side.
+- Go canonical owner: cmd/netcatty/credentialService.go (unchanged; Available/Seal/Open now reachable)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts (credential methods), application/state/useOpenExternal.ts, components/cloud-sync/CloudSyncControls.tsx
+- Electron owner affected: none; the enc:v1: contract matches the Electron credential bridge
+- Preserved invariants: envelopes stay opaque refs in the connection record; decrypt passes non-prefixed values through unchanged; token material never enters argv or logs; the verification URI stays allow-listed
+- Data/schema impact: provider connection credentials under Wails are stored as enc:v1: envelopes sealed by the Go credential provider
+- Security impact: positive; tokens now sit behind OS keyring-backed AES-GCM instead of being unsavable
+- Verification: node runtime client 37/37 including a seal/open round-trip test asserting purpose, prefix, passthrough and decode; eslint clean on touched files; workbench suites 8/8
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; OS keyring interaction remains acceptance work
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron credential bridge stays until live OAuth storage evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: keyring unlock prompts (if any) appear as opaque Seal failures; a changed OS user cannot open previously sealed envelopes (by design)
+- Next safe slice: live end-to-end GitHub sync after this fix
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L132 - 2026-09-12 - Session password service and forgot-master-key reset
+
+- Capability rows: `SYNC-02`
+- Plan task: `P6-01`
+- Status change: `probe -> probe`
+- Scope change: none
+- Goal: Fix the "cloudSyncGetSessionPassword is not migrated" sync error and add the forgot-master-key restart the user requested. CloudSyncSetSessionPassword/Get/Clear move to Go (cmd/netcatty/cloudSyncSession.go): the master key is held in memory for the session and a copy sealed by the OS-keyring-backed credential provider is persisted under the profile directory, restoring on first read after a restart — the Electron safeStorage semantics that were unreachable under Wails. CloudSyncResetEverything implements "forgot master key, start over": one CAS profile transaction deletes the master key config, convergent replicas, provider baselines, per-provider base payloads and snapshots, sync history and provider state, then clears the session password; the removed keys are returned for the confirmation toast. The unlock dialog gains a two-step reset entry (five-locale copy) calling resetSyncEverything through the useCloudSync surface.
+- Go canonical owner: cmd/netcatty/cloudSyncSession.go, cmd/netcatty/syncAuthService.go (session password facade), cmd/netcatty/syncService.go (setSessionDependencies)
+- Frontend adapter: infrastructure/runtime/wails/wailsRuntimeClient.ts (session/reset bridge methods), application/state/useCloudSync.ts (resetSyncEverything), components/cloud-sync/CloudSyncDialogs.tsx (two-step reset), five locale files
+- Electron owner affected: none; the Electron in-memory plus safeStorage semantics are preserved as the frozen baseline
+- Preserved invariants: the reset runs in one CAS transaction, so a failed rotation-style reset cannot leave a half-cleared profile; the session password never crosses the bridge in plaintext responses after being set; local vault data is untouched by the reset
+- Data/schema impact: new profile file cloudsync/session-password (sealed, 0600); no storage keys added
+- Security impact: the sealed master key copy is purpose-bound to the Go credential provider and lives only in the profile directory
+- Verification: go build plus full cmd/netcatty package tests; node cloud suites 105/105, runtime client 37/37, workbench 8/8, locales 24/24; eslint and tsc clean on touched files (repository-wide tsc baseline unchanged); migration checker consistent
+- Platforms covered: platform-independent tests on Windows 10 22H2 x64; cross-restart password restore is covered by tests, live restart by acceptance
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron session-password bridge stays until live sync evidence passes on three platforms
+- Documentation updated: ledger, remaining-work
+- Residual risks: a forgotten key with an intact remote snapshot means the remote copy is orphaned until the fresh vault's first force push; sealed password file removal on manual profile deletion behaves like a normal reset
+- Next safe slice: live end-to-end GitHub sync with the restored session password
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

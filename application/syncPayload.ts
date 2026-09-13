@@ -37,7 +37,7 @@ import {
   isEncryptedCredentialPlaceholder,
   stripSyncPayloadEncryptedCredentials,
 } from '../domain/credentials';
-import { localStorageAdapter } from '../infrastructure/persistence/localStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter } from '../infrastructure/persistence/hostStorageAdapter';
 import { decryptField, encryptField } from '../infrastructure/persistence/secureFieldAdapter';
 import { sanitizeQuickMessages } from '../infrastructure/ai/quickMessages';
 import { emitAIStateChanged } from './state/aiStateEvents';

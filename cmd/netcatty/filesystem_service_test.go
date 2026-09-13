@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"io"
 	"os"
 	"path/filepath"
@@ -9,6 +11,11 @@ import (
 
 func TestLocalBrowseReturnsRealUploadSources(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	home, err := service.HomeDir()
 	if err != nil || home == "" {
 		t.Fatalf("home directory: %q, %v", home, err)
@@ -44,13 +51,137 @@ func TestLocalBrowseReturnsRealUploadSources(t *testing.T) {
 	if err != nil || string(data) != "PDFDATA" {
 		t.Fatalf("upload source: %q, %v", data, err)
 	}
-		if _, err := service.ListDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
-			t.Fatalf("missing directory must report its error, got %v", err)
+	if _, err := service.ListDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
+		t.Fatalf("missing directory must report its error, got %v", err)
+	}
+}
+
+func TestStageOperationsRequireOwnedContainedFile(t *testing.T) {
+	temp, err := filesystem.NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &FilesystemService{temp: temp}
+	stage, err := service.StageBegin("owned.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unowned := filepath.Join(temp.Root(), filesystem.StagedUploadPrefix+"unowned")
+	embedded := filepath.Join(temp.Root(), "not-"+filesystem.StagedUploadPrefix+"owned")
+	outside := filepath.Join(t.TempDir(), filepath.Base(stage))
+	nested := filepath.Join(temp.Root(), "nested", filepath.Base(stage))
+	if err := os.Mkdir(filepath.Dir(nested), 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{unowned, embedded, outside, nested} {
+		if err := os.WriteFile(path, []byte("preserve"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := service.StageAppend(path, 0, []byte("damage")); !errors.Is(err, filesystem.ErrNotStagedFile) {
+			t.Fatalf("append accepted %s: %v", path, err)
+		}
+		if err := service.StageDiscard(path); !errors.Is(err, filesystem.ErrNotStagedFile) {
+			t.Fatalf("discard accepted %s: %v", path, err)
+		}
+		if data, err := os.ReadFile(path); err != nil || string(data) != "preserve" {
+			t.Fatalf("unowned path modified: %q, %v", data, err)
 		}
 	}
+	if err := service.StageAppend(stage, -1, []byte("bad offset")); err == nil {
+		t.Fatal("negative offset accepted")
+	}
+	// Keeping the original file under a different name avoids inode reuse.
+	if err := os.Rename(stage, stage+".original"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(stage, []byte("replacement"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.StageAppend(stage, 0, []byte("bad")); err == nil {
+		t.Fatal("append accepted replacement file")
+	}
+	if err := service.StageDiscard(stage); err == nil {
+		t.Fatal("discard accepted replacement file")
+	}
+}
+
+func TestStageOperationsRejectSymlinkReplacement(t *testing.T) {
+	temp, err := filesystem.NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &FilesystemService{temp: temp}
+	stage, err := service.StageBegin("link.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(stage, stage+".original"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(stage+".original", stage); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if err := service.StageAppend(stage, 0, []byte("bad")); err == nil {
+		t.Fatal("append followed symlink")
+	}
+	if err := service.StageDiscard(stage); err == nil {
+		t.Fatal("discard accepted symlink")
+	}
+}
+
+func TestClearTempProtectsExternalDownloadUntilReleased(t *testing.T) {
+	temp, err := filesystem.NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &FilesystemService{temp: temp}
+	path, err := service.TempFilePath("download.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin, err := temp.Acquire(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("partial"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.ReleaseTempFile(path); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := service.ClearTemp(); err != nil || !result.Success || result.DeletedCount != 0 {
+		t.Fatalf("clear while downloading: %+v, %v", result, err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("active download deleted: %v", err)
+	}
+	pin()
+	if result, err := service.ClearTemp(); err != nil || !result.Success || result.DeletedCount != 1 {
+		t.Fatalf("clear after release: %+v, %v", result, err)
+	}
+	// Failed downloads can be deleted before a destination file was created.
+	missing, err := service.TempFilePath("failed.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.DeleteTempFile(missing); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(missing, []byte("orphan"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := service.ClearTemp(); err != nil || result.DeletedCount != 1 {
+		t.Fatalf("failed download reservation leaked: %+v, %v", result, err)
+	}
+}
 
 func TestStatPathClassifiesFilesAndDirectories(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	dir := t.TempDir()
 	file := filepath.Join(dir, "a.txt")
 	if err := os.WriteFile(file, []byte("hello"), 0o600); err != nil {
@@ -77,6 +208,11 @@ func TestStatPathClassifiesFilesAndDirectories(t *testing.T) {
 
 func TestStageBeginAppendDiscardRoundTrip(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	tempPath, err := service.StageBegin("notes.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +244,11 @@ func TestStageBeginAppendDiscardRoundTrip(t *testing.T) {
 
 func TestStageAppendRejectsNonStagingPaths(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	if err := service.StageAppend(filepath.Join(t.TempDir(), "evil.txt"), 0, []byte("x")); err == nil {
 		t.Fatal("non-staging path must be rejected")
 	}
@@ -118,6 +259,11 @@ func TestStageAppendRejectsNonStagingPaths(t *testing.T) {
 
 func TestStageFromLocalPathCopiesImmediately(t *testing.T) {
 	service := newFilesystemService()
+	managedTemp, tempErr := filesystem.NewTempService(t.TempDir())
+	if tempErr != nil {
+		t.Fatal(tempErr)
+	}
+	service.setTempService(managedTemp)
 	dir := t.TempDir()
 	file := filepath.Join(dir, "report.pdf")
 	if err := os.WriteFile(file, []byte("PDFDATA"), 0o600); err != nil {

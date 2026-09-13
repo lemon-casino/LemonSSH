@@ -1,285 +1,29 @@
-// ZMODEM session engine (P3-08.4, TERM-03.4): the frame stream that drives a
-// real rz/sz exchange. The primitives in zmodem.go (CRC, metadata safety, size
-// caps) remain the single authority; this file adds the byte-stream state
-// machine that routes a received header into validated file events, plus the
-// matching sender so uploads and downloads share one framing implementation.
-//
-// Framing note: a bare ZMODEM binary header carries no payload length, and a
-// delimiter scan is genuinely ambiguous because an escaped 0x02 encodes to
-// ZDLE 'B' — the same bytes that open a header. Netcatty therefore frames each
-// session unit as [binary header][uint32 big-endian payload length][escaped
-// payload]. Header parsing itself is unchanged (ParseBinaryHeader is shared
-// with the frozen probe fixtures); only the length prefix is Netcatty's, so
-// this codec is the data-plane contract between Netcatty peers and is NOT a
-// claim of raw lrzsz wire compatibility. Real-peer interop stays on the
-// existing residual-risk list.
+// Raw ZMODEM session state. Callbacks run synchronously on the transport reader.
 package zmodem
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 )
 
-// ZDLE escape classes. A ZDLE-prefixed byte is decoded as byte ^ 0x40 for the
-// control characters ZMODEM must protect; a doubled ZDLE is a literal ZDLE.
-var zmodemEscaped = map[byte]bool{
-	0x10: true, // DLE
-	0x11: true, // XON
-	0x13: true, // XOFF
-	0x18: true, // ZDLE
-	0x0d: true, // CR
-	0x0a: true, // LF
-	0x00: true, // NUL
-}
-
-// EncodeEscaped applies ZMODEM ZDLE quoting to a payload for the wire.
-func EncodeEscaped(payload []byte) []byte {
-	out := make([]byte, 0, len(payload))
-	for _, b := range payload {
-		switch {
-		case b == ZDLE:
-			out = append(out, ZDLE, ZDLE)
-		case zmodemEscaped[b]:
-			out = append(out, ZDLE, b^0x40)
-		default:
-			out = append(out, b)
-		}
-	}
-	return out
-}
-
-// DecodeEscaped reverses EncodeEscaped. It returns the decoded bytes and the
-// number of input bytes consumed, so a caller can resume mid-stream.
-func DecodeEscaped(data []byte) ([]byte, int) {
-	out := make([]byte, 0, len(data))
-	for i := 0; i < len(data); i++ {
-		b := data[i]
-		if b != ZDLE {
-			out = append(out, b)
-			continue
-		}
-		if i+1 >= len(data) {
-			// Trailing ZDLE: signal the caller to wait for more input.
-			return out, i
-		}
-		next := data[i+1]
-		if next == ZDLE {
-			out = append(out, ZDLE)
-			i++
-			continue
-		}
-		out = append(out, next^0x40)
-		i++
-	}
-	return out, len(data)
-}
-
-// encodeHeader builds the binary header bytes for a frame type.
-func encodeHeader(frameType byte) []byte {
-	crc := CRC16([]byte{'B', frameType})
-	return []byte{ZPAD, ZDLE, 'B', frameType, byte(crc >> 8), byte(crc)}
-}
-
-// headerLength is the fixed size of the binary header this package emits.
-const headerLength = 6
-
-// zdataChunkSize bounds one ZDATA payload.
-const zdataChunkSize = 1024
-
-// Sender emits a ZMODEM file transfer from a validated in-memory payload.
-type Sender struct {
-	// Write receives the encoded session bytes in order. When nil the transfer
-	// is validated and discarded, which is useful for dry-run checks.
-	Write func([]byte) error
-}
-
-// SendFile streams one file as ZFILE + ZDATA + ZEOF. The metadata is validated
-// with the same rules the receiver applies, so a bad name or oversize payload
-// fails before anything reaches the wire.
-func (s *Sender) SendFile(ctx context.Context, meta FileMeta, data []byte) error {
-	if err := validateName(meta.Name); err != nil {
-		return err
-	}
-	if err := ValidateSize(int64(len(data)), MaxFileBytes); err != nil {
-		return err
-	}
-	if err := s.emit(ctx, ZFILE, []byte(fmt.Sprintf("%s %d", meta.Name, len(data)))); err != nil {
-		return err
-	}
-	for offset := 0; offset < len(data); offset += zdataChunkSize {
-		if err := ctx.Err(); err != nil {
-			return ErrCancelled
-		}
-		end := offset + zdataChunkSize
-		if end > len(data) {
-			end = len(data)
-		}
-		if err := s.emit(ctx, ZDATA, data[offset:end]); err != nil {
-			return err
-		}
-	}
-	return s.emit(ctx, ZEOF, nil)
-}
-
-// emit writes one framed unit: header, length prefix, escaped payload.
-func (s *Sender) emit(ctx context.Context, frameType byte, payload []byte) error {
-	if err := ctx.Err(); err != nil {
-		return ErrCancelled
-	}
-	if s.Write == nil {
+// Cancel writes the standard CAN burst. The transport owner must also unblock
+// any outstanding read when its context is cancelled.
+func Cancel(write func([]byte) error) error {
+	if write == nil {
 		return nil
 	}
-	escaped := EncodeEscaped(payload)
-	unit := make([]byte, 0, headerLength+4+len(escaped))
-	unit = append(unit, encodeHeader(frameType)...)
-	var length [4]byte
-	binary.BigEndian.PutUint32(length[:], uint32(len(escaped)))
-	unit = append(unit, length[:]...)
-	unit = append(unit, escaped...)
-	return s.Write(unit)
+	return write([]byte{24, 24, 24, 24, 24, 24, 24, 24, 8, 8, 8, 8, 8, 8, 8, 8})
 }
 
-// frameDecoder accumulates transport bytes until a complete framed unit is
-// available, then yields the parsed header plus decoded payload.
-type frameDecoder struct {
-	buffer []byte
-}
-
-// next returns one decoded unit. ok is false when more bytes are required.
-// A returned error is terminal: the receiver must abort the session.
-func (d *frameDecoder) next() (Frame, []byte, bool, error) {
-	if len(d.buffer) < headerLength {
-		return Frame{}, nil, false, nil
-	}
-	// Locate the header at the buffer start; tolerate leading noise because the
-	// transport may surface a peer's prompt echo before the first frame.
-	if !isHeaderPrefix(d.buffer) {
-		index := indexHeaderPrefix(d.buffer)
-		if index < 0 {
-			// Keep only a tail that could still be a split prefix.
-			if len(d.buffer) > headerLength {
-				d.buffer = d.buffer[len(d.buffer)-(headerLength-1):]
-			}
-			return Frame{}, nil, false, nil
-		}
-		d.buffer = d.buffer[index:]
-		if len(d.buffer) < headerLength {
-			return Frame{}, nil, false, nil
-		}
-	}
-	frame, consumed, err := ParseBinaryHeader(d.buffer)
-	if err != nil {
-		if errors.Is(err, ErrFrameMalformed) {
-			return Frame{}, nil, false, nil
-		}
-		return Frame{}, nil, false, err
-	}
-	if len(d.buffer) < consumed+4 {
-		return Frame{}, nil, false, nil
-	}
-	payloadLength := binary.BigEndian.Uint32(d.buffer[consumed : consumed+4])
-	if payloadLength > MaxFileBytes {
-		return Frame{}, nil, false, fmt.Errorf("%w: declared payload %d", ErrFileTooLarge, payloadLength)
-	}
-	if uint64(len(d.buffer)) < uint64(consumed)+4+uint64(payloadLength) {
-		return Frame{}, nil, false, nil
-	}
-	start := consumed + 4
-	end := start + int(payloadLength)
-	decoded, _ := DecodeEscaped(d.buffer[start:end])
-	d.buffer = d.buffer[end:]
-	frame.Payload = decoded
-	return frame, decoded, true, nil
-}
-
-func isHeaderPrefix(data []byte) bool {
-	return len(data) >= 3 && data[0] == ZPAD && data[1] == ZDLE && data[2] == 'B'
-}
-
-func indexHeaderPrefix(data []byte) int {
-	for i := 0; i+3 <= len(data); i++ {
-		if data[i] == ZPAD && data[i+1] == ZDLE && data[i+2] == 'B' {
-			return i
-		}
-	}
-	return -1
-}
-
-// feedState carries the per-file routing state across Feed calls.
 type feedState struct {
-	pendingName  string
-	declaredSize int64
+	meta         FileMeta
 	written      int64
 	inFile       bool
-}
-
-// FeedSession consumes transport bytes, routing decoded frames into the
-// receiver's sink callbacks. Partial units are buffered for the next call.
-func (r *Receiver) FeedSession(ctx context.Context, data []byte) (int, error) {
-	if r.state == nil {
-		r.state = &feedState{}
-	}
-	if r.decoder == nil {
-		r.decoder = &frameDecoder{}
-	}
-	r.decoder.buffer = append(r.decoder.buffer, data...)
-	consumed := 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return consumed, ErrCancelled
-		}
-		frame, payload, ok, err := r.decoder.next()
-		if err != nil {
-			return consumed, err
-		}
-		if !ok {
-			return consumed, nil
-		}
-		consumed += len(payload)
-		if err := r.routeFrame(frame, payload); err != nil {
-			return consumed, err
-		}
-	}
-}
-
-// routeFrame applies one decoded frame to the session state.
-func (r *Receiver) routeFrame(frame Frame, payload []byte) error {
-	switch frame.Type {
-	case FrameZFILE:
-		meta, err := ParseFileMeta(payload, r.maxBytes())
-		if err != nil {
-			return err
-		}
-		if r.OnFileStart != nil {
-			if err := r.OnFileStart(meta); err != nil {
-				return err
-			}
-		}
-		r.state.pendingName = meta.Name
-		r.state.declaredSize = meta.Size
-		r.state.written = 0
-		r.state.inFile = true
-	case FrameZDATA:
-		if !r.state.inFile {
-			return fmt.Errorf("%w: ZDATA before ZFILE", ErrFrameMalformed)
-		}
-		chunk := payload
-		if r.state.declaredSize > 0 && r.state.written+int64(len(chunk)) > r.state.declaredSize {
-			chunk = chunk[:r.state.declaredSize-r.state.written]
-		}
-		if r.OnChunk != nil && len(chunk) > 0 {
-			if err := r.OnChunk(chunk); err != nil {
-				return err
-			}
-		}
-		r.state.written += int64(len(chunk))
-	case FrameZEOF, FrameZFIN:
-		r.state.inFile = false
-	}
-	return nil
+	packetKind   byte
+	packetActive bool
+	use32        bool
 }
 
 func (r *Receiver) maxBytes() int64 {
@@ -288,28 +32,319 @@ func (r *Receiver) maxBytes() int64 {
 	}
 	return MaxFileBytes
 }
+func (r *Receiver) reply(kind byte, pos uint32) error {
+	if r.Write == nil {
+		return nil
+	}
+	return r.Write(hexHeader(kind, pos))
+}
 
-// SessionReader drives a whole transfer from an io.Reader until EOF.
-func (r *Receiver) SessionReader(ctx context.Context, source io.Reader) error {
+// Start advertises full duplex, overlapped I/O and CRC32 receive support.
+func (r *Receiver) Start(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return ErrCancelled
+	}
+	return r.reply(ZRINIT, 0x23000000)
+}
+
+func (r *Receiver) FeedSession(ctx context.Context, data []byte) (consumed int, err error) {
 	if r.state == nil {
 		r.state = &feedState{}
 	}
+	if r.decoder == nil {
+		r.decoder = &wireDecoder{}
+	}
+	defer func() {
+		if err != nil {
+			_ = Cancel(r.Write)
+		}
+	}()
+	if ctx.Err() != nil {
+		return 0, ErrCancelled
+	}
+	// Bound retained data even when the peer never terminates a subpacket.
+	for len(data) > 0 {
+		n := min(len(data), 4096)
+		r.decoder.buffer = append(r.decoder.buffer, data[:n]...)
+		data = data[n:]
+		for {
+			if ctx.Err() != nil {
+				return consumed, ErrCancelled
+			}
+			if r.Done {
+				r.decoder.buffer = nil
+				return consumed, nil
+			}
+			if r.state.packetActive {
+				payload, end, ok, e := r.decoder.packet(r.state.use32)
+				if e != nil {
+					return consumed, e
+				}
+				if !ok {
+					break
+				}
+				consumed += len(payload)
+				switch r.state.packetKind {
+				case ZFILE:
+					if r.state.inFile {
+						return consumed, fmt.Errorf("%w: nested ZFILE", ErrFrameMalformed)
+					}
+					meta, e := ParseFileMeta(payload, r.maxBytes())
+					if e != nil {
+						return consumed, e
+					}
+					if r.OnFileStart != nil {
+						if e = r.OnFileStart(meta); e != nil {
+							return consumed, e
+						}
+					}
+					r.state.meta = meta
+					r.state.written = 0
+					r.state.inFile = true
+					if e = r.reply(ZRPOS, 0); e != nil {
+						return consumed, e
+					}
+				case ZSINIT:
+					if e = r.reply(ZACK, 1); e != nil {
+						return consumed, e
+					}
+				case ZDATA:
+					total := r.state.written + int64(len(payload))
+					if e = ValidateSize(total, r.maxBytes()); e != nil {
+						return consumed, e
+					}
+					if r.state.meta.Size > 0 && total > r.state.meta.Size {
+						return consumed, fmt.Errorf("%w: data exceeds declared size", ErrFileTooLarge)
+					}
+					if r.OnChunk != nil && len(payload) > 0 {
+						if e = r.OnChunk(payload); e != nil {
+							return consumed, e
+						}
+					}
+					r.state.written = total
+					if end == zcrcq || end == zcrcw {
+						if e = r.reply(ZACK, uint32(total)); e != nil {
+							return consumed, e
+						}
+					}
+				}
+				r.state.packetActive = end == zcrcg || end == zcrcq
+				continue
+			}
+			h, ok, e := r.decoder.header()
+			if e != nil {
+				return consumed, e
+			}
+			if !ok {
+				break
+			}
+			switch h.kind {
+			case ZRQINIT:
+				if e = r.Start(ctx); e != nil {
+					return consumed, e
+				}
+			case ZFILE, ZSINIT, ZDATA:
+				if h.kind == ZDATA {
+					if !r.state.inFile {
+						return consumed, fmt.Errorf("%w: ZDATA before ZFILE", ErrFrameMalformed)
+					}
+					if int64(h.position) != r.state.written {
+						return consumed, fmt.Errorf("%w: unexpected data offset", ErrFrameMalformed)
+					}
+				}
+				r.state.packetKind = h.kind
+				r.state.packetActive = true
+				r.state.use32 = h.crc32
+			case ZEOF:
+				if !r.state.inFile || int64(h.position) != r.state.written || (r.state.meta.Size > 0 && r.state.written != r.state.meta.Size) {
+					return consumed, fmt.Errorf("%w: incomplete file", ErrFrameMalformed)
+				}
+				if r.OnFileEnd != nil {
+					if e = r.OnFileEnd(r.state.meta); e != nil {
+						return consumed, e
+					}
+				}
+				r.state.inFile = false
+				if e = r.Start(ctx); e != nil {
+					return consumed, e
+				}
+			case ZFIN:
+				if r.state.inFile {
+					return consumed, fmt.Errorf("%w: finish during file", ErrFrameMalformed)
+				}
+				if e = r.reply(ZFIN, 0); e != nil {
+					return consumed, e
+				}
+				r.Done = true
+			case ZABORT, 16:
+				return consumed, ErrCancelled
+			default:
+				return consumed, fmt.Errorf("%w: unexpected header %d", ErrFrameMalformed, h.kind)
+			}
+		}
+	}
+	return consumed, nil
+}
+
+func (r *Receiver) SessionReader(ctx context.Context, source io.Reader) error {
 	buffer := make([]byte, 4096)
 	for {
-		if err := ctx.Err(); err != nil {
+		if ctx.Err() != nil {
+			_ = Cancel(r.Write)
 			return ErrCancelled
 		}
 		n, err := source.Read(buffer)
 		if n > 0 {
-			if _, feedErr := r.FeedSession(ctx, buffer[:n]); feedErr != nil {
-				return feedErr
+			if _, e := r.FeedSession(ctx, buffer[:n]); e != nil {
+				return e
+			}
+			if r.Done {
+				return nil
 			}
 		}
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if errors.Is(err, io.EOF) && r.Done {
 				return nil
+			}
+			if errors.Is(err, io.EOF) {
+				return io.ErrUnexpectedEOF
 			}
 			return err
 		}
 	}
+}
+
+// Sender requires duplex transport. Read must honor ctx (including deadlines).
+// Read and Write may not race another consumer of the terminal byte stream.
+type Sender struct {
+	Write func([]byte) error
+	Read  func(context.Context, []byte) (int, error)
+	// OnProgress reports bytes acknowledged by the peer, never merely sent.
+	OnProgress func(transferred, total int64)
+}
+
+func (s *Sender) SendFile(ctx context.Context, meta FileMeta, data []byte) (err error) {
+	if e := validateName(meta.Name); e != nil {
+		return e
+	}
+	if e := ValidateSize(int64(len(data)), MaxFileBytes); e != nil {
+		return e
+	}
+	if s.Write == nil || s.Read == nil {
+		return errors.New("zmodem: duplex transport required")
+	}
+	defer func() {
+		if err != nil {
+			_ = Cancel(s.Write)
+		}
+	}()
+	decoder := &wireDecoder{}
+	readHeader := func() (wireHeader, error) {
+		buffer := make([]byte, 4096)
+		for {
+			if ctx.Err() != nil {
+				return wireHeader{}, ErrCancelled
+			}
+			h, ok, e := decoder.header()
+			if e != nil {
+				return h, e
+			}
+			if ok {
+				if h.kind == ZABORT || h.kind == 16 {
+					return h, ErrCancelled
+				}
+				return h, nil
+			}
+			n, e := s.Read(ctx, buffer)
+			if n > 0 {
+				decoder.buffer = append(decoder.buffer, buffer[:n]...)
+			}
+			if e != nil {
+				return h, e
+			}
+			if n == 0 {
+				return h, io.ErrNoProgress
+			}
+		}
+	}
+	send := func(kind byte, pos uint32) error {
+		if ctx.Err() != nil {
+			return ErrCancelled
+		}
+		return s.Write(hexHeader(kind, pos))
+	}
+	expect := func(kind byte) (wireHeader, error) {
+		for i := 0; i < 16; i++ {
+			h, e := readHeader()
+			if e != nil {
+				return h, e
+			}
+			if h.kind == kind {
+				return h, nil
+			}
+			if h.kind == ZSKIP {
+				return h, errors.New("zmodem: peer skipped file")
+			}
+			if h.kind != ZRINIT && h.kind != ZACK {
+				return h, fmt.Errorf("%w: expected %d got %d", ErrFrameMalformed, kind, h.kind)
+			}
+		}
+		return wireHeader{}, ErrFrameMalformed
+	}
+	if err = send(ZRQINIT, 0); err != nil {
+		return err
+	}
+	if _, err = expect(ZRINIT); err != nil {
+		return err
+	}
+	if err = s.Write(append(binaryHeader(ZFILE, 0), dataPacket([]byte(fmt.Sprintf("%s\x00%d 0 100644 0\x00", meta.Name, len(data))), zcrcw)...)); err != nil {
+		return err
+	}
+	h, err := expect(ZRPOS)
+	if err != nil {
+		return err
+	}
+	offset := int(h.position)
+	if offset > len(data) {
+		return fmt.Errorf("%w: resume beyond file", ErrFrameMalformed)
+	}
+	if err = s.Write(binaryHeader(ZDATA, uint32(offset))); err != nil {
+		return err
+	}
+	for offset < len(data) {
+		if ctx.Err() != nil {
+			return ErrCancelled
+		}
+		end := min(offset+1024, len(data))
+		if err = s.Write(dataPacket(data[offset:end], zcrcq)); err != nil {
+			return err
+		}
+		h, err = expect(ZACK)
+		if err != nil {
+			return err
+		}
+		if h.position != uint32(end) {
+			return fmt.Errorf("%w: incorrect ACK offset", ErrFrameMalformed)
+		}
+		offset = end
+		if s.OnProgress != nil {
+			s.OnProgress(int64(offset), int64(len(data)))
+		}
+	}
+	if err = s.Write(dataPacket(nil, zcrce)); err != nil {
+		return err
+	}
+	if err = send(ZEOF, uint32(offset)); err != nil {
+		return err
+	}
+	if _, err = expect(ZRINIT); err != nil {
+		return err
+	}
+	if err = send(ZFIN, 0); err != nil {
+		return err
+	}
+	if _, err = expect(ZFIN); err != nil {
+		return err
+	}
+	return s.Write([]byte("OO"))
 }

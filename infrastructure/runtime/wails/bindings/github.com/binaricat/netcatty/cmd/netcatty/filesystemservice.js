@@ -15,6 +15,23 @@ import * as filesystem$0 from "../../internal/platform/filesystem/models.js";
 import * as $models from "./models.js";
 
 /**
+ * @returns {$CancellablePromise<$models.TempClearResult>}
+ */
+export function ClearTemp() {
+    return $Call.ByID(571030481).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @param {string} filePath
+ * @returns {$CancellablePromise<void>}
+ */
+export function DeleteTempFile(filePath) {
+    return $Call.ByID(2672759029, filePath);
+}
+
+/**
  * @param {string} archivePath
  * @param {string} destinationRoot
  * @returns {$CancellablePromise<number>}
@@ -36,8 +53,45 @@ export function HomeDir() {
  */
 export function ListDir(path) {
     return $Call.ByID(729165017, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType2($result);
     }));
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} appPath
+ * @returns {$CancellablePromise<void>}
+ */
+export function OpenWithApplication(filePath, appPath) {
+    return $Call.ByID(247617680, filePath, appPath);
+}
+
+/**
+ * @param {string} filePath
+ * @returns {$CancellablePromise<void>}
+ */
+export function OpenWithSystemDefault(filePath) {
+    return $Call.ByID(2875809596, filePath);
+}
+
+/**
+ * ReadClipboardImage uses the OS because Wails Clipboard only exposes text.
+ * @returns {$CancellablePromise<$models.ClipboardImageFile | null>}
+ */
+export function ReadClipboardImage() {
+    return $Call.ByID(1323029781).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * ReleaseTempFile ends renderer ownership without removing an external-edit
+ * download. Call after the last consumer finishes; transfer I/O has its own pin.
+ * @param {string} filePath
+ * @returns {$CancellablePromise<void>}
+ */
+export function ReleaseTempFile(filePath) {
+    return $Call.ByID(4145957983, filePath);
 }
 
 /**
@@ -92,11 +146,40 @@ export function StageFromLocalPath(path) {
  */
 export function StatPath(path) {
     return $Call.ByID(1999196219, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType5($result);
     }));
 }
 
+/**
+ * @param {string} name
+ * @returns {$CancellablePromise<string>}
+ */
+export function TempFilePath(name) {
+    return $Call.ByID(3262733025, name);
+}
+
+/**
+ * @returns {$CancellablePromise<$models.TempDirectoryInfo>}
+ */
+export function TempInfo() {
+    return $Call.ByID(3758389736).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
+}
+
+/**
+ * @param {string} filePath
+ * @returns {$CancellablePromise<void>}
+ */
+export function ValidateTempFile(filePath) {
+    return $Call.ByID(3295034776, filePath);
+}
+
 // Private type creation functions
-const $$createType0 = filesystem$0.LocalEntry.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $models.LocalPathStat.createFrom;
+const $$createType0 = $models.TempClearResult.createFrom;
+const $$createType1 = filesystem$0.LocalEntry.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.ClipboardImageFile.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $models.LocalPathStat.createFrom;
+const $$createType6 = $models.TempDirectoryInfo.createFrom;

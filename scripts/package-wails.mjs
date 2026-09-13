@@ -4,12 +4,13 @@
 // release-evidence workflow. Native builds keep the platform default CGO
 // setting; cross builds are qualification binaries only (CGO disabled).
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { copyFile, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
+import { supplyHelpers, packageHelpers, preserveFile, readSafeFile, assertSafePath, verifyHelper } from "./fetch-wails-helpers.mjs";
+export { verifyHelper } from "./fetch-wails-helpers.mjs";
 
 const GOOS_EXTENSIONS = new Set(["windows", "darwin", "linux"]);
 const ARCH_EXTENSIONS = new Set(["amd64", "arm64"]);
@@ -77,7 +78,7 @@ export function parseArgs(argv) {
 export async function checksumEntries(paths) {
   const entries = [];
   for (const filePath of paths) {
-    const content = await readFile(filePath);
+    const content = await readSafeFile(filePath);
     entries.push({
       path: filePath,
       sha256: createHash("sha256").update(content).digest("hex"),
@@ -85,6 +86,19 @@ export async function checksumEntries(paths) {
     });
   }
   return entries;
+}
+
+export async function packageFiles(directory, relative = "") {
+  await assertSafePath(path.join(directory, relative));
+  const files = [];
+  for (const entry of await readdir(path.join(directory, relative), { withFileTypes: true })) {
+    if (!relative && ["checksums.txt", "artifact-manifest.json"].includes(entry.name)) continue;
+    const name = path.join(relative, entry.name);
+    if (entry.isDirectory()) files.push(...await packageFiles(directory, name));
+    else if (entry.isFile()) files.push(path.join(directory, name));
+    else throw new Error(`unsafe package entry: ${name}`);
+  }
+  return files.sort();
 }
 
 export function helperResourcePath(goos, goarch, kind = "mosh") {
@@ -96,6 +110,21 @@ export function helperResourcePath(goos, goarch, kind = "mosh") {
   else if (goos === "darwin") platformDir = "darwin-universal";
   else platformDir = goarch === "arm64" ? "linux-arm64" : "linux-x64";
   return path.join("resources", kind, platformDir, name);
+}
+
+export async function writeProtocolResources(outDir, goos, executable) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(executable)) throw new Error("invalid executable name");
+  if (goos === "linux") {
+    const target = path.join(outDir, "lemonssh.desktop");
+    await writeFile(target, `[Desktop Entry]\nType=Application\nName=LemonSSH\nExec=${executable} %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/netcatty;\n`);
+    return [target];
+  }
+  if (goos === "darwin") {
+    const target = path.join(outDir, "Info.plist");
+    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.lemonssh.desktop</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Netcatty sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
+    return [target];
+  }
+  return [];
 }
 
 export function hostTarget() {
@@ -129,8 +158,8 @@ function gitCommit() {
   return result.status === 0 ? result.stdout.trim() : "unknown";
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
+export async function packageWails(argv = process.argv.slice(2), runCommand = run) {
+  const args = parseArgs(argv);
   const pkg = JSON.parse(await readFile("package.json", "utf8"));
   const version = args.version ?? pkg.version;
   const { goos, goarch } = hostTarget();
@@ -140,11 +169,16 @@ async function main() {
   };
   const cross = target.goos !== goos || target.goarch !== goarch;
 
+  // Fail supply verification before spending time on the frontend / Go build.
+  await supplyHelpers(target);
+
   if (!args.skipFrontend) {
-    run("npm", ["run", "build"]);
-    run("node", ["scripts/wails-prepare-frontend.mjs"]);
+    await runCommand("npm", ["run", "build"]);
+    await runCommand("node", ["scripts/wails-prepare-frontend.mjs"]);
   }
 
+  // Vite clears dist, so stage helpers only after the frontend build.
+  const helpers = await packageHelpers(args.outDir, target.goos, target.goarch);
   await mkdir(args.outDir, { recursive: true });
   const artifact = path.join(args.outDir, artifactBasename(version, target.goos, target.goarch));
   const env = { ...process.env, GOOS: target.goos, GOARCH: target.goarch };
@@ -152,22 +186,19 @@ async function main() {
     env.CGO_ENABLED = "0";
     console.warn(`[package-wails] cross build for ${target.goos}/${target.goarch}: CGO disabled (qualification binary only)`);
   }
-  run(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
+  await runCommand(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
 
-  for (const kind of ["mosh", "et"]) {
-    const helper = helperResourcePath(target.goos, target.goarch, kind);
-    if (existsSync(helper)) {
-      const dest = path.join(args.outDir, path.basename(helper));
-      await copyFile(helper, dest);
-    }
-  }
+  await writeProtocolResources(args.outDir, target.goos, path.basename(artifact));
+  await writeFile(path.join(args.outDir, "installer-resources.json"), JSON.stringify({
+    helpers,
+    protocolResources: target.goos === "darwin" ? [{ source: "Info.plist", destination: "Contents/Info.plist" }] : target.goos === "linux" ? [{ source: "lemonssh.desktop", destination: "share/applications/lemonssh.desktop" }] : [],
+  }, null, 2));
 
-  const files = (await readdir(args.outDir))
-    .filter((name) => name !== "checksums.txt" && name !== "artifact-manifest.json")
-    .map((name) => path.join(args.outDir, name));
+  const files = await packageFiles(args.outDir);
   const entries = await checksumEntries(files);
 
-  const checksumLines = entries.map((entry) => `${entry.sha256}  ${path.basename(entry.path)}`);
+  const relativeName = (file) => path.relative(args.outDir, file).split(path.sep).join("/");
+  const checksumLines = entries.map((entry) => `${entry.sha256}  ${relativeName(entry.path)}`);
   await writeFile(path.join(args.outDir, "checksums.txt"), `${checksumLines.join("\n")}\n`, "utf8");
 
   const manifest = {
@@ -177,9 +208,12 @@ async function main() {
     goarch: target.goarch,
     cross,
     builtAt: new Date().toISOString(),
-    artifacts: entries.map((entry) => ({ name: path.basename(entry.path), ...entry })),
+    // Helper pins bind this artifact to the exact locked Mosh/ET bytes and
+    // their provenance (also detailed in installer-resources.json).
+    helpers,
+    artifacts: entries.map((entry) => ({ name: relativeName(entry.path), ...entry })),
     purity: entries.map((entry) => purityInventory({
-      artifactName: path.basename(entry.path),
+      artifactName: relativeName(entry.path),
       sha256: entry.sha256,
       bytes: entry.bytes,
       goos: target.goos,
@@ -192,5 +226,8 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  await main();
+  // Helper provisioning lives solely in the reviewed lock flow
+  // (scripts/fetch-wails-helpers.mjs); ad-hoc installs would write sidecars
+  // that the trusted lock refuses at packaging time.
+  await packageWails();
 }

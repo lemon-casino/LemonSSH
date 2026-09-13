@@ -1,6 +1,7 @@
 import type { GroupConfig, GroupNode, Host } from './models/connection';
 import type { TerminalSession } from './models/terminal';
 import { buildHostGroupTree } from './hostGroupTree';
+import { matchesHostSearchQuery, matchesSearchQuery } from '../lib/searchMatcher';
 
 /**
  * Session input for the session group tree.
@@ -69,6 +70,15 @@ export interface BuildSessionGroupTreeOptions {
   logViews: Array<{ id: string; label: string }>;
   editorTabs: Array<{ id: string; label: string }>;
   fixedItems: Array<{ id: string; label: string }>;
+  /**
+   * When true (workbench merged tree), hosts without sessions are kept as
+   * connectable leaf host nodes, and every user-created custom group survives
+   * even while empty — inline "new group" creates an empty customGroup entry
+   * first, and pruning it would make the freshly created group invisible.
+   * Local-protocol hosts stay out — local terminals are reachable through
+   * the toolbar action.
+   */
+  includeAllHosts?: boolean;
 }
 
 // Stable section identifiers; also used as node ids so expandedPaths keys stay unique.
@@ -151,6 +161,7 @@ const countTreeSessions = (node: SessionGroupTreeNode): number => {
 export function buildSessionGroupTree(
   options: BuildSessionGroupTreeOptions,
 ): SessionGroupTreeSections {
+  const includeAllHosts = options.includeAllHosts === true;
   const visibleSessions = options.sessions.filter(
     (session) => session.hiddenFromTabs !== true,
   );
@@ -189,9 +200,14 @@ export function buildSessionGroupTree(
     if (list) list.push(session);
     else sessionsByHostId.set(session.hostId, [session]);
   }
-  const groupedHosts = options.hosts.filter(
-    (host) => (sessionsByHostId.get(host.id)?.length ?? 0) > 0,
-  );
+  const isConnectableHost = (host: SessionGroupTreeHostInput): boolean =>
+    host.protocol !== 'local';
+  const groupedHosts = options.hosts.filter((host) => {
+    if (!isEmptyGroupPath(host.group)) {
+      return includeAllHosts ? isConnectableHost(host) : (sessionsByHostId.get(host.id)?.length ?? 0) > 0;
+    }
+    return false;
+  });
 
   const customGroupPaths: string[] = [];
   for (const entry of options.customGroups) {
@@ -244,6 +260,11 @@ export function buildSessionGroupTree(
 
   const hasSessions = (node: GroupNode): boolean =>
     node.hosts.length > 0 || Object.values(node.children).some(hasSessions);
+  // With includeAllHosts the tree is also the connect list: every host group
+  // survives (they all originate from Host.group) and every custom group
+  // survives too — pruning empties would hide a group the user just created
+  // inline. Without the flag only branches carrying sessions are kept.
+  const groupSurvives = includeAllHosts ? (): boolean => true : hasSessions;
 
   const convertGroupNode = (
     node: GroupNode,
@@ -251,14 +272,14 @@ export function buildSessionGroupTree(
   ): SessionGroupTreeNode => {
     const children: SessionGroupTreeNode[] = [];
     const survivingChildren = Object.values(node.children)
-      .filter(hasSessions)
+      .filter(groupSurvives)
       .sort(compareGroupNodes);
     for (const child of survivingChildren) {
       children.push(convertGroupNode(child, depth + 1));
     }
     for (const host of node.hosts) {
       const hostSessions = sessionsByHostId.get(host.id) ?? [];
-      if (hostSessions.length === 0) continue;
+      if (hostSessions.length === 0 && !includeAllHosts) continue;
       children.push(buildHostNode(host, hostSessions, depth + 1));
     }
     const groupNode: SessionGroupTreeNode = {
@@ -344,12 +365,22 @@ export function buildSessionGroupTree(
     groupTree: buildSectionNode(
       GROUP_TREE_SECTION_ID,
       'Sessions',
-      groupTree.filter(hasSessions).sort(compareGroupNodes).map((node) => convertGroupNode(node, 1)),
+      groupTree.filter(groupSurvives).sort(compareGroupNodes).map((node) => convertGroupNode(node, 1)),
     ),
     ungrouped: buildSectionNode(
       UNGROUPED_SECTION_ID,
       'Ungrouped',
-      buildHostBucketChildren(ungroupedSessions, 1),
+      includeAllHosts
+        ? options.hosts
+            .filter((host) => isEmptyGroupPath(host.group) && isConnectableHost(host))
+            .map((host) =>
+              buildHostNode(
+                host,
+                ungroupedSessions.filter((session) => session.hostId === host.id),
+                1,
+              ),
+            )
+        : buildHostBucketChildren(ungroupedSessions, 1),
     ),
     localTerminals: buildSectionNode(
       LOCAL_SECTION_ID,
@@ -373,15 +404,84 @@ export function buildSessionGroupTree(
  * Children of `group` and `host` nodes are skipped unless the node's id is in
  * `expandedPaths`. Section nodes always reveal their children.
  */
+export function getSessionTreeAncestorIds(sections: SessionGroupTreeSections, tabId: string): string[] {
+  const visit = (node: SessionGroupTreeNode, ancestors: string[]): string[] | null => {
+    const branch = node.type === 'group' || node.type === 'host';
+    const path = branch ? [...ancestors, node.id] : ancestors;
+    if (node.id === tabId || (node.type === 'group' && node.id === `workspace:${tabId}`)) return path;
+    for (const child of node.children) {
+      const found = visit(child, path);
+      if (found) return found;
+    }
+    return null;
+  };
+  for (const root of [...sections.fixed, sections.groupTree, sections.ungrouped, sections.localTerminals, sections.workspaces, sections.logs, sections.editors, sections.others]) {
+    if (!root) continue;
+    const found = visit(root, []);
+    if (found) return found;
+  }
+  return [];
+}
+
+/** Collects every expandable group/host id (for expand-all and search reveal). */
+export function getSessionTreeExpandableIds(sections: SessionGroupTreeSections): string[] {
+  const ids: string[] = [];
+  const visit = (node: SessionGroupTreeNode): void => {
+    if (node.type === 'group' || node.type === 'host') ids.push(node.id);
+    for (const child of node.children) visit(child);
+  };
+  for (const root of [sections.groupTree, sections.ungrouped, sections.localTerminals, sections.workspaces, sections.logs, sections.editors, sections.others]) {
+    if (root) visit(root);
+  }
+  return ids;
+}
+
+export interface MergedTreeHostFilterInput {
+  id: string;
+  label: string;
+  username?: string;
+  notes?: string;
+  tags?: string[];
+  group?: string;
+  protocol?: string;
+}
+
+/**
+ * Filters hosts for the workbench merged tree. Hosts carrying active sessions
+ * always survive so session navigation can never lose an entry; the filter
+ * only prunes the connect list. Tags narrow first, then search text
+ * (label/username/notes), mirroring the host-tree sidebar behavior.
+ */
+export function filterMergedTreeHosts<T extends MergedTreeHostFilterInput>(
+  hosts: T[],
+  sessionHostIds: ReadonlySet<string>,
+  filter: { searchTerm: string; selectedTags: string[] },
+): T[] {
+  const searchTerm = filter.searchTerm.trim();
+  const searchActive = searchTerm.length > 0;
+  const tagsActive = filter.selectedTags.length > 0;
+  if (!searchActive && !tagsActive) return hosts;
+  return hosts.filter((host) => {
+    if (sessionHostIds.has(host.id)) return true;
+    if (tagsActive && !filter.selectedTags.some((tag) => host.tags?.includes(tag))) return false;
+    if (searchActive && !(
+      matchesHostSearchQuery(searchTerm, host)
+      || matchesSearchQuery(searchTerm, host.username, host.notes)
+    )) return false;
+    return true;
+  });
+}
+
 export function flattenSessionGroupTree(
   sections: SessionGroupTreeSections,
   expandedPaths: Set<string>,
+  expandAll = false,
 ): SessionGroupTreeFlatRow[] {
   const rows: SessionGroupTreeFlatRow[] = [];
   const walk = (node: SessionGroupTreeNode) => {
     rows.push({ node, depth: node.depth });
     if (node.children.length === 0) return;
-    if ((node.type === 'group' || node.type === 'host') && !expandedPaths.has(node.id)) {
+    if ((node.type === 'group' || node.type === 'host') && !expandAll && !expandedPaths.has(node.id)) {
       return;
     }
     for (const child of node.children) walk(child);
@@ -398,7 +498,15 @@ export function flattenSessionGroupTree(
     sections.others,
   ];
   for (const section of sectionNodes) {
-    if (section) walk(section);
+    if (!section) continue;
+    // The grouped-sessions container has no header of its own — its
+    // top-level groups speak for themselves — so emitting the section node
+    // would render an empty placeholder row.
+    if (section.id === 'sessionGroups') {
+      for (const child of section.children) walk(child);
+      continue;
+    }
+    walk(section);
   }
   return rows;
 }

@@ -4,6 +4,7 @@
  * when the user types commands that expect path arguments.
  */
 
+import { netcattyBridge } from '../../../infrastructure/services/netcattyBridge';
 import type { CompletionContext } from "./completionEngine";
 import type { FigArg } from "./figSpecLoader";
 import type { AutocompleteCwdSource } from "./terminalAutocompleteLayout";
@@ -36,7 +37,7 @@ interface PathBridge {
 }
 
 function getBridge(): PathBridge | undefined {
-  return (window as Window & { netcatty?: PathBridge }).netcatty;
+  return netcattyBridge.get();
 }
 
 // Cache directory listings for 5 seconds. Full-directory cache is shared between
@@ -220,6 +221,15 @@ export async function getPathSuggestions(
     limit: 100,
   });
 
+  // An exact directory token previews its children as well as prefix siblings.
+  // Keep the typed spelling so inline text remains a suffix of the input.
+  const exactDirectory = filterPrefix && entries.find(entry => entry.type === 'directory' && entry.name === filterPrefix);
+  if (exactDirectory) {
+    const children = await listDirectoryEntries(`${dirToList.replace(/\/$/, '')}/${exactDirectory.name}`, {
+      sessionId, protocol, os, foldersOnly, limit: 100,
+    });
+    return [...sortPathEntries(children).map(entry => ({ ...entry, name: `${exactDirectory.name}/${entry.name}` })), ...sortPathEntries(entries)];
+  }
   return sortPathEntries(entries);
 }
 
@@ -346,7 +356,7 @@ function clampLimit(limit: number): number {
 
 function resolveDirLookup(pathToken: string, cwd: string | undefined, preferRelativeCwd = false): string {
   if (!pathToken) return preferRelativeCwd ? "." : (cwd || ".");
-  if (pathToken.startsWith("/")) return normalizePosixLikePath(pathToken);
+  if (pathToken.startsWith('/') || /^[A-Za-z]:\//.test(pathToken)) return normalizePosixLikePath(pathToken);
   if (pathToken === "~" || pathToken.startsWith("~/")) return normalizePosixLikePath(pathToken);
   if (preferRelativeCwd) return normalizePosixLikePath(pathToken);
   if (cwd) return normalizePosixLikePath(`${cwd}/${pathToken}`);

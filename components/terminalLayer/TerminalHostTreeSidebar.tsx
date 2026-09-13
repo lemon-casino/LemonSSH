@@ -40,11 +40,13 @@ import { themeFingerprint } from '../../application/state/useActiveChromeTheme';
 import { buildHostTreeThemeFromTerminalTheme } from '../../infrastructure/theme/terminalAppearanceTokens';
 import { cn } from '../../lib/utils';
 import { matchesHostSearchQuery, matchesSearchQuery } from '../../lib/searchMatcher';
+import { resolveSidebarTreeDoubleClick } from '../../domain/hostClickBehavior';
 import type { GroupConfig, GroupNode, Host, TerminalTheme } from '../../types';
 import { HostTreeGroupContextMenuContent, HostTreeHostContextMenuContent } from '../host/HostTreeContextMenus';
 import { HostTreeGroupInlineRenameInput } from '../host/HostTreeGroupInlineRenameInput';
 import { LazyMessageResponse } from '../ai-elements/LazyMessageResponse';
 import { DistroAvatar } from '../DistroAvatar';
+import { HostTagChips, toggleSelectedTag } from '../host/HostTagChips';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -335,6 +337,8 @@ type HostTreeFlatRowProps = {
   onDropToRow: (row: HostTreeFlatRow, event: React.DragEvent<HTMLDivElement>) => boolean;
   theme: HostTreeTheme;
   menuActions: ReturnType<typeof useVaultHostTreeActions>;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
 };
 
 const HostTreeFlatRowItem = memo<HostTreeFlatRowProps>(({
@@ -428,7 +432,8 @@ const HostTreeFlatRowItem = memo<HostTreeFlatRowProps>(({
           if (!isActive && !isDragOver) event.currentTarget.style.backgroundColor = '';
         }}
         onDoubleClick={() => {
-          if (!isInlineEditing) onConnect(row.host);
+          if (resolveSidebarTreeDoubleClick({ kind: 'host', isInlineEditing }) !== 'connect-host') return;
+          onConnect(row.host);
         }}
         onKeyDown={(event) => {
           if (isInlineEditing) return;
@@ -458,6 +463,12 @@ const HostTreeFlatRowItem = memo<HostTreeFlatRowProps>(({
             {row.host.label}
           </span>
         )}
+        <HostTagChips
+          tags={row.host.tags}
+          selectedTags={selectedTags}
+          onToggleTag={onToggleTag}
+          compact
+        />
         {row.host.protocol && row.host.protocol !== 'ssh' && (
           <span className="flex shrink-0 items-center text-[10px] leading-4 uppercase opacity-70" style={{ color: theme.mutedFg }}>
             {row.host.protocol}
@@ -568,6 +579,10 @@ const HostTreeFlatRowItem = memo<HostTreeFlatRowProps>(({
       onClick={() => {
         if (isInlineEditing) return;
         onTogglePath(node.path);
+      }}
+      onDoubleClick={() => {
+        if (resolveSidebarTreeDoubleClick({ kind: 'group', isInlineEditing }) !== 'rename-group') return;
+        menuActions?.onRenameGroup(node.path);
       }}
       onKeyDown={(event) => {
         if (isInlineEditing) return;
@@ -951,6 +966,8 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
       onDropToRow={handleDropToRow}
       theme={theme}
       menuActions={menuActions}
+      selectedTags={selectedTags}
+      onToggleTag={(tag) => setSelectedTags((current) => toggleSelectedTag(current, tag))}
     />
   ), [
     activeHostId,
@@ -968,6 +985,7 @@ const TerminalHostTreeSidebarInner: React.FC<TerminalHostTreeSidebarProps> = ({
     onConnect,
     onNewHost,
     onEditHost,
+    selectedTags,
     treeExpandAll,
     theme,
     togglePath,

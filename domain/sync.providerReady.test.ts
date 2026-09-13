@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hasProviderConnectionData, isProviderReadyForSync } from './sync';
+import { hasProviderConnectionData, isCloudProviderConnectDisabled, isProviderReadyForSync } from './sync';
 
 test('hasProviderConnectionData treats falsy scalar configs as present', () => {
   assert.equal(hasProviderConnectionData({ config: false }), true);
@@ -31,5 +31,44 @@ test('isProviderReadyForSync keeps error status ready when only scalar config re
   assert.equal(
     isProviderReadyForSync({ status: 'disconnected', config: false }),
     false,
+  );
+});
+
+test('a ready provider does not grey out Connect on the other cloud services', () => {
+  assert.equal(
+    isCloudProviderConnectDisabled({
+      provider: 'google',
+      connection: { status: 'disconnected' },
+      pendingConnectProvider: null,
+      hasConnectingProvider: false,
+    }),
+    false,
+  );
+  assert.equal(
+    isCloudProviderConnectDisabled({
+      provider: 'onedrive',
+      connection: { status: 'disconnected' },
+      pendingConnectProvider: null,
+      hasConnectingProvider: false,
+    }),
+    false,
+  );
+  assert.equal(
+    isCloudProviderConnectDisabled({
+      provider: 'google',
+      connection: { status: 'disconnected' },
+      pendingConnectProvider: 'github',
+      hasConnectingProvider: true,
+    }),
+    true,
+  );
+  assert.equal(
+    isCloudProviderConnectDisabled({
+      provider: 'github',
+      connection: { status: 'connecting' },
+      pendingConnectProvider: 'github',
+      hasConnectingProvider: true,
+    }),
+    true,
   );
 });

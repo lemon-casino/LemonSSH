@@ -95,6 +95,10 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 		return nil, fmt.Errorf("proxy command is empty")
 	}
 	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	if strings.ContainsAny(expanded, "|&<>") || runtime.GOOS != "windows" {
+		shell, flag := shellForCommand()
+		cmd = exec.CommandContext(ctx, shell, flag, expanded)
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("proxy command stdin: %w", err)
@@ -128,7 +132,7 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 		_ = stdin.Close()
 		return nil, fmt.Errorf("proxy command exited: %s: %w", strings.TrimSpace(conn.stderr.String()), conn.waitErr)
 	case <-ctx.Done():
-		_ = stdin.Close()
+		_ = conn.Close()
 		return nil, ctx.Err()
 	case <-time.After(300 * time.Millisecond):
 	}
@@ -137,8 +141,12 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 
 // ErrString exposes the child's stderr tail for connection diagnostics.
 func (c *CommandProxyConn) ErrString() string {
-	c.closeOnce.Do(func() {})
-	return strings.TrimSpace(c.stderr.String())
+	select {
+	case <-c.done:
+		return strings.TrimSpace(c.stderr.String())
+	default:
+		return ""
+	}
 }
 
 func (c *CommandProxyConn) Read(p []byte) (int, error)  { return c.stdout.Read(p) }
@@ -148,12 +156,14 @@ func (c *CommandProxyConn) Close() error {
 	var firstErr error
 	c.closeOnce.Do(func() {
 		_ = c.stdin.Close()
+		_ = c.stdout.Close()
 		select {
 		case <-c.done:
 		case <-time.After(2 * time.Second):
 			if c.cmd.Process != nil {
 				_ = c.cmd.Process.Kill()
 			}
+			<-c.done
 		}
 		if c.waitErr != nil && c.waitErr.Error() != "exit status 0" {
 			firstErr = c.waitErr
