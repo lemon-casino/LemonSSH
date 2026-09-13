@@ -6,7 +6,11 @@ import type { LogView } from '../state/logViewState';
 import { useWorkbenchTreeExpanded, useWorkbenchTreeWidth } from '../state/workbenchSessionTreeStore';
 import { useI18n } from '../i18n/I18nProvider';
 import { WorkbenchSessionTree } from '../../components/workbench/WorkbenchSessionTree';
-import type { GroupConfig, Host, TerminalSession, Workspace } from '../../types';
+import type { GroupConfig, Host, TerminalSession, TerminalTheme, Workspace } from '../../types';
+import type {
+  ResolvedAppearance,
+  TerminalAppearanceHostScope,
+} from '../../domain/terminalAppearanceRuntime';
 import { resolveSessionTabTitle } from '../../domain/sessionTabTitle';
 import {
   buildSessionGroupTree,
@@ -22,7 +26,8 @@ import { appendHostFromWorkspaceDrop, resolveFocusSidebarDragKind } from '../../
 import { useSettingsChromeStore } from '../state/settingsChromeStore';
 import { useShortcutModifierHeld } from '../state/useShortcutModifierHeld';
 import { buildTabShortcutNumberById } from './tabShortcutTargets';
-import { getAppHostTreeLayerStyle } from './AppHostTreeLayer';
+import { getAppHostTreeLayerStyle, AppHostTreeLayer } from './AppHostTreeLayer';
+import { useTerminalHostTreeOpen } from '../state/terminalHostTreeStore';
 
 interface AppWorkbenchSessionLayerProps {
   enabled: boolean;
@@ -42,6 +47,16 @@ interface AppWorkbenchSessionLayerProps {
   logViews: readonly LogView[];
   orderedTabs: readonly string[];
   showSftpTab: boolean;
+  /** Host-tree sidebar setting; gates the embedded host tree section. */
+  showHostTreeSidebar: boolean;
+  /** Embedded host tree section wiring (same surface the overlay receives). */
+  currentTerminalTheme: TerminalTheme;
+  followAppTerminalTheme: boolean;
+  themeById: ReadonlyMap<string, TerminalTheme>;
+  resolveSessionAppearance?: (hostScope: TerminalAppearanceHostScope) => ResolvedAppearance;
+  onConnectHost: (host: Host) => void;
+  onNewHost?: (defaultGroup?: string) => void;
+  onCreateLocalTerminal?: () => void;
   dynamicTabTitleMode: DynamicTabTitleMode;
   onActivateTab: (tabId: string) => void;
   onActivateWorkspaceSession: (workspaceId: string, sessionId: string) => void;
@@ -79,6 +94,14 @@ function appWorkbenchSessionLayerAreEqual(
     && prev.logViews === next.logViews
     && prev.orderedTabs === next.orderedTabs
     && prev.showSftpTab === next.showSftpTab
+    && prev.showHostTreeSidebar === next.showHostTreeSidebar
+    && prev.currentTerminalTheme === next.currentTerminalTheme
+    && prev.followAppTerminalTheme === next.followAppTerminalTheme
+    && prev.themeById === next.themeById
+    && prev.resolveSessionAppearance === next.resolveSessionAppearance
+    && prev.onConnectHost === next.onConnectHost
+    && prev.onNewHost === next.onNewHost
+    && prev.onCreateLocalTerminal === next.onCreateLocalTerminal
     && prev.dynamicTabTitleMode === next.dynamicTabTitleMode
     && prev.onActivateTab === next.onActivateTab
     && prev.onActivateWorkspaceSession === next.onActivateWorkspaceSession
@@ -113,6 +136,14 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   logViews,
   orderedTabs,
   showSftpTab,
+  showHostTreeSidebar,
+  currentTerminalTheme,
+  followAppTerminalTheme,
+  themeById,
+  resolveSessionAppearance,
+  onConnectHost,
+  onNewHost,
+  onCreateLocalTerminal,
   dynamicTabTitleMode,
   onActivateTab,
   onActivateWorkspaceSession,
@@ -132,6 +163,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
   const activeTabId = useActiveTabId();
   const { width, resize } = useWorkbenchTreeWidth();
   const { expandedPaths, togglePath, ensurePathExpanded } = useWorkbenchTreeExpanded();
+  const hostTreeOpen = useTerminalHostTreeOpen();
   const { t } = useI18n();
   const surfaceVisible = enabled;
   const { hotkeyScheme, showTabNumberBadges, shellOnlyTabNumberShortcuts } = useSettingsChromeStore();
@@ -269,11 +301,12 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
       style={{ width: surfaceVisible ? width : 0 }}
     >
       <div
-        className="absolute inset-0 flex min-h-0 bg-secondary border-r border-border/60"
+        className="absolute inset-0 flex flex-col min-h-0 bg-secondary border-r border-border/60"
         data-section="app-workbench-session-tree"
         style={getAppHostTreeLayerStyle(surfaceVisible)}
       >
-        <WorkbenchSessionTree
+        <div className="flex-1 min-h-[120px] min-w-0 flex">
+          <WorkbenchSessionTree
           sections={sections}
           shortcutNumbers={shortcutNumbers}
           getRowDragProps={getRowDragProps}
@@ -299,6 +332,39 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
           onCloseWorkspace={onCloseWorkspace}
           onOpenQuickSwitcher={onOpenQuickSwitcher}
         />
+        </div>
+        {/* The host tree opens INSIDE the sidebar (below the session tree),
+            not as a second floating column: both trees serve the same
+            "pick a host / session" purpose and side-by-side columns just
+            duplicated each other. */}
+        {enabled && showHostTreeSidebar && hostTreeOpen && (
+          <div
+            data-section="app-workbench-host-tree-section"
+            className="h-[45%] min-h-[180px] shrink-0 border-t border-border/60 flex"
+          >
+            <AppHostTreeLayer
+              variant="embedded"
+              enabled
+              hosts={hosts}
+              customGroups={customGroups}
+              groupConfigs={groupConfigs}
+              sessions={sessions}
+              workspaces={workspaces}
+              editorTabs={editorTabs}
+              logViews={logViews}
+              orderedTabs={orderedTabs}
+              currentTerminalTheme={currentTerminalTheme}
+              followAppTerminalTheme={followAppTerminalTheme}
+              hostById={hostById}
+              themeById={themeById}
+              resolveSessionAppearance={resolveSessionAppearance}
+              onConnect={onConnectHost}
+              onNewHost={onNewHost}
+              onEditHost={onEditHost}
+              onCreateLocalTerminal={onCreateLocalTerminal}
+            />
+          </div>
+        )}
         <div
           role="separator"
           aria-orientation="vertical"

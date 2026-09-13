@@ -4,7 +4,7 @@ import React from 'react';
 import { createDomRenderer, installDomEnvironment, dispatchDomEvent } from '../test-support/renderReactDom';
 import { installTreeEnvironmentMocks } from './testEnvironmentMocks';
 
-test('compact workbench menu toggles inline in the bar and collapses after navigation', async () => {
+test('compact workbench menu toggles inline in the bar and stays open after navigation', async () => {
   const env = installDomEnvironment();
   const restore = installTreeEnvironmentMocks();
   const globals = ['requestAnimationFrame', 'cancelAnimationFrame', 'NodeFilter', 'HTMLInputElement'] as const;
@@ -44,14 +44,16 @@ test('compact workbench menu toggles inline in the bar and collapses after navig
     await dispatchDomEvent(toggle, new env.window.MouseEvent('click', { bubbles: true }));
     assert.equal(toggle.getAttribute('aria-expanded'), 'true');
 
-    // Navigate: the selection lands and the bar collapses.
+    // Navigate: the selection lands and the bar stays open — the menu must
+    // not collapse itself after a click (only the ☰ toggle collapses it).
     const logsAgain = Array.from(
       renderer.container.querySelectorAll('[data-section="workbench-chrome-inline-nav"] button'),
     ).find(button => button.textContent === 'vault.nav.logs');
     assert.ok(logsAgain);
     await dispatchDomEvent(logsAgain, new env.window.MouseEvent('click', { bubbles: true }));
     assert.deepEqual(selected, ['logs']);
-    assert.equal(renderer.container.querySelector('[data-section="workbench-chrome-inline-nav"]'), null);
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.ok(renderer.container.querySelector('[data-section="workbench-chrome-inline-nav"]'));
     assert.ok(renderer.container.querySelector('[data-section="workbench-chrome-actions"]')?.classList.contains('app-no-drag'));
   } finally {
     await renderer.unmount();

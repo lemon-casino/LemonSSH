@@ -53,6 +53,30 @@ test("workbench session layer stays mounted and toggles via visibility", () => {
   );
 });
 
+test("workbench embeds the host tree in the sidebar and disables the floating overlay", () => {
+  // In workbench mode the host tree must not open as a second floating
+  // column next to the session tree; it renders inside the sidebar instead.
+  assert.match(
+    appViewSource,
+    /enabled=\{showHostTreeSidebar && layoutMode !== 'workbench'\}/,
+    "overlay host tree must be disabled in workbench mode",
+  );
+  assert.match(
+    layerSource,
+    /data-section="app-workbench-host-tree-section"/,
+    "session layer must own the embedded host tree section",
+  );
+  assert.match(
+    layerSource,
+    /variant="embedded"/,
+    "embedded section must render the host tree in embedded mode",
+  );
+  assert.doesNotMatch(
+    appViewSource,
+    /layoutMode === 'workbench' &&\s*\n?\s*<AppHostTreeLayer/,
+  );
+});
+
 test("workbench session layer owns the activeTabId subscription, not AppView", () => {
   assert.match(layerSource, /useActiveTabId\(\)/);
   assert.match(layerSource, /memo\(/);

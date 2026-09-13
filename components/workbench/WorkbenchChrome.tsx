@@ -81,9 +81,10 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
 
   // Compact menu defaults to expanded so the sections stay visible; the
   // toggle collapses them to the ☰ button when the bar is needed for drag.
+  // Selecting a section never collapses the bar — the menu must stay where
+  // the user left it (feedback: menus "disappearing" after a click).
   const [navigationOpen, setNavigationOpen] = useState(true);
   const handleSelectSection = useCallback((section: VaultSection) => {
-    setNavigationOpen(false);
     setVaultNavSection(section);
     onSelectVaultSection(section);
   }, [onSelectVaultSection]);

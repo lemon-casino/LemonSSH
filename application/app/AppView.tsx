@@ -590,6 +590,14 @@ function AppViewInner({ domains }: AppViewProps) {
         logViews={logViews}
         orderedTabs={orderedTabsWithEditors}
         showSftpTab={showSftpTab}
+        showHostTreeSidebar={showHostTreeSidebar}
+        currentTerminalTheme={currentTerminalTheme}
+        followAppTerminalTheme={followAppTerminalTheme}
+        themeById={themeById}
+        resolveSessionAppearance={resolveSessionAppearance}
+        onConnectHost={handleConnectToHost}
+        onNewHost={workSurfaceHostEditor.openNew}
+        onCreateLocalTerminal={handleCreateLocalTerminal}
         dynamicTabTitleMode={dynamicTabTitleMode}
         onActivateTab={setActiveTabId}
         onActivateWorkspaceSession={setWorkspaceFocusedSession}
@@ -607,7 +615,7 @@ function AppViewInner({ domains }: AppViewProps) {
       />
       <div className="relative flex-1 min-w-0 min-h-0">
         <AppHostTreeLayer
-          enabled={showHostTreeSidebar}
+          enabled={showHostTreeSidebar && layoutMode !== 'workbench'}
           hosts={hosts}
           customGroups={customGroups}
           groupConfigs={groupConfigs}

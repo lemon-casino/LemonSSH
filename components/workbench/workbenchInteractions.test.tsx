@@ -3,6 +3,7 @@ import test from 'node:test';
 import React from 'react';
 import { createDomRenderer, installDomEnvironment, dispatchDomEvent } from '../test-support/renderReactDom';
 import { installTreeEnvironmentMocks } from './testEnvironmentMocks';
+import { TERMINAL_THEMES } from '../../infrastructure/config/terminalThemes';
 
 test('workbench layer sends shared reorder and workspace insertion callbacks', async () => {
   const env = installDomEnvironment();
@@ -20,6 +21,11 @@ test('workbench layer sends shared reorder and workspace insertion callbacks', a
       ],
       workspaces: [{ id: 'ws1', title: 'Ops', root: { type: 'pane', id: 'p1', sessionId: 's2' } }],
       editorTabs: [], logViews: [], orderedTabs: ['s1', 'ws1'], showSftpTab: false,
+      showHostTreeSidebar: false,
+      currentTerminalTheme: TERMINAL_THEMES[0],
+      followAppTerminalTheme: false,
+      themeById: new Map(),
+      onConnectHost: noop,
       dynamicTabTitleMode: 'off', switchTabKeyBinding: null,
       onActivateTab: noop, onActivateWorkspaceSession: noop, onCloseSession: noop,
       onCloseLogView: noop, onOpenQuickSwitcher: noop, onRenameSession: noop,
