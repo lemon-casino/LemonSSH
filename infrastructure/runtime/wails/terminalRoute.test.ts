@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { normalizeTerminalSettings } from '../../../domain/models';
+import { resolveHostKeepalive } from '../../../domain/host';
+import { buildTermEnv } from '../../../components/terminal/runtime/terminalSessionAttachment';
+import type { Host } from '../../../domain/models';
 
 import {
   TERMINAL_DATA_SUBPROTOCOL,
@@ -85,6 +89,29 @@ test("modeToPermissions keeps the last nine characters only", () => {
   assert.equal(modeToPermissions("short"), undefined);
 });
 
+test("settings state and host overrides reach native SSH without unit changes", () => {
+  const settings = normalizeTerminalSettings({ terminalEmulationType: 'vt100', keepaliveInterval: 45, keepaliveCountMax: 8, verifyHostKeys: false });
+  const host = { keepaliveOverride: true, keepaliveInterval: 0, environmentVariables: [{ name: 'TERM', value: 'screen-256color' }] } as Host;
+  const keepalive = resolveHostKeepalive(host, settings);
+  const args = pickSSHConnectArgs({ hostname: 'h', username: 'u', env: buildTermEnv(host, settings), keepaliveInterval: keepalive.interval, keepaliveCountMax: keepalive.countMax, verifyHostKeys: settings.verifyHostKeys });
+  assert.equal(args.term, 'screen-256color');
+  assert.equal(args.keepaliveInterval, 0);
+  assert.equal(args.keepaliveCountMax, 8);
+  assert.equal(args.verifyHostKeys, false);
+});
+
+test("SSH terminal settings survive the native boundary", () => {
+  const args = pickSSHConnectArgs({ hostname: "h", username: "u", env: { TERM: "vt100" }, verifyHostKeys: false, keepaliveInterval: 7, keepaliveCountMax: 5, x11Forwarding: true, x11Display: "localhost:2", jumpHosts: [{ hostname: "j", username: "u", keepaliveInterval: 0 }] });
+  assert.equal(args.term, "vt100");
+  assert.equal(args.verifyHostKeys, false);
+  assert.equal(args.keepaliveInterval, 7);
+  assert.equal(args.keepaliveCountMax, 5);
+  assert.equal(args.jumpHosts[0].keepaliveInterval, 0);
+  assert.equal(args.jumpHosts[0].verifyHostKeys, true);
+  assert.equal(args.forwardX11, true);
+  assert.equal(args.x11Display, "localhost:2");
+});
+
 test("pickSSHConnectArgs normalizes defaults", () => {
   assert.deepEqual(
     pickSSHConnectArgs({ hostname: "h", username: "u" }),
@@ -103,6 +130,7 @@ test("pickSSHConnectArgs normalizes defaults", () => {
       identityFilePaths: [],
       cols: 80,
       rows: 24,
+      term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
       jumpHosts: [],
     },
   );
@@ -117,6 +145,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       passphrase: "pw",
       requiresMfa: true,
       proxy: { type: "socks5", host: "127.0.0.1", port: 1080 },
+      term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
       jumpHosts: [{ hostname: "jump", username: "bastion", port: 2222, password: "jpw" }],
     }),
     {
@@ -134,6 +163,7 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       identityFilePaths: [],
       cols: 80,
       rows: 24,
+      term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
       jumpHosts: [{
         hostname: "jump",
         username: "bastion",
@@ -149,7 +179,8 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
         identityFilePaths: [],
         cols: 80,
         rows: 24,
-        jumpHosts: [],
+        term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
+      jumpHosts: [],
       }],
     },
   );

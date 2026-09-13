@@ -19,7 +19,7 @@ import {
   type SyncedFile,
   type PKCEChallenge,
 } from '../../../domain/sync';
-import { resolveOAuthClientId } from '../cloudSync/oauthClientIds';
+import { resolveOAuthClientId, resolveOAuthClientSecret } from '../cloudSync/oauthClientIds';
 import { arrayBufferToBase64, generateRandomBytes } from '../EncryptionService';
 import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
 
@@ -131,13 +131,13 @@ export const exchangeCodeForTokens = async (
   const exchangeViaMain = bridge?.googleExchangeCodeForTokens;
   if (!exchangeViaMain) {
     throw new Error(
-      'Google OAuth bridge unavailable (token exchange is blocked by CORS in renderer). Please restart Netcatty.'
+      'Google OAuth bridge unavailable (token exchange is blocked by CORS in renderer). Please restart LemonSSH.'
     );
   }
 
   return await exchangeViaMain({
     clientId: resolveOAuthClientId('google'),
-    clientSecret: SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET,
+    clientSecret: resolveOAuthClientSecret('google') || SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET || undefined,
     code,
     codeVerifier,
     redirectUri,
@@ -152,13 +152,13 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
   const refreshViaMain = bridge?.googleRefreshAccessToken;
   if (!refreshViaMain) {
     throw new Error(
-      'Google OAuth bridge unavailable (token refresh is blocked by CORS in renderer). Please restart Netcatty.'
+      'Google OAuth bridge unavailable (token refresh is blocked by CORS in renderer). Please restart LemonSSH.'
     );
   }
 
   return await refreshViaMain({
     clientId: resolveOAuthClientId('google'),
-    clientSecret: SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET,
+    clientSecret: resolveOAuthClientSecret('google') || SYNC_CONSTANTS.GOOGLE_CLIENT_SECRET || undefined,
     refreshToken,
   });
 };
@@ -477,6 +477,40 @@ export const deleteSyncFile = async (
   }
 };
 
+/**
+ * List stored revisions of the sync file (newest first). Drive keeps at
+ * most 100 revisions per file; older uploads are pruned by Google.
+ */
+export const getRevisionHistory = async (
+  accessToken: string,
+  fileId: string
+): Promise<Array<{ version: string; date: Date }>> => {
+  const bridge = netcattyBridge.get();
+  if (bridge?.googleDriveGetRevisionHistory) {
+    const entries = await bridge.googleDriveGetRevisionHistory({ accessToken, fileId });
+    return (entries ?? []).map(h => ({ version: h.version, date: new Date(h.date) }));
+  }
+
+  const response = await fetch(
+    `${SYNC_CONSTANTS.GOOGLE_DRIVE_API}/files/${fileId}/revisions?pageSize=100`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to list revisions: ${response.statusText}`);
+  }
+
+  const data: { revisions?: Array<{ id: string; modifiedTime: string }> } = await response.json();
+  return (data.revisions ?? []).map(revision => ({
+    version: revision.id,
+    date: new Date(revision.modifiedTime),
+  }));
+};
+
 // ============================================================================
 // Google Drive Adapter Class
 // ============================================================================
@@ -686,6 +720,47 @@ export class GoogleDriveAdapter {
     }
 
     return downloadSyncFile(accessToken, this.fileId);
+  }
+
+  /**
+   * List stored revisions of the sync file (newest first). Lazily
+   * discovers the Drive file ID when needed. Drive prunes revisions
+   * beyond 100 per file.
+   */
+  async getHistory(): Promise<Array<{ version: string; date: Date }>> {
+    if (!this.tokens) return [];
+    const accessToken = await this.ensureValidToken();
+    if (!this.fileId) {
+      this.fileId = await findSyncFile(accessToken);
+    }
+    if (!this.fileId) return [];
+    return getRevisionHistory(accessToken, this.fileId);
+  }
+
+  /**
+   * Download a specific historical revision of the sync file (still
+   * encrypted). Lazily discovers the Drive file ID when needed.
+   */
+  async downloadRevision(revisionId: string): Promise<SyncedFile | null> {
+    if (!this.tokens) return null;
+    const accessToken = await this.ensureValidToken();
+    if (!this.fileId) {
+      this.fileId = await findSyncFile(accessToken);
+    }
+    if (!this.fileId) return null;
+
+    const bridge = netcattyBridge.get();
+    if (!bridge?.googleDriveDownloadSyncFile) {
+      // Renderer fallback has no revision parameter; only the native path
+      // can address a specific Drive revision.
+      throw new Error('Drive revision download requires the native bridge');
+    }
+    const { syncedFile } = await bridge.googleDriveDownloadSyncFile({
+      accessToken,
+      fileId: this.fileId,
+      revisionId,
+    });
+    return (syncedFile as SyncedFile | null) || null;
   }
 
   /**

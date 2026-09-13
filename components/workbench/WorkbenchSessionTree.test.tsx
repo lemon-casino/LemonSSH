@@ -64,6 +64,16 @@ function clickElement(
   );
 }
 
+function doubleClickElement(
+  env: ReturnType<typeof installDomEnvironment>,
+  element: Element,
+) {
+  return dispatchDomEvent(
+    element,
+    new env.window.MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+  );
+}
+
 function makeHost(overrides: Partial<Host> & { id: string; label: string }): Host {
   return {
     group: undefined,
@@ -187,12 +197,136 @@ test("workbench tree renders fixed entries, group badge and pruned sessions", as
     );
     assert.ok(hostRow, "web-01 host row missing");
     assert.match(hostRow.textContent ?? "", /2/);
+    assert.equal(hostRow.querySelector("[data-host-tag]"), null);
     assert.ok(
       renderer.container.querySelector('[data-tab-id="s1"][data-state="active"]'),
       "active session row not highlighted",
     );
     await renderer.unmount();
   } finally {
+    restoreEnv();
+    env.cleanup();
+  }
+});
+
+test("workbench tree paints host tags from hostById without hover", async () => {
+  const env = installDomEnvironment();
+  const restoreEnv = installTreeEnvironmentMocks();
+
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const buildSections = makeSectionsBuilder(buildSessionGroupTree);
+    const renderer = await createDomRenderer(env.document);
+    const hosts = [makeHost({ id: "h1", label: "web-01", group: "Prod", tags: ["edge"] })];
+    const sessions = [makeSession({ id: "s1", hostId: "h1", customName: "web-01 root" })];
+    const sections = buildSections(sessions, hosts);
+
+    await renderTree(WorkbenchSessionTree, renderer, {
+      sections,
+      expandedPaths: new Set(["Prod"]),
+      fixedIds: new Set(["vault", "sftp"]),
+      activeTabId: "s1",
+      sessions,
+      workspaces: [] as Workspace[],
+      logViews: [],
+      hostById: new Map(hosts.map((host) => [host.id, host])),
+      onTogglePath: noop,
+      onActivateTab: noop,
+      onActivateWorkspaceSession: noop,
+      onCloseSession: noop,
+      onCloseLogView: noop,
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
+    });
+    await flushEffects();
+
+    const hostRow = renderer.container.querySelector('[data-section="workbench-tree-host"]');
+    assert.ok(hostRow, "web-01 host row missing");
+    assert.equal(hostRow.querySelector('[data-host-tag="edge"]')?.textContent, "edge");
+    await renderer.unmount();
+  } finally {
+    restoreEnv();
+    env.cleanup();
+  }
+});
+
+test("workbench tree double-click renames groups and connects hosts without copying", async () => {
+  const env = installDomEnvironment();
+  const restoreEnv = installTreeEnvironmentMocks();
+
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const buildSections = makeSectionsBuilder(buildSessionGroupTree);
+    const renderer = await createDomRenderer(env.document);
+    const hosts = [
+      makeHost({ id: "h1", label: "web-01", group: "Prod" }),
+    ];
+    const sessions = [makeSession({ id: "s1", hostId: "h1", customName: "web-01 root" })];
+    const sections = buildSections(sessions, hosts);
+    const renamed: string[] = [];
+    const connected: string[] = [];
+    const copied: string[] = [];
+    const { vaultHostTreeActionsStore } = await import("../../application/state/vaultHostTreeActionsStore");
+    vaultHostTreeActionsStore.setActions({
+      onDeleteHost: noop,
+      onDuplicateHost: noop,
+      onCopyCredentials: noop,
+      onRenameHost: noop,
+      onNewGroup: noop,
+      onRenameGroup: (path: string) => renamed.push(path),
+      onDeleteGroup: noop,
+      commitInlineGroupRename: () => true,
+      cancelInlineGroupEdit: noop,
+      commitInlineHostRename: noop,
+      cancelInlineHostEdit: noop,
+      moveHostToGroup: noop,
+      moveGroup: noop,
+      reorderHost: noop,
+      reorderGroup: () => false,
+    });
+
+    await renderTree(WorkbenchSessionTree, renderer, {
+      sections,
+      expandedPaths: new Set(["Prod", "h1"]),
+      fixedIds: new Set(["vault", "sftp"]),
+      activeTabId: "s1",
+      sessions,
+      workspaces: [] as Workspace[],
+      logViews: [],
+      hostById: new Map(hosts.map((host) => [host.id, host])),
+      onTogglePath: noop,
+      onActivateTab: noop,
+      onActivateWorkspaceSession: noop,
+      onCloseSession: noop,
+      onCloseLogView: noop,
+      onRenameSession: noop,
+      onCopySession: (id: string) => copied.push(id),
+      onConnectHost: (host: Host) => connected.push(host.id),
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
+    });
+    await flushEffects();
+
+    const groupRow = renderer.container.querySelector('[data-section="workbench-tree-group"]');
+    assert.ok(groupRow, "Prod group row missing");
+    await doubleClickElement(env, groupRow as Element);
+    assert.deepEqual(renamed, ["Prod"]);
+    assert.deepEqual(copied, []);
+
+    const hostRow = renderer.container.querySelector('[data-host-id="h1"]');
+    assert.ok(hostRow, "web-01 host row missing");
+    await doubleClickElement(env, hostRow as Element);
+    assert.deepEqual(connected, ["h1"]);
+    assert.deepEqual(copied, []);
+    await renderer.unmount();
+  } finally {
+    const { vaultHostTreeActionsStore } = await import("../../application/state/vaultHostTreeActionsStore");
+    vaultHostTreeActionsStore.setActions(null);
     restoreEnv();
     env.cleanup();
   }

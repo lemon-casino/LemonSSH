@@ -31,6 +31,7 @@ import {
   type HostTreeToolbarPanel,
 } from '../../components/terminalLayer/TerminalHostTreeToolbar';
 import { buildHostTreeThemeFromTerminalTheme } from '../../infrastructure/theme/terminalAppearanceTokens';
+import { toggleSelectedTag } from '../../components/host/HostTagChips';
 
 interface AppWorkbenchSessionLayerProps {
   enabled: boolean;
@@ -391,6 +392,8 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
           onRenameWorkspace={onRenameWorkspace}
           onCopyWorkspace={onCopyWorkspace}
           onCloseWorkspace={onCloseWorkspace}
+          selectedTags={selectedTags}
+          onToggleTag={(tag) => setSelectedTags((current) => toggleSelectedTag(current, tag))}
           toolbar={toolbar}
           expandAllRows={filterActive}
           onEnsurePathExpanded={ensurePathExpanded}

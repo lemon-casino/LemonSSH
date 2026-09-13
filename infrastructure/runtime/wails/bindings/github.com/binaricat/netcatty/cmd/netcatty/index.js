@@ -85,5 +85,16 @@ export {
     TerminalRemoteInfo,
     TransferSnapshot,
     TransferStartRequest,
-    UpgradeStatus
+    UpgradeStatus,
+    VaultBackupCapabilities,
+    VaultBackupCreateRequest,
+    VaultBackupCreateResult,
+    VaultBackupListResult,
+    VaultBackupOpenDirResult,
+    VaultBackupPreview,
+    VaultBackupReadRequest,
+    VaultBackupReadResult,
+    VaultBackupSummary,
+    VaultBackupTrimRequest,
+    VaultBackupTrimResult
 } from "./models.js";

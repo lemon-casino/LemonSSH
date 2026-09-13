@@ -990,6 +990,7 @@ export function VaultViewLayout({ ctx }: { ctx: VaultViewLayoutContext }) {
                 selectedHostIds,
                 selectedTags,
                 sessionCount,
+                setSelectedTags,
                 setDeleteTargetPath,
                 setDragOverDropTarget,
                 setGroupDragOverDropTarget,

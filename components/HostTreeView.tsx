@@ -12,6 +12,7 @@ import { applyGroupDefaults, resolveGroupDefaults } from '../domain/groupConfig'
 import { resolveTelnetPort, resolveTelnetUsername, sanitizeHost } from '../domain/host';
 import {
   resolveHostActivateAction,
+  resolveSidebarTreeDoubleClick,
   type HostClickBehavior,
 } from '../domain/hostClickBehavior';
 import { sortByVaultOrder } from '../domain/vaultOrder';
@@ -22,6 +23,7 @@ import { HostTreeGroupContextMenuContent, HostTreeHostContextMenuContent } from 
 import { ContextMenu, ContextMenuTrigger } from './ui/context-menu';
 import { DistroAvatar } from './DistroAvatar';
 import { HostNotesIndicator } from './host/HostNotesIndicator';
+import { HostTagChips } from './host/HostTagChips';
 import { Button } from './ui/button';
 import { VaultTreeGroupRow, VaultTreeItemRow } from './vault/VaultTreeRow';
 
@@ -310,6 +312,8 @@ interface HostTreeViewProps {
   groupConfigs?: GroupConfig[];
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   autoExpandGroupsKey?: string;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
 }
 
 interface TreeNodeProps {
@@ -355,6 +359,8 @@ interface TreeNodeProps {
   renderDescendants?: boolean;
   treePosInSet?: number;
   treeSetSize?: number;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
 }
 
 
@@ -401,6 +407,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   renderDescendants = true,
   treePosInSet,
   treeSetSize,
+  selectedTags,
+  onToggleTag,
 }) => {
   const inlineEdit = useHostTreeInlineGroupEdit();
   const vaultTreeActions = useVaultHostTreeActions();
@@ -485,6 +493,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                   ? 0
                   : -1}
                 onFocus={() => onActiveTreeItemChange(`group:${node.path}`)}
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (isMultiSelectMode) return;
+                  if (resolveSidebarTreeDoubleClick({ kind: 'group', isInlineEditing }) !== 'rename-group') return;
+                  onRenameGroup(node.path);
+                }}
                 draggable={!isInlineEditing && !isMultiSelectMode}
                 onKeyDown={(event) => {
                   if (!isMultiSelectMode) return;
@@ -609,6 +624,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 	              activeTreeItemKey={activeTreeItemKey}
 	              initialTreeItemKey={initialTreeItemKey}
 	              onActiveTreeItemChange={onActiveTreeItemChange}
+	              selectedTags={selectedTags}
+	              onToggleTag={onToggleTag}
 	            />
 	          ))}
 
@@ -640,6 +657,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 	              activeTreeItemKey={activeTreeItemKey}
 	              initialTreeItemKey={initialTreeItemKey}
 	              onActiveTreeItemChange={onActiveTreeItemChange}
+	              selectedTags={selectedTags}
+	              onToggleTag={onToggleTag}
 	            />
 	          ))}
         </CollapsibleContent>}
@@ -672,6 +691,8 @@ interface HostTreeItemProps {
   onActiveTreeItemChange: (key: string) => void;
   treePosInSet?: number;
   treeSetSize?: number;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
 }
 
 export const getHostTreeDisplayDetails = (
@@ -718,6 +739,8 @@ const HostTreeItem: React.FC<HostTreeItemProps> = ({
   activeTreeItemKey,
   initialTreeItemKey,
   onActiveTreeItemChange,
+  selectedTags,
+  onToggleTag,
 }) => {
   const safeHost = sanitizeHost(host);
   const tags = host.tags || [];
@@ -834,25 +857,23 @@ const HostTreeItem: React.FC<HostTreeItemProps> = ({
                   <Edit2 size={12} />
                 </button>
                 <HostNotesIndicator notes={host.notes} />
+                <HostTagChips
+                  tags={tags}
+                  selectedTags={selectedTags}
+                  onToggleTag={onToggleTag}
+                  compact
+                />
               </div>
               <div className="truncate text-[11px] leading-4 text-muted-foreground">
                 {displayUsername}@{host.hostname}:{displayPort}
               </div>
             </div>
           )}
-          actions={(displayProtocol && displayProtocol !== 'ssh') || tags.length > 0 ? (
-            <div className="ml-2 flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-              {displayProtocol && displayProtocol !== 'ssh' && (
-                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
-                  {displayProtocol.toUpperCase()}
-                </span>
-              )}
-              {tags.length > 0 && (
-                <span className="text-[10px] opacity-60">
-                  {tags.slice(0, 2).join(', ')}
-                  {tags.length > 2 && '...'}
-                </span>
-              )}
+          actions={displayProtocol && displayProtocol !== 'ssh' ? (
+            <div className="ml-2 flex shrink-0 items-center gap-1.5">
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
+                {displayProtocol.toUpperCase()}
+              </span>
             </div>
           ) : undefined}
         />
@@ -910,6 +931,8 @@ const HostTreeViewInner: React.FC<HostTreeViewProps> = ({
   groupConfigs = [],
   scrollRef,
   autoExpandGroupsKey,
+  selectedTags,
+  onToggleTag,
 }) => {
   const { t } = useI18n();
   const treeSortMode = sortMode as HostTreeSortMode;
@@ -1223,6 +1246,8 @@ const HostTreeViewInner: React.FC<HostTreeViewProps> = ({
                 renderDescendants={false}
                 treePosInSet={item.posInSet}
                 treeSetSize={item.setSize}
+                selectedTags={selectedTags}
+                onToggleTag={onToggleTag}
               />
             ) : (
               <HostTreeItem
@@ -1251,6 +1276,8 @@ const HostTreeViewInner: React.FC<HostTreeViewProps> = ({
                 onActiveTreeItemChange={setActiveTreeItemKey}
                 treePosInSet={item.posInSet}
                 treeSetSize={item.setSize}
+                selectedTags={selectedTags}
+                onToggleTag={onToggleTag}
               />
             )}
           </div>
@@ -1307,7 +1334,9 @@ function hostTreeViewAreEqual(prev: HostTreeViewProps, next: HostTreeViewProps):
     && prev.setDragOverDropTarget === next.setDragOverDropTarget
     && prev.groupConfigs === next.groupConfigs
     && prev.scrollRef === next.scrollRef
-    && prev.autoExpandGroupsKey === next.autoExpandGroupsKey;
+    && prev.autoExpandGroupsKey === next.autoExpandGroupsKey
+    && prev.selectedTags === next.selectedTags
+    && prev.onToggleTag === next.onToggleTag;
 }
 
 export const HostTreeView = memo(HostTreeViewInner, hostTreeViewAreEqual);

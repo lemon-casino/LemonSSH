@@ -16,6 +16,7 @@ import {
   decryptLocalStorageValue,
   encryptLocalStorageValue,
 } from './encryptedLocalStorage';
+import { commitHostProfileTransaction, flushHostProfileWrites, getHostProfileRevision, hasHostProfileClient, hostStorageAdapter } from '../../persistence/hostStorageAdapter';
 
 /** Built-ins plus any dynamic plugin providers currently in manager state. */
 function listedProviders(manager: any): CloudProvider[] {
@@ -45,10 +46,14 @@ export async function saveConvergentReplicaImpl(
     state: canonicalizeConvergentSyncState(record.state),
     updatedAt: record.updatedAt,
   };
+  const key = requireLocalEncryptionKey(this);
+  const encoded = await encryptLocalStorageValue(normalized, key);
+  if (requireLocalEncryptionKey(this) !== key) throw new Error('Master key changed before replica persistence');
   if (this.saveToStorage(
     SYNC_STORAGE_KEYS.CONVERGENT_REPLICA,
-    await encryptLocalStorageValue(normalized, requireLocalEncryptionKey(this)),
+    encoded,
   ) === false) throw new Error('Unable to persist convergent sync replica');
+  await flushHostProfileWrites();
 }
 
 export async function loadConvergentReplicaImpl(this: any): Promise<ConvergentReplicaRecordV2 | null> {
@@ -81,10 +86,14 @@ export async function saveConvergentProviderBaselineImpl(
     materializedPayload: stripConvergentSyncEnvelope(baseline.materializedPayload),
     state: canonicalizeConvergentSyncState(baseline.state),
   };
+  const key = requireLocalEncryptionKey(this);
+  const encoded = await encryptLocalStorageValue(normalized, key);
+  if (requireLocalEncryptionKey(this) !== key) throw new Error('Master key changed before baseline persistence');
   if (this.saveToStorage(
     this.convergentProviderBaselineKey(baseline.provider),
-    await encryptLocalStorageValue(normalized, requireLocalEncryptionKey(this)),
+    encoded,
   ) === false) throw new Error(`Unable to persist convergent baseline for ${baseline.provider}`);
+  await flushHostProfileWrites();
 }
 
 export async function loadConvergentProviderBaselineImpl(
@@ -128,6 +137,11 @@ function encryptedSyncStorageKeys(manager: any): string[] {
     keys.add(manager.syncSnapshotsKey(provider));
     keys.add(manager.convergentProviderBaselineKey(provider));
   }
+  // Retain dormant provider baselines too, including unavailable plugins.
+  const persistedKeys = hasHostProfileClient() || typeof globalThis.localStorage !== 'undefined' ? hostStorageAdapter.keys() : [];
+  for (const key of persistedKeys) {
+    if (key.startsWith(`${manager.syncBaseKey()}_`) || key.startsWith(`${manager.syncSnapshotsKey()}_`) || key.startsWith(`${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_`)) keys.add(key);
+  }
   return [...keys];
 }
 
@@ -143,7 +157,10 @@ export async function reencryptSyncStorageImpl(
   newKey: CryptoKey,
   newConfig: MasterKeyConfig,
 ): Promise<void> {
+  await flushHostProfileWrites();
   const keys = encryptedSyncStorageKeys(this);
+  const expectedRevision = getHostProfileRevision();
+  const securityGeneration = this.getSyncSecurityGeneration?.();
   const previousConfig = (
     this.loadFromStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG)
     ?? this.state.masterKeyConfig
@@ -173,6 +190,14 @@ export async function reencryptSyncStorageImpl(
   if (JSON.stringify(currentConfig) !== JSON.stringify(previousConfig)) {
     throw new Error('Master key configuration changed while it was being rotated');
   }
+  const expected = new Map([...originals].map(([key, value]) => [key, value === null ? null : JSON.stringify(value)]));
+  expected.set(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, previousConfig === null ? null : JSON.stringify(previousConfig));
+  const next = new Map([...replacements].map(([key, value]) => [key, JSON.stringify(value)]));
+  next.set(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, JSON.stringify(newConfig));
+  if (this.getSyncSecurityGeneration?.() !== securityGeneration) throw new Error('Master key rotation was interrupted before commit');
+  if (await commitHostProfileTransaction(expected, next, expectedRevision)) return;
+
+  // Electron's synchronous storage path retains exact-ciphertext rollback.
   const committed: string[] = [];
   try {
     for (const [key, replacement] of replacements) {
@@ -185,12 +210,19 @@ export async function reencryptSyncStorageImpl(
       throw new Error('Unable to persist the new master key configuration');
     }
   } catch (error) {
+    const rollbackErrors: unknown[] = [];
     for (const key of committed.reverse()) {
       const original = originals.get(key);
-      if (original !== undefined) this.saveToStorage(key, original);
+      try {
+        if (original !== undefined && this.saveToStorage(key, original) === false) throw new Error(`Unable to roll back ${key}`);
+      } catch (rollbackError) { rollbackErrors.push(rollbackError); }
     }
-    if (previousConfig) this.saveToStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, previousConfig);
-    else this.removeFromStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG);
+    try {
+      if (previousConfig) {
+        if (this.saveToStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, previousConfig) === false) throw new Error('Unable to roll back master key configuration');
+      } else this.removeFromStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG);
+    } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+    if (rollbackErrors.length) throw new AggregateError([error, ...rollbackErrors], 'Master key rotation rollback failed; sync must remain locked');
     throw error;
   }
 }

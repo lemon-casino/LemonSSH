@@ -8,11 +8,29 @@ import {
   isHostClickBehavior,
   resolveGroupActivateAction,
   resolveHostActivateAction,
+  resolveSidebarTreeDoubleClick,
   shouldClearHostFocusOnBackgroundClick,
 } from './hostClickBehavior';
 
 test('default host click behavior is connect (legacy single-click)', () => {
   assert.equal(DEFAULT_HOST_CLICK_BEHAVIOR, 'connect');
+});
+
+test('sidebar double-click renames groups and connects hosts without copying', () => {
+  assert.equal(resolveSidebarTreeDoubleClick({ kind: 'group' }), 'rename-group');
+  assert.equal(resolveSidebarTreeDoubleClick({ kind: 'host' }), 'connect-host');
+  assert.equal(
+    resolveSidebarTreeDoubleClick({ kind: 'group', isWorkspace: true }),
+    'none',
+  );
+  assert.equal(
+    resolveSidebarTreeDoubleClick({ kind: 'group', isInlineEditing: true }),
+    'none',
+  );
+  assert.equal(
+    resolveSidebarTreeDoubleClick({ kind: 'host', isInlineEditing: true }),
+    'none',
+  );
 });
 
 test('isHostClickBehavior accepts only known values', () => {

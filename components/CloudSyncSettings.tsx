@@ -25,6 +25,7 @@ import {
     stripSyncPayloadEncryptedCredentials,
 } from '../domain/credentials';
 import {
+    isCloudProviderConnectDisabled,
     isProviderReadyForSync,
     type CloudProvider,
     type ConvergentMigrationPreview,
@@ -141,18 +142,6 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
             toast.info(t('cloudSync.connect.browserCancelled'));
         }
         sync.cancelOAuthConnect();
-        if (sync.convergentSyncConfig.initialized) return;
-        const providers = new Set<CloudProvider>(['github', 'google', 'onedrive', 'webdav', 's3']);
-        for (const id of Object.keys(sync.providers)) {
-            providers.add(id as CloudProvider);
-        }
-        for (const provider of providers) {
-            if (provider === current) continue;
-            const conn = sync.providers[provider];
-            if (conn && isProviderReadyForSync(conn)) {
-                await sync.disconnectProvider(provider);
-            }
-        }
     };
 
     // GitHub Device Flow state
@@ -165,8 +154,9 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
     // Conflict modal
     const [showConflictModal, setShowConflictModal] = useState(false);
 
-    // Gist revision history (#679)
+    // Revision history (#679; GitHub Gist + Google Drive)
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyProvider, setHistoryProvider] = useState<CloudProvider>('github');
     const [historyRevisions, setHistoryRevisions] = useState<Array<{ version: string; date: Date }>>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
@@ -186,23 +176,12 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
     );
 
     const isConnectDisabled = (provider: CloudProvider): boolean => {
-        const connection = sync.providers[provider];
-        if (pendingConnectProvider && pendingConnectProvider !== provider) {
-            return true;
-        }
-        if (pendingConnectProvider === provider) {
-            return true;
-        }
-        if (hasConnectingProvider && connection?.status !== 'connecting') {
-            return true;
-        }
-        // Never-connected plugin providers still honor the single-provider gate.
-        if (!connection) {
-            return !sync.convergentSyncConfig.initialized && sync.hasAnyConnectedProvider;
-        }
-        return !sync.convergentSyncConfig.initialized
-            && sync.hasAnyConnectedProvider
-            && !isProviderReadyForSync(connection);
+        return isCloudProviderConnectDisabled({
+            provider,
+            connection: sync.providers[provider],
+            pendingConnectProvider,
+            hasConnectingProvider,
+        });
     };
 
     const beginPendingConnect = (provider: CloudProvider): boolean => {
@@ -451,15 +430,12 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
             setShowUnlockDialog(false);
             return;
         }
-        if (!sync.hasAnyConnectedProvider && !sync.autoSyncEnabled) {
-            return;
-        }
 
         const t = setTimeout(() => setShowUnlockDialog(true), 500);
         return () => clearTimeout(t);
-    }, [sync.securityState, sync.hasAnyConnectedProvider, sync.autoSyncEnabled]);
+    }, [sync.securityState]);
 
-    // Connect GitHub (disconnect others first - single provider only)
+    // Connect GitHub
     const handleConnectGitHub = async () => {
         if (!beginPendingConnect('github')) return;
         const cancelController = new AbortController();
@@ -507,7 +483,7 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
         }
     };
 
-    // Connect Google (disconnect others first - single provider only)
+    // Connect Google
     const handleConnectGoogle = async () => {
         if (!beginPendingConnect('google')) return;
         try {
@@ -526,7 +502,7 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
         }
     };
 
-    // Connect OneDrive (disconnect others first - single provider only)
+    // Connect OneDrive
     const handleConnectOneDrive = async () => {
         if (!beginPendingConnect('onedrive')) return;
         try {
@@ -543,6 +519,18 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
         } finally {
             endPendingConnect('onedrive');
         }
+    };
+
+    const isVaultLockedMessage = (message: string): boolean => {
+        const normalized = message.toLowerCase();
+        return normalized.includes('vault is locked') || normalized.includes('master password not available');
+    };
+
+    const promptUnlockInsteadOfError = (message: string): boolean => {
+        if (!isVaultLockedMessage(message)) return false;
+        setUnlockError(null);
+        setShowUnlockDialog(true);
+        return true;
     };
 
     const handleResetSyncInit = async () => {
@@ -718,11 +706,15 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
                 toast.success(t('cloudSync.sync.success', { provider }));
             } else if (result.conflictDetected) {
                 // Conflict modal will show automatically
+            } else if (promptUnlockInsteadOfError(result.error || '')) {
+                return;
             } else {
                 toast.error(result.error || t('cloudSync.sync.failed'), t('cloudSync.sync.failedTitle'));
             }
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : t('common.unknownError'), t('cloudSync.sync.errorTitle'));
+            const message = error instanceof Error ? error.message : t('common.unknownError');
+            if (promptUnlockInsteadOfError(message)) return;
+            toast.error(message, t('cloudSync.sync.errorTitle'));
         }
     };
 
@@ -808,16 +800,19 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
         }
     };
 
-    // -- Gist revision history handlers --
+    // -- Revision history handlers (GitHub Gist + Google Drive) --
 
-    const handleOpenHistory = async () => {
+    const handleOpenHistory = async (provider: CloudProvider) => {
         setShowHistoryModal(true);
+        setHistoryProvider(provider);
         setHistoryLoading(true);
         setHistoryError(null);
         setHistoryPreview(null);
         setHistoryRevisions([]);
         try {
-            const revisions = await sync.getGistRevisionHistory();
+            const revisions = provider === 'github'
+                ? await sync.getGistRevisionHistory()
+                : await sync.getProviderRevisionHistory(provider);
             setHistoryRevisions(revisions);
         } catch (err) {
             setHistoryError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -830,7 +825,9 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
         setHistoryPreviewLoading(true);
         setHistoryError(null);
         try {
-            const result = await sync.downloadGistRevision(sha);
+            const result = historyProvider === 'github'
+                ? await sync.downloadGistRevision(sha)
+                : await sync.downloadProviderRevision(historyProvider, sha);
             if (result) {
                 setHistoryPreview({
                     sha,
@@ -943,6 +940,7 @@ const SyncDashboard: React.FC<SyncDashboardProps> = ({
                     <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
                         <li>{t('cloudSync.resetInit.itemKey')}</li>
                         <li>{t('cloudSync.resetInit.itemConnections')}</li>
+                        <li>{t('cloudSync.resetInit.itemOAuth')}</li>
                         <li>{t('cloudSync.resetInit.itemLocalSafe')}</li>
                     </ul>
                     <DialogFooter>

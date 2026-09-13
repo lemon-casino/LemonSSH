@@ -169,11 +169,30 @@ export function CloudSyncWebdavUpload(config, syncedFile) {
 }
 
 /**
+ * @param {$models.VaultBackupCreateRequest} req
+ * @returns {$CancellablePromise<$models.VaultBackupCreateResult>}
+ */
+export function CreateVaultBackup(req) {
+    return $Call.ByID(452188668, req).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType5($result);
+    }));
+}
+
+/**
  * @param {{ [_ in string]?: syncengine$0.Entry }} entries
  * @returns {$CancellablePromise<string>}
  */
 export function Fingerprint(entries) {
     return $Call.ByID(542796586, entries);
+}
+
+/**
+ * @returns {$CancellablePromise<$models.VaultBackupCapabilities>}
+ */
+export function GetVaultBackupCapabilities() {
+    return $Call.ByID(777587426).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
 }
 
 /**
@@ -190,7 +209,7 @@ export function GithubCancelDeviceFlowPoll(pollID) {
  */
 export function GithubDeleteSyncFile(options) {
     return $Call.ByID(4101237643, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType7($result);
     }));
 }
 
@@ -208,7 +227,7 @@ export function GithubDownloadGistRawContent(options) {
  */
 export function GithubDownloadSyncFile(options) {
     return $Call.ByID(51204524, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType8($result);
     }));
 }
 
@@ -218,7 +237,7 @@ export function GithubDownloadSyncFile(options) {
  */
 export function GithubFindSyncFile(options) {
     return $Call.ByID(2323842771, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
     }));
 }
 
@@ -228,7 +247,7 @@ export function GithubFindSyncFile(options) {
  */
 export function GithubGetGistHistory(options) {
     return $Call.ByID(3536758768, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType9($result);
+        return $$createType11($result);
     }));
 }
 
@@ -238,7 +257,7 @@ export function GithubGetGistHistory(options) {
  */
 export function GithubGetUserInfo(options) {
     return $Call.ByID(1159881876, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType10($result);
+        return $$createType12($result);
     }));
 }
 
@@ -248,7 +267,7 @@ export function GithubGetUserInfo(options) {
  */
 export function GithubPollDeviceFlowToken(options) {
     return $Call.ByID(2906562015, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType11($result);
+        return $$createType13($result);
     }));
 }
 
@@ -258,7 +277,7 @@ export function GithubPollDeviceFlowToken(options) {
  */
 export function GithubStartDeviceFlow(options) {
     return $Call.ByID(696828065, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType14($result);
     }));
 }
 
@@ -268,7 +287,7 @@ export function GithubStartDeviceFlow(options) {
  */
 export function GithubUploadSyncFile(options) {
     return $Call.ByID(1083299301, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
     }));
 }
 
@@ -278,7 +297,7 @@ export function GithubUploadSyncFile(options) {
  */
 export function GoogleDriveCreateSyncFile(options) {
     return $Call.ByID(976626762, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
     }));
 }
 
@@ -288,7 +307,7 @@ export function GoogleDriveCreateSyncFile(options) {
  */
 export function GoogleDriveDeleteSyncFile(options) {
     return $Call.ByID(1871458781, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType7($result);
     }));
 }
 
@@ -298,7 +317,7 @@ export function GoogleDriveDeleteSyncFile(options) {
  */
 export function GoogleDriveDownloadSyncFile(options) {
     return $Call.ByID(2715818782, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType8($result);
     }));
 }
 
@@ -308,7 +327,17 @@ export function GoogleDriveDownloadSyncFile(options) {
  */
 export function GoogleDriveFindSyncFile(options) {
     return $Call.ByID(1688271021, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
+    }));
+}
+
+/**
+ * @param {cloudsync$0.FileOptions} options
+ * @returns {$CancellablePromise<cloudsync$0.GistRevision[]>}
+ */
+export function GoogleDriveGetRevisionHistory(options) {
+    return $Call.ByID(254401520, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType11($result);
     }));
 }
 
@@ -318,7 +347,7 @@ export function GoogleDriveFindSyncFile(options) {
  */
 export function GoogleDriveUpdateSyncFile(options) {
     return $Call.ByID(104825143, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType7($result);
     }));
 }
 
@@ -328,7 +357,7 @@ export function GoogleDriveUpdateSyncFile(options) {
  */
 export function GoogleExchangeCodeForTokens(options) {
     return $Call.ByID(2903839302, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType13($result);
+        return $$createType15($result);
     }));
 }
 
@@ -338,7 +367,7 @@ export function GoogleExchangeCodeForTokens(options) {
  */
 export function GoogleGetUserInfo(options) {
     return $Call.ByID(2397403636, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType10($result);
+        return $$createType12($result);
     }));
 }
 
@@ -348,7 +377,16 @@ export function GoogleGetUserInfo(options) {
  */
 export function GoogleRefreshAccessToken(options) {
     return $Call.ByID(2697578239, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType13($result);
+        return $$createType15($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.VaultBackupListResult>}
+ */
+export function ListVaultBackups() {
+    return $Call.ByID(143757765).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType16($result);
     }));
 }
 
@@ -359,7 +397,7 @@ export function GoogleRefreshAccessToken(options) {
  */
 export function Merge(local, remote) {
     return $Call.ByID(3140789034, local, remote).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType15($result);
+        return $$createType18($result);
     }));
 }
 
@@ -369,7 +407,7 @@ export function Merge(local, remote) {
  */
 export function OnedriveDeleteSyncFile(options) {
     return $Call.ByID(4121454560, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType7($result);
     }));
 }
 
@@ -379,7 +417,7 @@ export function OnedriveDeleteSyncFile(options) {
  */
 export function OnedriveDownloadSyncFile(options) {
     return $Call.ByID(828855427, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType8($result);
     }));
 }
 
@@ -389,7 +427,7 @@ export function OnedriveDownloadSyncFile(options) {
  */
 export function OnedriveExchangeCodeForTokens(options) {
     return $Call.ByID(2946340819, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType13($result);
+        return $$createType15($result);
     }));
 }
 
@@ -399,7 +437,7 @@ export function OnedriveExchangeCodeForTokens(options) {
  */
 export function OnedriveFindSyncFile(options) {
     return $Call.ByID(2960220208, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
     }));
 }
 
@@ -409,7 +447,7 @@ export function OnedriveFindSyncFile(options) {
  */
 export function OnedriveGetUserInfo(options) {
     return $Call.ByID(2982913789, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType10($result);
+        return $$createType12($result);
     }));
 }
 
@@ -419,7 +457,7 @@ export function OnedriveGetUserInfo(options) {
  */
 export function OnedriveRefreshAccessToken(options) {
     return $Call.ByID(3645062504, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType13($result);
+        return $$createType15($result);
     }));
 }
 
@@ -429,7 +467,7 @@ export function OnedriveRefreshAccessToken(options) {
  */
 export function OnedriveUploadSyncFile(options) {
     return $Call.ByID(2347963314, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType9($result);
     }));
 }
 
@@ -453,13 +491,42 @@ export function OpenProviderConsole(provider) {
 }
 
 /**
+ * @returns {$CancellablePromise<$models.VaultBackupOpenDirResult>}
+ */
+export function OpenVaultBackupDir() {
+    return $Call.ByID(3557137687).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType19($result);
+    }));
+}
+
+/**
  * These methods mirror the existing cloud-sync bridge. Wails injects context;
  * the renderer supplies only the JSON options shown by the domain types.
  * @returns {$CancellablePromise<cloudsync$0.CallbackSession>}
  */
 export function PrepareOAuthCallback() {
     return $Call.ByID(1694338819).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType16($result);
+        return $$createType20($result);
+    }));
+}
+
+/**
+ * @param {$models.VaultBackupReadRequest} req
+ * @returns {$CancellablePromise<$models.VaultBackupReadResult>}
+ */
+export function ReadVaultBackup(req) {
+    return $Call.ByID(771780000, req).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType21($result);
+    }));
+}
+
+/**
+ * @param {$models.VaultBackupTrimRequest} req
+ * @returns {$CancellablePromise<$models.VaultBackupTrimResult>}
+ */
+export function TrimVaultBackups(req) {
+    return $Call.ByID(3894868865, req).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType22($result);
     }));
 }
 
@@ -469,15 +536,21 @@ const $$createType1 = $Create.Array($Create.Any);
 const $$createType2 = $models.CloudSyncDeleteResult.createFrom;
 const $$createType3 = $models.CloudSyncDownloadResult.createFrom;
 const $$createType4 = $models.CloudSyncResource.createFrom;
-const $$createType5 = cloudsync$0.OKResult.createFrom;
-const $$createType6 = cloudsync$0.DownloadResult.createFrom;
-const $$createType7 = cloudsync$0.FileResult.createFrom;
-const $$createType8 = cloudsync$0.GistRevision.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = cloudsync$0.UserInfo.createFrom;
-const $$createType11 = cloudsync$0.DeviceToken.createFrom;
-const $$createType12 = cloudsync$0.DeviceCode.createFrom;
-const $$createType13 = cloudsync$0.OAuthTokens.createFrom;
-const $$createType14 = syncengine$0.Entry.createFrom;
-const $$createType15 = $Create.Map($Create.Any, $$createType14);
-const $$createType16 = cloudsync$0.CallbackSession.createFrom;
+const $$createType5 = $models.VaultBackupCreateResult.createFrom;
+const $$createType6 = $models.VaultBackupCapabilities.createFrom;
+const $$createType7 = cloudsync$0.OKResult.createFrom;
+const $$createType8 = cloudsync$0.DownloadResult.createFrom;
+const $$createType9 = cloudsync$0.FileResult.createFrom;
+const $$createType10 = cloudsync$0.GistRevision.createFrom;
+const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = cloudsync$0.UserInfo.createFrom;
+const $$createType13 = cloudsync$0.DeviceToken.createFrom;
+const $$createType14 = cloudsync$0.DeviceCode.createFrom;
+const $$createType15 = cloudsync$0.OAuthTokens.createFrom;
+const $$createType16 = $models.VaultBackupListResult.createFrom;
+const $$createType17 = syncengine$0.Entry.createFrom;
+const $$createType18 = $Create.Map($Create.Any, $$createType17);
+const $$createType19 = $models.VaultBackupOpenDirResult.createFrom;
+const $$createType20 = cloudsync$0.CallbackSession.createFrom;
+const $$createType21 = $models.VaultBackupReadResult.createFrom;
+const $$createType22 = $models.VaultBackupTrimResult.createFrom;

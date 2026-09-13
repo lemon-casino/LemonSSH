@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { HostNotesIndicator } from "../host/HostNotesIndicator";
+import { HostTagChips, toggleSelectedTag } from "../host/HostTagChips";
 import {
   VirtualizedGroupedHostCollection,
   VirtualizedHostCollection,
@@ -54,7 +55,7 @@ const isRelatedTargetInside = (
 const EMPTY_GROUP_PATH_SET = new Set<string>();
 
 export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext }) {
-  const { Badge, Boolean, Button, cancelInlineGroupEdit, CheckSquare, ClipboardCopy, Clock, cn, commitInlineGroupRename, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, Copy, displayedGroups, displayedHosts, DistroAvatar, Edit2, FileSymlink, FolderPlus, FolderTree, getDropTargetClasses, getEffectiveHostDistro, groupConfigs, groupedDisplayHosts, handleCopyCredentials, handleCopyHostname, handleDuplicateHost, handleEditGroupConfig, handleEditHost, handleHostConnect, hostClickBehavior: hostClickBehaviorProp, handleUnmanageGroup, hasHostsSidePanel, hostListScrollRef, HostTreeView, isHostsSectionActive, isMultiSelectMode, lastPinnedId, LayoutGrid, managedGroupPaths, moveGroup, moveHostToGroup, onDeleteHost, Pin, pinnedHosts, Plug, recentHosts, reorderGroup, reorderHost, sanitizeHost, search, selectedGroupPath, selectedGroupPaths, selectedHostIds, selectedTags, sessionCount, setDeleteTargetPath, setDragOverDropTarget, setGroupDragOverDropTarget, setIsDeleteGroupOpen, setIsNewFolderOpen, setLastPinnedId, setNewFolderName, setSelectedGroupPath, setTargetParentPath, shouldHideEmptyRootHostsSection, showRecentHosts, sortMode, Square, Star, startInlineDeleteGroup, startInlineNewGroup, startInlineRenameGroup, t, toggleGroupSelection, toggleHostPinned, toggleHostSelection, Trash2, treeExpandedState, treeViewGroupTree, treeViewHosts, viewMode, visibleDisplayedHosts } = ctx;
+  const { Badge, Boolean, Button, cancelInlineGroupEdit, CheckSquare, ClipboardCopy, Clock, cn, commitInlineGroupRename, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, Copy, displayedGroups, displayedHosts, DistroAvatar, Edit2, FileSymlink, FolderPlus, FolderTree, getDropTargetClasses, getEffectiveHostDistro, groupConfigs, groupedDisplayHosts, handleCopyCredentials, handleCopyHostname, handleDuplicateHost, handleEditGroupConfig, handleEditHost, handleHostConnect, hostClickBehavior: hostClickBehaviorProp, handleUnmanageGroup, hasHostsSidePanel, hostListScrollRef, HostTreeView, isHostsSectionActive, isMultiSelectMode, lastPinnedId, LayoutGrid, managedGroupPaths, moveGroup, moveHostToGroup, onDeleteHost, Pin, pinnedHosts, Plug, recentHosts, reorderGroup, reorderHost, sanitizeHost, search, selectedGroupPath, selectedGroupPaths, selectedHostIds, selectedTags, sessionCount, setDeleteTargetPath, setDragOverDropTarget, setGroupDragOverDropTarget, setIsDeleteGroupOpen, setIsNewFolderOpen, setLastPinnedId, setNewFolderName, setSelectedGroupPath, setSelectedTags, setTargetParentPath, shouldHideEmptyRootHostsSection, showRecentHosts, sortMode, Square, Star, startInlineDeleteGroup, startInlineNewGroup, startInlineRenameGroup, t, toggleGroupSelection, toggleHostPinned, toggleHostSelection, Trash2, treeExpandedState, treeViewGroupTree, treeViewHosts, viewMode, visibleDisplayedHosts } = ctx;
   const hostClickBehavior: HostClickBehavior = hostClickBehaviorProp === 'select' ? 'select' : 'connect';
   const multiSelectedGroupPaths: Set<string> = selectedGroupPaths ?? EMPTY_GROUP_PATH_SET;
   const [draggingHostId, setDraggingHostId] = React.useState<string | null>(null);
@@ -346,6 +347,19 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
     </Button>
   );
 
+  const handleToggleTag = React.useCallback((tag: string) => {
+    setSelectedTags?.((current: string[] | undefined) => toggleSelectedTag(current ?? [], tag));
+  }, [setSelectedTags]);
+
+  const renderHostTags = (host: Host) => (
+    <HostTagChips
+      tags={host.tags}
+      selectedTags={selectedTags}
+      onToggleTag={setSelectedTags ? handleToggleTag : undefined}
+      compact
+    />
+  );
+
   return <div
           ref={hostListScrollRef}
           className={cn(
@@ -595,6 +609,7 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
                                         </span>
                                         {viewMode !== "grid" && renderHostEditButton(host, true)}
                                         <HostNotesIndicator notes={safeHost.notes} />
+                                        {renderHostTags(safeHost)}
                                       </div>
                                       <div className="text-[11px] text-muted-foreground font-mono truncate leading-4">
                                         {safeHost.username}@{safeHost.hostname}
@@ -714,6 +729,7 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
                                         </span>
                                         {viewMode !== "grid" && renderHostEditButton(host, true)}
                                         <HostNotesIndicator notes={safeHost.notes} />
+                                        {renderHostTags(safeHost)}
                                       </div>
                                       <div className="text-[11px] text-muted-foreground font-mono truncate leading-4">
                                         {safeHost.username}@{safeHost.hostname}
@@ -993,6 +1009,8 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
                       groupConfigs={groupConfigs}
                       scrollRef={hostListScrollRef}
                       autoExpandGroupsKey={treeAutoExpandGroupsKey}
+                      selectedTags={selectedTags}
+                      onToggleTag={setSelectedTags ? handleToggleTag : undefined}
                     />
 	                  ) : sortMode === "group" && groupedDisplayHosts ? (
 	                    <>
@@ -1091,6 +1109,7 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
                                                 </Badge>
                                               )}
                                               <HostNotesIndicator notes={safeHost.notes} />
+                                        {renderHostTags(safeHost)}
                                             </div>
                                             <div className="text-[11px] text-muted-foreground font-mono truncate leading-4">
                                               {safeHost.username}@{safeHost.hostname}
@@ -1240,6 +1259,7 @@ export function VaultHostListSection({ ctx }: { ctx: VaultHostListSectionContext
                                           </Badge>
                                         )}
                                         <HostNotesIndicator notes={safeHost.notes} />
+                                        {renderHostTags(safeHost)}
                                       </div>
                                       <div className="text-[11px] text-muted-foreground font-mono truncate leading-4">
                                         {safeHost.username}@{safeHost.hostname}

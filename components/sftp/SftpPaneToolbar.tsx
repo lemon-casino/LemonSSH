@@ -1,3 +1,4 @@
+import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Check, ClipboardCopy, Eye, EyeOff, FilePlus, Folder, FolderPlus, FolderSync, Globe, Home, Languages, List, ListTree, RefreshCw, Search, Terminal, TerminalSquare, Trash2, X } from "lucide-react";
 import { useToolbarItemLayout } from "../../application/state/useToolbarItemLayout";
@@ -449,7 +450,14 @@ export const SftpPaneToolbar: React.FC<SftpPaneToolbarProps> = React.memo(({
   const handleCopyCurrentPath = useCallback(async () => {
     await copySftpCurrentPathToClipboard({
       currentPath: displayPath,
-      writeText: (text) => navigator.clipboard.writeText(text),
+      writeText: async (text) => {
+        const bridge = netcattyBridge.get();
+        if (bridge?.writeClipboardText) {
+          if (!await bridge.writeClipboardText(text)) throw new Error("Clipboard write failed");
+        } else {
+          await navigator.clipboard.writeText(text);
+        }
+      },
       onSuccess: (message) => toast.success(message, "SFTP"),
       onError: (message) => toast.error(message, "SFTP"),
       t,

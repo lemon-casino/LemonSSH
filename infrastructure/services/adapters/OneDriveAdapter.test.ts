@@ -33,6 +33,34 @@ const expiredTokens = (): OAuthTokens => ({
   tokenType: 'Bearer',
 });
 
+test('concurrent OneDrive operations share refresh and wait for durable token persistence', async () => {
+  let refreshes = 0;
+  let downloads = 0;
+  let saves = 0;
+  let release!: () => void;
+  let began!: () => void;
+  const started = new Promise<void>(resolve => { began = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const rotated: OAuthTokens = {accessToken:'fresh',refreshToken:'rotated',expiresAt:Date.now()+3600000,tokenType:'Bearer'};
+  const restore = setBridge({
+    onedriveRefreshAccessToken:async () => {refreshes++; return rotated;},
+    onedriveDownloadSyncFile:async () => {downloads++; return {syncedFile:{meta:{version:1},payload:'eA=='}};},
+  });
+  try {
+    const adapter = new OneDriveAdapter(expiredTokens(),'file-1');
+    adapter.setOnTokensRefreshed(async () => {saves++; began(); await gate;});
+    const first = adapter.download();
+    await started;
+    const second = adapter.download();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(downloads,0);
+    assert.equal(saves,1);
+    release(); await Promise.all([first,second]);
+    assert.equal(refreshes,1);
+    assert.equal(downloads,2);
+  } finally {release(); restore();}
+});
+
 test('isOneDriveReauthRequiredError detects the marker and the error class', () => {
   assert.equal(isOneDriveReauthRequiredError(new OneDriveReauthRequiredError()), true);
   assert.equal(

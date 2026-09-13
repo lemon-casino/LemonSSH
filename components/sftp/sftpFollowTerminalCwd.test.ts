@@ -5,11 +5,45 @@ import {
   mergeLatestFollowTerminalCwdHostSetting,
   resolveHostFollowTerminalCwd,
   resolveSftpFollowTerminalCwdTargetHost,
+  runManualTerminalCwdNavigation,
   runInitialFollowTerminalCwdSync,
   shouldApplyFollowTerminalCwdSyncResult,
   shouldClearBlockedFollowOnReach,
   shouldFollowTerminalCwdNavigate,
 } from "./sftpFollowTerminalCwd";
+
+test("manual terminal cwd navigation ignores a response from a previous tab", async () => {
+  let resolve!: (cwd: string) => void;
+  let current = true;
+  let path = "/tab-b";
+  const operation = runManualTerminalCwdNavigation({
+    getCwd: () => new Promise<string>(done => { resolve = done; }),
+    shouldApply: () => current,
+    navigate: async cwd => { path = cwd; return "reached"; },
+  });
+  current = false;
+  resolve("/tab-a/a b'\u76ee\u5f55");
+  assert.equal(await operation, null);
+  assert.equal(path, "/tab-b");
+});
+
+test("manual terminal cwd navigation cannot commit after switching during directory load", async () => {
+  let current = true;
+  let commit!: () => void;
+  let path = "/tab-b";
+  const operation = runManualTerminalCwdNavigation({
+    getCwd: async () => "/tab-a",
+    shouldApply: () => current,
+    navigate: (cwd, shouldApply) => new Promise(done => {
+      commit = () => { if (shouldApply()) path = cwd; done("reached"); };
+    }),
+  });
+  await Promise.resolve();
+  current = false;
+  commit();
+  assert.equal(await operation, null);
+  assert.equal(path, "/tab-b");
+});
 
 const base = {
   followEnabled: true,
@@ -22,7 +56,7 @@ const base = {
 };
 
 const readComponentSource = (relativePath: string) => (
-  readFileSync(new URL(relativePath, import.meta.url), "utf8")
+  readFileSync(new URL(relativePath, import.meta.url), "utf8").replace(/\r\n/g, "\n")
 );
 
 test("shouldFollowTerminalCwdNavigate returns true when follow is on and paths differ", () => {

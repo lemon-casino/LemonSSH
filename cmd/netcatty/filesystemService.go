@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -38,28 +40,111 @@ func (s *FilesystemService) TempFilePath(name string) (string, error) {
 	if s.temp == nil {
 		return "", fmt.Errorf("managed temp unavailable")
 	}
-	return s.temp.FilePath(fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Base(name)))
+	return s.temp.ReserveFilePath(name)
+}
+
+// ReleaseTempFile ends renderer ownership without removing an external-edit
+// download. Call after the last consumer finishes; transfer I/O has its own pin.
+func (s *FilesystemService) ReleaseTempFile(filePath string) error {
+	if s.temp == nil {
+		return fmt.Errorf("managed temp unavailable")
+	}
+	return s.temp.Release(filePath)
 }
 func (s *FilesystemService) ClearTemp() (TempClearResult, error) {
 	if s.temp == nil {
 		return TempClearResult{}, fmt.Errorf("managed temp unavailable")
 	}
-	entries, err := os.ReadDir(s.temp.Root())
+	deleted, err := s.temp.ClearInactive()
+	return TempClearResult{Success: err == nil, DeletedCount: deleted}, err
+}
+
+func (s *FilesystemService) managedTempPath(filePath string) (string, error) {
+	if s.temp == nil {
+		return "", fmt.Errorf("managed temp unavailable")
+	}
+	rel, err := filepath.Rel(s.temp.Root(), filePath)
+	if err != nil || rel == "." {
+		return "", fmt.Errorf("invalid managed temp file")
+	}
+	return s.temp.FilePath(rel)
+}
+
+func (s *FilesystemService) ValidateTempFile(filePath string) error {
+	target, err := s.managedTempPath(filePath)
 	if err != nil {
-		return TempClearResult{}, err
+		return err
 	}
-	result := TempClearResult{Success: true}
-	for _, entry := range entries {
-		// Staged uploads and active compression archives may still be in use.
-		if strings.HasPrefix(entry.Name(), "active-transfer-") || strings.HasPrefix(entry.Name(), stagedUploadPrefix) {
-			continue
-		}
-		if err := s.temp.Remove(entry.Name()); err != nil {
-			return result, err
-		}
-		result.DeletedCount++
+	return validateOpenFile(target)
+}
+
+func (s *FilesystemService) DeleteTempFile(filePath string) error {
+	target, err := s.managedTempPath(filePath)
+	if err != nil {
+		return err
 	}
-	return result, nil
+	info, err := os.Lstat(target)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err == nil && !info.Mode().IsRegular() {
+		return fmt.Errorf("temp path is not a regular file")
+	}
+	rel, _ := filepath.Rel(s.temp.Root(), target)
+	return s.temp.Remove(rel)
+}
+
+func validateOpenFile(filePath string) error {
+	if !filepath.IsAbs(filePath) {
+		return fmt.Errorf("absolute file path required")
+	}
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("path is not a regular file")
+	}
+	return nil
+}
+
+func (s *FilesystemService) OpenWithSystemDefault(filePath string) error {
+	if err := validateOpenFile(filePath); err != nil {
+		return err
+	}
+	return openSystemFile(filePath)
+}
+
+func (s *FilesystemService) OpenWithApplication(filePath, appPath string) error {
+	if err := validateOpenFile(filePath); err != nil {
+		return err
+	}
+	if runtime.GOOS == "darwin" && strings.HasSuffix(appPath, ".app") {
+		if !filepath.IsAbs(appPath) {
+			return fmt.Errorf("absolute application path required")
+		}
+		info, err := os.Stat(appPath)
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("invalid application bundle")
+		}
+		return startFileApplication(exec.Command("open", "-a", appPath, "--", filePath))
+	}
+	if err := validateOpenFile(appPath); err != nil {
+		return err
+	}
+	return startFileApplication(exec.Command(appPath, filePath))
+}
+
+func startFileApplication(cmd *exec.Cmd) error {
+	configureFileOpenProcess(cmd)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
 }
 
 func newFilesystemService() *FilesystemService {
@@ -105,6 +190,11 @@ func (s *FilesystemService) StatPath(path string) (LocalPathStat, error) {
 // in between), so transient drag sources and path quirks cannot race the
 // upload. Returns the staged temp path and original size.
 func (s *FilesystemService) StageFromLocalPath(path string) (string, int64, error) {
+	release, err := s.temp.Acquire(path)
+	if err != nil {
+		return "", 0, err
+	}
+	defer release()
 	info, err := os.Stat(path)
 	if err != nil {
 		applog.Errorf("stage stat failed path=%q err=%v", path, err)
@@ -123,7 +213,7 @@ func (s *FilesystemService) StageFromLocalPath(path string) (string, int64, erro
 	if s.temp == nil {
 		return "", 0, fmt.Errorf("managed temp unavailable")
 	}
-	staged, err := os.CreateTemp(s.temp.Root(), stagedUploadPrefix+base)
+	staged, err := s.temp.CreateStagingFile(base)
 	if err != nil {
 		return "", 0, err
 	}
@@ -132,7 +222,7 @@ func (s *FilesystemService) StageFromLocalPath(path string) (string, int64, erro
 		copyErr = closeErr
 	}
 	if copyErr != nil {
-		_ = os.Remove(staged.Name())
+		_ = s.temp.Remove(filepath.Base(staged.Name()))
 		return "", 0, copyErr
 	}
 	applog.Infof("staged %q -> %q (%d bytes)", path, staged.Name(), written)
@@ -169,8 +259,6 @@ func openStagingSource(path string) (*os.File, error) {
 	return nil, firstErr
 }
 
-const stagedUploadPrefix = "lemonssh-stage-"
-
 // StageBegin creates a temp file for a renderer-staged upload and returns
 // its path. The renderer streams chunks via StageAppend.
 func (s *FilesystemService) StageBegin(fileName string) (string, error) {
@@ -181,11 +269,12 @@ func (s *FilesystemService) StageBegin(fileName string) (string, error) {
 	if s.temp == nil {
 		return "", fmt.Errorf("managed temp unavailable")
 	}
-	file, err := os.CreateTemp(s.temp.Root(), stagedUploadPrefix+base)
+	file, err := s.temp.CreateStagingFile(base)
 	if err != nil {
 		return "", err
 	}
 	if closeErr := file.Close(); closeErr != nil {
+		_ = s.temp.Remove(filepath.Base(file.Name()))
 		return "", closeErr
 	}
 	return file.Name(), nil
@@ -194,32 +283,17 @@ func (s *FilesystemService) StageBegin(fileName string) (string, error) {
 // StageAppend writes one base64-decoded chunk at offset. []byte bindings
 // arrive base64-encoded through the Wails transport.
 func (s *FilesystemService) StageAppend(tempPath string, offset int64, data []byte) error {
-	if !strings.Contains(filepath.Base(tempPath), stagedUploadPrefix) {
-		return fmt.Errorf("staged path is not a LemonSSH staging file")
+	if s.temp == nil {
+		return fmt.Errorf("managed temp unavailable")
 	}
-	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	if offset > 0 {
-		if _, err := file.Seek(offset, io.SeekStart); err != nil {
-			return err
-		}
-	}
-	_, err = file.Write(data)
-	return err
+	return s.temp.AppendStaging(tempPath, offset, data)
 }
 
 // StageDiscard removes a staged temp file. Only LemonSSH staging files are
 // eligible so a renderer cannot delete arbitrary paths.
 func (s *FilesystemService) StageDiscard(tempPath string) error {
-	if !strings.Contains(filepath.Base(tempPath), stagedUploadPrefix) {
-		return fmt.Errorf("staged path is not a LemonSSH staging file")
+	if s.temp == nil {
+		return fmt.Errorf("managed temp unavailable")
 	}
-	err := os.Remove(tempPath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return err
+	return s.temp.DiscardStaging(tempPath)
 }

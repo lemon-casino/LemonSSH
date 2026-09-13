@@ -51,7 +51,10 @@ import {
   STORAGE_KEY_TERM_SETTINGS,
 } from "../../infrastructure/config/storageKeys";
 import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
-import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
+import {
+  hasHostProfileClient,
+  hostStorageAdapter as localStorageAdapter,
+} from "../../infrastructure/persistence/hostStorageAdapter";
 import {
   mergeGlobalHistoryOnAppend,
   removeGlobalHistoryEntry,
@@ -111,6 +114,10 @@ import type {
   VaultGroupMutationResult,
   VaultGroupMutationState,
 } from "../../domain/vaultGroupMutation";
+import {
+  jsonValuesEqual,
+  normalizeJsonValue,
+} from "../../domain/convergentSync/json";
 import {
   commitPluginImporterTransaction,
   recoverPluginImporterTransaction,
@@ -245,6 +252,42 @@ const readLegacyLineTimestampsEnabled = (): boolean => {
   return stored?.showLineTimestamps === true;
 };
 
+/**
+ * Content equality for vault snapshots, independent of property insertion
+ * order. `commitVaultGroupMutation` compares a storage-derived state against
+ * the in-memory refs; the two are built by different pipelines and domain
+ * helpers re-spread objects (`{ ...host, group: "" }`), so a plain
+ * `JSON.stringify` comparison reports false mismatches and supersedes valid
+ * transactions. Values that cannot be represented as JSON are treated as
+ * unequal rather than throwing, so the guard never becomes a crash path.
+ */
+const vaultSnapshotsEqual = (left: unknown, right: unknown): boolean => {
+  try {
+    return jsonValuesEqual(normalizeJsonValue(left), normalizeJsonValue(right));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Browser `storage` events carry the value at fire time. Under the Wails
+ * canonical profile that payload is only a compatibility projection and can
+ * lag behind (or race ahead of) the in-memory cache. Adopting it after a
+ * local delete paints the new tree and then restores the pre-delete snapshot
+ * until restart. Canonical mode therefore treats native events as
+ * invalidations only — `hostStorageAdapter.refresh()` republishes an adapter
+ * event once the authoritative cache is ready. Without a profile client,
+ * reject payloads that no longer match live storage (the snippets path
+ * already did this; hosts/groups must too).
+ */
+const isAuthoritativeBrowserStorageEvent = (
+  key: string,
+  eventNewValue: string | null,
+): boolean => {
+  if (hasHostProfileClient()) return false;
+  return eventNewValue === localStorageAdapter.readString(key);
+};
+
 const readConnectionLogTerminalDataMap = (): ConnectionLogTerminalDataMap =>
   localStorageAdapter.read<ConnectionLogTerminalDataMap>(STORAGE_KEY_CONNECTION_LOG_TERMINAL_DATA) ?? {};
 
@@ -306,13 +349,35 @@ export const useVaultState = () => {
   const notesRef = useRef<VaultNote[]>([]);
   const noteGroupsRef = useRef<string[]>([]);
   const notesPersistFailureNotifiedAtRef = useRef(0);
-  customGroupsRef.current = customGroups;
-  managedSourcesRef.current = managedSources;
-  hostsRef.current = hosts;
-  snippetsRef.current = snippets;
-  groupConfigsRef.current = groupConfigs;
-  notesRef.current = notes;
-  noteGroupsRef.current = noteGroups;
+  // Sync each ref from its own slice, never during render and never from a
+  // shared effect. Imperative writers (`updateHosts`, `commitVaultGroupMutation`)
+  // keep these refs ahead of state so a locked transaction can validate against
+  // the live snapshot. A render-body assignment (or one shared effect keyed on
+  // every slice) would rewind `hostsRef` to the render-time hosts whenever an
+  // unrelated slice like `notes` changed mid-transaction — the live-snapshot
+  // guard then marks the write "superseded" and `useVaultGroupDeletion` retries
+  // forever with no visible effect.
+  useLayoutEffect(() => {
+    customGroupsRef.current = customGroups;
+  }, [customGroups]);
+  useLayoutEffect(() => {
+    managedSourcesRef.current = managedSources;
+  }, [managedSources]);
+  useLayoutEffect(() => {
+    hostsRef.current = hosts;
+  }, [hosts]);
+  useLayoutEffect(() => {
+    snippetsRef.current = snippets;
+  }, [snippets]);
+  useLayoutEffect(() => {
+    groupConfigsRef.current = groupConfigs;
+  }, [groupConfigs]);
+  useLayoutEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  useLayoutEffect(() => {
+    noteGroupsRef.current = noteGroups;
+  }, [noteGroups]);
 
   // Write-version counters prevent out-of-order async writes from overwriting
   // newer data.  Each update bumps the counter; the .then() callback only
@@ -937,12 +1002,22 @@ export const useVaultState = () => {
       && versions.configs === groupConfigsWriteVersion.current
       && versions.sources === managedSourcesWriteVersion.current
     );
+    // Compare the live snapshot against what the transaction read back from
+    // storage. A plain `JSON.stringify` comparison is key-order sensitive, and
+    // the two sides are built through different paths: storage goes
+    // JSON → decrypt → sanitize → normalizeVaultOrder, while the in-memory copy
+    // may have been re-spread by a domain helper (`buildVaultGroupDeletion`
+    // flattens hosts with `{ ...host, group: "" }`). Any key-order drift made
+    // this guard reject a perfectly valid transaction as "superseded", and
+    // `useVaultGroupDeletion` retried forever — the group-delete dialog closed
+    // with nothing happening. Canonicalize before comparing so the guard tracks
+    // content, not property insertion order.
     const stateMatchesLiveSnapshot = (current: VaultGroupMutationState) => (
-      JSON.stringify(current.hosts) === JSON.stringify(hostsRef.current)
-      && JSON.stringify(current.snippets) === JSON.stringify(snippetsRef.current)
-      && JSON.stringify(current.groups) === JSON.stringify(customGroupsRef.current)
-      && JSON.stringify(current.configs) === JSON.stringify(groupConfigsRef.current)
-      && JSON.stringify(current.managedSources) === JSON.stringify(managedSourcesRef.current)
+      vaultSnapshotsEqual(current.hosts, hostsRef.current)
+      && vaultSnapshotsEqual(current.snippets, snippetsRef.current)
+      && vaultSnapshotsEqual(current.groups, customGroupsRef.current)
+      && vaultSnapshotsEqual(current.configs, groupConfigsRef.current)
+      && vaultSnapshotsEqual(current.managedSources, managedSourcesRef.current)
     );
     const runCommit = async (
       versions: ReturnType<typeof captureVersions>,
@@ -1658,13 +1733,9 @@ export const useVaultState = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleStorage = (event: StorageEvent) => {
-      if (event.storageArea !== window.localStorage) return;
-      const key = event.key;
-      if (!key) return;
-
+    const applyVaultStorageValue = (key: string, raw: string | null) => {
       if (key === STORAGE_KEY_HOSTS) {
-        const next = safeParse<Host[]>(event.newValue) ?? [];
+        const next = safeParse<Host[]>(raw) ?? [];
         // Bump write version to invalidate any in-flight encrypt from this
         // window — the cross-window data is newer and must not be overwritten.
         ++hostsWriteVersion.current;
@@ -1673,16 +1744,19 @@ export const useVaultState = () => {
         decryptHosts(next).then((dec) => {
           // Discard if a newer storage event arrived OR a local write occurred
           // during the decrypt (writeVersion would have advanced).
-          if (seq === hostsReadSeq.current && writeAtStart === hostsWriteVersion.current)
-            setHosts(normalizeVaultOrder(dec.map((host) => sanitizeHost(host))));
+          if (seq !== hostsReadSeq.current || writeAtStart !== hostsWriteVersion.current) return;
+          const sanitized = normalizeVaultOrder(dec.map((host) => sanitizeHost(host)));
+          if (vaultSnapshotsEqual(sanitized, hostsRef.current)) return;
+          hostsRef.current = sanitized;
+          setHosts(sanitized);
         });
         return;
       }
 
       if (key === STORAGE_KEY_KEYS) {
-        const raw = safeParse<unknown[]>(event.newValue) ?? [];
+        const parsed = safeParse<unknown[]>(raw) ?? [];
         const migratedKeys: SSHKey[] = [];
-        for (const entry of raw) {
+        for (const entry of parsed) {
           const record =
             entry && typeof entry === "object" ? (entry as LegacyKeyRecord) : null;
           if (!record || isLegacyUnsupportedKey(record)) continue;
@@ -1699,7 +1773,7 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_IDENTITIES) {
-        const next = safeParse<Identity[]>(event.newValue) ?? [];
+        const next = safeParse<Identity[]>(raw) ?? [];
         ++identitiesWriteVersion.current;
         const seq = ++identitiesReadSeq.current;
         const writeAtStart = identitiesWriteVersion.current;
@@ -1711,7 +1785,7 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_PROXY_PROFILES) {
-        const next = safeParse<ProxyProfile[]>(event.newValue) ?? [];
+        const next = safeParse<ProxyProfile[]>(raw) ?? [];
         ++proxyProfilesWriteVersion.current;
         const seq = ++proxyProfilesReadSeq.current;
         const writeAtStart = proxyProfilesWriteVersion.current;
@@ -1727,10 +1801,10 @@ export const useVaultState = () => {
         // delivered only after this window's replace already committed and
         // cleared snippetsWriteReplaceRef — adopting that older payload would
         // resurrect the pre-replacement catalog in memory (and on the next edit).
-        if (event.newValue !== localStorageAdapter.readString(STORAGE_KEY_SNIPPETS)) {
+        if (raw !== localStorageAdapter.readString(STORAGE_KEY_SNIPPETS)) {
           return;
         }
-        const next = normalizeVaultOrder(safeParse<Snippet[]>(event.newValue) ?? []);
+        const next = normalizeVaultOrder(safeParse<Snippet[]>(raw) ?? []);
         // Invalidate write-version readers, but do not clear snippetsWriteOwnerRef:
         // an in-flight updateSnippets rebases onto this disk snapshot under the
         // vault lock instead of being cancelled (which would drop local edits).
@@ -1765,7 +1839,8 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_GROUPS) {
-        const next = safeParse<string[]>(event.newValue) ?? [];
+        const next = safeParse<string[]>(raw) ?? [];
+        if (vaultSnapshotsEqual(next, customGroupsRef.current)) return;
         ++customGroupsWriteVersion.current;
         customGroupsRef.current = next;
         setCustomGroups(next);
@@ -1773,32 +1848,28 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_SNIPPET_PACKAGES) {
-        const next = safeParse<string[]>(event.newValue) ?? [];
-        setSnippetPackages(next);
+        setSnippetPackages(safeParse<string[]>(raw) ?? []);
         return;
       }
 
       if (key === STORAGE_KEY_NOTES) {
-        const next = safeParse<VaultNote[]>(event.newValue) ?? [];
-        setNotes(normalizeVaultNotes(next));
+        setNotes(normalizeVaultNotes(safeParse<VaultNote[]>(raw) ?? []));
         return;
       }
 
       if (key === STORAGE_KEY_NOTE_GROUPS) {
-        const next = safeParse<string[]>(event.newValue) ?? [];
-        setNoteGroups(normalizeNoteGroups(next));
+        setNoteGroups(normalizeNoteGroups(safeParse<string[]>(raw) ?? []));
         return;
       }
 
       if (key === STORAGE_KEY_KNOWN_HOSTS) {
-        const next = safeParse<KnownHost[]>(event.newValue) ?? [];
-        setKnownHosts(normalizeVaultOrder(normalizeKnownHosts(next)));
+        setKnownHosts(normalizeVaultOrder(normalizeKnownHosts(safeParse<KnownHost[]>(raw) ?? [])));
         return;
       }
 
       if (key === STORAGE_KEY_SHELL_HISTORY) {
         const next = sanitizeGlobalHistoryEntries(
-          safeParse<ShellHistoryEntry[]>(event.newValue) ?? [],
+          safeParse<ShellHistoryEntry[]>(raw) ?? [],
         );
         setShellHistory(next);
         publishShellHistorySnapshot(next);
@@ -1806,7 +1877,7 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_CONNECTION_LOGS) {
-        const next = safeParse<ConnectionLog[]>(event.newValue) ?? [];
+        const next = safeParse<ConnectionLog[]>(raw) ?? [];
         setConnectionLogs((prev) =>
           applyConnectionLogsFromStorage(prev, next, connectionLogTerminalDataRef.current),
         );
@@ -1814,14 +1885,15 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_CONNECTION_LOG_TERMINAL_DATA) {
-        const next = safeParse<ConnectionLogTerminalDataMap>(event.newValue) ?? {};
+        const next = safeParse<ConnectionLogTerminalDataMap>(raw) ?? {};
         connectionLogTerminalDataRef.current = next;
         setConnectionLogs((prev) => mergeConnectionLogsFromStorage(prev, prev, next));
         return;
       }
 
       if (key === STORAGE_KEY_MANAGED_SOURCES) {
-        const next = safeParse<ManagedSource[]>(event.newValue) ?? [];
+        const next = safeParse<ManagedSource[]>(raw) ?? [];
+        if (vaultSnapshotsEqual(next, managedSourcesRef.current)) return;
         ++managedSourcesWriteVersion.current;
         managedSourcesRef.current = next;
         setManagedSources(next);
@@ -1829,34 +1901,49 @@ export const useVaultState = () => {
       }
 
       if (key === STORAGE_KEY_GROUP_CONFIGS) {
-        const next = safeParse<GroupConfig[]>(event.newValue) ?? [];
+        const next = safeParse<GroupConfig[]>(raw) ?? [];
         ++groupConfigsWriteVersion.current;
         const seq = ++groupConfigsReadSeq.current;
         const writeAtStart = groupConfigsWriteVersion.current;
         decryptGroupConfigs(next).then((dec) => {
-          if (seq === groupConfigsReadSeq.current && writeAtStart === groupConfigsWriteVersion.current) {
-            const normalized = normalizeVaultOrder(dec.map(sanitizeGroupConfig));
-            groupConfigsRef.current = normalized;
-            setGroupConfigs(normalized);
-          }
+          if (seq !== groupConfigsReadSeq.current || writeAtStart !== groupConfigsWriteVersion.current) return;
+          const normalized = normalizeVaultOrder(dec.map(sanitizeGroupConfig));
+          if (vaultSnapshotsEqual(normalized, groupConfigsRef.current)) return;
+          groupConfigsRef.current = normalized;
+          setGroupConfigs(normalized);
         });
-        return;
       }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage) return;
+      const key = event.key;
+      if (!key) return;
+      // Canonical profile treats browser events as invalidations. Its refresh
+      // publishes an adapter event only after the authoritative cache is ready.
+      // A delayed peer StorageEvent still carries the pre-delete newValue; if
+      // adopted, the tree flashes to the new snapshot then restores the old
+      // hosts/groups until restart.
+      if (!isAuthoritativeBrowserStorageEvent(key, event.newValue)) return;
+      applyVaultStorageValue(key, event.newValue);
     };
 
     const handleLocalStorageAdapterChanged = (event: Event) => {
       const key = (event as CustomEvent<{ key?: string }>).detail?.key;
-      if (key === STORAGE_KEY_CONNECTION_LOGS) {
-        const next = localStorageAdapter.read<ConnectionLog[]>(STORAGE_KEY_CONNECTION_LOGS) ?? [];
-        setConnectionLogs((prev) =>
-          applyConnectionLogsFromStorage(prev, next, connectionLogTerminalDataRef.current),
-        );
-        return;
-      }
-      if (key === STORAGE_KEY_CONNECTION_LOG_TERMINAL_DATA) {
-        const next = readConnectionLogTerminalDataMap();
-        connectionLogTerminalDataRef.current = next;
-        setConnectionLogs((prev) => mergeConnectionLogsFromStorage(prev, prev, next));
+      if (typeof key !== "string") return;
+      // Canonical profile publishes adapter events only after the live cache
+      // matches Go. Hosts/groups must refresh from that cache — never from a
+      // delayed browser StorageEvent.newValue — or a delete flashes then
+      // restores the pre-delete tree until restart.
+      if (
+        key === STORAGE_KEY_CONNECTION_LOGS
+        || key === STORAGE_KEY_CONNECTION_LOG_TERMINAL_DATA
+        || key === STORAGE_KEY_HOSTS
+        || key === STORAGE_KEY_GROUPS
+        || key === STORAGE_KEY_GROUP_CONFIGS
+        || key === STORAGE_KEY_MANAGED_SOURCES
+      ) {
+        applyVaultStorageValue(key, localStorageAdapter.readString(key));
       }
     };
 

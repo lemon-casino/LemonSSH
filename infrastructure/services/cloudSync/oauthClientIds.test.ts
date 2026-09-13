@@ -22,6 +22,14 @@ Object.defineProperty(globalThis, "localStorage", {
   },
 });
 
+test("google desktop client secret is stored separately and blank clears it", async () => {
+  const { resolveOAuthClientSecret, setOAuthClientSecret } = await import("./oauthClientIds");
+  setOAuthClientSecret("google", "GOCSPX-desktop-secret");
+  assert.equal(resolveOAuthClientSecret("google"), "GOCSPX-desktop-secret");
+  setOAuthClientSecret("google", "   ");
+  assert.equal(resolveOAuthClientSecret("google"), "");
+});
+
 test("runtime override wins over the build-time constant and blank clears it", () => {
   const fallback = SYNC_CONSTANTS.GOOGLE_CLIENT_ID || "";
   setOAuthClientId("google", "runtime-id.apps.googleusercontent.com");

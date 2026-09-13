@@ -16,6 +16,7 @@ import { useToolbarItemLayout } from '../../application/state/useToolbarItemLayo
 import type { ToolbarItemLayoutDefaults } from '../../domain/toolbarItemLayout';
 import { STORAGE_KEY_TERMINAL_HOST_TREE_TOOLBAR_LAYOUT } from '../../infrastructure/config/storageKeys';
 import { cn } from '../../lib/utils';
+import { toggleSelectedTag } from '../host/HostTagChips';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -144,11 +145,7 @@ export const TerminalHostTreeToolbar: React.FC<TerminalHostTreeToolbarProps> = (
   }, [expandedPanel]);
 
   const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      onSelectedTagsChange(selectedTags.filter((item) => item !== tag));
-    } else {
-      onSelectedTagsChange([...selectedTags, tag]);
-    }
+    onSelectedTagsChange(toggleSelectedTag(selectedTags, tag));
   };
 
   const availableIds = useMemo(() => [...HOST_TREE_TOOLBAR_ITEM_IDS], []);

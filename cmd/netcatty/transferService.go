@@ -4,13 +4,14 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/transfer"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/binaricat/netcatty/internal/platform/filesystem"
+	"github.com/binaricat/netcatty/internal/terminal/transfer"
 )
 
 type TransferStartRequest struct {
@@ -87,8 +88,16 @@ func (s *TransferService) setSFTPService(service *SFTPService) { s.sftp = servic
 
 func (s *TransferService) openFile(sessionID, path string, flags int) (transferFile, func(), error) {
 	if sessionID == "" {
+		release, err := s.temp.Acquire(path)
+		if err != nil {
+			return nil, nil, err
+		}
 		f, err := os.OpenFile(path, flags, 0600)
-		return f, func() {}, err
+		if err != nil {
+			release()
+			return nil, nil, err
+		}
+		return f, release, nil
 	}
 	if s.sftp == nil {
 		return nil, nil, fmt.Errorf("SFTP service unavailable")
@@ -176,10 +185,10 @@ func (s *TransferService) startLocked(request TransferStartRequest) (transfer.Pr
 	s.requests[request.TaskID] = request
 	keep = true
 	go func() {
-		defer source.Close()
-		defer target.Close()
 		defer releaseSource()
 		defer releaseTarget()
+		defer source.Close()
+		defer target.Close()
 		_ = s.scheduler.Wait(context.Background(), request.TaskID)
 	}()
 	return s.scheduler.Progress(request.TaskID)
@@ -272,13 +281,12 @@ func (s *TransferService) compressAndStart(request TransferStartRequest, job *co
 			s.mu.Unlock()
 		}
 	}()
-	// Active archives live in a private subdirectory that ClearTemp preserves.
-	staging, err := os.MkdirTemp(s.temp.Root(), "active-transfer-")
+	staging, err := s.temp.CreateDir(filesystem.TransferTempPrefix)
 	if err != nil {
 		runErr = err
 		return
 	}
-	defer os.RemoveAll(staging)
+	defer s.temp.Remove(filepath.Base(staging))
 	archivePath := filepath.Join(staging, "upload.zip")
 	archive, err := os.Create(archivePath)
 	if err != nil {

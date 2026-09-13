@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -61,7 +62,14 @@ func NewInteractiveBroker(emit func(KeyboardChallenge), timeout time.Duration) *
 
 // Handler returns an x/crypto keyboard-interactive callback bound to hostname.
 func (b *InteractiveBroker) Handler(hostname string) func(name, instruction string, questions []string, echoes []bool) ([]string, error) {
+	return b.HandlerContext(context.Background(), hostname)
+}
+
+func (b *InteractiveBroker) HandlerContext(ctx context.Context, hostname string) func(name, instruction string, questions []string, echoes []bool) ([]string, error) {
 	return func(name, instruction string, questions []string, echoes []bool) ([]string, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		prompts := make([]KeyboardPrompt, len(questions))
 		for index, question := range questions {
 			echo := false
@@ -75,6 +83,7 @@ func (b *InteractiveBroker) Handler(hostname string) func(name, instruction stri
 		b.mu.Lock()
 		b.pending[requestID] = reply
 		b.mu.Unlock()
+		defer func() { b.mu.Lock(); delete(b.pending, requestID); b.mu.Unlock() }()
 		if b.emit != nil {
 			b.emit(KeyboardChallenge{
 				RequestID:    requestID,
@@ -87,6 +96,8 @@ func (b *InteractiveBroker) Handler(hostname string) func(name, instruction stri
 		timer := time.NewTimer(b.timeout)
 		defer timer.Stop()
 		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		case result := <-reply:
 			if result.cancelled {
 				return nil, ErrInteractiveCancelled

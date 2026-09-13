@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -24,6 +25,7 @@ type DialConfig struct {
 	HandshakeTimeout time.Duration
 	// KeepaliveInterval enables periodic keepalive requests; 0 disables.
 	KeepaliveInterval time.Duration
+	KeepaliveCountMax int
 	// JumpHosts are dialed in order before Hostname.
 	JumpHosts []DialConfig
 	// ProxyURL optionally routes the TCP dial (socks5:// or http://).
@@ -45,34 +47,54 @@ type Transport struct {
 	Client        *ssh.Client
 	intermediates []*ssh.Client
 	keepaliveStop chan struct{}
+	closeOnce     sync.Once
+	closeErr      error
 }
 
 // Close tears down the chain in order.
 func (t *Transport) Close() error {
-	if t.keepaliveStop != nil {
-		close(t.keepaliveStop)
-		t.keepaliveStop = nil
-	}
-	var firstErr error
-	for i := len(t.intermediates) - 1; i >= 0; i-- {
-		if err := t.intermediates[i].Close(); err != nil && firstErr == nil {
-			firstErr = err
+	t.closeOnce.Do(func() {
+		if t.keepaliveStop != nil {
+			close(t.keepaliveStop)
 		}
-	}
-	if t.Client != nil {
-		if err := t.Client.Close(); err != nil && firstErr == nil {
-			firstErr = err
+		if t.Client != nil {
+			t.closeErr = t.Client.Close()
 		}
-	}
-	return firstErr
+		for i := len(t.intermediates) - 1; i >= 0; i-- {
+			if err := t.intermediates[i].Close(); err != nil && t.closeErr == nil {
+				t.closeErr = err
+			}
+		}
+	})
+	return t.closeErr
 }
 
 // Dial returns an authenticated transport. All hops authenticate and verify
 // host keys; any failure closes the hops established so far.
 func Dial(ctx context.Context, config DialConfig) (*Transport, error) {
-	chain := append(append([]DialConfig(nil), config.JumpHosts...), config)
+	var chain []DialConfig
+	var appendHops func(DialConfig)
+	appendHops = func(hop DialConfig) {
+		for _, child := range hop.JumpHosts {
+			appendHops(child)
+		}
+		hop.JumpHosts = nil
+		chain = append(chain, hop)
+	}
+	appendHops(config)
+	// A target proxy reaches the first hop, unless that hop specifies its own.
+	if len(chain) > 1 {
+		if chain[0].ProxyURL == "" && chain[0].ProxyCommand == "" {
+			chain[0].ProxyURL, chain[0].ProxyCommand = config.ProxyURL, config.ProxyCommand
+		}
+		chain[len(chain)-1].ProxyURL, chain[len(chain)-1].ProxyCommand = "", ""
+	}
 	transport := &Transport{}
 	for index, hop := range chain {
+		if index > 0 && (hop.ProxyURL != "" || hop.ProxyCommand != "") {
+			transport.Close()
+			return nil, fmt.Errorf("hop %d: a proxy can only precede the first SSH hop", index)
+		}
 		if hop.HostKeyPolicy == nil {
 			transport.Close()
 			return nil, fmt.Errorf("hop %d (%s): %w", index, hop.Hostname, ErrHostKeyPolicyRequired)
@@ -82,15 +104,14 @@ func Dial(ctx context.Context, config DialConfig) (*Transport, error) {
 			transport.Close()
 			return nil, fmt.Errorf("hop %d (%s): %w", index, hop.Hostname, err)
 		}
-		if index == len(chain)-1 {
-			transport.Client = client
-		} else {
-			transport.intermediates = append(transport.intermediates, client)
+		if transport.Client != nil {
+			transport.intermediates = append(transport.intermediates, transport.Client)
 		}
+		transport.Client = client
 	}
 	if config.KeepaliveInterval > 0 {
 		transport.keepaliveStop = make(chan struct{})
-		startKeepalive(transport.Client, config.KeepaliveInterval, transport.keepaliveStop)
+		go runKeepalive(transport.Client, config.KeepaliveInterval, config.KeepaliveCountMax, transport.keepaliveStop)
 	}
 	return transport, nil
 }
@@ -100,11 +121,13 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 	if timeout == 0 {
 		timeout = 15 * time.Second
 	}
+	dialCtx, cancelDial := context.WithTimeout(ctx, timeout)
+	defer cancelDial()
 	handshakeTimeout := config.HandshakeTimeout
 	if handshakeTimeout == 0 {
 		handshakeTimeout = 30 * time.Second
 	}
-	authMethods, err := BuildAuthMethods(config.Auth)
+	authMethods, err := buildAuthMethods(ctx, config.Auth)
 	if err != nil {
 		return nil, err
 	}
@@ -116,9 +139,9 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 		if proxyErr != nil {
 			return nil, proxyErr
 		}
-		proxied, proxiedErr := dialVia(ctx, "tcp", address)
+		proxied, proxiedErr := dialVia(dialCtx, "tcp", address)
 		if proxiedErr != nil {
-			return nil, fmt.Errorf("proxy dial %s via %s: %w", address, config.ProxyURL, proxiedErr)
+			return nil, fmt.Errorf("proxy dial %s failed", address)
 		}
 		connection = proxied
 	}
@@ -130,14 +153,14 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 		connection = proxied
 	}
 	if via != nil {
-		tunnel, tunnelErr := via.Dial("tcp", address)
+		tunnel, tunnelErr := via.DialContext(dialCtx, "tcp", address)
 		if tunnelErr != nil {
 			return nil, fmt.Errorf("jump tunnel to %s: %w", address, tunnelErr)
 		}
 		connection = tunnel
 	} else if connection == nil {
 		dialer := &net.Dialer{Timeout: timeout}
-		direct, dialErr := dialer.DialContext(ctx, "tcp", address)
+		direct, dialErr := dialer.DialContext(dialCtx, "tcp", address)
 		if dialErr != nil {
 			return nil, fmt.Errorf("dial %s: %w", address, dialErr)
 		}
@@ -150,7 +173,17 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 		HostKeyCallback: ssh.HostKeyCallback(config.HostKeyPolicy),
 		Timeout:         handshakeTimeout,
 	}
+	// ClientConfig.Timeout is not applied by NewClientConn, and forwarded SSH
+	// channels do not implement deadlines. Closing the stream bounds both paths.
+	handshakeCtx, cancelHandshake := context.WithTimeout(ctx, handshakeTimeout)
+	stopClose := context.AfterFunc(handshakeCtx, func() { _ = connection.Close() })
 	clientConn, channels, requests, handshakeErr := ssh.NewClientConn(connection, address, sshConfig)
+	stopped := stopClose()
+	cancelHandshake()
+	if !stopped && handshakeErr == nil {
+		_ = clientConn.Close()
+		return nil, context.DeadlineExceeded
+	}
 	if handshakeErr != nil {
 		_ = connection.Close()
 		return nil, fmt.Errorf("ssh handshake %s: %w", address, handshakeErr)
@@ -163,21 +196,4 @@ func portOrDefault(port uint16) uint16 {
 		return 22
 	}
 	return port
-}
-
-func startKeepalive(client *ssh.Client, interval time.Duration, stop chan struct{}) {
-	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-stop:
-				return
-			case <-ticker.C:
-				if _, _, err := client.SendRequest("keepalive@netcatty", true, nil); err != nil {
-					return
-				}
-			}
-		}
-	}()
 }

@@ -4,6 +4,12 @@
  * which reliably accesses node_modules in both dev and production.
  */
 
+import { netcattyBridge } from '../../../infrastructure/services/netcattyBridge';
+import {
+  CURATED_FIG_SPEC_LOADERS,
+  CURATED_FIG_SPEC_NAMES,
+} from './figSpecCatalog';
+
 /** Minimal Fig spec types — mirrors @withfig/autocomplete-types */
 export interface FigOption {
   name: string | string[];
@@ -51,8 +57,7 @@ interface FigSpecBridge {
 }
 
 function getBridge(): FigSpecBridge | undefined {
-  if (typeof window === "undefined") return undefined;
-  return (window as Window & { netcatty?: FigSpecBridge }).netcatty;
+  return netcattyBridge.get() as FigSpecBridge | undefined;
 }
 
 // Cache loaded specs
@@ -66,7 +71,9 @@ let availableSpecs: string[] | null = null;
 let availableSpecsSet: Set<string> | null = null;
 
 /**
- * Get the list of all available command specs via IPC.
+ * Get the list of all available command specs. Only the curated catalog is
+ * bundled (bundle-size trim); a host bridge that serves its own spec list
+ * still wins when present.
  */
 export async function getAvailableSpecs(): Promise<string[]> {
   // Only return cache if it has actual specs (not an empty failure)
@@ -82,6 +89,9 @@ export async function getAvailableSpecs(): Promise<string[]> {
         return specs;
       }
     }
+    availableSpecs = [...CURATED_FIG_SPEC_NAMES];
+    availableSpecsSet = new Set(availableSpecs);
+    return availableSpecs;
   } catch (err) {
     console.warn("[Autocomplete] figspec bridge error:", err);
   }
@@ -105,12 +115,17 @@ export async function loadSpec(commandName: string): Promise<FigSpec | null> {
   const loadPromise = (async (): Promise<FigSpec | null> => {
     try {
       const bridge = getBridge();
-      if (!bridge?.loadFigSpec) {
-        // Don't cache — bridge may not be ready yet (dev reload, non-Electron preview)
-        return null;
+      if (!bridge) return null;
+      // Wails has no Node require service. The curated catalog supplies the
+      // bundled specs; the engine never executes spec generators.
+      let spec: FigSpec | null;
+      if (bridge.loadFigSpec) {
+        spec = await bridge.loadFigSpec(commandName);
+      } else {
+        const loader = CURATED_FIG_SPEC_LOADERS[commandName];
+        const candidate = loader ? (await loader()).default : null;
+        spec = candidate && typeof candidate === 'object' ? candidate as FigSpec : null;
       }
-
-      const spec = await bridge.loadFigSpec(commandName);
       if (spec) {
         specCache.set(commandName, spec);
       }
@@ -143,8 +158,9 @@ export async function hasSpec(commandName: string): Promise<boolean> {
 }
 
 /**
- * Common shell commands preloaded when autocomplete is enabled.
- * Includes local overrides under electron/specs/ (e.g. yum, dnf, awk).
+ * Common shell commands preloaded when autocomplete is enabled (a subset of
+ * the curated catalog; local overrides under electron/specs/ such as yum,
+ * dnf, awk are served by the host bridge when present).
  */
 export const COMMON_FIG_SPECS = [
   "git", "docker", "kubectl", "npm", "yarn", "pnpm",

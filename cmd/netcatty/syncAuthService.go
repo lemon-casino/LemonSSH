@@ -149,6 +149,9 @@ func (s *SyncService) GoogleDriveDownloadSyncFile(ctx context.Context, options c
 func (s *SyncService) GoogleDriveDeleteSyncFile(ctx context.Context, options cloudsync.FileOptions) (cloudsync.OKResult, error) {
 	return s.oauth.GoogleDelete(ctx, options)
 }
+func (s *SyncService) GoogleDriveGetRevisionHistory(ctx context.Context, options cloudsync.FileOptions) ([]cloudsync.GistRevision, error) {
+	return s.oauth.GoogleRevisionHistory(ctx, options)
+}
 
 func (s *SyncService) OnedriveExchangeCodeForTokens(ctx context.Context, options cloudsync.OAuthOptions) (cloudsync.OAuthTokens, error) {
 	return s.oauth.Tokens(ctx, "onedrive", options, false)

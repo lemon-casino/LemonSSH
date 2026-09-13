@@ -9,7 +9,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
 // AuthenticateBiometric asks Windows Hello to sign a fresh random challenge with
@@ -17,8 +20,7 @@ import (
 func AuthenticateBiometric() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	executable := filepath.Join(os.Getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
-	out, err := exec.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", helloScript).CombinedOutput()
+	out, err := biometricPowerShellCommand(ctx, helloScript).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Windows Hello authentication failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
@@ -32,8 +34,7 @@ func BiometricAvailable() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	script := strings.Split(helloScript, "if (!(Await")[0] + "\nif (Await ([Windows.Security.Credentials.KeyCredentialManager]::IsSupportedAsync()) ([bool])) { Write-Output 'AVAILABLE' } else { throw 'Windows Hello is not configured or supported' }"
-	executable := filepath.Join(os.Getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
-	out, err := exec.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
+	out, err := biometricPowerShellCommand(ctx, script).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Windows Hello unavailable: %w: %s", err, strings.TrimSpace(string(out)))
 	}
@@ -41,6 +42,13 @@ func BiometricAvailable() error {
 		return fmt.Errorf("Windows Hello availability not confirmed")
 	}
 	return nil
+}
+
+func biometricPowerShellCommand(ctx context.Context, script string) *exec.Cmd {
+	executable := filepath.Join(os.Getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+	cmd := exec.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
+	return cmd
 }
 
 const helloScript = `

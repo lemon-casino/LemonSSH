@@ -19,11 +19,13 @@ import type { Host, TerminalSession, Workspace } from "../../types";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { DistroAvatar } from "../DistroAvatar";
+import { HostTagChips } from "../host/HostTagChips";
 import { HostTreeGroupInlineRenameInput } from "../host/HostTreeGroupInlineRenameInput";
 import { FixedSizeVirtualList, type FixedSizeVirtualListHandle } from "../ui/FixedSizeVirtualList";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger, ContextMenuItem } from "../ui/context-menu";
 import { SessionTabContextMenuContent } from "../top-tabs/SessionTabContextMenuContent";
 import { TREE_ROW_HEIGHT } from "../sftp/SftpPaneTreeNode";
+import { resolveSidebarTreeDoubleClick } from "../../domain/hostClickBehavior";
 import {
   flattenSessionGroupTree,
   type SessionGroupTreeSections,
@@ -104,6 +106,8 @@ export function WorkbenchSessionTreeRow({
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
+  selectedTags,
+  onToggleTag,
   t,
 }: {
   row: TreeRow;
@@ -137,6 +141,8 @@ export function WorkbenchSessionTreeRow({
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
   t: (key: string) => string;
 }) {
   const { node, depth } = row;
@@ -222,8 +228,12 @@ export function WorkbenchSessionTreeRow({
         data-state={expanded ? "expanded" : "collapsed"}
         className="w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
         style={{ marginLeft: indent, width: `calc(100% - ${indent}px)`, height: TREE_ROW_HEIGHT }}
-        onClick={() => {
+        onClick={(event) => {
           if (isInlineEditing) return;
+          // Host double-click is connect-only; skip the second click so a
+          // leaf does not open two sessions. Groups keep both clicks so
+          // expand toggles cancel out before rename.
+          if (event.detail === 2 && node.type === "host" && !hasChildren) return;
           // Workspace nodes double as tab shortcuts; plain groups toggle.
           if (isWorkspaceNode && workspaceId) {
             onActivateTab(workspaceId);
@@ -236,14 +246,20 @@ export function WorkbenchSessionTreeRow({
           onTogglePath(node.id);
         }}
         onDoubleClick={() => {
-          if (isInlineEditing) return;
-          // Double-click on a group renames it inline (host-tree parity);
-          // on an expandable host it connects.
-          if (node.type === "group") {
+          const action = resolveSidebarTreeDoubleClick({
+            kind: node.type === "group" ? "group" : "host",
+            isWorkspace: isWorkspaceNode,
+            isInlineEditing,
+          });
+          // Group → inline rename. Host → new active session via connectToHost,
+          // never duplicate-host and never TopTabs copy-session.
+          if (action === "rename-group") {
             onRenameGroup?.(node.id);
             return;
           }
-          if (hasChildren) connect?.();
+          // Expandable hosts toggle on click, so double-click is the connect
+          // gesture. Leaves already connected on the first click of the pair.
+          if (action === "connect-host" && hasChildren) connect?.();
         }}
       >
         {hasChildren ? (
@@ -277,6 +293,14 @@ export function WorkbenchSessionTreeRow({
           />
         ) : (
           <span className="truncate flex-1 text-left">{label}</span>
+        )}
+        {host && (
+          <HostTagChips
+            tags={host.tags}
+            selectedTags={selectedTags}
+            onToggleTag={onToggleTag}
+            compact
+          />
         )}
         {workspaceId && shortcutNumbers?.has(workspaceId) && <kbd className="shrink-0 text-[10px]">{shortcutNumbers.get(workspaceId)}</kbd>}
         {showCount && (
@@ -452,6 +476,8 @@ interface WorkbenchSessionTreeProps {
   onRenameWorkspace: (workspaceId: string) => void;
   onCopyWorkspace: (workspaceId: string) => void;
   onCloseWorkspace: (workspaceId: string) => void;
+  selectedTags?: string[];
+  onToggleTag?: (tag: string) => void;
   /** Toolbar rendered above the tree (host actions + search/tags). */
   toolbar?: React.ReactNode;
   /** Reveal every branch regardless of expandedPaths (active search/filter). */
@@ -485,6 +511,8 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
   onRenameWorkspace,
   onCopyWorkspace,
   onCloseWorkspace,
+  selectedTags,
+  onToggleTag,
   toolbar,
   expandAllRows = false,
   onEnsurePathExpanded,
@@ -581,6 +609,8 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
       onRenameWorkspace={onRenameWorkspace}
       onCopyWorkspace={onCopyWorkspace}
       onCloseWorkspace={onCloseWorkspace}
+      selectedTags={selectedTags}
+      onToggleTag={onToggleTag}
       t={t}
     />
   ), [
@@ -609,6 +639,8 @@ const WorkbenchSessionTreeInner: React.FC<WorkbenchSessionTreeProps> = ({
     onRenameWorkspace,
     onCopyWorkspace,
     onCloseWorkspace,
+    selectedTags,
+    onToggleTag,
     t,
   ]);
 

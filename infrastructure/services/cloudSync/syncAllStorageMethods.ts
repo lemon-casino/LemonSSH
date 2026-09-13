@@ -6,6 +6,7 @@ import {
 } from '../../../domain/sync';
 import packageJson from '../../../package.json';
 import { EncryptionService } from '../EncryptionService';
+import { flushHostProfileWrites } from '../../persistence/hostStorageAdapter';
 import { mergeSyncPayloads } from '../../../domain/syncMerge';
 import { stripSyncPayloadEncryptedCredentials, healPoisonedSecretsForMerge } from '../../../domain/credentials';
 import {
@@ -862,6 +863,7 @@ export function saveProviderAccountIdImpl(this: any,provider: CloudProvider, id:
 
 export async function saveSyncBaseImpl(this: any,payload: SyncPayload, provider?: CloudProvider): Promise<void> {
     const key = this.state.unlockedKey?.derivedKey;
+    const generation = getSyncSecurityGeneration(this);
     if (!key) {
       throw new Error('Sync base encryption key is unavailable');
     }
@@ -871,14 +873,17 @@ export async function saveSyncBaseImpl(this: any,payload: SyncPayload, provider?
       } catch (snapshotError) {
         console.warn('[CloudSyncManager] Failed to save previous sync snapshot', snapshotError);
       }
+      const encoded = await encryptLocalStorageValue(payload, key);
+      assertSyncSecurityGeneration(this, generation);
       if (
         this.saveToStorage(
           this.syncBaseKey(provider),
-          await encryptLocalStorageValue(payload, key),
+          encoded,
         ) === false
       ) {
         throw new Error('Unable to persist sync base');
       }
+      await flushHostProfileWrites();
     } catch (error) {
       console.warn('[CloudSyncManager] Failed to save sync base', error);
       throw error;
@@ -917,13 +922,17 @@ export async function loadSyncSnapshotsImpl(this: any,provider?: CloudProvider):
 
 export async function saveSyncSnapshotsImpl(this: any,snapshots: SyncSnapshotEntry[], provider?: CloudProvider): Promise<void> {
     const key = this.state.unlockedKey?.derivedKey;
+    const generation = getSyncSecurityGeneration(this);
     if (!key) {
       throw new Error('Sync snapshot encryption key is unavailable');
     }
+    const encoded = await encryptLocalStorageValue(snapshots.slice(0, SYNC_SNAPSHOT_LIMIT), key);
+    assertSyncSecurityGeneration(this, generation);
     if (this.saveToStorage(
       this.syncSnapshotsKey(provider),
-      await encryptLocalStorageValue(snapshots.slice(0, SYNC_SNAPSHOT_LIMIT), key),
+      encoded,
     ) === false) throw new Error('Unable to persist sync snapshots');
+    await flushHostProfileWrites();
   }
 
 export function clearSyncBaseImpl(this: any): void {

@@ -79,6 +79,8 @@ import {
   downloadFromProviderImpl,
   getGistRevisionHistoryImpl,
   downloadGistRevisionImpl,
+  getProviderRevisionHistoryImpl,
+  downloadProviderRevisionImpl,
   resolveConflictImpl,
   exitBlockedStateImpl,
   clearShrinkBlockedStateImpl,
@@ -793,6 +795,34 @@ export class CloudSyncManager {
   }
 
   /**
+   * List stored revisions for a history-capable provider (GitHub Gist,
+   * Google Drive). Newest first; empty when not connected or no history.
+   */
+  async getProviderRevisionHistory(provider: CloudProvider): Promise<Array<{ version: string; date: Date }>> {
+    return getProviderRevisionHistoryImpl.call(this, provider);
+  }
+
+  /**
+   * Download and decrypt a stored revision for a history-capable provider.
+   * Same structured preview as the Gist path so the restore dialog stays
+   * provider agnostic.
+   */
+  async downloadProviderRevision(provider: CloudProvider, sha: string): Promise<{
+    payload: SyncPayload;
+    meta: import('../../domain/sync').SyncFileMeta;
+    preview: {
+      hostCount: number;
+      keyCount: number;
+      snippetCount: number;
+      noteCount: number;
+      identityCount: number;
+      portForwardingRuleCount: number;
+    };
+  } | null> {
+    return downloadProviderRevisionImpl.call(this, provider, sha);
+  }
+
+  /**
    * Resolve a sync conflict
    */
   async resolveConflict(resolution: ConflictResolution): Promise<RemoteSyncPayload | null> {
@@ -1056,6 +1086,28 @@ export class CloudSyncManager {
    */
   resetLocalVersion(): void {
     return resetLocalVersionImpl.call(this);
+  }
+
+  /**
+   * Drop in-memory vault identity after Go already deleted the durable keys.
+   * Reloads onto this same instance so useSyncExternalStore listeners stay
+   * attached and CloudSyncSettings can switch to the NO_KEY gatekeeper.
+   */
+  reloadAfterFullReset(): void {
+    this.stopAutoSync();
+    this.lock();
+    this.bumpSyncSecurityGeneration();
+    this.adapters.clear();
+    for (const provider of new Set([
+      ...Object.keys(this.providerDecryptSeq),
+      ...Object.keys(this.state.providers),
+    ])) {
+      this.providerDecryptSeq[provider] = (this.providerDecryptSeq[provider] ?? 0) + 1;
+      this.providerWriteSeq[provider] = (this.providerWriteSeq[provider] ?? 0) + 1;
+      this.providerDecrypted[provider] = false;
+    }
+    this.state = this.loadInitialState();
+    this.notifyStateChange();
   }
 
   // ==========================================================================

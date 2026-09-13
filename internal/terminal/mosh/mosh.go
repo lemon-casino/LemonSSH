@@ -63,11 +63,11 @@ func ParseConnect(data []byte) (connect Connect, matchEnd int, ok bool, err erro
 	rest = stripControl(rest)
 	fields := strings.Fields(rest)
 	if len(fields) < 2 {
-		return Connect{}, 0, false, fmt.Errorf("%w: %q", ErrNoConnectLine, line)
+		return Connect{}, 0, false, ErrNoConnectLine
 	}
 	portValue, parseErr := strconv.Atoi(fields[0])
 	if parseErr != nil || portValue <= 0 || portValue > 65535 {
-		return Connect{}, 0, false, fmt.Errorf("%w: %q", ErrBadPort, fields[0])
+		return Connect{}, 0, false, ErrBadPort
 	}
 	key := strings.TrimSpace(fields[1])
 	if key == "" {
@@ -164,7 +164,7 @@ func ClientLaunch(kind, host, user string, sshPort uint16, connect Connect) ([]s
 		if sshPort == 0 {
 			sshPort = 22
 		}
-		return []string{user + "@" + host, "--ssh-port", strconv.Itoa(int(sshPort))}, nil, nil
+		return []string{user + "@" + host, "--ssh-option", "Port=" + strconv.Itoa(int(sshPort))}, nil, nil
 	default:
 		return nil, nil, fmt.Errorf("unknown helper %q", kind)
 	}

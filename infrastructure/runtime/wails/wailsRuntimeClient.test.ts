@@ -772,3 +772,48 @@ test("credentials round-trip through the Go credential provider with the enc:v1 
   assert.equal(await client.files.credentialsDecrypt?.("plain-value"), "plain-value");
   void storedSealed;
 });
+
+test("cloud sync session and reset methods are reachable on both surfaces", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    // Mirror the generated wire shape: []string arrives wrapped.
+    CloudSyncResetEverything: async () => { calls.push("reset"); return { removedKeys: ["key-a"] }; },
+    CloudSyncSetSessionPassword: async () => { calls.push("set"); return true; },
+    CloudSyncGetSessionPassword: async () => { calls.push("get"); return { password: "p", found: true }; },
+    CloudSyncClearSessionPassword: async () => { calls.push("clear"); return { success: true }; },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.deepEqual(await client.sync.cloudSyncResetEverything(), ["key-a"]);
+  await client.sync.cloudSyncSetSessionPassword!("p");
+  assert.equal(await client.sync.cloudSyncGetSessionPassword!(), "p");
+  assert.deepEqual(await client.sync.cloudSyncClearSessionPassword!(), { success: true });
+  assert.deepEqual(calls, ["reset", "set", "get", "clear"]);
+  assert.equal(typeof client.transitionBridge.cloudSyncResetEverything, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncSetSessionPassword, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncGetSessionPassword, "function");
+  assert.equal(typeof client.transitionBridge.cloudSyncClearSessionPassword, "function");
+});
+
+test("vault backup methods are reachable on both surfaces", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.sync = {
+    GetVaultBackupCapabilities: async () => { calls.push("caps"); return { encryptionAvailable: true }; },
+    CreateVaultBackup: async () => { calls.push("create"); return { created: true, backup: { id: "b1" } }; },
+    ListVaultBackups: async () => { calls.push("list"); return { backups: [{ id: "b1" }] }; },
+    ReadVaultBackup: async () => { calls.push("read"); return { backup: { id: "b1" }, payload: { hosts: [] } }; },
+    TrimVaultBackups: async () => { calls.push("trim"); return { deletedCount: 0, keptCount: 1 }; },
+    OpenVaultBackupDir: async () => { calls.push("open"); return { success: true, path: "/tmp" }; },
+  } as never;
+  const client = createWailsRuntimeClient(bindings);
+  assert.deepEqual(await client.sync.getVaultBackupCapabilities(), { encryptionAvailable: true });
+  assert.equal((await client.sync.createVaultBackup({ payload: { hosts: [] }, reason: "before_restore" })).created, true);
+  assert.equal((await client.sync.listVaultBackups()).length, 1);
+  assert.equal((await client.sync.readVaultBackup({ id: "b1" })).backup.id, "b1");
+  await client.sync.trimVaultBackups({ maxCount: 20 });
+  await client.sync.openVaultBackupDir();
+  assert.deepEqual(calls, ["caps", "create", "list", "read", "trim", "open"]);
+  assert.equal(typeof client.transitionBridge.createVaultBackup, "function");
+  assert.equal(typeof client.transitionBridge.listVaultBackups, "function");
+});

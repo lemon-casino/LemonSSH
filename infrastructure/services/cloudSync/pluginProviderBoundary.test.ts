@@ -425,6 +425,7 @@ describe('createAdapter WebDAV production path', () => {
   it('enforceLegacySingleProviderConnected keeps builtin and disconnects plugin', () => {
     const providers: Record<string, ProviderConnection> = {
       github: { provider: 'github', status: 'connected' },
+      google: { provider: 'google', status: 'connected' },
       'com.example.backup.sync': {
         provider: 'com.example.backup.sync',
         status: 'connected',
@@ -433,6 +434,7 @@ describe('createAdapter WebDAV production path', () => {
     };
     enforceLegacySingleProviderConnected(providers);
     assert.equal(providers.github?.status, 'connected');
+    assert.equal(providers.google?.status, 'connected');
     assert.equal(providers['com.example.backup.sync']?.status, 'disconnected');
     assert.deepEqual(
       providers['com.example.backup.sync']?.config,

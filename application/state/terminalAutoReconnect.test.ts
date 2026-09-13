@@ -46,6 +46,10 @@ test("unexpected SSH exits reconnect only after the tab has connected before", (
   );
 });
 
+test("intentional native closes never restart SSH", () => {
+  assert.equal(shouldAutoReconnectAfterExit({ evt: { reason: "closed", intentional: true }, host: sshHost, terminalSettings: { sshAutoReconnectEnabled: true }, hasEverConnected: true }), false);
+});
+
 test("normal shell exits do not auto reconnect", () => {
   assert.equal(
     shouldAutoReconnectAfterExit({

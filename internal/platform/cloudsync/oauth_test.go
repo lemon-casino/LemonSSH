@@ -62,11 +62,18 @@ func TestOAuthCallbackStateCancellationTimeoutAndShutdown(t *testing.T) {
 			t.Fatalf("invalid state accepted: %d", resp.StatusCode)
 		}
 	}
-	resp, err := http.Get(first.RedirectURI + "?state=" + state + "&code=fixture-code")
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp.Body.Close()
+		resp, err := http.Get(first.RedirectURI + "?state=" + state + "&code=fixture-code")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(body), "Return to LemonSSH") || strings.Contains(string(body), "Netcatty") {
+			t.Fatalf("callback page must send the user back to LemonSSH, got %q", body)
+		}
 	if err := <-finished; err != nil {
 		t.Fatal(err)
 	}
@@ -164,18 +171,65 @@ func TestOAuthTokensPKCERefreshAndRedactedFailures(t *testing.T) {
 			if result.RefreshToken != want || result.ExpiresAt <= time.Now().UnixMilli() {
 				t.Fatalf("refresh result: %#v", result)
 			}
-			_, err = c.Tokens(context.Background(), provider, o, true)
-			if err == nil || strings.Contains(err.Error(), "old-refresh") {
-				t.Fatalf("provider description leaked: %v", err)
-			}
-			if provider == "onedrive" && !strings.Contains(err.Error(), "ONEDRIVE_REAUTH_REQUIRED") {
-				t.Fatal("reauth marker missing")
-			}
+				_, err = c.Tokens(context.Background(), provider, o, true)
+				if err == nil || strings.Contains(err.Error(), "old-refresh") {
+					t.Fatalf("provider description leaked: %v", err)
+				}
+				if provider == "onedrive" && !strings.Contains(err.Error(), "ONEDRIVE_REAUTH_REQUIRED") {
+					t.Fatal("reauth marker missing")
+				}
+				if provider == "google" && !strings.Contains(err.Error(), "invalid_grant") {
+					t.Fatalf("google token 400 must surface the error code, got %v", err)
+				}
 			o.RedirectURI = "https://evil.test/callback"
 			if _, err = c.Tokens(context.Background(), provider, o, false); err == nil {
 				t.Fatal("non-loopback exchange")
 			}
 		})
+	}
+}
+
+func TestGoogleTokenExchangeIncludesDesktopClientSecret(t *testing.T) {
+	var gotSecret string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		gotSecret = r.Form.Get("client_secret")
+		fmt.Fprint(w, `{"access_token":"fixture-access","token_type":"Bearer","expires_in":3600,"refresh_token":"fixture-refresh"}`)
+	}))
+	defer server.Close()
+	c := NewOAuthClient()
+	defer c.Close()
+	c.googleToken = server.URL
+	if _, err := c.Tokens(context.Background(), "google", OAuthOptions{
+		ClientID: "375656212890-fixture.apps.googleusercontent.com",
+		ClientSecret: "GOCSPX-fixture-secret",
+		Code: "fixture-code", CodeVerifier: strings.Repeat("v", 43),
+		RedirectURI: "http://127.0.0.1:45678/callback",
+	}, false); err != nil {
+		t.Fatal(err)
+	}
+	if gotSecret != "GOCSPX-fixture-secret" {
+		t.Fatalf("installed desktop clients still require client_secret, got %q", gotSecret)
+	}
+}
+
+func TestGoogleTokenInvalidRequestExplainsDesktopClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		io.WriteString(w, `{"error":"invalid_request","error_description":"client_secret is missing"}`)
+	}))
+	defer server.Close()
+	c := NewOAuthClient()
+	defer c.Close()
+	c.googleToken = server.URL
+	_, err := c.Tokens(context.Background(), "google", OAuthOptions{
+		ClientID: "fixture-client", Code: "fixture-code", CodeVerifier: strings.Repeat("v", 43),
+		RedirectURI: "http://127.0.0.1:45678/callback",
+	}, false)
+	if err == nil || !strings.Contains(err.Error(), "client secret") || strings.Contains(err.Error(), "client_secret is missing") {
+		t.Fatalf("invalid_request must ask for the desktop client secret without leaking the provider description, got %v", err)
 	}
 }
 

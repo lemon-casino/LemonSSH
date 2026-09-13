@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -35,6 +36,10 @@ var ErrNoAuthMethod = errors.New("no ssh auth method configured")
 // priority order: key, password, keyboard-interactive. x/crypto tries each in
 // turn and accepts partial-success MFA flows.
 func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
+	return buildAuthMethods(context.Background(), method)
+}
+
+func buildAuthMethods(ctx context.Context, method AuthMethod) ([]ssh.AuthMethod, error) {
 	var result []ssh.AuthMethod
 	if strings.TrimSpace(method.Password) != "" || len(method.PrivateKeyPEM) > 0 || method.Interactive != nil || method.Challenge != nil || method.UseAgent {
 		// at least one strategy present
@@ -57,7 +62,11 @@ func BuildAuthMethods(method AuthMethod) ([]ssh.AuthMethod, error) {
 		result = append(result, ssh.PublicKeys(signer))
 	}
 	if method.UseAgent {
-		agentMethod, err := AgentAuthMethod("")
+		var certificate []byte
+		if len(method.PrivateKeyPEM) == 0 {
+			certificate = method.Certificate
+		}
+		agentMethod, err := agentAuthWithCertificate(ctx, "", certificate)
 		if err != nil {
 			return nil, err
 		}

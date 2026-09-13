@@ -16,7 +16,7 @@ import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oaut
  */
 export const OAuthClientIdsSection: React.FC = () => {
   const { t } = useI18n();
-  const { ids, setClientId } = useOAuthClientIds();
+  const { ids, setClientId, googleClientSecret, setGoogleClientSecret } = useOAuthClientIds();
 
   const openApplyPage = (provider: OAuthProvider) => {
     const bridge = netcattyBridge.get();
@@ -50,38 +50,58 @@ export const OAuthClientIdsSection: React.FC = () => {
       <p className="text-xs text-muted-foreground">{t('cloudSync.oauth.sectionDesc')}</p>
       <div className="grid gap-3 sm:grid-cols-3">
         {fields.map(({ provider, label, placeholder }) => (
-          <div key={provider} className="space-y-1">
-            <Label className="flex items-center gap-1 text-xs" htmlFor={`oauth-client-id-${provider}`}>
-              {label}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                    aria-label={t('cloudSync.oauth.guideTitle')}
-                    onClick={() => openApplyPage(provider)}
-                  >
-                    <CircleHelp size={12} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-72 whitespace-pre-wrap text-left text-xs">
-                  <p className="whitespace-pre-wrap">{guideFor(provider)}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <ExternalLink size={9} />
-                    {t('cloudSync.oauth.apply')}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </Label>
-            <Input
-              id={`oauth-client-id-${provider}`}
-              className="h-8 text-xs font-mono"
-              value={ids[provider] ?? ''}
-              placeholder={placeholder}
-              spellCheck={false}
-              autoComplete="off"
-              onChange={(event) => setClientId(provider, event.currentTarget.value)}
-            />
+          <div key={provider} className="space-y-2">
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1 text-xs" htmlFor={`oauth-client-id-${provider}`}>
+                {label}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                      aria-label={t('cloudSync.oauth.guideTitle')}
+                      onClick={() => openApplyPage(provider)}
+                    >
+                      <CircleHelp size={12} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-96 whitespace-pre-wrap text-left text-xs">
+                    <p className="whitespace-pre-wrap">{guideFor(provider)}</p>
+                    <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <ExternalLink size={9} />
+                      {t('cloudSync.oauth.apply')}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Input
+                id={`oauth-client-id-${provider}`}
+                className="h-8 text-xs font-mono"
+                value={ids[provider] ?? ''}
+                placeholder={placeholder}
+                spellCheck={false}
+                autoComplete="off"
+                onChange={(event) => setClientId(provider, event.currentTarget.value)}
+              />
+            </div>
+            {provider === 'google' ? (
+              <div className="space-y-1">
+                <Label className="text-xs" htmlFor="oauth-client-secret-google">
+                  {t('cloudSync.oauth.googleSecret')}
+                </Label>
+                <Input
+                  id="oauth-client-secret-google"
+                  type="password"
+                  className="h-8 text-xs font-mono"
+                  value={googleClientSecret}
+                  placeholder="GOCSPX-xxxxxxxx"
+                  spellCheck={false}
+                  autoComplete="off"
+                  onChange={(event) => setGoogleClientSecret(event.currentTarget.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">{t('cloudSync.oauth.googleSecretHint')}</p>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

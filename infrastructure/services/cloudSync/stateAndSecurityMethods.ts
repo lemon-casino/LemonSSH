@@ -33,9 +33,11 @@ import {
 } from './syncConfigPersist';
 import { EncryptionService } from '../EncryptionService';
 import { createAdapter } from '../adapters';
-import { hostStorageAdapter as localStorageAdapter } from '../../persistence/hostStorageAdapter';
+import { hostStorageAdapter as localStorageAdapter, flushHostProfileWrites } from '../../persistence/hostStorageAdapter';
+import { nativeCloudSyncRequired } from './cloudSyncFacade';
+import { netcattyBridge } from '../netcattyBridge';
 import {
-  decryptProviderSecrets,
+  decryptProviderSecrets as decryptStoredProviderSecrets,
   encryptProviderSecrets,
 } from '../../persistence/secureFieldAdapter';
 import type { CloudAdapter } from '../adapters';
@@ -43,6 +45,19 @@ import type { SyncManagerState } from '../CloudSyncManager';
 import { getConvergentSyncLocalConfig } from '../convergentSyncConfig';
 
 const SYNC_HISTORY_STORAGE_KEY = 'netcatty_sync_history_v1';
+
+async function requireNativeCredentialStorage(): Promise<void> {
+  if (!nativeCloudSyncRequired()) return;
+  const security = netcattyBridge.get();
+  if (!security?.credentialsEncrypt || !security.credentialsDecrypt || !await security.credentialsAvailable?.()) {
+    throw new Error('Secure credential storage is unavailable; provider credentials were not saved or opened');
+  }
+}
+
+async function decryptProviderSecrets(connection: ProviderConnection): Promise<ProviderConnection> {
+  await requireNativeCredentialStorage();
+  return decryptStoredProviderSecrets(connection);
+}
 
 /** Ensure per-provider sequence counters exist (dynamic plugins arrive late). */
 function ensureProviderSeqCounters(manager: any, provider: CloudProvider): void {
@@ -195,9 +210,9 @@ export function loadProviderConnectionImpl(this: any,provider: CloudProvider): P
   }
 
 /**
- * Legacy (non-convergent) mode allows only one ready provider. After restart,
- * retained plugin configs can race with a builtin the user switched to — keep
- * config but force extras offline (same policy as setAvailablePluginSyncProviderIds).
+ * Builtin providers (GitHub, Drive, OneDrive, WebDAV, S3) may stay connected
+ * together. After restart, a retained plugin config can still race with a
+ * builtin the user switched to — keep plugin config but force extras offline.
  */
 export function enforceLegacySingleProviderConnected(
   providers: Record<string, ProviderConnection>,
@@ -210,16 +225,17 @@ export function enforceLegacySingleProviderConnected(
   }
   if (convergentActive) return;
 
-  const readyIds = Object.entries(providers)
-    .filter(([, conn]) => conn != null && (conn.status === 'connected' || conn.status === 'syncing'))
+  const readyPluginIds = Object.entries(providers)
+    .filter(([id, conn]) => isPluginCloudProviderId(id) && conn != null && (conn.status === 'connected' || conn.status === 'syncing'))
     .map(([id]) => id);
-  if (readyIds.length <= 1) return;
+  if (readyPluginIds.length === 0) return;
 
-  // Prefer a builtin (stable UI order), else first ready id.
-  const preferred = BUILTIN_CLOUD_PROVIDERS.find((id) => readyIds.includes(id))
-    ?? readyIds[0]!;
-  for (const id of readyIds) {
-    if (id === preferred) continue;
+  const builtinReady = Object.entries(providers).some(([id, conn]) =>
+    isBuiltinCloudProvider(id) && conn != null && (conn.status === 'connected' || conn.status === 'syncing'),
+  );
+  const preferredPlugin = builtinReady ? null : readyPluginIds[0]!;
+  for (const id of readyPluginIds) {
+    if (id === preferredPlugin) continue;
     const conn = providers[id];
     if (!conn) continue;
     providers[id] = {
@@ -333,9 +349,9 @@ export function setAvailablePluginSyncProviderIdsImpl(
           && other != null
           && (other.status === 'connected' || other.status === 'syncing')
         ));
-      if (!convergentActive && anotherReady) {
-        // Keep disconnected with retained config until the user reconnects
-        // explicitly; auto-reactivation would mirror two legacy providers.
+      if (!convergentActive && anotherReady && isPluginCloudProviderId(id)) {
+        // Keep a plugin provider disconnected when another provider is already
+        // ready in non-convergent mode; builtins may stay connected together.
         continue;
       }
       this.state.providers[id] = {
@@ -409,13 +425,15 @@ export async function saveProviderConnectionImpl(this: any,
     // an in-flight encrypted write that must be persisted.
     ensureProviderSeqCounters(this, provider);
     const seq = ++this.providerWriteSeq[provider];
+    await requireNativeCredentialStorage();
     const encrypted = await encryptProviderSecrets(connection);
     // Only persist if no newer save has started during the async gap
     if (
       seq === this.providerWriteSeq[provider] &&
       (authAttemptId == null || this.isActiveAuthAttempt(provider, authAttemptId))
     ) {
-      this.saveToStorage(key, encrypted);
+      if (this.saveToStorage(key, encrypted) === false) throw new Error('Unable to persist provider credentials');
+      await flushHostProfileWrites();
       // Keep dynamic plugin providers in the restart registry while connected
       // (or while credentials/config remain so a missing plugin cannot drop them).
       if (isPluginCloudProviderId(provider)) {
@@ -814,7 +832,7 @@ export function attachTokenRefreshPersistence(
   }).setOnTokensRefreshed;
   if (typeof setCallback !== 'function') return;
   setCallback.call(adapter, (tokens) => {
-    persistRefreshedProviderTokensImpl.call(this, provider, tokens);
+    return persistRefreshedProviderTokensImpl.call(this, provider, tokens);
   });
 }
 
@@ -829,7 +847,7 @@ export function persistRefreshedProviderTokensImpl(
   this: any,
   provider: CloudProvider,
   tokens: import('../../../domain/sync').OAuthTokens,
-): void {
+): Promise<void> | void {
   const existing = this.state.providers[provider];
   // Provider may have been disconnected during the async refresh — don't
   // resurrect a connection that no longer has credentials.
@@ -843,8 +861,9 @@ export function persistRefreshedProviderTokensImpl(
     ...existing,
     tokens,
   };
-  void this.saveProviderConnection(provider, this.state.providers[provider]);
+  const persisted = this.saveProviderConnection(provider, this.state.providers[provider]);
   this.notifyStateChange();
+  return persisted;
 }
 
 /**
@@ -900,11 +919,12 @@ export async function setupMasterKeyImpl(this: any,password: string): Promise<vo
 
     const config = await EncryptionService.createMasterKeyConfig(password);
 
+    if (this.saveToStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, config) === false) throw new Error('Unable to persist master key configuration');
+    await flushHostProfileWrites();
     this.bumpSyncSecurityGeneration?.();
     this.state.masterKeyConfig = config;
     this.state.securityState = 'LOCKED';
 
-    this.saveToStorage(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG, config);
     this.emit({ type: 'SECURITY_STATE_CHANGED', state: 'LOCKED' });
 
     // Auto-unlock after setup
@@ -965,6 +985,8 @@ export async function changeMasterKeyImpl(this: any,oldPassword: string, newPass
       throw new Error('No master key configured');
     }
 
+    const originalConfig = this.state.masterKeyConfig;
+    const originalGeneration = this.getSyncSecurityGeneration?.();
     const newConfig = await EncryptionService.changeMasterPassword(
       oldPassword,
       newPassword,
@@ -986,6 +1008,9 @@ export async function changeMasterKeyImpl(this: any,oldPassword: string, newPass
     if (!oldUnlockedKey || !newUnlockedKey) {
       throw new Error('Failed to derive keys for master key rotation');
     }
+    if (this.state.masterKeyConfig !== originalConfig || this.getSyncSecurityGeneration?.() !== originalGeneration) {
+      throw new Error('Master key changed while rotation was being prepared');
+    }
 
     // Local provider baselines, snapshots and the canonical CRDT replica use
     // the master-derived key. Re-encrypt them before publishing the new master
@@ -995,6 +1020,15 @@ export async function changeMasterKeyImpl(this: any,oldPassword: string, newPass
       newUnlockedKey.derivedKey,
       newConfig,
     );
+
+    if (this.getSyncSecurityGeneration?.() !== originalGeneration) {
+      this.state.masterKeyConfig = newConfig;
+      this.state.securityState = 'LOCKED';
+      this.state.unlockedKey = null;
+      this.masterPassword = null;
+      this.emit({ type: 'SECURITY_STATE_CHANGED', state: 'LOCKED' });
+      throw new Error('Master key committed locally; vault remains locked because rotation was interrupted');
+    }
 
     this.bumpSyncSecurityGeneration?.();
     this.state.masterKeyConfig = newConfig;

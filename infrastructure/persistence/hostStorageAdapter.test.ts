@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as storageModule from "./hostStorageAdapter";
 import type { ProfileClient, ProfileMutation } from "../runtime/profile/profileClient";
+import { SYNC_STORAGE_KEYS } from '../../domain/sync';
 
 function fixture(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial).map(([key, value]) => [key, Buffer.from(value).toString("base64")]));
@@ -91,6 +92,66 @@ function localFixture(initial: Record<string, string> = {}) {
   };
   return { data, local };
 }
+
+test('profile rotation transaction publishes every record only after durable commit', async () => {
+  const go = fixture({ 'settings/config': 'old-config', 'settings/replica': 'old-ciphertext', 'settings/baseline': 'old-baseline' });
+  const adapter = storageModule.createCanonicalStorage(go.client, localFixture().local);
+  await adapter.hydrate();
+  let release!: () => void;
+  let began!: () => void;
+  const started = new Promise<void>(resolve => { began = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const write = go.client.write;
+  go.client.write = async (revision, mutations) => { began(); await gate; return write(revision, mutations); };
+  const expected = new Map([['config', 'old-config'], ['replica', 'old-ciphertext'], ['baseline', 'old-baseline']]);
+  const next = new Map([['config', 'new-config'], ['replica', 'new-ciphertext'], ['baseline', 'new-baseline']]);
+  const transaction = adapter.transaction(expected, next);
+  await started;
+  assert.equal(adapter.readString('config'), 'old-config');
+  assert.equal(adapter.readString('replica'), 'old-ciphertext');
+  assert.throws(() => adapter.writeString('baseline', 'racing-write'), /transaction in progress/);
+  release(); await transaction;
+  for (const [key, value] of next) {
+    assert.equal(adapter.readString(key), value);
+    assert.equal(Buffer.from(go.data.get(`settings/${key}`)!, 'base64').toString(), value);
+  }
+});
+
+test('failed profile rotation leaves original bytes and revision; stale preparation aborts', async () => {
+  const go = fixture({ 'settings/config': 'old-config', 'settings/replica': 'old-ciphertext' });
+  const adapter = storageModule.createCanonicalStorage(go.client, localFixture().local, () => {});
+  await adapter.hydrate();
+  const original = new Map(go.data);
+  const revision = adapter.revision();
+  const expected = new Map([['config', 'old-config'], ['replica', 'old-ciphertext']]);
+  const next = new Map([['config', 'new-config'], ['replica', 'new-ciphertext']]);
+  go.fail(new Error('disk failed'));
+  await assert.rejects(adapter.transaction(expected, next, revision), /disk failed/);
+  assert.deepEqual(go.data, original);
+  assert.equal(adapter.revision(), revision);
+  assert.equal(adapter.readString('replica'), 'old-ciphertext');
+  go.fail();
+  await go.client.write(revision, [{ domain: 'settings', key: 'new-provider-baseline', valueBase64: Buffer.from('old-key-ciphertext').toString('base64') }]);
+  await assert.rejects(adapter.transaction(expected, next, revision), /Profile changed/);
+  assert.equal(adapter.readString('config'), 'old-config');
+});
+
+test('rotation drains earlier failed writes and stale windows cannot append old-key records', async () => {
+  const config = SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG;
+  const replica = SYNC_STORAGE_KEYS.CONVERGENT_REPLICA;
+  const go = fixture({ [`settings/${config}`]: 'old-config' });
+  const a = storageModule.createCanonicalStorage(go.client, localFixture().local, () => {});
+  const b = storageModule.createCanonicalStorage(go.client, localFixture().local, () => {});
+  await a.hydrate(); await b.hydrate();
+  go.fail(new Error('queued disk failure'));
+  a.writeString('queued', 'pending');
+  await assert.rejects(a.transaction(new Map([[config, 'old-config']]), new Map([[config, 'new-config']])), /Pending profile writes failed/);
+  go.fail();
+  await a.transaction(new Map([[config, 'old-config']]), new Map([[config, 'new-config']]));
+  b.writeString(replica, 'old-key-ciphertext');
+  await assert.rejects(b.flush(), /Master key changed/);
+  assert.equal(go.data.has(`settings/${replica}`), false);
+});
 
 // These exercise the real adapter; only the external Go RPC and browser storage
 // boundaries are replaced. Reverting to local reads or non-CAS writes breaks them.

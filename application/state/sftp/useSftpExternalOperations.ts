@@ -599,8 +599,13 @@ export const useSftpExternalOperations = (
         throw new Error("System app opening not supported");
       }
 
+      if (options?.enableWatch && !pane.connection.isLocal && !bridge.startFileWatch) {
+        throw new Error("Automatic sync is unavailable. Disable auto-sync to open an external copy.");
+      }
+
       if (pane.connection.isLocal) {
-        await bridge.openWithApplication(remotePath, appPath);
+        const opened = await bridge.openWithApplication(remotePath, appPath);
+        if (!opened) throw new Error("Failed to open file with application");
         return { localTempPath: remotePath };
       }
 
@@ -610,7 +615,8 @@ export const useSftpExternalOperations = (
       }
 
       try {
-        await bridge.openWithApplication(localTempPath, appPath);
+        const opened = await bridge.openWithApplication(localTempPath, appPath);
+        if (!opened) throw new Error("Failed to open file with application");
       } catch (err) {
         await cleanupFailedExternalOpenTemp(bridge, sftpId, localTempPath).catch(() => {});
         forgetExternalEditTemp(localTempPath);
@@ -671,6 +677,9 @@ export const useSftpExternalOperations = (
           throw new Error("System default opening not supported");
         }
 
+        if (options?.enableWatch && !pane.connection.isLocal && !bridge.startFileWatch) {
+          throw new Error("Automatic sync is unavailable. Disable auto-sync to open an external copy.");
+        }
         const bridgeMethods = bridge;
 
         const { localTempPath, sftpId, externalTransferId } = pane.connection.isLocal

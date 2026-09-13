@@ -1195,9 +1195,16 @@ export function AppSideEffects() {
 
   const handleConfirmDeleteHost = useCallback(() => {
     if (!deleteHostConfirm) return;
-    updateHosts(hosts.filter(h => h.id !== deleteHostConfirm.hostId));
+    // Functional update: read the live vault snapshot at call time instead of
+    // the `hosts` array captured by this render. The confirm dialog can stay
+    // open across renders, and any interleaved host mutation (terminal rename,
+    // agent bridge write, cross-window storage event) would otherwise make the
+    // captured array look "unchanged" and leave the deleted row on screen until
+    // the next app restart.
+    const deletedHostId = deleteHostConfirm.hostId;
+    updateHosts((prev) => prev.filter((h) => h.id !== deletedHostId));
     setDeleteHostConfirm(null);
-  }, [deleteHostConfirm, hosts, updateHosts]);
+  }, [deleteHostConfirm, updateHosts]);
 
   const handleCancelDeleteHost = useCallback(() => {
     setDeleteHostConfirm(null);

@@ -57,9 +57,25 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Fetch host mosh-client
-        continue-on-error: true
-        run: npm run fetch:mosh:dev
+      - name: Test helper supply and packaging
+        run: node --test scripts/package-wails.test.mjs scripts/fetch-wails-helpers.test.mjs scripts/fetch-mosh-binaries.test.cjs scripts/fetch-et-binaries.test.cjs
+
+      - name: Fetch locked Mosh and ET helpers
+        run: node scripts/fetch-wails-helpers.mjs
+
+      - name: Verify macOS universal helper slices
+        if: runner.os == 'macOS'
+        run: |
+          lipo -verify_arch x86_64 arm64 resources/mosh/darwin-universal/mosh-client
+          lipo -verify_arch x86_64 arm64 resources/et/darwin-universal/et
+
+      - name: Verify installed helpers against lock
+        run: node scripts/fetch-wails-helpers.mjs --verify-only
+
+      - name: Test real host helper packaging
+        env:
+          WAILS_HELPER_TEST_HOST: '1'
+        run: node --test --test-name-pattern="real " scripts/fetch-wails-helpers.test.mjs
 
       - name: Package unsigned Wails binary
         run: node scripts/package-wails.mjs

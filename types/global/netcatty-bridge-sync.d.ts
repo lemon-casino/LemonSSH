@@ -329,7 +329,8 @@ declare global {
     googleDriveFindSyncFile?(options: { accessToken: string; fileName?: string }): Promise<{ fileId: string | null }>;
     googleDriveCreateSyncFile?(options: { accessToken: string; fileName?: string; syncedFile: unknown }): Promise<{ fileId: string }>;
     googleDriveUpdateSyncFile?(options: { accessToken: string; fileId: string; syncedFile: unknown }): Promise<{ ok: true }>;
-    googleDriveDownloadSyncFile?(options: { accessToken: string; fileId: string }): Promise<{ syncedFile: unknown | null }>;
+    googleDriveDownloadSyncFile?(options: { accessToken: string; fileId: string; revisionId?: string }): Promise<{ syncedFile: unknown | null }>;
+    googleDriveGetRevisionHistory?(options: { accessToken: string; fileId: string }): Promise<Array<{ version: string; date: string }>>;
     googleDriveDeleteSyncFile?(options: { accessToken: string; fileId: string }): Promise<{ ok: true }>;
 
     // OneDrive OAuth + Graph (cloud sync) - proxied via main process to avoid CORS

@@ -43,7 +43,7 @@ interface CloudSyncDashboardTabsProps {
   handleConnectOneDrive: () => Promise<void>;
   openWebdavDialog: () => void;
   openS3Dialog: () => void;
-  handleOpenHistory: () => Promise<void>;
+  handleOpenHistory: (provider: CloudProvider) => Promise<void>;
   handleSync: (provider: CloudProvider) => Promise<void>;
   onApplyPayload: (payload: SyncPayload) => void | Promise<void>;
   onApplyLocalPayload?: (payload: SyncPayload) => void | Promise<void>;
@@ -309,7 +309,7 @@ export const CloudSyncDashboardTabs: React.FC<CloudSyncDashboardTabsProps> = ({
                         onSync={() => handleSync('github')}
                         extraActions={
                             isProviderReadyForSync(sync.providers.github) ? (
-                                <Button size="sm" variant="ghost" onClick={handleOpenHistory} className="gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => handleOpenHistory('github')} className="gap-1">
                                     <History size={14} />
                                     {t('cloudSync.revisionHistory.viewButton')}
                                 </Button>
@@ -335,6 +335,14 @@ export const CloudSyncDashboardTabs: React.FC<CloudSyncDashboardTabsProps> = ({
                         onCancelConnect={sync.cancelOAuthConnect}
                         onDisconnect={() => sync.disconnectProvider('google')}
                         onSync={() => handleSync('google')}
+                        extraActions={
+                            isProviderReadyForSync(sync.providers.google) ? (
+                                <Button size="sm" variant="ghost" onClick={() => handleOpenHistory('google')} className="gap-1">
+                                    <History size={14} />
+                                    {t('cloudSync.revisionHistory.viewButton')}
+                                </Button>
+                            ) : undefined
+                        }
                     />
 
                     <ProviderCard

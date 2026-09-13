@@ -136,6 +136,32 @@ func (c *OAuthClient) request(ctx context.Context, method, endpoint, token, cont
 	return data, resp.Header, resp.StatusCode, nil
 }
 
+func tokenErrorText(provider, code string) error {
+	switch code {
+	case "invalid_client":
+		return errors.New("Google OAuth client is not a desktop app, or the client ID does not match. Create a Desktop app client and paste that client ID.")
+	case "redirect_uri_mismatch":
+		return errors.New("Google rejected the loopback redirect. Use a Desktop app client; LemonSSH redirects to http://127.0.0.1:<port>/callback.")
+	case "invalid_grant":
+		if provider == "google" {
+			return errors.New("Google authorization code is invalid or already used (invalid_grant). Close the callback tab and connect Google again from LemonSSH.")
+		}
+		return errors.New("OAuth authorization code is invalid or already used (invalid_grant)")
+	case "unauthorized_client":
+		return errors.New("This Google client is not allowed to exchange authorization codes. Recreate it as a Desktop app.")
+	case "invalid_request":
+		if provider == "google" {
+			return errors.New("Google rejected the token request (invalid_request). Desktop app clients still need the client secret from the downloaded JSON. Paste that client secret into LemonSSH settings and connect again.")
+		}
+		return errors.New("OAuth token request rejected: invalid_request")
+	default:
+		if code == "" {
+			return errors.New("OAuth token request rejected")
+		}
+		return fmt.Errorf("OAuth token request rejected: %s", code)
+	}
+}
+
 func statusError(status int) error {
 	switch {
 	case status >= 200 && status < 300:
@@ -167,19 +193,19 @@ func (c *OAuthClient) Tokens(ctx context.Context, provider string, o OAuthOption
 	if o.ClientID == "" || len(o.ClientID) > 512 {
 		return OAuthTokens{}, errors.New("OAuth client ID is required")
 	}
-	endpoint := c.googleToken
-	v := url.Values{"client_id": {o.ClientID}}
-	switch provider {
-	case "google":
-		if o.ClientSecret != "" {
-			v.Set("client_secret", o.ClientSecret)
+		endpoint := c.googleToken
+		v := url.Values{"client_id": {o.ClientID}}
+		switch provider {
+		case "google":
+			if o.ClientSecret != "" {
+				v.Set("client_secret", o.ClientSecret)
+			}
+		case "onedrive":
+			endpoint = c.microsoftToken
+			v.Set("scope", oneDriveScope)
+		default:
+			return OAuthTokens{}, errors.New("OAuth provider is not allowed")
 		}
-	case "onedrive":
-		endpoint = c.microsoftToken
-		v.Set("scope", oneDriveScope)
-	default:
-		return OAuthTokens{}, errors.New("OAuth provider is not allowed")
-	}
 	if refresh {
 		if o.RefreshToken == "" {
 			return OAuthTokens{}, errors.New("Refresh token is required")
@@ -199,26 +225,29 @@ func (c *OAuthClient) Tokens(ctx context.Context, provider string, o OAuthOption
 	if err != nil {
 		return OAuthTokens{}, err
 	}
-	var wire struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-		TokenType    string `json:"token_type"`
-		Scope        string `json:"scope"`
-		ExpiresIn    int64  `json:"expires_in"`
-		Error        string `json:"error"`
-	}
-	if json.Unmarshal(data, &wire) != nil {
-		return OAuthTokens{}, errors.New("Invalid OAuth token response")
-	}
-	if provider == "onedrive" && refresh && (wire.Error == "invalid_grant" || wire.Error == "interaction_required" || wire.Error == "consent_required") {
-		return OAuthTokens{}, errors.New("ONEDRIVE_REAUTH_REQUIRED: OneDrive session expired, please reconnect.")
-	}
-	if err = statusError(status); err != nil {
-		return OAuthTokens{}, err
-	}
-	if wire.Error != "" || wire.AccessToken == "" {
-		return OAuthTokens{}, errors.New("OAuth token request rejected")
-	}
+		var wire struct {
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+			TokenType    string `json:"token_type"`
+			Scope        string `json:"scope"`
+			ExpiresIn    int64  `json:"expires_in"`
+			Error        string `json:"error"`
+		}
+		if json.Unmarshal(data, &wire) != nil {
+			return OAuthTokens{}, errors.New("Invalid OAuth token response")
+		}
+		if provider == "onedrive" && refresh && (wire.Error == "invalid_grant" || wire.Error == "interaction_required" || wire.Error == "consent_required") {
+			return OAuthTokens{}, errors.New("ONEDRIVE_REAUTH_REQUIRED: OneDrive session expired, please reconnect.")
+		}
+		if wire.Error != "" {
+			return OAuthTokens{}, tokenErrorText(provider, wire.Error)
+		}
+		if err = statusError(status); err != nil {
+			return OAuthTokens{}, err
+		}
+		if wire.AccessToken == "" {
+			return OAuthTokens{}, errors.New("OAuth token request rejected")
+		}
 	if refresh && wire.RefreshToken == "" {
 		wire.RefreshToken = o.RefreshToken
 	}

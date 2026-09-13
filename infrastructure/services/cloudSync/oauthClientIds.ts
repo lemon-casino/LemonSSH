@@ -2,14 +2,15 @@
  * Runtime OAuth client IDs for the cloud sync providers.
  *
  * Client IDs are public values, but each user must register their own
- * "desktop app" OAuth client (no client secret needed for GitHub Device
- * Flow or Google/OneDrive PKCE with a loopback redirect). The IDs come
+ * desktop-app OAuth client. GitHub Device Flow and OneDrive PKCE only
+ * need the ID. Google's installed desktop clients still send
+ * client_secret on token exchange, stored separately. The IDs come
  * from runtime storage so users can configure them in Settings without
  * rebuilding; the build-time VITE_SYNC_*_CLIENT_ID constants are the
  * fallback for distribution-managed builds.
  */
 import { SYNC_CONSTANTS } from '../../../domain/sync';
-import { STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS } from '../../config/storageKeys';
+import { STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS, STORAGE_KEY_SYNC_OAUTH_CLIENT_SECRETS } from '../../config/storageKeys';
 import {
   hostStorageAdapter,
 } from '../../persistence/hostStorageAdapter';
@@ -20,12 +21,15 @@ export type OAuthProvider = 'github' | 'google' | 'onedrive';
 export type OAuthClientIds = Partial<Record<OAuthProvider, string>>;
 
 const STORAGE_KEY = STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS;
+const SECRET_STORAGE_KEY = STORAGE_KEY_SYNC_OAUTH_CLIENT_SECRETS;
 
 // useSyncExternalStore compares getSnapshot results by reference; return the
 // cached object and only replace it when the state actually changes, or React
 // loops into "maximum update depth exceeded" (error #185).
 let snapshot: OAuthClientIds = {};
 let loaded = false;
+let secretSnapshot: OAuthClientIds = {};
+let secretsLoaded = false;
 const listeners = new Set<() => void>();
 
 function readStorage(): OAuthClientIds {
@@ -52,6 +56,30 @@ function current(): OAuthClientIds {
   return snapshot;
 }
 
+function readSecrets(): OAuthClientIds {
+  try {
+    const raw = hostStorageAdapter.readString(SECRET_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const secrets: OAuthClientIds = {};
+    for (const provider of ['github', 'google', 'onedrive'] as const) {
+      const value = parsed[provider];
+      if (typeof value === 'string' && value.trim()) secrets[provider] = value.trim();
+    }
+    return secrets;
+  } catch {
+    return {};
+  }
+}
+
+function currentSecrets(): OAuthClientIds {
+  if (!secretsLoaded) {
+    secretSnapshot = readSecrets();
+    secretsLoaded = true;
+  }
+  return secretSnapshot;
+}
+
 function emitChange(): void {
   for (const listener of listeners) {
     try {
@@ -64,10 +92,17 @@ function emitChange(): void {
 
 if (typeof window !== 'undefined') {
   window.addEventListener(LOCAL_STORAGE_ADAPTER_CHANGED_EVENT, ((event: CustomEvent<{ key: string }>) => {
-    if (event.detail?.key !== STORAGE_KEY) return;
-    snapshot = readStorage();
-    loaded = true;
-    emitChange();
+    if (event.detail?.key === STORAGE_KEY) {
+      snapshot = readStorage();
+      loaded = true;
+      emitChange();
+      return;
+    }
+    if (event.detail?.key === SECRET_STORAGE_KEY) {
+      secretSnapshot = readSecrets();
+      secretsLoaded = true;
+      emitChange();
+    }
   }) as EventListener);
 }
 
@@ -91,11 +126,40 @@ export function setOAuthClientId(provider: OAuthProvider, clientId: string): voi
   emitChange();
 }
 
+export function setOAuthClientSecret(provider: OAuthProvider, secret: string): void {
+  const trimmed = secret.trim();
+  const next = { ...currentSecrets() };
+  if (trimmed) next[provider] = trimmed;
+  else delete next[provider];
+  secretSnapshot = next;
+  secretsLoaded = true;
+  hostStorageAdapter.writeString(SECRET_STORAGE_KEY, JSON.stringify(next));
+  emitChange();
+}
+
+export function resolveOAuthClientSecret(provider: OAuthProvider): string {
+  return currentSecrets()[provider] || '';
+}
+
+/** Stable primitive snapshot for the Google secret input (useSyncExternalStore). */
+export function getGoogleClientSecretSnapshot(): string {
+  return currentSecrets().google || '';
+}
+
 export function subscribeOAuthClientIds(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
+}
+
+/** Re-read durable storage after a same-window Go reset (no `window.storage` event). */
+export function reloadOAuthClientIdsFromStorage(): void {
+  snapshot = readStorage();
+  loaded = true;
+  secretSnapshot = readSecrets();
+  secretsLoaded = true;
+  emitChange();
 }
 
 /**

@@ -30,10 +30,11 @@ import type { CloudSyncStrategy } from '../../domain/syncStrategy';
 import type { CloudSyncConflictAction } from '../../domain/syncStrategy';
 import {
   getCloudSyncManager,
-  resetCloudSyncManager,
   type SyncManagerState,
   type SyncEventCallback,
 } from '../../infrastructure/services/CloudSyncManager';
+import { hasHostProfileClient, refreshHostProfile } from '../../infrastructure/persistence/hostStorageAdapter';
+import { reloadOAuthClientIdsFromStorage } from '../../infrastructure/services/cloudSync/oauthClientIds';
 import type { ShrinkFinding } from '../../domain/syncGuards';
 import { cloudSyncBridge as netcattyBridge, cloudSyncBridge } from '../../infrastructure/services/cloudSync/cloudSyncFacade';
 import type { DeviceFlowState } from '../../infrastructure/services/adapters/GitHubAdapter';
@@ -159,6 +160,19 @@ export interface CloudSyncHook {
   // Gist Revision History
   getGistRevisionHistory: () => Promise<Array<{ version: string; date: Date }>>;
   downloadGistRevision: (sha: string) => Promise<{
+    payload: SyncPayload;
+    meta: import('../../domain/sync').SyncFileMeta;
+    preview: {
+      hostCount: number;
+      keyCount: number;
+      snippetCount: number;
+      noteCount: number;
+      identityCount: number;
+      portForwardingRuleCount: number;
+    };
+  } | null>;
+  getProviderRevisionHistory: (provider: CloudProvider) => Promise<Array<{ version: string; date: Date }>>;
+  downloadProviderRevision: (provider: CloudProvider, sha: string) => Promise<{
     payload: SyncPayload;
     meta: import('../../domain/sync').SyncFileMeta;
     preview: {
@@ -737,15 +751,12 @@ export const useCloudSync = (): CloudSyncHook => {
     const bridge = netcattyBridge.get();
     if (!bridge?.cloudSyncResetEverything) throw new Error('cloudSyncResetEverything is not migrated to the Wails runtime yet');
     const removed = await bridge.cloudSyncResetEverything();
-    // The manager singleton still holds the pre-reset in-memory state (master
-    // key config, UNLOCKED, provider connections). Recreate it so the UI
-    // drops back to the NO_KEY gatekeeper instead of a stale dashboard.
-    // Recreate the singleton and re-point the module closures at it; a state
-    // change notification then flips every useSyncExternalStore consumer to
-    // the fresh NO_KEY snapshot.
-    resetCloudSyncManager();
-    manager = getCloudSyncManager();
-    manager.notifyStateChange();
+    // Go already deleted the durable identity. Refresh the same-window host
+    // profile cache, then reload this live manager so mounted
+    // useSyncExternalStore listeners actually see NO_KEY (GatekeeperScreen).
+    if (hasHostProfileClient()) await refreshHostProfile();
+    reloadOAuthClientIdsFromStorage();
+    manager.reloadAfterFullReset();
     return removed;
   }, []);
 
@@ -1000,6 +1011,8 @@ export const useCloudSync = (): CloudSyncHook => {
     // Gist Revision History (#679)
     getGistRevisionHistory: manager.getGistRevisionHistory.bind(manager),
     downloadGistRevision: manager.downloadGistRevision.bind(manager),
+    getProviderRevisionHistory: manager.getProviderRevisionHistory.bind(manager),
+    downloadProviderRevision: manager.downloadProviderRevision.bind(manager),
     
     // Settings
     setAutoSync,

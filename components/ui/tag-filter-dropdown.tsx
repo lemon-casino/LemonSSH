@@ -1,5 +1,6 @@
 import { Check,ChevronDown,ChevronUp,Pencil,Search,Tag,Trash2,X } from 'lucide-react';
 import React from 'react';
+import { toggleSelectedTag } from '../host/HostTagChips';
 import { cn } from '../../lib/utils';
 import { Button } from './button';
 import { Dropdown,DropdownContent,DropdownTrigger } from './dropdown';
@@ -30,11 +31,7 @@ export const TagFilterDropdown: React.FC<TagFilterDropdownProps> = ({
     const editInputRef = React.useRef<HTMLInputElement>(null);
 
     const toggleTag = (tag: string) => {
-        if (selectedTags.includes(tag)) {
-            onChange(selectedTags.filter(t => t !== tag));
-        } else {
-            onChange([...selectedTags, tag]);
-        }
+        onChange(toggleSelectedTag(selectedTags, tag));
     };
 
     const clearAll = () => {

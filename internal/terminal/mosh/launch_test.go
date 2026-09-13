@@ -19,7 +19,7 @@ func TestETLaunchUsesOwnProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(args, []string{"user@server", "--ssh-port", "2222"}) || len(env) != 0 {
+	if !reflect.DeepEqual(args, []string{"user@server", "--ssh-option", "Port=2222"}) || len(env) != 0 {
 		t.Fatalf("et launch %v %v", args, env)
 	}
 }

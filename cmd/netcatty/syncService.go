@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -17,6 +18,7 @@ type SyncService struct {
 	callbacks *cloudsync.CallbackServer
 	passwords *cloudSyncSessionPassword
 	reset     *CloudSyncResetService
+	backups   *VaultBackupService
 }
 
 func newSyncService() *SyncService {
@@ -26,6 +28,7 @@ func newSyncService() *SyncService {
 func (s *SyncService) setSessionDependencies(profile *store.Store, profileDir string, provider credentials.Provider) {
 	s.passwords = newCloudSyncSessionPassword(profileDir, provider)
 	s.reset = newCloudSyncResetService(profile, s.passwords)
+	s.backups = newVaultBackupService(profileDir, provider)
 }
 
 // CloudSyncResetEverything forgets the master key and every cloud sync
@@ -35,6 +38,53 @@ func (s *SyncService) CloudSyncResetEverything(ctx context.Context) ([]string, e
 		return nil, errSyncResetUnavailable
 	}
 	return s.reset.ResetSyncEverything(ctx)
+}
+
+type VaultBackupListResult struct {
+	Backups []VaultBackupSummary `json:"backups"`
+}
+
+func (s *SyncService) GetVaultBackupCapabilities() VaultBackupCapabilities {
+	if s.backups == nil {
+		return VaultBackupCapabilities{}
+	}
+	return s.backups.GetVaultBackupCapabilities()
+}
+
+func (s *SyncService) CreateVaultBackup(req VaultBackupCreateRequest) (VaultBackupCreateResult, error) {
+	if s.backups == nil {
+		return VaultBackupCreateResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.CreateVaultBackup(req)
+}
+
+func (s *SyncService) ListVaultBackups() (VaultBackupListResult, error) {
+	if s.backups == nil {
+		return VaultBackupListResult{}, nil
+	}
+	backups, err := s.backups.ListVaultBackups()
+	return VaultBackupListResult{Backups: backups}, err
+}
+
+func (s *SyncService) ReadVaultBackup(req VaultBackupReadRequest) (VaultBackupReadResult, error) {
+	if s.backups == nil {
+		return VaultBackupReadResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.ReadVaultBackup(req)
+}
+
+func (s *SyncService) TrimVaultBackups(req VaultBackupTrimRequest) (VaultBackupTrimResult, error) {
+	if s.backups == nil {
+		return VaultBackupTrimResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.TrimVaultBackups(req)
+}
+
+func (s *SyncService) OpenVaultBackupDir() (VaultBackupOpenDirResult, error) {
+	if s.backups == nil {
+		return VaultBackupOpenDirResult{}, errors.New("Vault backup service unavailable")
+	}
+	return s.backups.OpenVaultBackupDir()
 }
 
 func (s *SyncService) ServiceShutdown() error {

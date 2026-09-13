@@ -224,15 +224,14 @@ export const SftpOverlays: React.FC<SftpOverlaysProps> = React.memo(({
         open={!!permissionsState}
         onOpenChange={(open) => !open && setPermissionsState(null)}
         file={permissionsState?.file ?? null}
-        onSave={(_file, permissions) => {
+        onSave={async (_file, permissions) => {
           if (permissionsState) {
-            sftp.changePermissions(
+            await sftp.changePermissions(
               permissionsState.side,
               permissionsState.fullPath,
               permissions,
             );
           }
-          setPermissionsState(null);
         }}
       />
 

@@ -131,12 +131,13 @@ function buildPathCompletionSuggestions(
 ): CompletionSuggestion[] {
   if (pathEntries.length === 0) return [];
   const { pathPrefix, quoteSuffix } = resolvePathComponents(ctx.currentWord, cwd);
-  const isQuotedPath = ctx.currentWord.startsWith('"') || ctx.currentWord.startsWith("'");
   const suggestions: CompletionSuggestion[] = [];
   for (const entry of pathEntries) {
-    const insertName = isQuotedPath || !/[\\$'"|!<>;#~` ]/.test(entry.name)
-      ? entry.name
-      : shellEscape(entry.name);
+    const insertName = ctx.currentWord.startsWith('"')
+      ? entry.name.replace(/[\\"$`]/g, '\\$&')
+      : ctx.currentWord.startsWith("'")
+        ? entry.name.replace(/'/g, "'\\''")
+        : entry.name.replace(/[\\\s$'"|!<>;#~`&(){}\[\]*?]/g, '\\$&');
     const suffix = entry.type === "directory" ? "/" : "";
     const fullPath = pathPrefix + insertName + suffix + quoteSuffix;
     suggestions.push({
@@ -494,6 +495,16 @@ async function getSpecSuggestions(ctx: CompletionContext): Promise<SpecSuggestio
       return names.includes(currentToken);
     });
     if (exactMatch) {
+      // Keep the just-completed subcommand acceptable: offer the exact line
+      // itself (e.g. "docker ps") as the first row so live preview/accept has
+      // a candidate for what the user finished typing, above child previews.
+      suggestions.push({
+        text: ctx.commandLine,
+        displayText: currentToken,
+        description: exactMatch.description,
+        source: "subcommand",
+        score: 810,
+      });
       // Navigate into the matched subcommand and show its children
       const childResolved = resolveSpecContext(spec, ctx.tokens.slice(1, ctx.wordIndex + 1));
 
@@ -598,11 +609,19 @@ async function getCommandNameSuggestions(prefix: string): Promise<CompletionSugg
         source: "command",
         score: 600,
       });
-      if (suggestions.length >= 10) break;
     }
   }
 
-  return suggestions;
+  // The command-name slice is bounded, so rank matches deterministically
+  // before capping: shorter names are the likelier intent for a partial
+  // prefix ("l" must surface "ls", not lose it to the 10th long tool name in
+  // registry insertion order), with alphabetical order as the tiebreak.
+  // getCompletions' score sort is stable, so this order survives the merge.
+  suggestions.sort((left, right) =>
+    left.displayText.length - right.displayText.length
+    || left.displayText.localeCompare(right.displayText),
+  );
+  return suggestions.slice(0, 10);
 }
 
 interface ResolvedContext {

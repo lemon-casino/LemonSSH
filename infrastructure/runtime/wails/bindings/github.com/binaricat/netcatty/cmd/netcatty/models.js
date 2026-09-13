@@ -2636,6 +2636,477 @@ export class UpgradeStatus {
     }
 }
 
+export class VaultBackupCapabilities {
+    /**
+     * Creates a new VaultBackupCapabilities instance.
+     * @param {Partial<VaultBackupCapabilities>} [$$source = {}] - The source object to create the VaultBackupCapabilities.
+     */
+    constructor($$source = {}) {
+        if (!("encryptionAvailable" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["encryptionAvailable"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupCapabilities instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupCapabilities}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupCapabilities(/** @type {Partial<VaultBackupCapabilities>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupCreateRequest {
+    /**
+     * Creates a new VaultBackupCreateRequest instance.
+     * @param {Partial<VaultBackupCreateRequest>} [$$source = {}] - The source object to create the VaultBackupCreateRequest.
+     */
+    constructor($$source = {}) {
+        if (!("payload" in $$source)) {
+            /**
+             * @member
+             * @type {json$0.RawMessage}
+             */
+            this["payload"] = null;
+        }
+        if (!("reason" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["reason"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sourceAppVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["targetAppVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["syncDataVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["maxCount"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupCreateRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupCreateRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupCreateRequest(/** @type {Partial<VaultBackupCreateRequest>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupCreateResult {
+    /**
+     * Creates a new VaultBackupCreateResult instance.
+     * @param {Partial<VaultBackupCreateResult>} [$$source = {}] - The source object to create the VaultBackupCreateResult.
+     */
+    constructor($$source = {}) {
+        if (!("created" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["created"] = false;
+        }
+        if (!("backup" in $$source)) {
+            /**
+             * @member
+             * @type {VaultBackupSummary | null}
+             */
+            this["backup"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupCreateResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupCreateResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType10;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("backup" in $$parsedSource) {
+            $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
+        }
+        return new VaultBackupCreateResult(/** @type {Partial<VaultBackupCreateResult>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupListResult {
+    /**
+     * Creates a new VaultBackupListResult instance.
+     * @param {Partial<VaultBackupListResult>} [$$source = {}] - The source object to create the VaultBackupListResult.
+     */
+    constructor($$source = {}) {
+        if (!("backups" in $$source)) {
+            /**
+             * @member
+             * @type {VaultBackupSummary[]}
+             */
+            this["backups"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupListResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupListResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField0_0 = $$createType11;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("backups" in $$parsedSource) {
+            $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
+        }
+        return new VaultBackupListResult(/** @type {Partial<VaultBackupListResult>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupOpenDirResult {
+    /**
+     * Creates a new VaultBackupOpenDirResult instance.
+     * @param {Partial<VaultBackupOpenDirResult>} [$$source = {}] - The source object to create the VaultBackupOpenDirResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupOpenDirResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupOpenDirResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupOpenDirResult(/** @type {Partial<VaultBackupOpenDirResult>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupPreview {
+    /**
+     * Creates a new VaultBackupPreview instance.
+     * @param {Partial<VaultBackupPreview>} [$$source = {}] - The source object to create the VaultBackupPreview.
+     */
+    constructor($$source = {}) {
+        if (!("hostCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["hostCount"] = 0;
+        }
+        if (!("keyCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["keyCount"] = 0;
+        }
+        if (!("snippetCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["snippetCount"] = 0;
+        }
+        if (!("noteCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["noteCount"] = 0;
+        }
+        if (!("identityCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["identityCount"] = 0;
+        }
+        if (!("portForwardingRuleCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["portForwardingRuleCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupPreview instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupPreview}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupPreview(/** @type {Partial<VaultBackupPreview>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupReadRequest {
+    /**
+     * Creates a new VaultBackupReadRequest instance.
+     * @param {Partial<VaultBackupReadRequest>} [$$source = {}] - The source object to create the VaultBackupReadRequest.
+     */
+    constructor($$source = {}) {
+        if (!("id" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["id"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupReadRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupReadRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupReadRequest(/** @type {Partial<VaultBackupReadRequest>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupReadResult {
+    /**
+     * Creates a new VaultBackupReadResult instance.
+     * @param {Partial<VaultBackupReadResult>} [$$source = {}] - The source object to create the VaultBackupReadResult.
+     */
+    constructor($$source = {}) {
+        if (!("backup" in $$source)) {
+            /**
+             * @member
+             * @type {VaultBackupSummary}
+             */
+            this["backup"] = (new VaultBackupSummary());
+        }
+        if (!("payload" in $$source)) {
+            /**
+             * @member
+             * @type {json$0.RawMessage}
+             */
+            this["payload"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupReadResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupReadResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField0_0 = $$createType9;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("backup" in $$parsedSource) {
+            $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
+        }
+        return new VaultBackupReadResult(/** @type {Partial<VaultBackupReadResult>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupSummary {
+    /**
+     * Creates a new VaultBackupSummary instance.
+     * @param {Partial<VaultBackupSummary>} [$$source = {}] - The source object to create the VaultBackupSummary.
+     */
+    constructor($$source = {}) {
+        if (!("id" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["id"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["createdAt"] = 0;
+        }
+        if (!("reason" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["reason"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["syncDataVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sourceAppVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["targetAppVersion"] = undefined;
+        }
+        if (!("fingerprint" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["fingerprint"] = "";
+        }
+        if (!("preview" in $$source)) {
+            /**
+             * @member
+             * @type {VaultBackupPreview}
+             */
+            this["preview"] = (new VaultBackupPreview());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupSummary instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupSummary}
+     */
+    static createFrom($$source = {}) {
+        const $$createField7_0 = $$createType12;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("preview" in $$parsedSource) {
+            $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
+        }
+        return new VaultBackupSummary(/** @type {Partial<VaultBackupSummary>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupTrimRequest {
+    /**
+     * Creates a new VaultBackupTrimRequest instance.
+     * @param {Partial<VaultBackupTrimRequest>} [$$source = {}] - The source object to create the VaultBackupTrimRequest.
+     */
+    constructor($$source = {}) {
+        if (!("maxCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["maxCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupTrimRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupTrimRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupTrimRequest(/** @type {Partial<VaultBackupTrimRequest>} */($$parsedSource));
+    }
+}
+
+export class VaultBackupTrimResult {
+    /**
+     * Creates a new VaultBackupTrimResult instance.
+     * @param {Partial<VaultBackupTrimResult>} [$$source = {}] - The source object to create the VaultBackupTrimResult.
+     */
+    constructor($$source = {}) {
+        if (!("deletedCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["deletedCount"] = 0;
+        }
+        if (!("keptCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["keptCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new VaultBackupTrimResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {VaultBackupTrimResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new VaultBackupTrimResult(/** @type {Partial<VaultBackupTrimResult>} */($$parsedSource));
+    }
+}
+
 // Private type creation functions
 const $$createType0 = AutocompleteDirectoryEntry.createFrom;
 const $$createType1 = $Create.Array($$createType0);
@@ -2646,3 +3117,7 @@ const $$createType5 = $Create.Map($Create.Any, $Create.Any);
 const $$createType6 = $Create.Map($Create.Any, $Create.Any);
 const $$createType7 = SSHConnectRequest.createFrom;
 const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = VaultBackupSummary.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = $Create.Array($$createType9);
+const $$createType12 = VaultBackupPreview.createFrom;

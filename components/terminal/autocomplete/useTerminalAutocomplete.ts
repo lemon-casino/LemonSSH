@@ -1084,6 +1084,11 @@ export function useTerminalAutocomplete(
             return nextState;
           });
         });
+      } else if (settingsRef.current.showGhostText) {
+        // Retain candidates for inline arrow cycling without opening a popup.
+        setState(prev => version !== fetchVersionRef.current ? prev : {
+          ...EMPTY_STATE, suggestions: completions, selectedIndex: 0,
+        });
       } else {
         startTransition(() => {
           setState((prev) =>
@@ -1095,8 +1100,11 @@ export function useTerminalAutocomplete(
       }
     };
 
+    const querySessionId = sessionIdRef.current;
+    const queryCwd = getCwdRef.current?.();
     const isCurrentQueryStillActive = (): ReturnType<typeof getAlignedPrompt>["prompt"] | null => {
-      if (disposedRef.current || version !== fetchVersionRef.current) return null;
+      if (disposedRef.current || version !== fetchVersionRef.current
+          || querySessionId !== sessionIdRef.current || queryCwd !== getCwdRef.current?.()) return null;
       if (isTerminalAlternateScreenActive(term)) {
         clearState();
         return null;
@@ -1189,6 +1197,18 @@ export function useTerminalAutocomplete(
   // Keep ref in sync so handleSubDirSelect can call it
   fetchSuggestionsRef.current = fetchSuggestions;
 
+  useEffect(() => {
+    clearState();
+    if (settings.enabled) {
+      debounceTimerRef.current = setTimeout(() => fetchSuggestionsRef.current(), settings.debounceMs);
+    }
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+    // Re-query the existing line when the presentation mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.enabled, settings.showGhostText, settings.showPopupMenu, clearState]);
+
   /**
    * Handle terminal input data. Called on every character.
    */
@@ -1240,6 +1260,9 @@ export function useTerminalAutocomplete(
       renderPreviewSelection,
       acceptPreviewlessSelection,
       acceptSnippet,
+      refreshDirectorySuggestions: () => {
+        debounceTimerRef.current = setTimeout(() => fetchSuggestionsRef.current(), 50);
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handler uses refs and callbacks initialized below.
     [writeToTerminal],
@@ -1369,6 +1392,9 @@ export function useTerminalAutocomplete(
       }
 
       clearState();
+      if (!execute && suggestion.source === 'path' && suggestion.fileType === 'directory') {
+        debounceTimerRef.current = setTimeout(() => fetchSuggestionsRef.current(), 50);
+      }
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- clearState is stable

@@ -232,6 +232,12 @@ export interface WailsBindingDeps {
     CloudSyncGetSessionPassword?: () => Promise<{ password?: string; found?: boolean }>;
     CloudSyncClearSessionPassword?: () => Promise<{ success?: boolean }>;
     CloudSyncResetEverything?: () => Promise<string[]>;
+    GetVaultBackupCapabilities?: () => Promise<{ encryptionAvailable?: boolean }>;
+    CreateVaultBackup?: (payload: unknown) => Promise<{ created?: boolean; backup?: unknown }>;
+    ListVaultBackups?: () => Promise<{ backups?: unknown[] } | unknown[]>;
+    ReadVaultBackup?: (payload: unknown) => Promise<unknown>;
+    TrimVaultBackups?: (payload: unknown) => Promise<{ deletedCount?: number; keptCount?: number }>;
+    OpenVaultBackupDir?: () => Promise<{ success?: boolean; path?: string }>;
     PrepareOAuthCallback?: () => Promise<{ sessionId: string; port: number; redirectUri: string }>;
     OpenProviderConsole?: (provider: 'github' | 'google' | 'onedrive') => Promise<void>;
     GithubStartDeviceFlow?: (options: { clientId?: string; scope?: string }) => Promise<unknown>;
@@ -239,6 +245,7 @@ export interface WailsBindingDeps {
     GithubFindSyncFile?: (options: unknown) => Promise<unknown>;
     GoogleGetUserInfo?: (options: unknown) => Promise<unknown>;
     GoogleExchangeCodeForTokens?: (options: unknown) => Promise<unknown>;
+    GoogleDriveGetRevisionHistory?: (options: unknown) => Promise<{ revisions?: Array<{ version: string; date: string }> } | Array<{ version: string; date: string }>>;
     OnedriveGetUserInfo?: (options: unknown) => Promise<unknown>;
     CloudSyncWebdavInitialize?: (config: unknown) => Promise<{ resourceId: string | null }>;
     CloudSyncWebdavUpload?: (config: unknown, syncedFile: unknown) => Promise<{ resourceId: string }>;
@@ -349,9 +356,36 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   }) as unknown as NetcattyBridge["cloudSyncClearSessionPassword"];
   const cloudSyncResetEverything = (async () => {
     if (!bindings.sync?.CloudSyncResetEverything) missingBridgeMethod("cloudSyncResetEverything");
-    const keys = await bindings.sync.CloudSyncResetEverything();
-    return { removedKeys: keys ?? [] };
+    // Wails wraps the []string return as { removedKeys: string[] }.
+    const result = await bindings.sync.CloudSyncResetEverything();
+    return result?.removedKeys ?? [];
   }) as unknown as NetcattyBridge["cloudSyncResetEverything"];
+  const getVaultBackupCapabilities = (async () => {
+    if (!bindings.sync?.GetVaultBackupCapabilities) missingBridgeMethod("getVaultBackupCapabilities");
+    const result = await bindings.sync.GetVaultBackupCapabilities();
+    return { encryptionAvailable: Boolean(result?.encryptionAvailable) };
+  }) as unknown as NetcattyBridge["getVaultBackupCapabilities"];
+  const createVaultBackup = (async (payload) => {
+    if (!bindings.sync?.CreateVaultBackup) missingBridgeMethod("createVaultBackup");
+    return bindings.sync.CreateVaultBackup(payload);
+  }) as unknown as NetcattyBridge["createVaultBackup"];
+  const listVaultBackups = (async () => {
+    if (!bindings.sync?.ListVaultBackups) missingBridgeMethod("listVaultBackups");
+    const result = await bindings.sync.ListVaultBackups();
+    return Array.isArray(result) ? result : result?.backups ?? [];
+  }) as unknown as NetcattyBridge["listVaultBackups"];
+  const readVaultBackup = (async (payload) => {
+    if (!bindings.sync?.ReadVaultBackup) missingBridgeMethod("readVaultBackup");
+    return bindings.sync.ReadVaultBackup(payload);
+  }) as unknown as NetcattyBridge["readVaultBackup"];
+  const trimVaultBackups = (async (payload) => {
+    if (!bindings.sync?.TrimVaultBackups) missingBridgeMethod("trimVaultBackups");
+    return bindings.sync.TrimVaultBackups(payload);
+  }) as unknown as NetcattyBridge["trimVaultBackups"];
+  const openVaultBackupDir = (async () => {
+    if (!bindings.sync?.OpenVaultBackupDir) missingBridgeMethod("openVaultBackupDir");
+    return bindings.sync.OpenVaultBackupDir();
+  }) as unknown as NetcattyBridge["openVaultBackupDir"];
   const openProviderConsole = (async (provider: 'github' | 'google' | 'onedrive') => {
     if (!bindings.sync?.OpenProviderConsole) missingBridgeMethod("openProviderConsole");
     await bindings.sync.OpenProviderConsole(provider);
@@ -910,6 +944,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     cloudSyncGetSessionPassword,
     cloudSyncClearSessionPassword,
     cloudSyncResetEverything,
+    getVaultBackupCapabilities,
+    createVaultBackup,
+    listVaultBackups,
+    readVaultBackup,
+    trimVaultBackups,
+    openVaultBackupDir,
     getDefaultShell,
     discoverShells,
     validatePath,
@@ -1348,6 +1388,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       // OAuth/device-flow/file operations under Wails.
       ...cloudOAuth,
       openProviderConsole,
+      cloudSyncSetSessionPassword,
+      cloudSyncGetSessionPassword,
+      cloudSyncClearSessionPassword,
+      cloudSyncResetEverything,
+      getVaultBackupCapabilities,
+      createVaultBackup,
+      listVaultBackups,
+      readVaultBackup,
+      trimVaultBackups,
+      openVaultBackupDir,
       cloudSyncWebdavInitialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
         return bindings.sync.CloudSyncWebdavInitialize(config);

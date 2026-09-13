@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from 'react';
 
 import {
+  getGoogleClientSecretSnapshot,
   getOAuthClientIdsSnapshot,
   setOAuthClientId,
+  setOAuthClientSecret,
   subscribeOAuthClientIds,
   type OAuthClientIds,
   type OAuthProvider,
@@ -12,7 +14,15 @@ import {
 export function useOAuthClientIds(): {
   ids: OAuthClientIds;
   setClientId: (provider: OAuthProvider, clientId: string) => void;
+  googleClientSecret: string;
+  setGoogleClientSecret: (secret: string) => void;
 } {
   const ids = useSyncExternalStore(subscribeOAuthClientIds, getOAuthClientIdsSnapshot);
-  return { ids, setClientId: setOAuthClientId };
+  const googleClientSecret = useSyncExternalStore(subscribeOAuthClientIds, getGoogleClientSecretSnapshot);
+  return {
+    ids,
+    setClientId: setOAuthClientId,
+    googleClientSecret,
+    setGoogleClientSecret: (secret) => setOAuthClientSecret('google', secret),
+  };
 }
