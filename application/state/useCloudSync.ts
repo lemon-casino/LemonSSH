@@ -30,6 +30,7 @@ import type { CloudSyncStrategy } from '../../domain/syncStrategy';
 import type { CloudSyncConflictAction } from '../../domain/syncStrategy';
 import {
   getCloudSyncManager,
+  resetCloudSyncManager,
   type SyncManagerState,
   type SyncEventCallback,
 } from '../../infrastructure/services/CloudSyncManager';
@@ -238,7 +239,7 @@ const clearPendingBrowserAuthState = (
 // ============================================================================
 
 // Singleton manager instance
-const manager = getCloudSyncManager();
+let manager = getCloudSyncManager();
 
 // Subscribe function for useSyncExternalStore
 const subscribe = (callback: () => void) => {
@@ -735,7 +736,17 @@ export const useCloudSync = (): CloudSyncHook => {
   const resetSyncEverything = useCallback(async (): Promise<string[]> => {
     const bridge = netcattyBridge.get();
     if (!bridge?.cloudSyncResetEverything) throw new Error('cloudSyncResetEverything is not migrated to the Wails runtime yet');
-    return bridge.cloudSyncResetEverything();
+    const removed = await bridge.cloudSyncResetEverything();
+    // The manager singleton still holds the pre-reset in-memory state (master
+    // key config, UNLOCKED, provider connections). Recreate it so the UI
+    // drops back to the NO_KEY gatekeeper instead of a stale dashboard.
+    // Recreate the singleton and re-point the module closures at it; a state
+    // change notification then flips every useSyncExternalStore consumer to
+    // the fresh NO_KEY snapshot.
+    resetCloudSyncManager();
+    manager = getCloudSyncManager();
+    manager.notifyStateChange();
+    return removed;
   }, []);
 
   const cancelOAuthConnect = useCallback(() => {

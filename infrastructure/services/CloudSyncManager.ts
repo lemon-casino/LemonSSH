@@ -37,6 +37,8 @@ import { materializeConvergentSyncState } from '../../domain/convergentSync';
 import { type CloudAdapter } from './adapters';
 import type { DeviceFlowState } from './adapters/GitHubAdapter';
 import { clearConvergentSyncLocalConfigAfterDowngrade } from './convergentSyncConfig';
+import { withSyncOperation } from './cloudSync/syncOperationLock';
+import { propagateMasterKeyRotationImpl } from './cloudSync/masterKeyPropagation';
 
 
 import { type ShrinkFinding } from '../../domain/syncGuards';
@@ -345,9 +347,9 @@ export class CloudSyncManager {
    * Call this after any state mutation
    * Uses deep clone to ensure React detects changes in nested objects
    */
-  private notifyStateChange(): void {
+  notifyStateChange(): void {
     // Deep clone the state to ensure all nested objects are new references
-    const providers: Record<CloudProvider, ProviderConnection> = {};
+    const providers: Record<string, ProviderConnection> = {};
     for (const [providerId, connection] of Object.entries(this.state.providers)) {
       providers[providerId] = { ...connection };
     }
@@ -424,7 +426,7 @@ export class CloudSyncManager {
    * Set up a new master key (first time setup)
    */
   async setupMasterKey(password: string): Promise<void> {
-    return setupMasterKeyImpl.call(this, password);
+    return withSyncOperation(this, () => setupMasterKeyImpl.call(this, password));
   }
 
   /**
@@ -445,7 +447,24 @@ export class CloudSyncManager {
    * Change master password
    */
   async changeMasterKey(oldPassword: string, newPassword: string): Promise<boolean> {
-    return changeMasterKeyImpl.call(this, oldPassword, newPassword);
+    return withSyncOperation(this, () => {
+      const rotate = () => changeMasterKeyImpl.call(this, oldPassword, newPassword);
+      return typeof navigator !== 'undefined' && navigator.locks ? this.withConvergentSyncLock(rotate) : rotate();
+    });
+  }
+
+  adoptStoredMasterKeyConfig(config: MasterKeyConfig | null): void {
+    this.lock();
+    this.state.masterKeyConfig = config;
+    this.state.securityState = config ? 'LOCKED' : 'NO_KEY';
+    this.notifyStateChange();
+  }
+
+  async propagateMasterKeyRotation(oldPassword: string, newPassword: string): Promise<void> {
+    return withSyncOperation(this, () => {
+      const propagate = () => propagateMasterKeyRotationImpl.call(this, oldPassword, newPassword);
+      return typeof navigator !== 'undefined' && navigator.locks ? this.withConvergentSyncLock(propagate) : propagate();
+    });
   }
 
   /**
@@ -720,20 +739,22 @@ export class CloudSyncManager {
       signal?: AbortSignal;
     } = {},
   ): Promise<SyncResult> {
-    const previous = this.activeSyncAbortSignal;
-    this.activeSyncAbortSignal = opts.signal;
-    try {
-      return await syncToProviderImpl.call(this, provider, payload, opts);
-    } finally {
-      this.activeSyncAbortSignal = previous;
-    }
+    return withSyncOperation(this, async () => {
+      const previous = this.activeSyncAbortSignal;
+      this.activeSyncAbortSignal = opts.signal;
+      try {
+        return await syncToProviderImpl.call(this, provider, payload, opts);
+      } finally {
+        this.activeSyncAbortSignal = previous;
+      }
+    });
   }
 
   /**
    * Download and apply data from a provider
    */
   async downloadFromProvider(provider: CloudProvider): Promise<RemoteSyncPayload | null> {
-    return downloadFromProviderImpl.call(this, provider);
+    return withSyncOperation(this, () => downloadFromProviderImpl.call(this, provider));
   }
 
   // ========================================================================
@@ -825,13 +846,15 @@ export class CloudSyncManager {
       signal?: AbortSignal;
     } = {},
   ): Promise<Map<CloudProvider, SyncResult>> {
-    const previous = this.activeSyncAbortSignal;
-    this.activeSyncAbortSignal = opts.signal;
-    try {
-      return await syncAllProvidersImpl.call(this, inputPayload, opts);
-    } finally {
-      this.activeSyncAbortSignal = previous;
-    }
+    return withSyncOperation(this, async () => {
+      const previous = this.activeSyncAbortSignal;
+      this.activeSyncAbortSignal = opts.signal;
+      try {
+        return await syncAllProvidersImpl.call(this, inputPayload, opts);
+      } finally {
+        this.activeSyncAbortSignal = previous;
+      }
+    });
   }
 
   // ==========================================================================
