@@ -11,7 +11,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -54,35 +53,43 @@ type RemoteFS interface {
 	Create(path string) (io.WriteCloser, error)
 }
 
-// Session bounds concurrent SFTP clients per terminal session.
+// acquireWait bounds how long an operation queues while the session is
+// saturated. The UI legitimately bursts past the limit (parallel multi-select
+// deletes) and saturated sessions drain in well under a second for ordinary
+// operations, so waiting converts those bursts into brief queues instead of
+// user-visible failures; a hung transport still fails after the window.
+const acquireWait = 10 * time.Second
+
+// Session bounds concurrent SFTP operations per terminal session.
 type Session struct {
-	mu      sync.Mutex
-	max     int
-	clients int
+	slots chan struct{}
+	wait  time.Duration
 }
 
 // NewSession constructs a session with a bounded client limit.
 func NewSession(maxClients int) *Session {
+	return newSessionWithWait(maxClients, acquireWait)
+}
+
+func newSessionWithWait(maxClients int, wait time.Duration) *Session {
 	if maxClients <= 0 {
 		maxClients = 4
 	}
-	return &Session{max: maxClients}
+	return &Session{slots: make(chan struct{}, maxClients), wait: wait}
 }
 
-// Acquire reserves an SFTP client slot. The caller must invoke the returned
-// release exactly once.
+// Acquire reserves an SFTP client slot, queueing up to the session wait while
+// the limit is saturated. The caller must invoke the returned release exactly
+// once.
 func (s *Session) Acquire() (func(), error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.clients >= s.max {
+	timer := time.NewTimer(s.wait)
+	defer timer.Stop()
+	select {
+	case s.slots <- struct{}{}:
+		return func() { <-s.slots }, nil
+	case <-timer.C:
 		return nil, ErrTooManyClients
 	}
-	s.clients++
-	return func() {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		s.clients--
-	}, nil
 }
 
 // NormalizePath joins and cleans an SFTP path, refusing empty names and
