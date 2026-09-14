@@ -1,6 +1,6 @@
 export type LayoutMode = 'classic' | 'workbench';
 
-export const DEFAULT_LAYOUT_MODE: LayoutMode = 'classic';
+export const DEFAULT_LAYOUT_MODE: LayoutMode = 'workbench';
 
 /** Returns null for anything that is not a recognized layout mode value. */
 export function parseLayoutMode(raw: unknown): LayoutMode | null {

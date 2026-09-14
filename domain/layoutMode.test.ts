@@ -20,8 +20,8 @@ test("parseLayoutMode falls back to null for unknown or non-string input", () =>
   assert.equal(parseLayoutMode({}), null);
 });
 
-test("default layout mode is classic", () => {
-  assert.equal(DEFAULT_LAYOUT_MODE, "classic");
+test("default layout mode is workbench", () => {
+  assert.equal(DEFAULT_LAYOUT_MODE, "workbench");
 });
 
 test("STORAGE_KEY_LAYOUT_MODE is registered in both sync channels", async () => {

@@ -5,7 +5,7 @@ import type { HotkeyScheme } from '../../domain/models/keyBindings';
 import type { DynamicTabTitleMode } from '../../domain/models/terminal';
 import type { HostClickBehavior } from '../../domain/hostClickBehavior';
 import type { TerminalSidePanelAutoOpenTab } from '../../domain/terminalSidePanelAutoOpen';
-import type { LayoutMode } from '../../domain/layoutMode';
+import { DEFAULT_LAYOUT_MODE, type LayoutMode } from '../../domain/layoutMode';
 
 type Listener = () => void;
 
@@ -74,7 +74,7 @@ export const DEFAULT_SETTINGS_CHROME_SNAPSHOT: SettingsChromeSnapshot = Object.f
   terminalSidePanelAutoOpen: false,
   terminalSidePanelAutoOpenTab: 'ai',
   closeBehavior: 'minimize',
-  layoutMode: 'classic',
+  layoutMode: DEFAULT_LAYOUT_MODE,
 } satisfies SettingsChromeSnapshot);
 
 export function settingsChromeSnapshotsEqual(
