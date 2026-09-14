@@ -237,7 +237,7 @@ policy 缩写：W=`write`、LR=`longRunning`、SR=`sensitiveRead`、CS=`requires
 ## 9. 明确阻塞（迁移前必须关闭）
 
 1. **P6-05 `NONAI-COMPLETE` 未达成**：ledger 无记录；AI 四行 `not-started`。
-2. **五个 agent 决策类别无 accepted decision**：cursor-bun、opencode-bun、copilot、codebuddy、cursor-cli。retention/retirement 都必须走 decision + ledger。
+2. **五个 agent 决策类别无 accepted decision**：cursor-bun、opencode-bun、copilot、codebuddy、cursor-cli。retention/retirement 都必须走 decision + ledger；建议草案见 [proposals/agent-disposition-proposals.md](../proposals/agent-disposition-proposals.md)（未接受，待产品 owner 批准）。
 3. **Claude model catalog parity 未证明**：CLI machine-readable catalog 与 `supportedModels()` 等价性缺失。
 4. **Codex schema 锁定与 native provenance 未完成**：`.js` 启动分支必须证明可拒绝。
 5. **Grok ACP conformance/permission 设计未完成**：旧 always-approve 不可复制。
@@ -248,7 +248,7 @@ policy 缩写：W=`write`、LR=`longRunning`、SR=`sensitiveRead`、CS=`requires
 
 - **归属**：既有 foundation/release 资格验证（非 AI 功能）；技术设计 §1.1 要求在取得有效 NONAI-COMPLETE 前完成。
 - **漂移与执行结果**：根 `go.mod` 原为 `v3.0.0-alpha.63`，npm runtime 和 generator 为 `3.0.0-beta.12`。已按 WV3-L133 将根模块对齐到 `v3.0.0-beta.12`：`go build ./...`、`go vet ./cmd/netcatty`、`go test -count=1 ./cmd/netcatty` 通过（go 1.25.0，go directive 不变）；`GOTOOLCHAIN=go1.25.0` 重新生成 bindings 为 20 services / 212 methods / 97 models，与已提交内容零 diff；`npm run wails:build` 产出 `bin/LemonSSH.exe`。新增 `npm run check:wails-versions` 漂移守卫（scripts/migration/check-wails-versions.mjs）并接入 CI。
-- **剩余任务**：① 三平台 shell smoke（macOS/Linux 未在本切片重建）；② go 工具链升级评估（候选 go1.27.1，2026-09-01 发布；须先验证 Wails/CGO/race，单独切片，不夹带 AI PR）；③ 绑定生成命令保持 `GOTOOLCHAIN=go1.25.0` + 位置参数 `./cmd/netcatty`。
+- **剩余任务**：① 三平台 shell smoke（macOS/Linux 未在本切片重建）；② go 工具链升级评估——**已完成本地评估（WV3-L134，[probes/go-toolchain-1.27.md](../probes/go-toolchain-1.27.md)）**：build/vet/race 全过，但 1.27.1 生成的 bindings 因标准库新增 `encoding/json/jsontext` 而漂移（98 vs 97 models），暂不锁定，保持 `GOTOOLCHAIN=go1.25.0` 生成钉；③ 绑定生成命令保持 `GOTOOLCHAIN=go1.25.0` + 位置参数 `./cmd/netcatty`。
 - **边界**：失败回退整个版本组合，不留混搭；改动使已验证 non-AI gate 失效时按 gate epoch 规则补证/重开。
 
 ## 11. 复验命令

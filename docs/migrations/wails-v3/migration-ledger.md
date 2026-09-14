@@ -3969,3 +3969,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: macOS and Linux shell smoke on the aligned combo still pending; the go1.27.1 toolchain upgrade remains an open W02 follow-up and is not bundled here
 - Next safe slice: three-platform shell smoke on the aligned combo, then the go toolchain upgrade evaluation
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L134 - 2026-09-14 - Go 1.27.1 toolchain evaluation probe
+
+- Capability rows: `FND-01`
+- Plan task: `P1-01`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Evaluate the go1.27.1 toolchain candidate recorded in the W02 task card without changing any locked configuration. With GOTOOLCHAIN=go1.27.1 on the beta.12-aligned tree: go build ./... passes, go vet over cmd/netcatty and internal passes, race tests over profile store, terminal data plane and platform credentials pass on five packages. Bindings generation is the blocker: go1.27.1 processes 369 packages and emits 98 models versus 352 and 97 on go1.25.0, because the go 1.27 stdlib adds encoding/json/jsontext and the generator then projects json.RawMessage as jsontext.Value instead of any, changing five bindings files. The probe restored the go1.25.0 generation afterwards; the committed tree is unchanged.
+- Go canonical owner: none changed; go directive stays 1.25.0
+- Frontend adapter: none; probe reverted, bindings byte-identical to commit
+- Electron owner affected: none
+- Preserved invariants: the GOTOOLCHAIN=go1.25.0 pin in the binding generation command stays load-bearing for byte-identical bindings; CI GOTOOLCHAIN=local with 1.25.x untouched; check:wails-versions continues to guard only the wails combination, not the toolchain
+- Data/schema impact: none
+- Security impact: neutral; no configuration changed
+- Verification: see probes/go-toolchain-1.27.md for commands and exit codes; build exit 0, vet exit 0, race 5 packages ok, bindings regen diff characterized and reverted, final worktree clean
+- Platforms covered: Windows 10 22H2 x64 only
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: ledger, probes/go-toolchain-1.27.md, baselines/ai-phase7-parity.md section 10
+- Residual risks: unix CGO and race behavior under 1.27.1 untested; go1.26.8 untested as fallback candidate
+- Next safe slice: keep the 1.25.0 lock; revisit 1.27 when a wails release declares support, as a coordinated slice with binding regen plus TS checks plus three-platform smoke
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
