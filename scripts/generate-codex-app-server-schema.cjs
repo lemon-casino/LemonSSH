@@ -47,7 +47,10 @@ const generated = Buffer.from(
 );
 if (check) {
   const current = fs.existsSync(targetFile) ? fs.readFileSync(targetFile) : null;
-  if (!current || !current.equals(generated)) {
+  // Tolerate CRLF working-tree checkouts (core.autocrlf): the generated file
+  // is always LF, so compare content with line endings normalized.
+  const currentNormalized = current ? current.toString("utf8").replace(/\r\n/g, "\n") : null;
+  if (currentNormalized !== generated.toString("utf8")) {
     console.error("Codex App Server protocol schema is out of date. Run npm run generate:codex-app-server-schema.");
     process.exitCode = 1;
   }
