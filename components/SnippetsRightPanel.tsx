@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { parseSnippetVariables } from '../domain/snippetVariables';
-import { Check, Clock, Keyboard, Loader2, Package, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, Clock, Keyboard, Loader2, Package, Play, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SelectHostPanel from './SelectHostPanel';
 import { SelectGroupDialog } from './SelectGroupDialog';
@@ -48,7 +48,6 @@ export const SnippetsRightPanel: React.FC<SnippetsRightPanelProps> = ({
   editingSnippet,
   onDelete,
   handleSave,
-  handleSaveAndRun,
   setEditingSnippet,
   packageOptions,
   selectedPackage,
@@ -377,14 +376,23 @@ export const SnippetsRightPanel: React.FC<SnippetsRightPanelProps> = ({
             ) : null}
           </AsidePanelContent>
 
-          {/* Footer */}
-          <AsidePanelFooter>
+          {/* Footer: save and run are separate intents; run keeps the draft on screen */}
+          <AsidePanelFooter className="flex gap-2">
             <Button
-              className="w-full"
-              onClick={canRunEditingScript ? handleSaveAndRun : handleSave}
+              className="flex-1"
+              onClick={handleSave}
               disabled={!editingSnippet.label || !editingSnippet.command}
             >
-              {canRunEditingScript ? t('action.run') : t('common.save')}
+              {t('common.save')}
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={canRunEditingScript ? runEditingScript : undefined}
+              disabled={!editingSnippet.label || !editingSnippet.command || !canRunEditingScript}
+              title={canRunEditingScript ? undefined : t('scripts.actions.noRunnableHosts')}
+            >
+              <Play size={14} className="mr-2" /> {t('action.run')}
             </Button>
           </AsidePanelFooter>
           {isEditingScript ? (

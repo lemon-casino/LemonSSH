@@ -14,6 +14,7 @@ export const SnippetsPackageDialogs: React.FC<SnippetsPackageDialogsProps> = ({
   newPackageName,
   setNewPackageName,
   createPackage,
+  newPackageError,
   setIsPackageDialogOpen,
   isRenameDialogOpen,
   renamingPackagePath,
@@ -42,6 +43,9 @@ export const SnippetsPackageDialogs: React.FC<SnippetsPackageDialogsProps> = ({
                 onChange={(e) => setNewPackageName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && createPackage()}
               />
+              {newPackageError && (
+                <p className="text-[11px] text-destructive">{newPackageError}</p>
+              )}
               <p className="text-[11px] text-muted-foreground">{t('snippets.packageDialog.hint')}</p>
             </div>
             <div className="flex justify-end gap-2">

@@ -22,7 +22,6 @@ import {
 import {
   getRunnableHostsForSnippet,
   resolveSnippetTargetGroupsForSave,
-  snippetHasRunTargets,
 } from '../domain/snippetTargets.ts';
 import { removeHostConnectScript, syncHostsForSnippetTargetChange } from '../domain/hostConnectScripts.ts';
 import { flattenSnippetCommandPreview } from '../domain/snippetPreview.ts';
@@ -496,6 +495,7 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [newPackageName, setNewPackageName] = useState('');
+  const [newPackageError, setNewPackageError] = useState('');
   const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false);
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -760,21 +760,6 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
     syncHostsAfterSnippetSave(savedSnippet, nextSnippets);
     setRightPanelMode('none');
   }, [buildSavedSnippet, onSave, snippets, syncHostsAfterSnippetSave]);
-
-  const handleSaveAndRun = useCallback(() => {
-    const savedSnippet = buildSavedSnippet();
-    if (!savedSnippet) return;
-    const nextSnippets = snippets.find((ex) => ex.id === savedSnippet.id)
-      ? snippets.map((ex) => (ex.id === savedSnippet.id ? savedSnippet : ex))
-      : [...snippets, savedSnippet];
-    onSave(savedSnippet);
-    syncHostsAfterSnippetSave(savedSnippet, nextSnippets);
-    const runTargets = getRunnableHostsForSnippet(savedSnippet, hosts);
-    if (snippetHasRunTargets(savedSnippet) && runTargets.length > 0) {
-      onRunSnippet?.(savedSnippet, runTargets);
-    }
-    setRightPanelMode('none');
-  }, [buildSavedSnippet, hosts, onRunSnippet, onSave, snippets, syncHostsAfterSnippetSave]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -1132,12 +1117,16 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
 
   const createPackage = () => {
     const name = newPackageName.trim();
-    if (!name) return;
-    
-    if (!/^\/?([\w\p{L}\p{N}-]+(\/[\w\p{L}\p{N}-]+)*)\/?$/u.test(name)) {
+    if (!name) {
+      setNewPackageError(t('snippets.renameDialog.error.empty'));
       return;
     }
-    
+
+    if (!/^\/?([\w\p{L}\p{N}-]+(\/[\w\p{L}\p{N}-]+)*)\/?$/u.test(name)) {
+      setNewPackageError(t('snippets.renameDialog.error.invalidChars'));
+      return;
+    }
+
     let full: string;
     if (selectedPackage) {
       const normalizedName = name.startsWith('/') ? name.substring(1) : name;
@@ -1149,14 +1138,16 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
     if (full.endsWith('/')) {
       full = full.slice(0, -1);
     }
-    
+
     const existingPackage = packages.find(p => p.toLowerCase() === full.toLowerCase());
     if (existingPackage) {
+      setNewPackageError(t('snippets.renameDialog.error.duplicate'));
       return;
     }
-    
+
     onPackagesChange([...packages, full]);
     setNewPackageName('');
+    setNewPackageError('');
     setIsPackageDialogOpen(false);
   };
 
@@ -1622,7 +1613,6 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
       editingSnippet={editingSnippet}
       onDelete={requestDeleteSnippet}
       handleSave={handleSave}
-      handleSaveAndRun={handleSaveAndRun}
       setEditingSnippet={setEditingSnippet}
       packageOptions={packageOptions}
       selectedPackage={selectedPackage}
@@ -1673,6 +1663,7 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
             <Button
               onClick={() => {
                 setNewPackageName('');
+                setNewPackageError('');
                 setIsPackageDialogOpen(true);
               }}
               size="sm"
@@ -2099,8 +2090,12 @@ const SnippetsManager: React.FC<SnippetsManagerProps> = ({
         t={t}
         selectedPackage={selectedPackage}
         newPackageName={newPackageName}
-        setNewPackageName={setNewPackageName}
+        setNewPackageName={(value) => {
+          setNewPackageName(value);
+          setNewPackageError('');
+        }}
         createPackage={createPackage}
+        newPackageError={newPackageError}
         setIsPackageDialogOpen={setIsPackageDialogOpen}
         isRenameDialogOpen={isRenameDialogOpen}
         renamingPackagePath={renamingPackagePath}

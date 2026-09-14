@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -60,6 +61,24 @@ test("SnippetsManager renders import and multi-select controls", () => {
   assert.match(markup, /Import/);
   assert.match(markup, /Select snippets/);
   assert.doesNotMatch(markup, /Snippet import format/);
+});
+
+test("new-package dialog surfaces validation errors instead of failing silently", () => {
+  const managerSource = readFileSync(new URL("./SnippetsManager.tsx", import.meta.url), "utf8");
+  const dialogsSource = readFileSync(new URL("./SnippetsPackageDialogs.tsx", import.meta.url), "utf8");
+  assert.match(managerSource, /setNewPackageError\(t\('snippets\.renameDialog\.error\.empty'\)\)/);
+  assert.match(managerSource, /setNewPackageError\(t\('snippets\.renameDialog\.error\.invalidChars'\)\)/);
+  assert.match(managerSource, /setNewPackageError\(t\('snippets\.renameDialog\.error\.duplicate'\)\)/);
+  assert.match(dialogsSource, /newPackageError && \(/);
+});
+
+test("snippet editor footer keeps save and run as separate colored buttons", () => {
+  const panelSource = readFileSync(new URL("./SnippetsRightPanel.tsx", import.meta.url), "utf8");
+  assert.match(panelSource, /AsidePanelFooter className="flex gap-2"/);
+  assert.match(panelSource, /onClick=\{handleSave\}/);
+  assert.match(panelSource, /variant="secondary"[\s\S]{0,220}onClick=\{canRunEditingScript \? runEditingScript : undefined\}/);
+  assert.match(panelSource, /<Play size=\{14\}/);
+  assert.doesNotMatch(panelSource, /handleSaveAndRun/);
 });
 
 test("SnippetImportDialog shows example JSON before import confirmation", () => {
