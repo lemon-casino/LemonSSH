@@ -402,7 +402,7 @@ const AppWorkbenchSessionLayerInner: React.FC<AppWorkbenchSessionLayerProps> = (
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label={t('workbench.tree.section.workspaces')}
+          aria-label={t('vault.sidebar.resize')}
           aria-valuemin={180}
           aria-valuemax={480}
           aria-valuenow={width}

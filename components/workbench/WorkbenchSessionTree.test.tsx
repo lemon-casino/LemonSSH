@@ -393,6 +393,15 @@ test("workbench tree interactions: group toggle, session activate, workspace act
     assert.deepEqual(toggled, ["Prod"]);
 
     // Workspace node label click activates the workspace tab; chevron toggles.
+    // Fusion: no Sessions / Workspaces department headers around that node.
+    assert.equal(
+      renderer.container.textContent?.includes("workbench.tree.section.sessions"),
+      false,
+    );
+    assert.equal(
+      renderer.container.textContent?.includes("workbench.tree.section.workspaces"),
+      false,
+    );
     const wsRow = renderer.container.querySelector(
       '[data-section="workbench-tree-group"][data-tab-id="ws1"]',
     );
@@ -400,19 +409,74 @@ test("workbench tree interactions: group toggle, session activate, workspace act
     assert.match(wsRow.textContent ?? "", /Ops workspace/);
     await clickElement(env, wsRow as Element);
     assert.deepEqual(activated, ["ws1"]);
+    // Already expanded: activating must not collapse the folder.
+    assert.deepEqual(toggled, ["Prod"]);
 
     const chevron = wsRow?.querySelector("button");
     assert.ok(chevron, "workspace chevron missing");
     await clickElement(env, chevron as Element);
     assert.deepEqual(toggled, ["Prod", "workspace:ws1"]);
 
-    // Workspace session click focuses the session inside its workspace.
+    // Workspace session click opens the workspace tab and focuses the pane.
     const wsSessionRow = renderer.container.querySelector(
       '[data-section="workbench-tree-session"][data-tab-id="s2"]',
     );
     assert.ok(wsSessionRow, "workspace session row missing");
     await clickElement(env, wsSessionRow as Element);
+    assert.deepEqual(activated, ["ws1", "ws1"]);
     assert.deepEqual(workspaceActivated, [["ws1", "s2"]]);
+    await renderer.unmount();
+  } finally {
+    restoreEnv();
+    env.cleanup();
+  }
+});
+
+test("clicking a collapsed workspace opens it and reveals member sessions", async () => {
+  const env = installDomEnvironment();
+  const restoreEnv = installTreeEnvironmentMocks();
+
+  try {
+    const { WorkbenchSessionTree, buildSessionGroupTree } = await loadComponentModule();
+    const renderer = await createDomRenderer(env.document);
+    const hosts = [makeHost({ id: "h1", label: "web-01", group: "Prod" })];
+    const sessions = [
+      makeSession({ id: "s2", hostId: "h1", workspaceId: "ws1", customName: "ws shell" }),
+    ];
+    const workspaces = [{ id: "ws1", title: "Ops workspace" } as Workspace];
+    const activated: string[] = [];
+    const toggled: string[] = [];
+
+    await renderTree(WorkbenchSessionTree, renderer, {
+      sections: makeSectionsBuilder(buildSessionGroupTree)(sessions, hosts),
+      expandedPaths: new Set(),
+      fixedIds: new Set(["vault", "sftp"]),
+      activeTabId: "vault",
+      sessions,
+      workspaces,
+      logViews: [],
+      hostById: new Map(),
+      onTogglePath: (path: string) => toggled.push(path),
+      onActivateTab: (tabId: string) => activated.push(tabId),
+      onActivateWorkspaceSession: noop,
+      onCloseSession: noop,
+      onCloseLogView: noop,
+      onRenameSession: noop,
+      onReconnectSession: noop,
+      onRenameWorkspace: noop,
+      onCopyWorkspace: noop,
+      onCloseWorkspace: noop,
+    });
+    await flushEffects();
+
+    const wsRow = renderer.container.querySelector(
+      '[data-section="workbench-tree-group"][data-tab-id="ws1"]',
+    );
+    assert.ok(wsRow, "workspace node missing");
+    assert.equal(renderer.container.querySelector('[data-tab-id="s2"]'), null);
+    await clickElement(env, wsRow as Element);
+    assert.deepEqual(activated, ["ws1"]);
+    assert.deepEqual(toggled, ["workspace:ws1"]);
     await renderer.unmount();
   } finally {
     restoreEnv();

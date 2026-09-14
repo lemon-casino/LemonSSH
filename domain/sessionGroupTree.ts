@@ -398,12 +398,24 @@ export function buildSessionGroupTree(
   };
 }
 
-/**
- * Flattens the section trees into rows for virtualized rendering.
- *
- * Children of `group` and `host` nodes are skipped unless the node's id is in
- * `expandedPaths`. Section nodes always reveal their children.
- */
+const HEADERLESS_SECTION_IDS = new Set([GROUP_TREE_SECTION_ID, WORKSPACES_SECTION_ID]);
+
+const SESSION_TREE_SECTION_ORDER = [
+  'groupTree',
+  'ungrouped',
+  'workspaces',
+  'localTerminals',
+  'logs',
+  'editors',
+  'others',
+] as const;
+
+function sessionTreeSectionRoots(
+  sections: SessionGroupTreeSections,
+): Array<SessionGroupTreeNode | null> {
+  return SESSION_TREE_SECTION_ORDER.map((key) => sections[key]);
+}
+
 export function getSessionTreeAncestorIds(sections: SessionGroupTreeSections, tabId: string): string[] {
   const visit = (node: SessionGroupTreeNode, ancestors: string[]): string[] | null => {
     const branch = node.type === 'group' || node.type === 'host';
@@ -415,7 +427,7 @@ export function getSessionTreeAncestorIds(sections: SessionGroupTreeSections, ta
     }
     return null;
   };
-  for (const root of [...sections.fixed, sections.groupTree, sections.ungrouped, sections.localTerminals, sections.workspaces, sections.logs, sections.editors, sections.others]) {
+  for (const root of [...sections.fixed, ...sessionTreeSectionRoots(sections)]) {
     if (!root) continue;
     const found = visit(root, []);
     if (found) return found;
@@ -430,7 +442,7 @@ export function getSessionTreeExpandableIds(sections: SessionGroupTreeSections):
     if (node.type === 'group' || node.type === 'host') ids.push(node.id);
     for (const child of node.children) visit(child);
   };
-  for (const root of [sections.groupTree, sections.ungrouped, sections.localTerminals, sections.workspaces, sections.logs, sections.editors, sections.others]) {
+  for (const root of sessionTreeSectionRoots(sections)) {
     if (root) visit(root);
   }
   return ids;
@@ -472,6 +484,16 @@ export function filterMergedTreeHosts<T extends MergedTreeHostFilterInput>(
   });
 }
 
+/**
+ * Flattens the section trees into rows for virtualized rendering.
+ *
+ * Children of `group` and `host` nodes are skipped unless the node's id is in
+ * `expandedPaths`. Section nodes always reveal their children.
+ *
+ * Host groups and workspace folders speak for themselves, so those containers
+ * are not emitted as department headers. Workspace folders render in the same
+ * open stream as host groups (after ungrouped, before local terminals).
+ */
 export function flattenSessionGroupTree(
   sections: SessionGroupTreeSections,
   expandedPaths: Set<string>,
@@ -488,21 +510,12 @@ export function flattenSessionGroupTree(
   };
 
   for (const node of sections.fixed) walk(node);
-  const sectionNodes = [
-    sections.groupTree,
-    sections.ungrouped,
-    sections.localTerminals,
-    sections.workspaces,
-    sections.logs,
-    sections.editors,
-    sections.others,
-  ];
-  for (const section of sectionNodes) {
+  for (const section of sessionTreeSectionRoots(sections)) {
     if (!section) continue;
-    // The grouped-sessions container has no header of its own — its
-    // top-level groups speak for themselves — so emitting the section node
-    // would render an empty placeholder row.
-    if (section.id === 'sessionGroups') {
+    // Host groups and workspace folders have no department header — their
+    // top-level nodes speak for themselves. Emitting the section would
+    // restore the Sessions / Workspaces split that workbench fusion drops.
+    if (HEADERLESS_SECTION_IDS.has(section.id)) {
       for (const child of section.children) walk(child);
       continue;
     }

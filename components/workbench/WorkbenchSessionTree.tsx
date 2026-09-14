@@ -43,7 +43,6 @@ export function resolveWorkbenchTreeIndent(depth: number): number {
 const SECTION_HEADER_KEYS: Record<string, string> = {
   ungrouped: "workbench.tree.section.ungrouped",
   localTerminals: "workbench.tree.section.local",
-  workspaces: "workbench.tree.section.workspaces",
   logs: "workbench.tree.section.logs",
   editors: "workbench.tree.section.editors",
   others: "workbench.tree.section.others",
@@ -182,7 +181,8 @@ export function WorkbenchSessionTreeRow({
     );
   }
 
-  // Named section headers; the top-level session groups speak for themselves.
+  // Named section headers. Host groups and workspace folders have none —
+  // flattenSessionGroupTree omits those containers so they share one stream.
   if (node.type === "section") {
     const headerKey = SECTION_HEADER_KEYS[node.id];
     if (!headerKey) return null;
@@ -210,6 +210,7 @@ export function WorkbenchSessionTreeRow({
     const connect = host && onConnectHost ? () => onConnectHost(host) : null;
     const hasChildren = (node.children?.length ?? 0) > 0;
     const expanded = expandedPaths.has(node.id);
+    const isWorkspaceActive = Boolean(workspaceId && activeTabId === workspaceId);
     const isInlineEditing = !isWorkspaceNode
       && node.type === "group"
       && inlineGroupPath === node.id
@@ -227,8 +228,13 @@ export function WorkbenchSessionTreeRow({
         data-section={node.type === "group" ? "workbench-tree-group" : "workbench-tree-host"}
         data-tab-id={isWorkspaceNode ? workspaceId : undefined}
         data-host-id={host?.id}
-        data-state={expanded ? "expanded" : "collapsed"}
-        className="w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium text-foreground/80 hover:bg-foreground/5 cursor-pointer select-none"
+        data-state={isWorkspaceActive ? "active" : expanded ? "expanded" : "collapsed"}
+        className={cn(
+          "w-full flex items-center gap-1 px-2 rounded-md text-xs font-medium cursor-pointer select-none",
+          isWorkspaceActive
+            ? "bg-foreground/10 text-foreground"
+            : "text-foreground/80 hover:bg-foreground/5",
+        )}
         style={{ marginLeft: indent, width: `calc(100% - ${indent}px)`, height: TREE_ROW_HEIGHT }}
         onClick={(event) => {
           if (isInlineEditing) return;
@@ -236,9 +242,11 @@ export function WorkbenchSessionTreeRow({
           // leaf does not open two sessions. Groups keep both clicks so
           // expand toggles cancel out before rename.
           if (event.detail === 2 && node.type === "host" && !hasChildren) return;
-          // Workspace nodes double as tab shortcuts; plain groups toggle.
+          // Workspace folders are the tab itself: open the workspace surface
+          // and reveal member sessions. Chevron still toggles independently.
           if (isWorkspaceNode && workspaceId) {
             onActivateTab(workspaceId);
+            if (hasChildren && !expanded) onTogglePath(node.id);
             return;
           }
           if (connect && !hasChildren) {
@@ -393,6 +401,8 @@ export function WorkbenchSessionTreeRow({
       style={{ marginLeft: indent, width: `calc(100% - ${indent}px)`, height: TREE_ROW_HEIGHT }}
       onClick={() => {
         if (session?.workspaceId) {
+          // Same as tray jump: the workspace is the tab, the session is a pane.
+          onActivateTab(session.workspaceId);
           onActivateWorkspaceSession(session.workspaceId, session.id);
           return;
         }

@@ -302,6 +302,40 @@ describe('buildSessionGroupTree', () => {
     assert.equal(sections.groupTree, null);
   });
 
+  it('keeps workspace members off the host branch while flattening them beside host groups', () => {
+    const sections = buildSessionGroupTree(
+      makeOptions({
+        sessions: [
+          makeSession('s-orphan', 'h1'),
+          makeSession('s-ws', 'h1', { workspaceId: 'ws-1' }),
+        ],
+        hosts: [makeHost('h1', 'web', 'Prod')],
+        includeAllHosts: true,
+      }),
+    );
+
+    const hostNode = findNode(sections.groupTree, 'h1');
+    assert.ok(hostNode);
+    assert.deepEqual(hostNode.sessionIds, ['s-orphan']);
+    assert.equal(findNode(sections.groupTree, 's-ws'), undefined);
+    assert.ok(findNode(sections.workspaces, 's-ws'));
+
+    const rows = flattenSessionGroupTree(
+      sections,
+      new Set(['Prod', 'h1', 'workspace:ws-1']),
+    );
+    const rowIds = rows.map((row) => row.node.id);
+    assert.equal(rowIds.includes('sessionGroups'), false);
+    assert.equal(rowIds.includes('workspaces'), false);
+    assert.ok(rowIds.includes('s-orphan'));
+    assert.ok(rowIds.includes('s-ws'));
+    const prodRow = rows.find((row) => row.node.id === 'Prod');
+    const workspaceRow = rows.find((row) => row.node.id === 'workspace:ws-1');
+    assert.equal(prodRow?.depth, 1);
+    assert.equal(workspaceRow?.depth, 1);
+    assert.ok((rowIds.indexOf('Prod') ?? -1) < (rowIds.indexOf('workspace:ws-1') ?? -1));
+  });
+
   it('routes workspace sessions into the workspaces section with per-workspace groups', () => {
     const sections = buildSessionGroupTree(
       makeOptions({
@@ -561,16 +595,16 @@ describe('flattenSessionGroupTree', () => {
     const rowIds = rows.map((row) => row.node.id);
     // Fixed items first.
     assert.deepEqual(rowIds.slice(0, 2), ['vaults', 'sftp']);
-    // The group tree container emits no placeholder row of its own; its
-    // collapsed top-level group appears directly, but nested groups, hosts,
-    // and sessions do not.
+    // Host groups and workspace folders have no department headers; their
+    // top-level nodes appear directly in the same open stream.
     assert.equal(rowIds.includes('sessionGroups'), false);
+    assert.equal(rowIds.includes('workspaces'), false);
     assert.equal(rowIds.includes('Prod'), true);
     assert.equal(rowIds.includes('Prod/Web'), false);
     assert.equal(rowIds.includes('h-web'), false);
     assert.equal(rowIds.includes('s1'), false);
-    // Sections always reveal their direct children, but collapsed hosts
-    // and workspace groups still hide theirs.
+    // Remaining sections still reveal their direct children, but collapsed
+    // hosts and workspace groups hide theirs.
     assert.equal(rowIds.includes('ungrouped'), true);
     assert.equal(rowIds.includes('h-plain'), true);
     assert.equal(rowIds.includes('s-plain'), false);
@@ -580,6 +614,16 @@ describe('flattenSessionGroupTree', () => {
     assert.equal(rowIds.includes('log-1'), true);
     assert.equal(rowIds.includes('ed-1'), true);
     assert.equal(rowIds.includes('s-gone'), true);
+    const prodIndex = rowIds.indexOf('Prod');
+    const ungroupedIndex = rowIds.indexOf('ungrouped');
+    const workspaceIndex = rowIds.indexOf('workspace:ws-1');
+    const localIndex = rowIds.indexOf('localTerminals');
+    assert.ok(prodIndex < ungroupedIndex);
+    assert.ok(ungroupedIndex < workspaceIndex);
+    assert.ok(workspaceIndex < localIndex);
+    const prodRow = rows.find((row) => row.node.id === 'Prod');
+    const workspaceRow = rows.find((row) => row.node.id === 'workspace:ws-1');
+    assert.equal(prodRow?.depth, workspaceRow?.depth);
   });
 
   it('reveals nested rows for expanded group and host paths', () => {
