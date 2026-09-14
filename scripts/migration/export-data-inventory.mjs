@@ -35,8 +35,9 @@ const RULES = [
       "debug.updateDemo",
       "netcatty.aiDebug.hide",
       "netcatty.aiDebug.profile",
+      "netcatty_boot_theme_v1",
     ],
-    why: "coordination sentinels, crash journals, broadcast flags and developer toggles",
+    why: "coordination sentinels, crash journals, broadcast flags, developer toggles and derived UI mirrors",
   },
   {
     classification: "device-local",
@@ -69,6 +70,7 @@ const SECRET_BEARING = new Set([
   "netcatty_ai_external_agents_v1",
   "netcatty_ai_web_search_v1",
   "netcatty_legacy_keys_v1",
+  "netcatty_sync_oauth_client_secrets_v1",
 ]);
 
 function classify(value) {

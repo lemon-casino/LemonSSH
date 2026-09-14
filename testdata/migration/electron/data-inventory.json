@@ -30,6 +30,15 @@
       "syncRelation": "never synced"
     },
     {
+      "value": "lemonssh_close_behavior_v1",
+      "names": [
+        "STORAGE_KEY_CLOSE_BEHAVIOR"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
       "value": "netcatty_accent_mode_v1",
       "names": [
         "STORAGE_KEY_ACCENT_MODE"
@@ -291,15 +300,6 @@
       "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
     },
     {
-      "value": "netcatty_app_icon_variant_v1",
-      "names": [
-        "STORAGE_KEY_APP_ICON_VARIANT"
-      ],
-      "classification": "canonical-migrated",
-      "secretBearing": false,
-      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
-    },
-    {
       "value": "netcatty_auto_import_system_known_hosts_v1",
       "names": [
         "STORAGE_KEY_AUTO_IMPORT_SYSTEM_KNOWN_HOSTS"
@@ -325,6 +325,15 @@
       "classification": "canonical-migrated",
       "secretBearing": false,
       "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_boot_theme_v1",
+      "names": [
+        "STORAGE_KEY_BOOT_THEME"
+      ],
+      "classification": "transient-cache",
+      "secretBearing": false,
+      "syncRelation": "never synced"
     },
     {
       "value": "netcatty_close_to_tray_v1",
@@ -556,6 +565,15 @@
       "value": "netcatty_known_hosts_v1",
       "names": [
         "STORAGE_KEY_KNOWN_HOSTS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_layout_mode_v1",
+      "names": [
+        "STORAGE_KEY_LAYOUT_MODE"
       ],
       "classification": "canonical-migrated",
       "secretBearing": false,
@@ -1120,6 +1138,24 @@
       "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
     },
     {
+      "value": "netcatty_sync_oauth_client_ids_v1",
+      "names": [
+        "STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": false,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_sync_oauth_client_secrets_v1",
+      "names": [
+        "STORAGE_KEY_SYNC_OAUTH_CLIENT_SECRETS"
+      ],
+      "classification": "canonical-migrated",
+      "secretBearing": true,
+      "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
       "value": "netcatty_sync_v1",
       "names": [
         "STORAGE_KEY_SYNC"
@@ -1568,6 +1604,24 @@
       "classification": "canonical-migrated",
       "secretBearing": false,
       "syncRelation": "sync-payload candidate (P2-07 verifies exact payload composition)"
+    },
+    {
+      "value": "netcatty_workbench_session_tree_expanded_v1",
+      "names": [
+        "STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
+    },
+    {
+      "value": "netcatty_workbench_session_tree_width_v1",
+      "names": [
+        "STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH"
+      ],
+      "classification": "device-local",
+      "secretBearing": false,
+      "syncRelation": "never synced"
     },
     {
       "value": "netcatty_workspace_focus_sidebar_width",

@@ -3994,3 +3994,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: unix CGO and race behavior under 1.27.1 untested; go1.26.8 untested as fallback candidate
 - Next safe slice: keep the 1.25.0 lock; revisit 1.27 when a wails release declares support, as a coordinated slice with binding regen plus TS checks plus three-platform smoke
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L135 - 2026-09-14 - Close storage-key and contract-index drift caught by local gates
+
+- Capability rows: `FND-01`, `SYNC-01`
+- Plan task: `P1-01`, `P2-01`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Running the full local gate suite on the beta.12-aligned tree surfaced three pre-existing drifts. check:data-inventory failed because six storage keys added by recent slices (workbench session-tree width and expanded state, boot theme mirror, layout mode, sync OAuth client ids and secrets) were missing from the frozen fixture and inventory; regenerating also caught lemonssh_close_behavior_v1. check:migration-electron-baseline failed because runtimePorts.ts was stale against the regenerated bridge contract index; the regen adds the recent bridge methods (deep-link drain, OS protocol status, helper lifecycle, proxy test, cloud-sync reset, provider console) and keeps AgentPort at 61 methods. check:codex-app-server-schema false-failed on Windows only: the byte comparison rejected CRLF checkouts, so the check now normalizes line endings before comparing. New classifications: workbench width/expanded land in the existing device-local substring rules; the boot theme mirror joins transient-cache as a derived UI mirror; sync OAuth client ids default to canonical-migrated; sync OAuth client secrets join SECRET_BEARING so P2-04 providers must re-seal them during migration.
+- Go canonical owner: none changed
+- Frontend adapter: infrastructure/runtime/generated/runtimePorts.ts regenerated (497 methods across 9 ports, AgentPort unchanged at 61)
+- Electron owner affected: none; fixtures re-exported from the frozen Electron sources plus the shared storageKeys.ts
+- Preserved invariants: the data-inventory drift test stays machine-enforced; manifest hashes follow the regenerated fixtures; AgentPort method count unchanged so the W01 baseline section 5 stays valid
+- Data/schema impact: inventory grows to 184 unique values; sync OAuth client secrets flagged secret-bearing for P2-04 re-seal
+- Security impact: positive; OAuth client secrets are now machine-flagged for credential migration instead of silently defaulting to a non-secret classification
+- Verification: check:data-inventory exit 0 (184 keys); check:migration-electron-baseline exit 0 including runtime-ports and tsc checks; check:codex-app-server-schema exit 0 on a CRLF checkout with the committed schema untouched; fixture re-export changed only bridge-contract-index.json, manifest.json and storage-key-candidates.json
+- Platforms covered: Windows 10 22H2 x64; the schema-check CRLF tolerance also applies to macOS/Linux checkouts but is a no-op there
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: ledger, data-inventory.json, data-inventory.md
+- Residual risks: none known; the remaining check suite (lint, TS tests, plugin runtime) unaffected by these files
+- Next safe slice: keep gates green per slice; the three-platform smoke and agent disposition decisions remain the open blockers
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

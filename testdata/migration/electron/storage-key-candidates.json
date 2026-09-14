@@ -155,11 +155,6 @@
     "value": "netcatty_ai_web_search_v1"
   },
   {
-    "expression": "'netcatty_app_icon_variant_v1'",
-    "name": "STORAGE_KEY_APP_ICON_VARIANT",
-    "value": "netcatty_app_icon_variant_v1"
-  },
-  {
     "expression": "'netcatty_auto_import_system_known_hosts_v1'",
     "name": "STORAGE_KEY_AUTO_IMPORT_SYSTEM_KNOWN_HOSTS",
     "value": "netcatty_auto_import_system_known_hosts_v1"
@@ -173,6 +168,16 @@
     "expression": "'netcatty_available_plugin_sync_providers_v1'",
     "name": "STORAGE_KEY_AVAILABLE_PLUGIN_SYNC_PROVIDERS",
     "value": "netcatty_available_plugin_sync_providers_v1"
+  },
+  {
+    "expression": "'netcatty_boot_theme_v1'",
+    "name": "STORAGE_KEY_BOOT_THEME",
+    "value": "netcatty_boot_theme_v1"
+  },
+  {
+    "expression": "'lemonssh_close_behavior_v1'",
+    "name": "STORAGE_KEY_CLOSE_BEHAVIOR",
+    "value": "lemonssh_close_behavior_v1"
   },
   {
     "expression": "'netcatty_close_to_tray_v1'",
@@ -319,6 +324,11 @@
     "expression": "'netcatty_known_hosts_v1'",
     "name": "STORAGE_KEY_KNOWN_HOSTS",
     "value": "netcatty_known_hosts_v1"
+  },
+  {
+    "expression": "'netcatty_layout_mode_v1'",
+    "name": "STORAGE_KEY_LAYOUT_MODE",
+    "value": "netcatty_layout_mode_v1"
   },
   {
     "expression": "'netcatty_legacy_keys_v1'",
@@ -641,6 +651,16 @@
     "value": "netcatty_sync_v1"
   },
   {
+    "expression": "'netcatty_sync_oauth_client_ids_v1'",
+    "name": "STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS",
+    "value": "netcatty_sync_oauth_client_ids_v1"
+  },
+  {
+    "expression": "'netcatty_sync_oauth_client_secrets_v1'",
+    "name": "STORAGE_KEY_SYNC_OAUTH_CLIENT_SECRETS",
+    "value": "netcatty_sync_oauth_client_secrets_v1"
+  },
+  {
     "expression": "'netcatty_system_manager_tab_layout_v1'",
     "name": "STORAGE_KEY_SYSTEM_MANAGER_TAB_LAYOUT",
     "value": "netcatty_system_manager_tab_layout_v1"
@@ -884,6 +904,16 @@
     "expression": "'netcatty_window_opacity_v1'",
     "name": "STORAGE_KEY_WINDOW_OPACITY",
     "value": "netcatty_window_opacity_v1"
+  },
+  {
+    "expression": "'netcatty_workbench_session_tree_expanded_v1'",
+    "name": "STORAGE_KEY_WORKBENCH_SESSION_TREE_EXPANDED",
+    "value": "netcatty_workbench_session_tree_expanded_v1"
+  },
+  {
+    "expression": "'netcatty_workbench_session_tree_width_v1'",
+    "name": "STORAGE_KEY_WORKBENCH_SESSION_TREE_WIDTH",
+    "value": "netcatty_workbench_session_tree_width_v1"
   },
   {
     "expression": "'netcatty_workspace_focus_sidebar_width'",
