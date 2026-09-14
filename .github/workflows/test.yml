@@ -65,6 +65,9 @@ jobs:
       - name: Verify Wails migration documentation
         run: npm run check:migration-docs
 
+      - name: Verify Wails version alignment
+        run: npm run check:wails-versions
+
       - name: Verify base contracts and data inventory
         run: |
           npm run check:contracts

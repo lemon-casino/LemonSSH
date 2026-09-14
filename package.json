@@ -66,6 +66,7 @@
     "package:installers": "node scripts/package-installer.mjs",
     "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",
     "check:migration-docs": "node scripts/migration/check-wails-migration-docs.mjs && node --test scripts/migration/check-wails-migration-docs.test.mjs",
+    "check:wails-versions": "node scripts/migration/check-wails-versions.mjs",
     "check:wails-shell-probe": "npm --prefix experiments/wails-shell-probe/frontend ci && npm --prefix experiments/wails-shell-probe/frontend run build && go -C experiments/wails-shell-probe test ./...",
     "check:terminal-data-plane-probe": "npm --prefix experiments/terminal-data-plane/frontend ci && npm --prefix experiments/terminal-data-plane/frontend run test:protocol && npm --prefix experiments/terminal-data-plane/frontend run build && go -C experiments/terminal-data-plane test ./... && go -C experiments/terminal-data-plane test -race ./... && go -C experiments/terminal-data-plane vet ./...",
     "check:secret-migration-probe": "go -C experiments/profile-secret-migration test ./... && go -C experiments/profile-secret-migration vet ./...",

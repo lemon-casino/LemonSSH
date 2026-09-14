@@ -8,7 +8,7 @@
 
 | 检查项 | 现状 |
 | --- | --- |
-| ledger 头 | `WV3-L132`（SYNC-02，2026-09-12）；全文无 `NONAI-COMPLETE` 记录 |
+| ledger 头 | `WV3-L132`（SYNC-02，2026-09-12，本文采集时点）；2026-09-14 已追加 `WV3-L133`（Wails 版本对齐，见 §10）；全文无 `NONAI-COMPLETE` 记录 |
 | matrix AI 行 | `AI-01`～`AI-04` 全部 `not-started`，均注明 hard-blocked by Non-AI Completion Gate |
 | Wails runtime client | `infrastructure/runtime/wails/wailsRuntimeClient.ts:1412` 仍为 `agent: unimplemented("agent")` |
 | release-target 决策 | `WV3-011/012/013` 已接受（2026-09-08），覆盖 `release-target:windows/macos/linux` 三类 |
@@ -244,13 +244,12 @@ policy 缩写：W=`write`、LR=`longRunning`、SR=`sensitiveRead`、CS=`requires
 6. **工具链漂移（W02）**：见 §10 提案。
 7. **两代 MCP 测试需要真实旧 vendor 客户端**：fixture 只有 tool schema（67 条），无 initialize/_meta 帧样本；W07 需补。
 
-## 10. W02 提案：Go/Wails 版本对齐（任务卡，本轮不执行）
+## 10. W02 提案：Go/Wails 版本对齐（模块对齐已于 2026-09-14 执行，WV3-L133）
 
 - **归属**：既有 foundation/release 资格验证（非 AI 功能）；技术设计 §1.1 要求在取得有效 NONAI-COMPLETE 前完成。
-- **已核实漂移**：根 `go.mod:12` = `v3.0.0-alpha.63`；`package.json:124` `@wailsio/runtime` = `3.0.0-beta.12`；`wails3 generate bindings/syso` 命令用 `v3.0.0-beta.12`（package.json:61,67）。两个 experiments 已在 beta.12。二进制按 alpha.63 编译，bindings 由独立下载的 beta.12 CLI 生成。
-- **任务**：评估统一到同一已验证发行组合（beta.12 或更新已验证版）；Go 工具链候选 go1.27.1（2026-09-01 发布）需先验证 Wails/CGO/race；锁定后以 `GOTOOLCHAIN=go1.25.0 go run github.com/wailsapp/wails/v3/cmd/wails3@<locked> generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty` 重新生成并跑三平台桥接 smoke。
-- **边界**：失败回退整个版本组合，不留混搭；改动使已验证 non-AI gate 失效时按 gate epoch 规则补证/重开；不夹带在 AI Provider PR。
-- **验收**：bindings 生成 count 不回退（当前 20 services / 202 methods / 82 models）、`npm run wails:build` Windows 通过、版本漂移检查脚本入 CI。
+- **漂移与执行结果**：根 `go.mod` 原为 `v3.0.0-alpha.63`，npm runtime 和 generator 为 `3.0.0-beta.12`。已按 WV3-L133 将根模块对齐到 `v3.0.0-beta.12`：`go build ./...`、`go vet ./cmd/netcatty`、`go test -count=1 ./cmd/netcatty` 通过（go 1.25.0，go directive 不变）；`GOTOOLCHAIN=go1.25.0` 重新生成 bindings 为 20 services / 212 methods / 97 models，与已提交内容零 diff；`npm run wails:build` 产出 `bin/LemonSSH.exe`。新增 `npm run check:wails-versions` 漂移守卫（scripts/migration/check-wails-versions.mjs）并接入 CI。
+- **剩余任务**：① 三平台 shell smoke（macOS/Linux 未在本切片重建）；② go 工具链升级评估（候选 go1.27.1，2026-09-01 发布；须先验证 Wails/CGO/race，单独切片，不夹带 AI PR）；③ 绑定生成命令保持 `GOTOOLCHAIN=go1.25.0` + 位置参数 `./cmd/netcatty`。
+- **边界**：失败回退整个版本组合，不留混搭；改动使已验证 non-AI gate 失效时按 gate epoch 规则补证/重开。
 
 ## 11. 复验命令
 

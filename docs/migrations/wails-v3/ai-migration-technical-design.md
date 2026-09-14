@@ -9,7 +9,7 @@
 | 项目 | 本次确认的事实 | 后续实施选择与验证 |
 | --- | --- | --- |
 | Go | 根 `go.mod` 为 `go 1.25.0`；本机 `go version` 实际为 `go1.25.0 windows/amd64` | 官方 release history 当前列 Go 1.27.1（2026-09-01）。以它作为工具链升级候选，先验证 Wails、CGO、平台 helper 与 race 支持，再锁 CI/本地工具链。`go` directive 与实际编译器分别记录；不要只改一行便声称升级完成。来源：[Go release history](https://go.dev/doc/devel/release) |
-| Wails | Go module 为 `v3.0.0-alpha.63`；`package.json` runtime 和生成命令使用 `3.0.0-beta.12` | 当前存在版本漂移。至少评估统一到同一已验证发行组合；beta.12 是仓库现用工具候选，不据此称它是最新稳定版。记录 Go module、npm lock、generator 三者实际版本和来源，重新生成 bindings 并做三平台桥接 smoke。API 以锁定版本源码为准。来源：[Wails bridge](https://v3.wails.io/concepts/bridge/) |
+| Wails | 设计时根模块为 `v3.0.0-alpha.63`、npm runtime 和生成命令为 `3.0.0-beta.12`；该漂移已于 2026-09-14 按 WV3-L133 对齐到 `v3.0.0-beta.12`（go module、npm runtime、generator 三处一致，bindings 重生成零 diff），`npm run check:wails-versions` 在 CI 防回归。后续升级仍须先评估再锁同一已验证发行组合；记录 Go module、npm lock、generator 三者实际版本和来源，重新生成 bindings 并做三平台桥接 smoke。API 以锁定版本源码为准。来源：[Wails bridge](https://v3.wails.io/concepts/bridge/) |
 | MCP | 旧 Electron 使用 Node MCP server | 首选官方 `github.com/modelcontextprotocol/go-sdk/mcp`。其兼容表列 v1.7.0+ 支持 2026-07-28 及多版旧协议；开工时锁一个经验证的具体 tag/sum，不使用浮动 `@latest`。Netcatty 只写 catalog、principal、dispatch adapter。来源：[官方 Go SDK](https://github.com/modelcontextprotocol/go-sdk) |
 | OpenAI-compatible | 旧配置支持 Chat 和显式选择的 Responses | 官方端点首选官方 Go client；自建兼容端点通过同一项目 adapter 接入，SDK 缺字段时仅补协议转换层。OpenAI 官方文档当前示例为 `github.com/openai/openai-go/v3`，不能把所有兼容端点强改 Responses。来源：[OpenAI SDKs](https://developers.openai.com/api/docs/libraries) |
 | Anthropic | 旧 Catty 使用 Vercel provider | 首选官方 Go Messages SDK，保留 Netcatty context、policy、tool loop；不把 Claude Code runtime 当作 Messages client。来源：[Claude 官方 SDK](https://platform.claude.com/docs/en/cli-sdks-libraries/overview) |
