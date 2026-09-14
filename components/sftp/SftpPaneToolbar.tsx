@@ -1,7 +1,7 @@
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Check, ClipboardCopy, Eye, EyeOff, FilePlus, Folder, FolderPlus, FolderSync, Globe, Home, Languages, List, ListTree, RefreshCw, Search, Terminal, TerminalSquare, Trash2, X } from "lucide-react";
 import { useToolbarItemLayout } from "../../application/state/useToolbarItemLayout";
+import { useClipboardWrite } from "../../application/state/useClipboardWrite";
 import type { ToolbarItemLayoutDefaults } from "../../domain/toolbarItemLayout";
 import { STORAGE_KEY_SFTP_TOOLBAR_LAYOUT } from "../../infrastructure/config/storageKeys";
 import { Button } from "../ui/button";
@@ -354,6 +354,7 @@ export const SftpPaneToolbar: React.FC<SftpPaneToolbarProps> = React.memo(({
     STORAGE_KEY_SFTP_TOOLBAR_LAYOUT,
     SFTP_TOOLBAR_LAYOUT_DEFAULTS,
   );
+  const clipboardWrite = useClipboardWrite();
 
   useEffect(() => {
     const previousConnectionId = prevDisplayConnectionIdRef.current;
@@ -448,21 +449,17 @@ export const SftpPaneToolbar: React.FC<SftpPaneToolbarProps> = React.memo(({
   }, [showFilterBar, setShowFilterBar, filterInputRef]);
 
   const handleCopyCurrentPath = useCallback(async () => {
+    const { writeText } = clipboardWrite;
     await copySftpCurrentPathToClipboard({
       currentPath: displayPath,
       writeText: async (text) => {
-        const bridge = netcattyBridge.get();
-        if (bridge?.writeClipboardText) {
-          if (!await bridge.writeClipboardText(text)) throw new Error("Clipboard write failed");
-        } else {
-          await navigator.clipboard.writeText(text);
-        }
+        await writeText(text);
       },
       onSuccess: (message) => toast.success(message, "SFTP"),
       onError: (message) => toast.error(message, "SFTP"),
       t,
     });
-  }, [displayPath, t]);
+  }, [clipboardWrite, displayPath, t]);
 
   const isRemote = !pane.connection?.isLocal;
   const viewModeToggleTarget = getSftpViewModeToggleTarget(viewMode);

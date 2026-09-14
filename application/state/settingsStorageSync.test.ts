@@ -18,8 +18,9 @@ for (const canonical of [false, true]) {
       originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
       Object.defineProperty(globalThis, key, { configurable: true, value });
     };
-    for (const key of ['window', 'document', 'localStorage', 'CustomEvent', 'navigator']) install(key, (dom.window as any)[key]);
-    for (const key of ['addEventListener', 'removeEventListener', 'dispatchEvent']) install(key, (dom.window as any)[key].bind(dom.window));
+    const windowRecord = dom.window as unknown as Record<string, unknown>;
+    for (const key of ['window', 'document', 'localStorage', 'CustomEvent', 'navigator']) install(key, windowRecord[key]);
+    for (const key of ['addEventListener', 'removeEventListener', 'dispatchEvent']) install(key, (windowRecord[key] as (this: unknown, ...args: unknown[]) => void).bind(dom.window));
     install('IS_REACT_ACT_ENVIRONMENT', true);
     install('BroadcastChannel', undefined);
     let revision = 1;

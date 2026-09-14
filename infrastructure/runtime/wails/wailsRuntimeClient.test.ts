@@ -718,7 +718,7 @@ test("cloud OAuth methods surface on the sync port and transition bridge", async
       assert.equal(options.clientId, "cid");
       return { deviceCode: "dc", userCode: "uc", verificationUri: "https://github.com/login/device", expiresAt: 1 };
     },
-    GoogleGetUserInfo: async (options: { accessToken: string }) => ({ email: "me@example.com" }),
+    GoogleGetUserInfo: async (_options: { accessToken: string }) => ({ email: "me@example.com" }),
   } as never;
   const client = createWailsRuntimeClient(bindings);
   assert.equal(typeof client.sync.githubStartDeviceFlow, "function", "sync port must expose the camelCase facade");

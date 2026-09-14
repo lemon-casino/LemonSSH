@@ -137,7 +137,7 @@ function buildPathCompletionSuggestions(
       ? entry.name.replace(/[\\"$`]/g, '\\$&')
       : ctx.currentWord.startsWith("'")
         ? entry.name.replace(/'/g, "'\\''")
-        : entry.name.replace(/[\\\s$'"|!<>;#~`&(){}\[\]*?]/g, '\\$&');
+        : entry.name.replace(/[\\\s$'"|!<>;#~`&(){}[\]*?]/g, '\\$&');
     const suffix = entry.type === "directory" ? "/" : "";
     const fullPath = pathPrefix + insertName + suffix + quoteSuffix;
     suggestions.push({

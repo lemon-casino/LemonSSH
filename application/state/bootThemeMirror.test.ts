@@ -3,7 +3,7 @@ import test from "node:test";
 
 test("applyThemeTokens mirrors the resolved scheme palette for the boot splash", async () => {
   const { installDomEnvironment } = await import("../../components/test-support/renderReactDom.tsx");
-  const dom = installDomEnvironment();
+  const _dom = installDomEnvironment();
   const store = new Map<string, string>();
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,

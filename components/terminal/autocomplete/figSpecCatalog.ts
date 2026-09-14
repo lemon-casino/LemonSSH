@@ -11,7 +11,6 @@
  * Every entry was verified to exist in the package build directory; spec
  * generators from the registry are never executed.
  */
-import type { FigSpec } from './figSpecLoader';
 
 type SpecLoader = () => Promise<{ default: unknown }>;
 

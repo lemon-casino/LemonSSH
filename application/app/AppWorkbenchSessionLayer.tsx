@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 
 import { toEditorTabId, useActiveTabId } from '../state/activeTabStore';
 import type { EditorTabChrome } from '../state/editorTabStore';

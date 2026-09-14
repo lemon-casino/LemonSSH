@@ -11,6 +11,7 @@ import { act, create } from 'react-test-renderer';
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { useTerminalAutocomplete } from "./autocomplete/useTerminalAutocomplete.ts";
+import type { CompletionSuggestion } from "./autocomplete/completionEngine";
 import type { Snippet } from "../../domain/models";
 
 test("useTerminalAutocomplete can render before any autocomplete interaction", () => {
@@ -43,10 +44,10 @@ test('mounted completion discards async results after session or cwd changes', a
     getLine: () => ({ isWrapped: false, translateToString: () => '$ ' + input }),
   };
   const term = { buffer: { active: buffer }, cols: 100, rows: 30, options: {}, unicode: { activeVersion: '6' } };
-  let resolve!: (items: any[]) => void;
+  let resolve!: (items: CompletionSuggestion[]) => void;
   let calls = 0;
-  let late: ((items: any[]) => void) | undefined;
-  const provider = async (_input: string, options: any) => { calls++; late = options.onLatePathSuggestions; return new Promise<any[]>(done => { resolve = done; }); };
+  let late: ((items: CompletionSuggestion[]) => void) | undefined;
+  const provider = async (_input: string, options: { onLatePathSuggestions?: (items: CompletionSuggestion[]) => void }) => { calls++; late = options.onLatePathSuggestions; return new Promise<CompletionSuggestion[]>(done => { resolve = done; }); };
   function Probe({ session = 'a', cwd = '/data' }) {
     api = useTerminalAutocomplete({ termRef: { current: term as never }, containerRef: { current: null },
       sessionId: session, hostId: 'host', hostOs: 'linux', protocol: 'ssh', getCwd: () => cwd,

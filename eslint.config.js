@@ -13,7 +13,11 @@ export default [
   // Disposable experiments/ probes follow the same boundary.
   { ...js.configs.recommended, ignores: ["electron/**", "experiments/**"] },
   {
-    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**"],
+    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**",
+      // Retired dist backups set aside during packaging (dist.vacate-*,
+      // dist.retired-*, .retired-dist-*): minified bundles, not lintable source.
+      // .tmp holds disposable plugin-smoke scratch trees.
+      "**/dist.vacate-*/**", "**/dist.retired-*/**", "**/.retired-dist-*/**", ".tmp/**"],
   },
   {
     // Shell-neutral runtime boundary (P1-01): only the Wails adapter may

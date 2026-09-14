@@ -26,7 +26,6 @@ import {
 } from '../domain/credentials';
 import {
     isCloudProviderConnectDisabled,
-    isProviderReadyForSync,
     type CloudProvider,
     type ConvergentMigrationPreview,
     type SyncPayload,

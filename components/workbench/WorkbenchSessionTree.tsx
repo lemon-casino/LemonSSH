@@ -17,7 +17,6 @@ import { terminalReconnectRegistry } from "../../application/state/terminalRecon
 import type { LogView } from "../../application/state/logViewState";
 import type { Host, TerminalSession, Workspace } from "../../types";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
 import { DistroAvatar } from "../DistroAvatar";
 import { HostTagChips } from "../host/HostTagChips";
 import { HostTreeGroupInlineRenameInput } from "../host/HostTreeGroupInlineRenameInput";

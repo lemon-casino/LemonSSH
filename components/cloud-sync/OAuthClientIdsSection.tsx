@@ -5,9 +5,7 @@ import { useI18n } from '../../application/i18n/I18nProvider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { useOAuthClientIds } from '../../application/state/useOAuthClientIds';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
-import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oauthClientIds';
+import { useOAuthClientIds, type OAuthProvider } from '../../application/state/useOAuthClientIds';
 
 /**
  * Settings section for the per-provider OAuth client IDs. The IDs are public
@@ -16,18 +14,10 @@ import type { OAuthProvider } from '../../infrastructure/services/cloudSync/oaut
  */
 export const OAuthClientIdsSection: React.FC = () => {
   const { t } = useI18n();
-  const { ids, setClientId, googleClientSecret, setGoogleClientSecret } = useOAuthClientIds();
+  const { ids, setClientId, googleClientSecret, setGoogleClientSecret, openProviderConsole } = useOAuthClientIds();
 
   const openApplyPage = (provider: OAuthProvider) => {
-    const bridge = netcattyBridge.get();
-    const opener = bridge?.openProviderConsole;
-    if (!opener) {
-      console.error('Provider console bridge is unavailable');
-      return;
-    }
-    opener(provider).catch((error: unknown) => {
-      console.error(`Failed to open the ${provider} console page:`, error);
-    });
+    void openProviderConsole(provider);
   };
 
   const fields: Array<{ provider: OAuthProvider; label: string; placeholder: string }> = [
