@@ -4,6 +4,13 @@ package shortcuts
 
 import "testing"
 
+func TestNativeSpecialKeysIncludeGrave(t *testing.T) {
+	keys := nativeSpecialKeys()
+	if _, ok := keys["GRAVE"]; !ok {
+		t.Fatal("GRAVE must map to a native key")
+	}
+}
+
 func TestNativeWindowsRegistrationConflictAndRelease(t *testing.T) {
 	dispatch := func(fn func()) { fn() }
 	release, err := RegisterNative("Ctrl+Alt+Shift+F11", func() {}, dispatch)

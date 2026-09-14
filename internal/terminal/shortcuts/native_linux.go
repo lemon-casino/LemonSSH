@@ -8,6 +8,13 @@ import (
 	"os"
 )
 
+func nativeSpecialKeys() map[string]hotkey.Key {
+	return map[string]hotkey.Key{
+		"GRAVE":     hotkey.Key(0x0060), // XK_grave
+		"BACKSPACE": hotkey.Key(0xFF08), // XK_BackSpace
+	}
+}
+
 func nativeModifiers(raw []string) ([]hotkey.Modifier, error) {
 	if os.Getenv("DISPLAY") == "" || os.Getenv("XDG_SESSION_TYPE") == "wayland" {
 		return nil, fmt.Errorf("global shortcuts require an X11 session; Wayland is unsupported")

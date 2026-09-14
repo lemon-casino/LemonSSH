@@ -4,6 +4,13 @@ package shortcuts
 
 import "golang.design/x/hotkey"
 
+func nativeSpecialKeys() map[string]hotkey.Key {
+	return map[string]hotkey.Key{
+		"GRAVE":     hotkey.Key(0xC0), // VK_OEM_3
+		"BACKSPACE": hotkey.Key(0x08), // VK_BACK
+	}
+}
+
 func nativeModifiers(raw []string) ([]hotkey.Modifier, error) {
 	var out []hotkey.Modifier
 	seen := map[hotkey.Modifier]bool{}

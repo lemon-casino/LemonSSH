@@ -18,6 +18,23 @@ func TestWailsAcceleratorRejectsEmpty(t *testing.T) {
 	}
 }
 
+func TestWailsAcceleratorMapsUIRecording(t *testing.T) {
+	got, err := wailsAccelerator("Ctrl + `")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Ctrl+GRAVE" {
+		t.Fatalf("accelerator = %q", got)
+	}
+	got, err = wailsAccelerator("⌘ + Space")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Cmd+SPACE" {
+		t.Fatalf("accelerator = %q", got)
+	}
+}
+
 func TestShortcutRegisterFailsClosedWithoutNativeHotkeys(t *testing.T) {
 	service := newShortcutService()
 	result := service.Register("CmdOrCtrl+Shift+K")
@@ -29,6 +46,25 @@ func TestShortcutRegisterFailsClosedWithoutNativeHotkeys(t *testing.T) {
 	}
 	if service.Status().Enabled || len(service.List()) != 0 {
 		t.Fatal("failed native registration leaked into active registry")
+	}
+}
+
+func TestShortcutRegisterAcceptsUIRecording(t *testing.T) {
+	service := newShortcutService()
+	var seen string
+	service.registerNative = func(raw string) (func() error, error) {
+		seen = raw
+		return func() error { return nil }, nil
+	}
+	result := service.Register("Ctrl + `")
+	if !result.Success {
+		t.Fatalf("register failed: %+v", result)
+	}
+	if seen != "Ctrl+GRAVE" {
+		t.Fatalf("native accel = %q", seen)
+	}
+	if !service.Status().Enabled {
+		t.Fatal("registered UI hotkey must show as enabled")
 	}
 }
 

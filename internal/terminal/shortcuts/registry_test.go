@@ -15,6 +15,10 @@ func TestParseAcceleratorValid(t *testing.T) {
 		{"F12", "F12", 0},
 		{"Alt+Space", "SPACE", 1},
 		{"Super+Shift+Escape", "ESCAPE", 2},
+		{"Ctrl + `", "GRAVE", 1},
+		{"⌃ + `", "GRAVE", 1},
+		{"⌘ + Space", "SPACE", 1},
+		{"Ctrl+`", "GRAVE", 1},
 	}
 	for _, tc := range cases {
 		accel, err := ParseAccelerator(tc.raw)

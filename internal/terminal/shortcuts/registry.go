@@ -23,7 +23,61 @@ type Accelerator struct {
 	Key       string   // "F12", "Space", "A"...
 }
 
-// ParseAccelerator parses "CmdOrCtrl+Shift+F12" style strings.
+func normalizeAcceleratorModifier(part string) string {
+	switch strings.ToLower(strings.TrimSpace(part)) {
+	case "⌘", "cmd", "command":
+		return "cmd"
+	case "⌃", "ctrl", "control":
+		return "ctrl"
+	case "⌥", "alt", "option":
+		return "alt"
+	case "shift":
+		return "shift"
+	case "win", "super", "meta":
+		return "super"
+	case "cmdorctrl", "commandorcontrol":
+		return "cmdorctrl"
+	case "cmdoralt":
+		return "cmdoralt"
+	default:
+		return strings.ToLower(strings.TrimSpace(part))
+	}
+}
+
+func normalizeAcceleratorKey(part string) string {
+	trimmed := strings.TrimSpace(part)
+	if trimmed == "" {
+		return ""
+	}
+	switch trimmed {
+	case "↑":
+		return "UP"
+	case "↓":
+		return "DOWN"
+	case "←":
+		return "LEFT"
+	case "→":
+		return "RIGHT"
+	case "↵", "Enter", "Return":
+		return "RETURN"
+	case "⇥", "Tab":
+		return "TAB"
+	case "⌫", "Backspace":
+		return "BACKSPACE"
+	case "Del", "Delete":
+		return "DELETE"
+	case "Esc", "Escape":
+		return "ESCAPE"
+	case "Space":
+		return "SPACE"
+	case "`", "~", "Backquote", "Grave":
+		return "GRAVE"
+	}
+	return strings.ToUpper(trimmed)
+}
+
+// ParseAccelerator parses "CmdOrCtrl+Shift+F12" style strings,
+// including the spaced UI recording form ("Ctrl + `", "⌘ + Space").
 func ParseAccelerator(raw string) (*Accelerator, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -39,19 +93,19 @@ func ParseAccelerator(raw string) (*Accelerator, error) {
 		"shift": true, "super": true, "cmdorctrl": true, "cmdoralt": true,
 	}
 	for i, part := range parts {
-		lower := strings.ToLower(strings.TrimSpace(part))
+		trimmed := strings.TrimSpace(part)
 		if i < len(parts)-1 {
-			// must be a modifier
-			if !validModifiers[lower] {
+			modifier := normalizeAcceleratorModifier(trimmed)
+			if !validModifiers[modifier] {
 				return nil, fmt.Errorf("%w: %q is not a modifier", ErrAcceleratorBad, part)
 			}
-			accel.Modifiers = append(accel.Modifiers, lower)
+			accel.Modifiers = append(accel.Modifiers, modifier)
 		} else {
-			// must be a key
-			if strings.TrimSpace(lower) == "" {
+			key := normalizeAcceleratorKey(trimmed)
+			if key == "" {
 				return nil, ErrAcceleratorBad
 			}
-			accel.Key = strings.ToUpper(lower)
+			accel.Key = key
 		}
 	}
 	if accel.Key == "" {
