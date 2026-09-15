@@ -4169,3 +4169,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: prompt matching uses the same suffix/regex set as Electron, not a full PTY parser; ANSI-heavy prompts may still time out
 - Next safe slice: dialog APIs or SYS-01 native dialogs
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L142 - 2026-09-15 - Replay sensitive prompts through the renderer dialog host
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Recorded sensitive steps could not replay because dialog.prompt was rejected. Parse const-var assignments from nct.dialog.prompt and variable sendLine references; the runner emits the renderer dialog contract (netcatty:script:dialog-request) through the Wails event bus, the existing ScriptDialogHost renders it unchanged, and the answer returns through ScriptService.ResolveDialog. Other dialog kinds (alert/confirm/form) still fail closed.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` onScriptDialogRequest subscription and scriptDialogResponse; ScriptDialogHost unchanged
+- Electron owner affected: none
+- Preserved invariants: alert/confirm/form/select/radio/checkbox stay rejected; dialog answers wait up to 120s then fail; sensitive values render as [sensitive] in run logs
+- Data/schema impact: none
+- Security impact: positive; secrets still never appear in generated code or run logs
+- Verification: go test -count=1 ./internal/script ./cmd/netcatty -run 'Script|Parse|Prompt|Records'; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: dialog timeout is 120s like Electron; a closed renderer window leaves the run failing at dialog timeout
+- Next safe slice: script pause/resume or SYS-01 native dialogs
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

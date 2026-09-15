@@ -197,6 +197,9 @@ func main() {
 		_, err := terminalSvc.Write(sessionID, data)
 		return err
 	})
+	scriptService.setDialogEmitter(func(name string, payload any) {
+		wailsApp.Event.Emit(name, payload)
+	})
 	terminalSvc.setOutputObserver(scriptService.ObserveOutput)
 
 	wailsApp.RegisterService(application.NewService(service))

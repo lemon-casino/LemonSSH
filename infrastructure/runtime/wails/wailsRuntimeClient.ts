@@ -311,6 +311,7 @@ export interface WailsBindingDeps {
       steps?: unknown[];
       code?: string;
     }>;
+    ResolveDialog?: (requestId: string, value: string, cancelled: boolean) => Promise<boolean>;
     Run?: (request: {
       runId?: string;
       scriptId?: string;
@@ -1081,6 +1082,55 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     });
   };
 
+  const scriptDialogRequestListeners = new Set<(payload: {
+    requestId: string;
+    type: string;
+    message: string;
+    defaultValue?: string;
+    sensitive?: boolean;
+  }) => void>();
+  let scriptDialogSubscribed = false;
+  const subscribeScriptDialogRequests = () => {
+    if (scriptDialogSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    scriptDialogSubscribed = true;
+    eventsOn("netcatty:script:dialog-request", (event) => {
+      const payload = ((event as { data?: unknown })?.data ?? event) as {
+        requestId?: string;
+        type?: string;
+        message?: string;
+        defaultValue?: string;
+        sensitive?: boolean;
+      };
+      if (!payload?.requestId) return;
+      const request = {
+        requestId: payload.requestId,
+        type: payload.type ?? "prompt",
+        message: payload.message ?? "",
+        defaultValue: payload.defaultValue,
+        sensitive: payload.sensitive,
+      };
+      for (const listener of scriptDialogRequestListeners) listener(request);
+    });
+  };
+  const onScriptDialogRequest = (cb: Parameters<NonNullable<NetcattyBridge["onScriptDialogRequest"]>>[0]) => {
+    subscribeScriptDialogRequests();
+    scriptDialogRequestListeners.add(cb);
+    return () => {
+      scriptDialogRequestListeners.delete(cb);
+    };
+  };
+  const scriptDialogResponse = async (requestId: string, value?: unknown, cancelled?: boolean) => {
+    if (!bindings.script?.ResolveDialog) missingBridgeMethod("scriptDialogResponse");
+    const ok = await bindings.script.ResolveDialog(
+      requestId,
+      typeof value === "string" ? value : value === undefined || value === null ? "" : String(value),
+      Boolean(cancelled),
+    );
+    return { ok };
+  };
+
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
     ...cloudOAuth,
@@ -1091,6 +1141,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     scriptRun,
     scriptStop,
     scriptGetRuns,
+    onScriptDialogRequest,
+    scriptDialogResponse,
     credentialsAvailable,
     credentialsEncrypt,
     credentialsDecrypt,

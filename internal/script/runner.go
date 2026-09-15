@@ -29,21 +29,36 @@ type RunLog struct {
 	Message string `json:"message"`
 }
 
+// DialogRequest mirrors the renderer's ScriptDialogRequest contract so the
+// existing dialog host renders it unchanged.
+type DialogRequest struct {
+	RequestID    string `json:"requestId"`
+	Type         string `json:"type"`
+	Message      string `json:"message"`
+	DefaultValue string `json:"defaultValue,omitempty"`
+	Sensitive    bool   `json:"sensitive,omitempty"`
+}
+
+type DialogResponder func(ctx context.Context, request DialogRequest) (value string, cancelled bool, err error)
+
 type Runner struct {
-	mu      sync.Mutex
-	runs    map[string]*Run
-	cancels map[string]context.CancelFunc
-	output  map[string]*OutputWatch
-	write   SessionWriter
-	sleep   func(context.Context, time.Duration) error
+	mu             sync.Mutex
+	runs           map[string]*Run
+	cancels        map[string]context.CancelFunc
+	output         map[string]*OutputWatch
+	pendingDialogs map[string]chan DialogAnswer
+	write          SessionWriter
+	dialog         DialogResponder
+	sleep          func(context.Context, time.Duration) error
 }
 
 func NewRunner(write SessionWriter) *Runner {
 	return &Runner{
-		runs:    make(map[string]*Run),
-		cancels: make(map[string]context.CancelFunc),
-		output:  make(map[string]*OutputWatch),
-		write:   write,
+		runs:           make(map[string]*Run),
+		cancels:        make(map[string]context.CancelFunc),
+		output:         make(map[string]*OutputWatch),
+		pendingDialogs: make(map[string]chan DialogAnswer),
+		write:          write,
 		sleep: func(ctx context.Context, d time.Duration) error {
 			timer := time.NewTimer(d)
 			defer timer.Stop()
@@ -62,6 +77,35 @@ func (r *Runner) SetWriter(write SessionWriter) {
 	r.write = write
 	r.mu.Unlock()
 }
+
+func (r *Runner) SetDialogResponder(respond DialogResponder) {
+	r.mu.Lock()
+	r.dialog = respond
+	r.mu.Unlock()
+}
+
+// ResolveDialog routes a renderer answer to the waiting prompt.
+func (r *Runner) ResolveDialog(requestID string, value string, cancelled bool) bool {
+	r.mu.Lock()
+	waiting := r.pendingDialogs[requestID]
+	r.mu.Unlock()
+	if waiting == nil {
+		return false
+	}
+	waiting <- DialogAnswer{Value: value, Cancelled: cancelled}
+	return true
+}
+
+type DialogAnswer struct {
+	Value     string
+	Cancelled bool
+}
+
+type dialogWaiter struct {
+	ch chan DialogAnswer
+}
+
+var dialogWaitTimeout = 120 * time.Second
 
 func (r *Runner) ObserveOutput(sessionID string, data []byte) {
 	if sessionID == "" || len(data) == 0 {
@@ -166,6 +210,7 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 		r.finish(run, "failed", "terminal writer unavailable")
 		return
 	}
+	vars := make(map[string]string)
 	for _, op := range ops {
 		if ctx.Err() != nil {
 			return
@@ -176,14 +221,34 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 			if err := r.sleep(ctx, op.Timeout); err != nil {
 				return
 			}
+		case "prompt":
+			value, cancelled, err := r.askDialog(ctx, run, op)
+			if err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			if cancelled {
+				r.finish(run, "failed", "Dialog cancelled")
+				return
+			}
+			vars[op.Var] = value
 		case "sendLine":
-			label := op.Value
+			value := op.Value
+			if op.Var != "" {
+				resolved, ok := vars[op.Var]
+				if !ok {
+					r.finish(run, "failed", "variable "+op.Var+" has no value")
+					return
+				}
+				value = resolved
+			}
+			label := value
 			if op.Sensitive {
 				label = "[sensitive]"
 			}
 			r.log(run, "→ "+label)
-			if op.Value != "" {
-				if err := write(run.SessionID, []byte(op.Value)); err != nil {
+			if value != "" {
+				if err := write(run.SessionID, []byte(value)); err != nil {
 					r.finish(run, "failed", err.Error())
 					return
 				}
@@ -256,6 +321,46 @@ func (r *Runner) log(run *Run, message string) {
 	r.mu.Lock()
 	run.Logs = append(run.Logs, RunLog{At: time.Now().UnixMilli(), Message: message})
 	r.mu.Unlock()
+}
+
+// askDialog emits the renderer dialog contract and blocks for the answer.
+func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, bool, error) {
+	r.mu.Lock()
+	respond := r.dialog
+	r.mu.Unlock()
+	if respond == nil {
+		return "", false, fmt.Errorf("dialog host unavailable")
+	}
+	var buf [8]byte
+	_, _ = rand.Read(buf[:])
+	request := DialogRequest{
+		RequestID:    "dlg-" + hex.EncodeToString(buf[:]),
+		Type:         "prompt",
+		Message:      op.Value,
+		DefaultValue: "",
+		Sensitive:    op.Sensitive,
+	}
+	answered := make(chan DialogAnswer, 1)
+	r.mu.Lock()
+	r.pendingDialogs[request.RequestID] = answered
+	r.mu.Unlock()
+	defer func() {
+		r.mu.Lock()
+		delete(r.pendingDialogs, request.RequestID)
+		r.mu.Unlock()
+	}()
+	r.log(run, "dialog: "+op.Value)
+	_, _, _ = respond(ctx, request)
+	timer := time.NewTimer(dialogWaitTimeout)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return "", false, ctx.Err()
+	case answer := <-answered:
+		return answer.Value, answer.Cancelled, nil
+	case <-timer.C:
+		return "", false, fmt.Errorf("Dialog timed out")
+	}
 }
 
 func (r *Runner) finish(run *Run, status, errText string) {

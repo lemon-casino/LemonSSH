@@ -12,6 +12,7 @@ import (
 type ReplayOp struct {
 	Kind      string
 	Value     string
+	Var       string
 	Timeout   time.Duration
 	Sensitive bool
 }
@@ -22,12 +23,13 @@ var (
 	sendLineSens   = regexp.MustCompile(`(?m)^\s*await nct\.screen\.sendLine\((.*),\s*\{\s*sensitive:\s*true\s*\}\);\s*$`)
 	waitPromptCall = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForPrompt\((\d+)\);\s*$`)
 	waitTextCall   = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForText\((.*),\s*(\d+)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog|nct\.progress|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
+	promptAssign   = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.prompt\((.*)\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(alert|confirm|form|select|radio|checkbox)|nct\.progress|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
-// Scripts that use dialog/log/disconnect APIs are rejected instead of
-// pretending the Node worker ran them.
+// Dialog scripts other than nct.dialog.prompt, log, and disconnect calls are
+// rejected instead of pretending the Node worker ran them.
 func ParseRecordedScript(source string) ([]ReplayOp, error) {
 	trimmed := strings.TrimSpace(source)
 	if trimmed == "" {
@@ -47,20 +49,33 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 			ops = append(ops, ReplayOp{Kind: "sleep", Timeout: time.Duration(ms) * time.Millisecond})
 			continue
 		}
-		if match := sendLineSens.FindStringSubmatch(line); match != nil {
-			value, err := unquoteJS(match[1])
+		if match := promptAssign.FindStringSubmatch(line); match != nil {
+			args := splitJSArgs(match[2])
+			if len(args) < 1 {
+				return nil, fmt.Errorf("dialog.prompt needs a message: %s", line)
+			}
+			message, err := unquoteJS(args[0])
 			if err != nil {
 				return nil, err
 			}
-			ops = append(ops, ReplayOp{Kind: "sendLine", Value: value, Sensitive: true})
+			ops = append(ops, ReplayOp{Kind: "prompt", Var: match[1], Value: message, Sensitive: strings.Contains(match[2], "sensitive")})
+			continue
+		}
+		if match := sendLineSens.FindStringSubmatch(line); match != nil {
+			op, err := sendLineArg(match[1])
+			if err != nil {
+				return nil, err
+			}
+			op.Sensitive = true
+			ops = append(ops, op)
 			continue
 		}
 		if match := sendLineCall.FindStringSubmatch(line); match != nil {
-			value, err := unquoteJS(match[1])
+			op, err := sendLineArg(match[1])
 			if err != nil {
 				return nil, err
 			}
-			ops = append(ops, ReplayOp{Kind: "sendLine", Value: value})
+			ops = append(ops, op)
 			continue
 		}
 		if match := waitPromptCall.FindStringSubmatch(line); match != nil {
@@ -83,6 +98,68 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 		return nil, fmt.Errorf("Script content is empty")
 	}
 	return ops, nil
+}
+
+// sendLineArg accepts either a string literal or a variable reference
+// (sensitive recorded steps read their value from a dialog prompt result).
+func sendLineArg(raw string) (ReplayOp, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ReplayOp{}, fmt.Errorf("sendLine needs a value")
+	}
+	if raw[0] == '"' {
+		value, err := unquoteJS(raw)
+		if err != nil {
+			return ReplayOp{}, err
+		}
+		return ReplayOp{Kind: "sendLine", Value: value}, nil
+	}
+	if identifier.MatchString(raw) {
+		return ReplayOp{Kind: "sendLine", Var: raw}, nil
+	}
+	return ReplayOp{}, fmt.Errorf("unsupported sendLine argument: %s", raw)
+}
+
+var identifier = regexp.MustCompile(`^[A-Za-z_$][\w$]*$`)
+
+// splitJSArgs splits comma-separated arguments at the top nesting level only.
+func splitJSArgs(raw string) []string {
+	var args []string
+	depth := 0
+	inString := false
+	var quote byte
+	start := 0
+	for i := 0; i < len(raw); i++ {
+		ch := raw[i]
+		if inString {
+			if ch == '\\' {
+				i++
+				continue
+			}
+			if ch == quote {
+				inString = false
+			}
+			continue
+		}
+		switch ch {
+		case '"', '\'':
+			inString = true
+			quote = ch
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				args = append(args, strings.TrimSpace(raw[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	if rest := strings.TrimSpace(raw[start:]); rest != "" {
+		args = append(args, rest)
+	}
+	return args
 }
 
 func unquoteJS(raw string) (string, error) {

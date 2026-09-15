@@ -1,6 +1,11 @@
 package main
 
-import "github.com/binaricat/netcatty/internal/script"
+import (
+	"context"
+	"fmt"
+
+	"github.com/binaricat/netcatty/internal/script"
+)
 
 // ScriptService is the Wails facade for terminal script recording and
 // recorded-script replay. Arbitrary JS (dialogs, Node worker APIs) stays
@@ -8,6 +13,7 @@ import "github.com/binaricat/netcatty/internal/script"
 type ScriptService struct {
 	recorder *script.Recorder
 	runner   *script.Runner
+	emit     func(name string, payload any)
 }
 
 func newScriptService() *ScriptService {
@@ -19,6 +25,22 @@ func newScriptService() *ScriptService {
 
 func (s *ScriptService) setWriter(write script.SessionWriter) {
 	s.runner.SetWriter(write)
+}
+
+func (s *ScriptService) setDialogEmitter(emit func(name string, payload any)) {
+	s.emit = emit
+	s.runner.SetDialogResponder(func(ctx context.Context, request script.DialogRequest) (string, bool, error) {
+		if emit == nil {
+			return "", false, fmt.Errorf("dialog host unavailable")
+		}
+		emit("netcatty:script:dialog-request", request)
+		return "", false, nil
+	})
+}
+
+// ResolveDialog forwards the renderer's answer to the waiting run.
+func (s *ScriptService) ResolveDialog(requestID string, value string, cancelled bool) bool {
+	return s.runner.ResolveDialog(requestID, value, cancelled)
 }
 
 func (s *ScriptService) ObserveOutput(sessionID string, data []byte) {

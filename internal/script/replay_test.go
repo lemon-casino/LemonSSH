@@ -40,14 +40,24 @@ await main();`)
 	}
 }
 
-func TestParseRecordedScriptRejectsDialogAPI(t *testing.T) {
-	_, err := ParseRecordedScript(`async function main() {
+func TestParseRecordedScriptAcceptsPromptAndRejectsOtherDialogs(t *testing.T) {
+	ops, err := ParseRecordedScript(`async function main() {
   const sensitiveValue0 = await nct.dialog.prompt("Enter sensitive value", "", { sensitive: true });
   await nct.screen.sendLine(sensitiveValue0, { sensitive: true });
 }
 await main();`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) != 2 || ops[0].Kind != "prompt" || ops[0].Var != "sensitiveValue0" || ops[1].Var != "sensitiveValue0" {
+		t.Fatalf("ops=%#v", ops)
+	}
+	_, err = ParseRecordedScript(`async function main() {
+  await nct.dialog.alert("no");
+}
+await main();`)
 	if err == nil || !strings.Contains(err.Error(), "not migrated") {
-		t.Fatalf("err=%v", err)
+		t.Fatalf("alert must stay rejected: %v", err)
 	}
 }
 
