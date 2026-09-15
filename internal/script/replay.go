@@ -35,13 +35,15 @@ var (
 	logCall        = regexp.MustCompile(`(?m)^(?:nct\.log|(?:await )?nct\.dialog\.alert)\((.*)\);\s*$`)
 	progressCall   = regexp.MustCompile(`(?m)^(?:await )?nct\.progress\.(start|set|step|done)\((.*)\);\s*$`)
 	disconnectCall = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.disconnect\(\);\s*$`)
+	startLogCall   = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.startLog\((.*)\);\s*$`)
+	stopLogCall    = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.stopLog\(\);\s*$`)
 	waitRegexCall  = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForRegex\((.*)\);\s*$`)
 	waitAnyCall    = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForAny\((.*)\);\s*$`)
 	sendCall       = regexp.MustCompile(`(?m)^\s*await nct\.screen\.send\((.*)\);\s*$`)
 	clearCall      = regexp.MustCompile(`(?m)^\s*await nct\.screen\.clear\(\);\s*$`)
 	getTextAssign  = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.screen\.getText\((.*)\);\s*$`)
 	confirmAssign  = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.confirm\((.*)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(form|select|radio|checkbox)|nct\.session\.startLog|nct\.session\.stopLog`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(form|select|radio|checkbox)`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -114,6 +116,22 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 		}
 		if match := disconnectCall.FindStringSubmatch(line); match != nil {
 			ops = append(ops, ReplayOp{Kind: "disconnect"})
+			continue
+		}
+		if match := startLogCall.FindStringSubmatch(line); match != nil {
+			op := ReplayOp{Kind: "startLog"}
+			if raw := strings.TrimSpace(match[1]); raw != "" {
+				value, err := unquoteJS(raw)
+				if err != nil {
+					return nil, err
+				}
+				op.Value = value
+			}
+			ops = append(ops, op)
+			continue
+		}
+		if stopLogCall.FindStringSubmatch(line) != nil {
+			ops = append(ops, ReplayOp{Kind: "stopLog"})
 			continue
 		}
 		if match := waitRegexCall.FindStringSubmatch(line); match != nil {

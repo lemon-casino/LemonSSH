@@ -222,12 +222,6 @@ await main();`,
 	if len(closed) != 1 || closed[0] != "s1" {
 		t.Fatalf("closed: %#v", closed)
 	}
-	if _, err := ParseRecordedScript(`async function main() {
-  await nct.session.startLog();
-}
-await main();`); err == nil || !strings.Contains(err.Error(), "not migrated") {
-		t.Fatalf("startLog must stay rejected: %v", err)
-	}
 }
 
 func TestRunnerWaitForRegexAndAny(t *testing.T) {
@@ -368,6 +362,51 @@ await main();`)
 	}
 	if ops[3].Kind != "confirm" || ops[3].Var != "ok" || ops[3].Value != "go?" {
 		t.Fatalf("confirm: %#v", ops[3])
+	}
+}
+
+func TestRunnerStartLogStopLogAndDisconnect(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error {
+		t.Fatal("log lifecycle script must not write to the terminal")
+		return nil
+	})
+	runner.SetSessionCloser(func(sessionID string) error { return nil })
+	var logPath string
+	runner.SetSessionLog(
+		func(sessionID, filePath string) (string, error) {
+			logPath = filePath
+			if logPath == "" {
+				logPath = "resolved-default.log"
+			}
+			return logPath, nil
+		},
+		func(sessionID string) error { return nil },
+	)
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.session.startLog();
+  await nct.session.stopLog();
+  await nct.session.disconnect();
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if logPath == "" {
+		t.Fatal("startLog did not resolve a path")
 	}
 }
 

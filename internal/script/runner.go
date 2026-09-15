@@ -16,6 +16,12 @@ type SessionWriter func(sessionID string, data []byte) error
 // SessionCloser closes an existing terminal session.
 type SessionCloser func(sessionID string) error
 
+// SessionLogStarter opens a session log and returns the resolved path.
+type SessionLogStarter func(sessionID, filePath string) (string, error)
+
+// SessionLogStopper closes the session log.
+type SessionLogStopper func(sessionID string) error
+
 type Run struct {
 	RunID           string   `json:"runId"`
 	ScriptID        string   `json:"scriptId,omitempty"`
@@ -59,6 +65,8 @@ type Runner struct {
 	pendingDialogs map[string]chan DialogAnswer
 	write          SessionWriter
 	closer         SessionCloser
+	startLog       SessionLogStarter
+	stopLog        SessionLogStopper
 	dialog         DialogResponder
 	sleep          func(context.Context, time.Duration) error
 }
@@ -93,6 +101,13 @@ func (r *Runner) SetWriter(write SessionWriter) {
 func (r *Runner) SetSessionCloser(closer SessionCloser) {
 	r.mu.Lock()
 	r.closer = closer
+	r.mu.Unlock()
+}
+
+func (r *Runner) SetSessionLog(start SessionLogStarter, stop SessionLogStopper) {
+	r.mu.Lock()
+	r.startLog = start
+	r.stopLog = stop
 	r.mu.Unlock()
 }
 
@@ -443,6 +458,29 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 			// Nothing further can run in a closed session; end honestly.
 			r.finish(run, "completed", "")
 			return
+		case "startLog":
+			start := r.startLog
+			if start == nil {
+				r.finish(run, "failed", "session log owner unavailable")
+				return
+			}
+			resolved, err := start(run.SessionID, op.Value)
+			if err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			r.log(run, "startLog "+resolved)
+		case "stopLog":
+			stop := r.stopLog
+			if stop == nil {
+				r.finish(run, "failed", "session log owner unavailable")
+				return
+			}
+			if err := stop(run.SessionID); err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			r.log(run, "stopLog")
 		default:
 			r.finish(run, "failed", "unsupported replay op "+op.Kind)
 			return

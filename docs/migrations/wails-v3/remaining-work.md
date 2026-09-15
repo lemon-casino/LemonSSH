@@ -90,6 +90,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - `waitForRegex` / `waitForAny` 接到 Go runner（L146）：字符串按字面量、`/正则/i` 形式按正则，匹配新鲜输出尾部；`screen.getText/send/clear` 仍拒绝
 - 正则引擎换成 regexp2（L147）：回引用、环视等 JavaScript 特有语法可以工作，2 秒匹配超时防回溯挂死
 - `screen.send/clear/getText` 与 `dialog.confirm` 接到 Go runner（L148）：send 不追加回车，clear 清空 runner 输出视图，getText 捕获当前输出到变量，confirm 返回 true/false
+- `session.startLog/stopLog` 接到 Go 会话日志流（L149）：默认写入 profile 目录 session-logs/，支持自定义路径；至此录制器与手写脚本常用的 nct API 已全部可跑，仅剩 dialog.form/select/radio/checkbox
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 
 ### 数据与同步

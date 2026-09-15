@@ -4344,3 +4344,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: getText reflects the runner-side rolling view, not the renderer viewport (OSC sequences included); scripts comparing text with JS string methods stay unsupported
 - Next safe slice: session startLog/stopLog with a Go log owner, or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L149 - 2026-09-16 - session.startLog/stopLog with a Go log owner
+
+- Capability rows: `FND-01`, `TERM-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Add the last two rejected script APIs. A sessionlog.Manager owns one open log file per terminal session: script startLog opens it (default under the profile session-logs directory, custom path honored), all terminal bytes already tapped in TerminalService flow to both the script runner and the manager, and stopLog closes the file. Session logs also survive past the script since the manager is session-scoped, and CloseAll runs at app shutdown.
+- Go canonical owner: `internal/terminal/sessionlog/manager.go`, `cmd/netcatty/main.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: none
+- Electron owner affected: none; Electron sessionLogStreamManager remains the frozen carrier owner
+- Preserved invariants: terminal bytes keep flowing to the data plane even if the log file write fails; logs are best-effort and never block the terminal
+- Data/schema impact: none
+- Security impact: note — session logs contain raw terminal output including typed secrets; file permissions are 0600 and location is the profile directory
+- Verification: go test -count=1 -race ./internal/script ./internal/terminal/sessionlog; go test -count=1 ./cmd/netcatty -run Script; npm run check:migration-docs
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron sessionLogStreamManager stays until three-platform log parity evidence closes P8-02
+- Documentation updated: ledger, remaining-work
+- Residual risks: log file growth is unbounded while a stream is open (matches Electron behavior); stopLog before startLog returns an error surfaced in run logs
+- Next safe slice: dialog.form/select/radio/checkbox parsing or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

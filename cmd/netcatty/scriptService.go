@@ -31,6 +31,10 @@ func (s *ScriptService) setSessionCloser(closer script.SessionCloser) {
 	s.runner.SetSessionCloser(closer)
 }
 
+func (s *ScriptService) setSessionLog(start script.SessionLogStarter, stop script.SessionLogStopper) {
+	s.runner.SetSessionLog(start, stop)
+}
+
 func (s *ScriptService) setDialogEmitter(emit func(name string, payload any)) {
 	s.emit = emit
 	s.runner.SetDialogResponder(func(ctx context.Context, request script.DialogRequest) (string, bool, error) {

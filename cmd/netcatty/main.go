@@ -23,6 +23,7 @@ import (
 	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/netcatty/internal/terminal/sessionlog"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
 )
@@ -198,10 +199,23 @@ func main() {
 		return err
 	})
 	scriptService.setSessionCloser(terminalSvc.Close)
+	sessionLogManager := sessionlog.NewManager(filepath.Join(baseProfileDir(), "session-logs"))
+	defer sessionLogManager.CloseAll()
+	scriptService.setSessionLog(
+		func(sessionID, filePath string) (string, error) {
+			return sessionLogManager.Start(sessionID, filePath)
+		},
+		func(sessionID string) error {
+			return sessionLogManager.Stop(sessionID)
+		},
+	)
 	scriptService.setDialogEmitter(func(name string, payload any) {
 		wailsApp.Event.Emit(name, payload)
 	})
-	terminalSvc.setOutputObserver(scriptService.ObserveOutput)
+	terminalSvc.setOutputObserver(func(sessionID string, data []byte) {
+		scriptService.ObserveOutput(sessionID, data)
+		sessionLogManager.Append(sessionID, data)
+	})
 
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
