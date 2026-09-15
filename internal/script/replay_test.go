@@ -53,11 +53,28 @@ await main();`)
 		t.Fatalf("ops=%#v", ops)
 	}
 	_, err = ParseRecordedScript(`async function main() {
-  await nct.dialog.alert("no");
+  await nct.dialog.confirm("no");
 }
 await main();`)
 	if err == nil || !strings.Contains(err.Error(), "not migrated") {
-		t.Fatalf("alert must stay rejected: %v", err)
+		t.Fatalf("confirm must stay rejected: %v", err)
+	}
+}
+
+func TestParseRecordedScriptLogAndAlert(t *testing.T) {
+	ops, err := ParseRecordedScript(`async function main() {
+  nct.log('Smoke test passed');
+  await nct.dialog.alert('Netcatty script smoke test OK');
+}
+await main();`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) != 2 || ops[0].Kind != "log" || ops[0].Value != "Smoke test passed" {
+		t.Fatalf("log: %#v", ops)
+	}
+	if ops[1].Kind != "alert" || ops[1].Value != "Netcatty script smoke test OK" {
+		t.Fatalf("alert: %#v", ops[1])
 	}
 }
 
@@ -73,6 +90,68 @@ func TestParseRecordedScriptRoundTripFromRecorder(t *testing.T) {
 	}
 	if len(ops) != 3 || ops[1].Value != "ls -la" {
 		t.Fatalf("%#v", ops)
+	}
+}
+
+func TestRunnerPauseAndResume(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	writes := make(chan string, 4)
+	runner.SetWriter(func(sessionID string, data []byte) error {
+		writes <- string(data)
+		return nil
+	})
+	run, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.screen.sendLine("one");
+  await nct.screen.sendLine("two");
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first := <-writes; first != "one" {
+		t.Fatalf("first write %q", first)
+	}
+	if !runner.Pause(run.RunID) {
+		t.Fatal("pause failed")
+	}
+	if runner.Pause(run.RunID) {
+		t.Fatal("double pause must fail")
+	}
+	time.Sleep(30 * time.Millisecond)
+	drainDeadline := time.Now().Add(100 * time.Millisecond)
+	for {
+		select {
+		case <-writes:
+			continue
+		case <-time.After(time.Until(drainDeadline)):
+		}
+		break
+	}
+	if len(writes) != 0 {
+		t.Fatalf("writes while paused = %d", len(writes))
+	}
+	if !runner.Resume(run.RunID) {
+		t.Fatal("resume failed")
+	}
+	if second := <-writes; second != "two" {
+		t.Fatalf("second write %q", second)
+	}
+	if third := <-writes; third != "\r" {
+		t.Fatalf("third write %q", third)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run stuck: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

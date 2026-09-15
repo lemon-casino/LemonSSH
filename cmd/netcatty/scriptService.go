@@ -120,6 +120,14 @@ func (s *ScriptService) Stop(runID string) ScriptOKResult {
 	return ScriptOKResult{OK: s.runner.Stop(runID)}
 }
 
+func (s *ScriptService) Pause(runID string) ScriptOKResult {
+	return ScriptOKResult{OK: s.runner.Pause(runID)}
+}
+
+func (s *ScriptService) Resume(runID string) ScriptOKResult {
+	return ScriptOKResult{OK: s.runner.Resume(runID)}
+}
+
 func (s *ScriptService) GetRuns(sessionID string) []script.Run {
 	return s.runner.List(sessionID)
 }

@@ -320,6 +320,8 @@ export interface WailsBindingDeps {
       content: string;
     }) => Promise<{ ok?: boolean; error?: string; runId?: string; runIds?: string[] }>;
     Stop?: (runID: string) => Promise<{ ok?: boolean }>;
+    Pause?: (runID: string) => Promise<{ ok?: boolean }>;
+    Resume?: (runID: string) => Promise<{ ok?: boolean }>;
     GetRuns?: (sessionID?: string) => Promise<unknown[]>;
   };
   diagnosticLog?: {
@@ -1071,6 +1073,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const result = await bindings.script.Stop(runId);
     return { ok: result?.ok !== false };
   };
+  const scriptPause = async (runId: string) => {
+    if (!bindings.script?.Pause) missingBridgeMethod("scriptPause");
+    const result = await bindings.script.Pause(runId);
+    return { ok: result?.ok !== false };
+  };
+  const scriptResume = async (runId: string) => {
+    if (!bindings.script?.Resume) missingBridgeMethod("scriptResume");
+    const result = await bindings.script.Resume(runId);
+    return { ok: result?.ok !== false };
+  };
   const scriptGetRuns = async (sessionId?: string) => {
     if (!bindings.script?.GetRuns) missingBridgeMethod("scriptGetRuns");
     const nativeId = sessionId ? nativeSessionId(sessionId) : "";
@@ -1140,6 +1152,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     scriptRecordingAppendStep,
     scriptRun,
     scriptStop,
+    scriptPause,
+    scriptResume,
     scriptGetRuns,
     onScriptDialogRequest,
     scriptDialogResponse,
@@ -1557,6 +1571,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       scriptRecordingAppendStep,
       scriptRun,
       scriptStop,
+      scriptPause,
+      scriptResume,
       scriptGetRuns,
     }),
     terminal: portWith("terminal", {

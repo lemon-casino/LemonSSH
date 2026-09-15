@@ -46,6 +46,7 @@ type Runner struct {
 	runs           map[string]*Run
 	cancels        map[string]context.CancelFunc
 	output         map[string]*OutputWatch
+	paused         map[string]chan struct{}
 	pendingDialogs map[string]chan DialogAnswer
 	write          SessionWriter
 	dialog         DialogResponder
@@ -57,6 +58,7 @@ func NewRunner(write SessionWriter) *Runner {
 		runs:           make(map[string]*Run),
 		cancels:        make(map[string]context.CancelFunc),
 		output:         make(map[string]*OutputWatch),
+		paused:         make(map[string]chan struct{}),
 		pendingDialogs: make(map[string]chan DialogAnswer),
 		write:          write,
 		sleep: func(ctx context.Context, d time.Duration) error {
@@ -167,9 +169,10 @@ func (r *Runner) Start(req StartRunRequest) (*Run, error) {
 	r.runs[runID] = run
 	r.cancels[runID] = cancel
 	write := r.write
+	snapshot := cloneRun(run)
 	r.mu.Unlock()
 	go r.execute(ctx, run, ops, write)
-	return cloneRun(run), nil
+	return snapshot, nil
 }
 
 func (r *Runner) Stop(runID string) bool {
@@ -200,6 +203,51 @@ func (r *Runner) List(sessionID string) []Run {
 	return out
 }
 
+// Pause flags a running run; the executor pauses before the next op.
+func (r *Runner) Pause(runID string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	run := r.runs[runID]
+	if run == nil || run.Status != "running" || r.paused[runID] != nil {
+		return false
+	}
+	r.paused[runID] = make(chan struct{})
+	run.Status = "paused"
+	return true
+}
+
+// Resume releases a paused run.
+func (r *Runner) Resume(runID string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	done := r.paused[runID]
+	run := r.runs[runID]
+	if done == nil || run == nil {
+		return false
+	}
+	close(done)
+	delete(r.paused, runID)
+	if run.Status == "paused" {
+		run.Status = "running"
+	}
+	return true
+}
+
+func (r *Runner) waitIfPaused(ctx context.Context, runID string) error {
+	r.mu.Lock()
+	done := r.paused[runID]
+	r.mu.Unlock()
+	if done == nil {
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-done:
+		return nil
+	}
+}
+
 func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write SessionWriter) {
 	defer func() {
 		r.mu.Lock()
@@ -213,6 +261,9 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 	vars := make(map[string]string)
 	for _, op := range ops {
 		if ctx.Err() != nil {
+			return
+		}
+		if err := r.waitIfPaused(ctx, run.RunID); err != nil {
 			return
 		}
 		switch op.Kind {
@@ -232,6 +283,13 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 				return
 			}
 			vars[op.Var] = value
+		case "log":
+			r.log(run, op.Value)
+		case "alert":
+			if _, _, err := r.askDialog(ctx, run, ReplayOp{Kind: "alert", Value: op.Value}); err != nil && ctx.Err() == nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
 		case "sendLine":
 			value := op.Value
 			if op.Var != "" {

@@ -4194,3 +4194,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: dialog timeout is 120s like Electron; a closed renderer window leaves the run failing at dialog timeout
 - Next safe slice: script pause/resume or SYS-01 native dialogs
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L143 - 2026-09-15 - Script pause/resume, log and alert support
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Complete the recorded-script run lifecycle. The Go runner gains Pause/Resume (executor yields before the next op), nct.log appends to run logs, and nct.dialog.alert shows through the renderer dialog host without blocking semantics beyond the answer. scriptPause/scriptResume map onto the bridge so the existing Scripts panel controls work. Race detector also caught Start cloning run state concurrently with the executor logging; the returned snapshot is now taken under the runner lock.
+- Go canonical owner: `internal/script/runner.go`, `internal/script/replay.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` scriptPause/scriptResume mappings
+- Electron owner affected: none
+- Preserved invariants: pause takes effect before the next op, not mid-write; confirm/form/select/radio/checkbox still rejected; the returned Start snapshot no longer races the executor
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 -race ./internal/script; go test -count=1 ./internal/script ./cmd/netcatty -run Script; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts; npm run lint
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: pause granularity is per-op; a long waitForPrompt finishes its wait before honoring pause
+- Next safe slice: SYS-01 native dialogs or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

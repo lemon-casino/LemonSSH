@@ -24,7 +24,8 @@ var (
 	waitPromptCall = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForPrompt\((\d+)\);\s*$`)
 	waitTextCall   = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForText\((.*),\s*(\d+)\);\s*$`)
 	promptAssign   = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.prompt\((.*)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(alert|confirm|form|select|radio|checkbox)|nct\.progress|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
+	logCall        = regexp.MustCompile(`(?m)^(?:nct\.log|(?:await )?nct\.dialog\.alert)\((.*)\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.progress|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -76,6 +77,18 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 				return nil, err
 			}
 			ops = append(ops, op)
+			continue
+		}
+		if match := logCall.FindStringSubmatch(line); match != nil {
+			value, err := unquoteJS(match[1])
+			if err != nil {
+				return nil, err
+			}
+			kind := "log"
+			if strings.HasPrefix(strings.TrimSpace(line), "await nct.dialog.alert") {
+				kind = "alert"
+			}
+			ops = append(ops, ReplayOp{Kind: kind, Value: value})
 			continue
 		}
 		if match := waitPromptCall.FindStringSubmatch(line); match != nil {
@@ -164,7 +177,10 @@ func splitJSArgs(raw string) []string {
 
 func unquoteJS(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
-	if len(raw) >= 2 && raw[0] == '"' {
+	if len(raw) >= 2 && (raw[0] == '"' || raw[0] == '\'') {
+		if raw[0] == '\'' {
+			raw = `"` + strings.ReplaceAll(raw[1:len(raw)-1], `"`, `\"`) + `"`
+		}
 		value, err := strconv.Unquote(raw)
 		if err != nil {
 			return "", fmt.Errorf("invalid script string: %s", raw)

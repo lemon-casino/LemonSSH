@@ -44,10 +44,50 @@ export function GetRuns(sessionID) {
 
 /**
  * @param {string} sessionID
+ * @param {string} data
+ * @returns {$CancellablePromise<void>}
+ */
+export function ObserveOutput(sessionID, data) {
+    return $Call.ByID(1835806727, sessionID, data);
+}
+
+/**
+ * @param {string} runID
+ * @returns {$CancellablePromise<$models.ScriptOKResult>}
+ */
+export function Pause(runID) {
+    return $Call.ByID(2494645140, runID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
  * @returns {$CancellablePromise<void>}
  */
 export function ReleaseSession(sessionID) {
     return $Call.ByID(1083853021, sessionID);
+}
+
+/**
+ * ResolveDialog forwards the renderer's answer to the waiting run.
+ * @param {string} requestID
+ * @param {string} value
+ * @param {boolean} cancelled
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function ResolveDialog(requestID, value, cancelled) {
+    return $Call.ByID(3207690706, requestID, value, cancelled);
+}
+
+/**
+ * @param {string} runID
+ * @returns {$CancellablePromise<$models.ScriptOKResult>}
+ */
+export function Resume(runID) {
+    return $Call.ByID(3774866749, runID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
 }
 
 /**
@@ -56,7 +96,7 @@ export function ReleaseSession(sessionID) {
  */
 export function Run(request) {
     return $Call.ByID(1201265139, request).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
 }
 
@@ -66,7 +106,7 @@ export function Run(request) {
  */
 export function StartRecording(sessionID) {
     return $Call.ByID(2096128153, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType5($result);
     }));
 }
 
@@ -76,7 +116,7 @@ export function StartRecording(sessionID) {
  */
 export function Stop(runID) {
     return $Call.ByID(13684650, runID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType3($result);
     }));
 }
 
@@ -94,7 +134,7 @@ export function StopRecording(sessionID) {
 const $$createType0 = script$0.AppendResult.createFrom;
 const $$createType1 = script$0.Run.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $models.ScriptRunResult.createFrom;
-const $$createType4 = $models.ScriptRecordingStartResult.createFrom;
-const $$createType5 = $models.ScriptOKResult.createFrom;
+const $$createType3 = $models.ScriptOKResult.createFrom;
+const $$createType4 = $models.ScriptRunResult.createFrom;
+const $$createType5 = $models.ScriptRecordingStartResult.createFrom;
 const $$createType6 = $models.ScriptRecordingStopResult.createFrom;
