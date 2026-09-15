@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dlclark/regexp2"
 )
 
 // ReplayOp is one recorded-script action the Go runner can execute.
@@ -19,7 +21,7 @@ type ReplayOp struct {
 	Timeout   time.Duration
 	Sensitive bool
 	Patterns  []string
-	Regexes   []*regexp.Regexp
+	Regexes   []*regexp2.Regexp
 }
 
 var (
@@ -113,7 +115,7 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 			if err != nil {
 				return nil, err
 			}
-			op := ReplayOp{Kind: "waitForRegex", Patterns: []string{args[0]}, Regexes: []*regexp.Regexp{re}}
+			op := ReplayOp{Kind: "waitForRegex", Patterns: []string{args[0]}, Regexes: []*regexp2.Regexp{re}}
 			if len(args) > 1 {
 				op.Timeout = time.Duration(intArg(args[1])) * time.Millisecond
 			}
@@ -293,8 +295,10 @@ func intArg(raw string) int {
 }
 
 // compileJSPattern mirrors the Electron buffer semantics: a string is an
-// escaped literal, a /body/flags form compiles as a regex (i/m/s honored).
-func compileJSPattern(raw string) (*regexp.Regexp, error) {
+// escaped literal, a /body/flags form compiles as a regex with i/m/s honored.
+// Patterns run on the regexp2 engine so JavaScript backreferences and
+// lookarounds keep working.
+func compileJSPattern(raw string) (*regexp2.Regexp, error) {
 	raw = strings.TrimSpace(raw)
 	if strings.HasPrefix(raw, "/") && strings.HasSuffix(raw, "/") {
 		return nil, fmt.Errorf("bare regex literals are not supported here; quote the pattern: %s", raw)
@@ -304,29 +308,37 @@ func compileJSPattern(raw string) (*regexp.Regexp, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid pattern string: %s", raw)
 		}
-		if slash := regexp.MustCompile(`^/(.+)/([gimsuy]*)$`).FindStringSubmatch(value); slash != nil {
+		if slash := regexp.MustCompile(`^/(.+)/([a-z]*)$`).FindStringSubmatch(value); slash != nil {
 			return compileRegex(slash[1], slash[2])
 		}
-		return regexp.Compile(regexp.QuoteMeta(value))
+		return regexp2.Compile(regexp.QuoteMeta(value), regexp2.None)
 	}
 	return nil, fmt.Errorf("waitFor pattern must be a quoted string: %s", raw)
 }
 
-func compileRegex(body, flags string) (*regexp.Regexp, error) {
-	prefix := ""
-	if strings.Contains(flags, "i") {
-		prefix += "i"
+func compileRegex(body, flags string) (*regexp2.Regexp, error) {
+	options := regexp2.None
+	for _, flag := range flags {
+		switch flag {
+		case 'i':
+			options |= regexp2.IgnoreCase
+		case 'm':
+			options |= regexp2.Multiline
+		case 's':
+			options |= regexp2.Singleline
+		case 'g', 'y', 'u':
+			// Global/sticky don't change wait semantics; unicode is default.
+		default:
+			return nil, fmt.Errorf("unsupported regex flag: %c", flag)
+		}
 	}
-	if strings.Contains(flags, "m") {
-		prefix += "m"
+	re, err := regexp2.Compile(body, options)
+	if err != nil {
+		return nil, fmt.Errorf("invalid pattern: %v", err)
 	}
-	if strings.Contains(flags, "s") {
-		prefix += "s"
-	}
-	if prefix != "" {
-		prefix = "(?" + prefix + ")"
-	}
-	return regexp.Compile(prefix + body)
+	// Guard against catastrophic backtracking hanging the run.
+	re.MatchTimeout = 2 * time.Second
+	return re, nil
 }
 
 func unquoteJS(raw string) (string, error) {

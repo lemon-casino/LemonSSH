@@ -4294,3 +4294,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: Go RE2 differs from JavaScript regex for backreferences and lookaround; such patterns fail to compile and reject the script with a clear error
 - Next safe slice: screen.getText/send or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L147 - 2026-09-16 - JavaScript regex parity via regexp2
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Close the known RE2-vs-JavaScript regex difference from L146. Script wait patterns now run on github.com/dlclark/regexp2 (MIT, pure Go, already present as an indirect dependency), so backreferences, lookbehind and lookahead keep their JavaScript semantics. Flags i/m/s map to regexp2 options; a 2-second match timeout guards against catastrophic backtracking; literal patterns still go through QuoteMeta. Verified with a lookbehind pattern and an (ab)\1 backreference against fed session output.
+- Go canonical owner: `internal/script/output.go`, `internal/script/replay.go`, `go.mod`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: quoted patterns without /…/ form stay escaped literals; unsupported flags fail with a clear error; the Go language directive stays 1.25.0
+- Data/schema impact: none
+- Security impact: positive; match timeout bounds CPU use from hostile patterns
+- Verification: go test -count=1 -race ./internal/script; go test -count=1 ./cmd/netcatty -run Script
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until screen.getText/send/clear and session startLog/stopLog have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: regexp2 is a backtrack engine — the 2s MatchTimeout bounds but does not eliminate CPU spikes from pathological patterns
+- Next safe slice: screen.getText/send or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

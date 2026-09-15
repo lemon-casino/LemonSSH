@@ -264,6 +264,41 @@ await main();`,
 	}
 }
 
+func TestRunnerWaitForRegexSupportsJSOnlyFeatures(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.screen.waitForRegex("/(?<=build )ok/i", 500);
+  await nct.screen.waitForRegex("/(ab)\\1/", 500);
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		time.Sleep(40 * time.Millisecond)
+		runner.ObserveOutput("s1", []byte("build ok\r\n"))
+		time.Sleep(40 * time.Millisecond)
+		runner.ObserveOutput("s1", []byte("abab\r\n$ "))
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			return
+		}
+		if listed[0].Status == "failed" {
+			t.Fatalf("failed: %s", listed[0].Error)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
 	wrote := make(chan string, 2)
 	runner := NewRunner(func(sessionID string, data []byte) error {

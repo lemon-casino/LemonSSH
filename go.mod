@@ -7,6 +7,7 @@ require (
 	github.com/UserExistsError/conpty v0.1.4
 	github.com/coder/websocket v1.8.14
 	github.com/creack/pty/v2 v2.0.1
+	github.com/dlclark/regexp2 v1.12.0
 	github.com/gofrs/flock v0.12.1
 	github.com/pkg/sftp v1.13.9
 	github.com/tetratelabs/wazero v1.8.2

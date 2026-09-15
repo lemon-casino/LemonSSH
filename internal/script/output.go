@@ -1,10 +1,11 @@
 package script
 
 import (
-	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
+
+	"github.com/dlclark/regexp2"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 
 var (
 	defaultPromptSuffixes = []string{"# ", "$ ", "~# ", "~$ ", "% "}
-	promptEnd             = regexp.MustCompile(`(?:~[#$]\s*|[@][^\n]{0,120}[:][^\n]{0,120}[#$%]\s*)$`)
+	promptEnd             = regexp2.MustCompile(`(?:~[#$]\s*|[@][^\n]{0,120}[:][^\n]{0,120}[#$%]\s*)$`, regexp2.None)
 )
 
 // OutputWatch holds a rolling UTF-8 view of one session's terminal bytes.
@@ -71,7 +72,10 @@ func looksLikePrompt(text string) bool {
 			return true
 		}
 	}
-	return promptEnd.MatchString(last)
+	if match, _ := promptEnd.FindStringMatch(last); match != nil {
+		return true
+	}
+	return false
 }
 
 func containsFresh(text, needle string) bool {
@@ -89,8 +93,9 @@ func containsFresh(text, needle string) bool {
 const regexScanTail = 64 * 1024
 
 // anyRegexFresh reports whether any pattern matches within the fresh tail
-// window of the rolling buffer.
-func anyRegexFresh(text string, patterns []*regexp.Regexp) bool {
+// window of the rolling buffer. Patterns run on the regexp2 engine so
+// JavaScript-only features (backreferences, lookaround) keep working.
+func anyRegexFresh(text string, patterns []*regexp2.Regexp) bool {
 	start := 0
 	if len(text) > regexScanTail {
 		start = len(text) - regexScanTail - utf8.UTFMax
@@ -100,10 +105,18 @@ func anyRegexFresh(text string, patterns []*regexp.Regexp) bool {
 	}
 	tail := text[start:]
 	for _, re := range patterns {
-		for _, m := range re.FindAllStringIndex(tail, -1) {
-			if start+m[1] >= len(text)-freshMatchTailSlack {
+		match, err := re.FindStringMatchStartingAt(tail, start)
+		for match != nil {
+			if match.Index+match.Length >= len(text)-freshMatchTailSlack {
 				return true
 			}
+			match, err = re.FindNextMatch(match)
+			if err != nil {
+				break
+			}
+		}
+		if err != nil {
+			continue
 		}
 	}
 	return false
