@@ -1013,10 +1013,29 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
   }) as unknown as NetcattyBridge["restartHelperSession"];
 
+  const scriptRecordingStart = async (sessionId: string) => {
+    if (!bindings.script?.StartRecording) missingBridgeMethod("scriptRecordingStart");
+    const result = await bindings.script.StartRecording(sessionId);
+    if (result?.error) throw new Error(result.error);
+    return { ok: result?.ok !== false };
+  };
+  const scriptRecordingStop = async (sessionId: string) => {
+    if (!bindings.script?.StopRecording) missingBridgeMethod("scriptRecordingStop");
+    const result = await bindings.script.StopRecording(sessionId);
+    return { steps: result?.steps ?? [], code: result?.code ?? "" };
+  };
+  const scriptRecordingAppendStep = (async (sessionId: string, step: unknown) => {
+    if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
+    return bindings.script.AppendRecordingStep(sessionId, step);
+  }) as unknown as NetcattyBridge["scriptRecordingAppendStep"];
+
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
     ...cloudOAuth,
     openProviderConsole,
+    scriptRecordingStart,
+    scriptRecordingStop,
+    scriptRecordingAppendStep,
     credentialsAvailable,
     credentialsEncrypt,
     credentialsDecrypt,
@@ -1426,21 +1445,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     agent: unimplemented("agent"),
     files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
     script: portWith("script", {
-      scriptRecordingStart: async (sessionId: string) => {
-        if (!bindings.script?.StartRecording) missingBridgeMethod("scriptRecordingStart");
-        const result = await bindings.script.StartRecording(sessionId);
-        if (result?.error) throw new Error(result.error);
-        return { ok: result?.ok !== false };
-      },
-      scriptRecordingStop: async (sessionId: string) => {
-        if (!bindings.script?.StopRecording) missingBridgeMethod("scriptRecordingStop");
-        const result = await bindings.script.StopRecording(sessionId);
-        return { steps: result?.steps ?? [], code: result?.code ?? "" };
-      },
-      scriptRecordingAppendStep: (async (sessionId: string, step: unknown) => {
-        if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
-        return bindings.script.AppendRecordingStep(sessionId, step);
-      }) as unknown as NetcattyBridge["scriptRecordingAppendStep"],
+      scriptRecordingStart,
+      scriptRecordingStop,
+      scriptRecordingAppendStep,
     }),
     terminal: portWith("terminal", {
       getDefaultShell,

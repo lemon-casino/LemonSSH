@@ -58,7 +58,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
     }
     const sid = sessionIdRef.current;
     const bridge = netcattyBridge.get();
-    if (!sid || !bridge?.scriptRecordingStart) return;
+    if (!sid || !bridge?.scriptRecordingStart) return false;
     await bridge.scriptRecordingStart(sid);
     startedAtRef.current = Date.now();
     lastStepAtRef.current = Date.now();
@@ -69,6 +69,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
     isStoppingRef.current = false;
     isRecordingRef.current = true;
     setIsRecording(true);
+    return true;
   }, []);
 
   const stopRecording = useCallback(async () => {

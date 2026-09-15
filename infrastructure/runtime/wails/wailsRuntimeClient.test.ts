@@ -723,6 +723,9 @@ test("script recording methods reach the Go recorder and other script methods st
   const client = createWailsRuntimeClient(bindings);
   assert.deepEqual(await client.script.scriptRecordingStart("s1"), { ok: true });
   assert.deepEqual(started, ["s1"]);
+  assert.equal(typeof client.transitionBridge.scriptRecordingStart, "function");
+  assert.deepEqual(await client.transitionBridge.scriptRecordingStart!("s1"), { ok: true });
+  assert.deepEqual(started, ["s1", "s1"]);
   assert.deepEqual(await client.script.scriptRecordingStop("s1"), { steps: [], code: "" });
   assert.deepEqual(await client.script.scriptRecordingAppendStep("s1", { type: "send", value: "ls" }), { ok: true });
   assert.throws(() => client.script.scriptRun({ sessionId: "s1", code: "await main();" }), /not migrated/);

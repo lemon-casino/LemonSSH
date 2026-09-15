@@ -2816,7 +2816,11 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     const startHandler = (event: Event) => {
       const detail = (event as CustomEvent<{ sessionId?: string }>).detail;
       if (detail?.sessionId !== sessionId) return;
-      void recorderRef.current.startRecording();
+      void recorderRef.current.startRecording().then((started) => {
+        if (started) toast.info(t('scripts.recording.started'));
+      }).catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : t('scripts.recording.unavailableHint'));
+      });
     };
     const stopHandler = (event: Event) => {
       const detail = (event as CustomEvent<{ sessionId?: string }>).detail;
@@ -2841,7 +2845,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       window.removeEventListener('netcatty:script:recording:stop', stopHandler);
       window.removeEventListener(SCRIPT_RECORDING_LIMIT_EVENT, limitHandler);
     };
-  }, [sessionId]);
+  }, [sessionId, t]);
 
   useEffect(() => {
     if (recorder.isRecording) {

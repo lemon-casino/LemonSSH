@@ -2089,7 +2089,6 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
       return;
     }
     window.dispatchEvent(new CustomEvent('netcatty:script:recording:start', { detail: { sessionId } }));
-    toast.info(t('scripts.recording.started'));
   }, [getActiveTerminalSessionId, t]);
 
   const handleComposeSend = useCallback((text: string) => {
