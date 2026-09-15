@@ -105,7 +105,7 @@ export async function runAutomationScript(params: {
   if (!bridge?.scriptRun) {
     throw new Error('Script bridge unavailable');
   }
-  const result = await bridge.scriptRun({
+  return bridge.scriptRun({
     runId: params.runId,
     returnWhenQueued: params.returnWhenQueued,
     scriptId: params.snippet.id,
@@ -117,14 +117,6 @@ export async function runAutomationScript(params: {
     permissionMode,
     sessionMeta: params.sessionMeta,
   });
-  const refreshRuns = async () => {
-    const snapshot = await bridge.scriptGetRuns?.();
-    if (Array.isArray(snapshot)) setScriptRuns(snapshot);
-  };
-  await refreshRuns();
-  const poll = window.setInterval(() => { void refreshRuns(); }, 400);
-  window.setTimeout(() => window.clearInterval(poll), 15_000);
-  return result;
 }
 
 const TERMINAL_SCRIPT_STATUSES = new Set<ScriptRun['status']>(['completed', 'failed']);

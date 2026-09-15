@@ -212,6 +212,7 @@ func main() {
 	scriptService.setDialogEmitter(func(name string, payload any) {
 		wailsApp.Event.Emit(name, payload)
 	})
+	scriptService.setRunsListener(scriptService.broadcastRuns)
 	terminalSvc.setOutputObserver(func(sessionID string, data []byte) {
 		scriptService.ObserveOutput(sessionID, data)
 		sessionLogManager.Append(sessionID, data)

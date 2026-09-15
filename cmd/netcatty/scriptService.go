@@ -35,6 +35,17 @@ func (s *ScriptService) setSessionLog(start script.SessionLogStarter, stop scrip
 	s.runner.SetSessionLog(start, stop)
 }
 
+func (s *ScriptService) setRunsListener(listener func(runs []script.Run)) {
+	s.runner.SetRunsListener(listener)
+}
+
+func (s *ScriptService) broadcastRuns(runs []script.Run) {
+	if s.emit == nil {
+		return
+	}
+	s.emit("netcatty:script:runs-updated", map[string]any{"runs": runs})
+}
+
 func (s *ScriptService) setDialogEmitter(emit func(name string, payload any)) {
 	s.emit = emit
 	s.runner.SetDialogResponder(func(ctx context.Context, request script.DialogRequest) (string, bool, error) {

@@ -1101,12 +1101,18 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     defaultValue?: string;
     sensitive?: boolean;
   }) => void>();
-  let scriptDialogSubscribed = false;
-  const subscribeScriptDialogRequests = () => {
-    if (scriptDialogSubscribed) return;
+  const scriptRunsUpdatedListeners = new Set<(payload: { runs: unknown[] }) => void>();
+  let scriptEventsSubscribed = false;
+  const subscribeScriptEvents = () => {
+    if (scriptEventsSubscribed) return;
     const eventsOn = bindings.events?.On ?? Events.On;
     if (typeof eventsOn !== "function") return;
-    scriptDialogSubscribed = true;
+    scriptEventsSubscribed = true;
+    eventsOn("netcatty:script:runs-updated", (event) => {
+      const payload = ((event as { data?: unknown })?.data ?? event) as { runs?: unknown[] };
+      const runs = Array.isArray(payload?.runs) ? payload.runs : [];
+      for (const listener of scriptRunsUpdatedListeners) listener({ runs });
+    });
     eventsOn("netcatty:script:dialog-request", (event) => {
       const payload = ((event as { data?: unknown })?.data ?? event) as {
         requestId?: string;
@@ -1126,8 +1132,15 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       for (const listener of scriptDialogRequestListeners) listener(request);
     });
   };
+  const onScriptRunsUpdated = (cb: Parameters<NonNullable<NetcattyBridge["onScriptRunsUpdated"]>>[0]) => {
+    subscribeScriptEvents();
+    scriptRunsUpdatedListeners.add(cb);
+    return () => {
+      scriptRunsUpdatedListeners.delete(cb);
+    };
+  };
   const onScriptDialogRequest = (cb: Parameters<NonNullable<NetcattyBridge["onScriptDialogRequest"]>>[0]) => {
-    subscribeScriptDialogRequests();
+    subscribeScriptEvents();
     scriptDialogRequestListeners.add(cb);
     return () => {
       scriptDialogRequestListeners.delete(cb);
@@ -1155,6 +1168,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     scriptPause,
     scriptResume,
     scriptGetRuns,
+    onScriptRunsUpdated,
     onScriptDialogRequest,
     scriptDialogResponse,
     credentialsAvailable,
@@ -1574,6 +1588,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       scriptPause,
       scriptResume,
       scriptGetRuns,
+      onScriptRunsUpdated,
     }),
     terminal: portWith("terminal", {
       getDefaultShell,

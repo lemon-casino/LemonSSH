@@ -4369,3 +4369,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: log file growth is unbounded while a stream is open (matches Electron behavior); stopLog before startLog returns an error surfaced in run logs
 - Next safe slice: dialog.form/select/radio/checkbox parsing or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L150 - 2026-09-16 - Live run updates over the Wails event bus
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Replace the temporary 400ms/15s run-list polling with live push. The Go runner now broadcasts a full run snapshot after registration, every log append, progress mutations, pause/resume and finish; ScriptService forwards each snapshot as a netcatty:script:runs-updated Wails event, the runtime client exposes onScriptRunsUpdated (subscribed once per window), and the existing ScriptAutomationRoot bind drives setScriptRuns so overlays and the Scripts panel update in real time. A missing unlock in the new Resume path was caught by the test suite and fixed before commit.
+- Go canonical owner: `internal/script/runner.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` (onScriptRunsUpdated), `components/scripts/ScriptAutomationRoot.tsx` unchanged
+- Electron owner affected: none
+- Preserved invariants: the runs event carries a full snapshot matching the Electron contract; the temporary per-run polls in scriptAutomationCoordinator and useScriptExecution are removed in favor of the event
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 -race -timeout 120s ./internal/script; go test -count=1 ./cmd/netcatty -run Script; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts (42/42); npm run lint; npm run check:migration-docs
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until remaining nct APIs (form/select/radio/checkbox) have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: dialog form/select/radio/checkbox parsing remains unimplemented
+- Next safe slice: dialog form/select/radio/checkbox parsing or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

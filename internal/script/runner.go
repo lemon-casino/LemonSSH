@@ -68,6 +68,7 @@ type Runner struct {
 	startLog       SessionLogStarter
 	stopLog        SessionLogStopper
 	dialog         DialogResponder
+	onRunsUpdated  func([]Run)
 	sleep          func(context.Context, time.Duration) error
 }
 
@@ -109,6 +110,30 @@ func (r *Runner) SetSessionLog(start SessionLogStarter, stop SessionLogStopper) 
 	r.startLog = start
 	r.stopLog = stop
 	r.mu.Unlock()
+}
+
+// SetRunsListener receives a full run snapshot after every mutation so the
+// renderer run list stays live without polling.
+func (r *Runner) SetRunsListener(listener func([]Run)) {
+	r.mu.Lock()
+	r.onRunsUpdated = listener
+	r.mu.Unlock()
+	r.broadcast()
+}
+
+func (r *Runner) broadcast() {
+	r.mu.Lock()
+	listener := r.onRunsUpdated
+	if listener == nil {
+		r.mu.Unlock()
+		return
+	}
+	snapshot := make([]Run, 0, len(r.runs))
+	for _, run := range r.runs {
+		snapshot = append(snapshot, *cloneRun(run))
+	}
+	r.mu.Unlock()
+	listener(snapshot)
 }
 
 func (r *Runner) SetDialogResponder(respond DialogResponder) {
@@ -202,6 +227,7 @@ func (r *Runner) Start(req StartRunRequest) (*Run, error) {
 	write := r.write
 	snapshot := cloneRun(run)
 	r.mu.Unlock()
+	r.broadcast()
 	go r.execute(ctx, run, ops, write)
 	return snapshot, nil
 }
@@ -237,23 +263,25 @@ func (r *Runner) List(sessionID string) []Run {
 // Pause flags a running run; the executor pauses before the next op.
 func (r *Runner) Pause(runID string) bool {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	run := r.runs[runID]
 	if run == nil || run.Status != "running" || r.paused[runID] != nil {
+		r.mu.Unlock()
 		return false
 	}
 	r.paused[runID] = make(chan struct{})
 	run.Status = "paused"
+	r.mu.Unlock()
+	r.broadcast()
 	return true
 }
 
 // Resume releases a paused run.
 func (r *Runner) Resume(runID string) bool {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	done := r.paused[runID]
 	run := r.runs[runID]
 	if done == nil || run == nil {
+		r.mu.Unlock()
 		return false
 	}
 	close(done)
@@ -261,6 +289,8 @@ func (r *Runner) Resume(runID string) bool {
 	if run.Status == "paused" {
 		run.Status = "running"
 	}
+	r.mu.Unlock()
+	r.broadcast()
 	return true
 }
 
@@ -485,6 +515,7 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 			r.finish(run, "failed", "unsupported replay op "+op.Kind)
 			return
 		}
+		r.broadcast()
 	}
 	r.finish(run, "completed", "")
 }
@@ -538,6 +569,7 @@ func (r *Runner) log(run *Run, message string) {
 	r.mu.Lock()
 	run.Logs = append(run.Logs, RunLog{At: time.Now().UnixMilli(), Message: message})
 	r.mu.Unlock()
+	r.broadcast()
 }
 
 // askDialog emits the renderer dialog contract and blocks for the answer.
@@ -590,6 +622,7 @@ func (r *Runner) finish(run *Run, status, errText string) {
 	run.EndedAt = time.Now().UnixMilli()
 	run.Error = errText
 	r.mu.Unlock()
+	r.broadcast()
 }
 
 func cloneRun(run *Run) *Run {

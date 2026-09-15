@@ -410,6 +410,43 @@ await main();`,
 	}
 }
 
+func TestRunnerBroadcastsRunUpdates(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	updates := make(chan int, 8)
+	runner.SetRunsListener(func(runs []Run) {
+		updates <- len(runs)
+	})
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  nct.log("step");
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	close(updates)
+	total := 0
+	for range updates {
+		total++
+	}
+	if total == 0 {
+		t.Fatal("listener never received run updates")
+	}
+}
+
 func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
 	wrote := make(chan string, 2)
 	runner := NewRunner(func(sessionID string, data []byte) error {
