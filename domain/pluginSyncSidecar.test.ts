@@ -90,7 +90,7 @@ describe('pluginSyncSidecar', () => {
       {
         pluginId: 'com.missing.plugin',
         kind: 'settings',
-        key: 'com.missing.plugin.theme\0application\0application',
+        key: 'com.missing.plugin.theme\u001Fapplication\u001Fapplication',
         value: 'light',
         updatedAt: 5,
       },
@@ -125,7 +125,7 @@ describe('pluginSyncSidecar', () => {
         {
           pluginId,
           kind: 'settings' as const,
-          key: `${pluginId}.theme\0application\0application`,
+          key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
           value: 'dark',
           updatedAt: 2,
         },
@@ -143,14 +143,14 @@ describe('pluginSyncSidecar', () => {
       {
         pluginId,
         kind: 'settings',
-        key: `${pluginId}.token\0application\0application`,
+        key: `${pluginId}.token\u001Fapplication\u001Fapplication`,
         value: 'secret',
         updatedAt: 1,
       },
       {
         pluginId,
         kind: 'settings',
-        key: `${pluginId}.theme\0application\0application`,
+        key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
         value: 'dark',
         updatedAt: 1,
       },
@@ -174,7 +174,7 @@ describe('pluginSyncSidecar', () => {
       existingSidecars: [{
         pluginId,
         kind: 'settings',
-        key: `${pluginId}.theme\0application\0application`,
+        key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
         value: 'remote-new',
         updatedAt: 200,
       }],
@@ -189,7 +189,7 @@ describe('pluginSyncSidecar', () => {
     const entry: PluginSyncSidecarEntry = {
       pluginId,
       kind: 'settings',
-      key: `${pluginId}.theme\0application\0application`,
+      key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
       value: 'dark',
       updatedAt: 10,
     };
@@ -205,7 +205,7 @@ describe('pluginSyncSidecar', () => {
     const base: PluginSyncSidecarEntry = {
       pluginId,
       kind: 'settings',
-      key: `${pluginId}.theme\0application\0application`,
+      key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
       value: 'dark',
       updatedAt: 10,
     };
@@ -227,7 +227,7 @@ describe('pluginSyncSidecar', () => {
     const localOnly: PluginSyncSidecarEntry = {
       pluginId,
       kind: 'settings',
-      key: `${pluginId}.theme\0application\0application`,
+      key: `${pluginId}.theme\u001Fapplication\u001Fapplication`,
       value: 'local-new',
       updatedAt: 50,
     };

@@ -16,12 +16,23 @@ function isCloudSyncablePluginSetting(field) {
   return field.sync === true;
 }
 
+// Separator for persisted composite sidecar keys. Unit separator (U+001F)
+// survives node:sqlite TEXT binding; NUL was truncated at write time, which
+// broke key round-trips for retained sidecars. Mirrors domain/pluginSyncSidecar.ts.
+const SIDECAR_KEY_SEPARATOR = "\u001F";
+// Rows written before the separator change may still carry NUL-separated keys
+// (on runtimes whose SQLite binding preserved them).
+const LEGACY_SIDECAR_KEY_SEPARATOR = "\0";
+
 function settingsSidecarKey(settingId, scope, scopeId) {
-  return `${settingId}\0${scope}\0${scopeId}`;
+  return `${settingId}${SIDECAR_KEY_SEPARATOR}${scope}${SIDECAR_KEY_SEPARATOR}${scopeId}`;
 }
 
 function parseSettingsSidecarKey(key) {
-  const parts = String(key).split("\0");
+  const text = String(key);
+  const parts = text.includes(SIDECAR_KEY_SEPARATOR)
+    ? text.split(SIDECAR_KEY_SEPARATOR)
+    : text.split(LEGACY_SIDECAR_KEY_SEPARATOR);
   if (parts.length !== 3) return null;
   const [settingId, scope, scopeId] = parts;
   if (!settingId || !scope || !scopeId) return null;

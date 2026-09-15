@@ -83,7 +83,7 @@ test("collectForSync re-emits retained sidecars after plugin reinstall without w
   database.setSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
     "from-cloud",
     9,
   );
@@ -155,16 +155,16 @@ test("collectForSync omits deleted settings for installed plugins but keeps miss
   database.setSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
     "stale",
     5,
   );
   database.deleteSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
   );
-  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\0application\0application", "keep", 5);
+  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\u001Fapplication\u001Fapplication", "keep", 5);
   // Only store a different setting for the installed plugin.
   database.setSetting("com.example.sync", "com.example.sync.other", "application", "application", "ok");
 
@@ -212,7 +212,7 @@ test("applyFromSync preserves remote updatedAt when writing settings", async (co
     entries: [{
       pluginId: "com.example.sync",
       kind: "settings",
-      key: "com.example.sync.theme\0application\0application",
+      key: "com.example.sync.theme\u001Fapplication\u001Fapplication",
       value: "dark",
       updatedAt: 42,
     }],
@@ -236,7 +236,7 @@ test("applyFromSync does not drop local baselines for plugins absent remotely", 
     entries: [{
       pluginId: "com.remote.plugin",
       kind: "settings",
-      key: "com.remote.plugin.theme\0application\0application",
+      key: "com.remote.plugin.theme\u001Fapplication\u001Fapplication",
       value: "light",
       updatedAt: 2,
     }],
@@ -252,7 +252,7 @@ test("hydrateInstalledPluginSettings applies retained sidecars through contribut
   database.setSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
     "from-cloud",
     9,
   );
@@ -297,7 +297,7 @@ test("hydrateInstalledPluginSettings skips sidecars older than local settings", 
   database.setSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
     "from-cloud-stale",
     9,
   );
@@ -381,7 +381,7 @@ test("applyFromSync deletes stale-scope settings under stored coordinates", asyn
   database.setSyncSidecar(
     "com.example.sync",
     "settings",
-    "com.example.sync.theme\0application\0application",
+    "com.example.sync.theme\u001Fapplication\u001Fapplication",
     "stale-scope",
     3,
   );
@@ -416,7 +416,7 @@ test("applyFromSync deletes stale-scope settings under stored coordinates", asyn
 
 test("applyFromSync empty remote bundle wipes missing-plugin retained rows", async (context) => {
   const database = tempDb(context);
-  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\0application\0application", "old", 1);
+  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\u001Fapplication\u001Fapplication", "old", 1);
   const service = new PluginSyncSidecarService({
     database,
     contributionService: { snapshot: () => ({ plugins: [] }) },
@@ -431,14 +431,14 @@ test("applyFromSync does not resurrect missing-plugin keys deleted on another de
   database.setSyncSidecar(
     "com.missing.plugin",
     "settings",
-    "com.missing.plugin.deleted\0application\0application",
+    "com.missing.plugin.deleted\u001Fapplication\u001Fapplication",
     "stale",
     1,
   );
   database.setSyncSidecar(
     "com.missing.plugin",
     "settings",
-    "com.missing.plugin.kept\0application\0application",
+    "com.missing.plugin.kept\u001Fapplication\u001Fapplication",
     "local-old",
     1,
   );
@@ -451,7 +451,7 @@ test("applyFromSync does not resurrect missing-plugin keys deleted on another de
     entries: [{
       pluginId: "com.missing.plugin",
       kind: "settings",
-      key: "com.missing.plugin.kept\0application\0application",
+      key: "com.missing.plugin.kept\u001Fapplication\u001Fapplication",
       value: "remote-new",
       updatedAt: 5,
     }],
@@ -467,7 +467,7 @@ test("applyFromSync does not resurrect missing-plugin keys deleted on another de
 
 test("applyFromSync empty remote bundle preserves local baselines", async (context) => {
   const database = tempDb(context);
-  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\0application\0application", "old", 1);
+  database.setSyncSidecar("com.missing.plugin", "settings", "com.missing.plugin.x\u001Fapplication\u001Fapplication", "old", 1);
   database.setSyncSidecar("com.missing.plugin", "account_baseline", "account", { id: "a1" }, 2);
   database.setSyncSidecar("com.missing.plugin", "crdt_baseline", "crdt", { clock: 9 }, 3);
   const service = new PluginSyncSidecarService({

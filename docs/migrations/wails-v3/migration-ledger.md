@@ -4019,3 +4019,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: none known; the remaining check suite (lint, TS tests, plugin runtime) unaffected by these files
 - Next safe slice: keep gates green per slice; the three-platform smoke and agent disposition decisions remain the open blockers
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L136 - 2026-09-14 - Fix plugin sidecar key truncation under node:sqlite
+
+- Capability rows: `PLUG-01`, `SYNC-01`
+- Plan task: `P5-01`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: The local plugin runtime gate caught two failures in pluginSyncSidecarService tests: retained sidecars were not re-emitted after plugin reinstall. Root cause: composite settings sidecar keys joined with a NUL separator (`settingId\0scope\0scopeId`) were truncated at the first NUL by the node:sqlite TEXT binding — the database row itself stored only the setting id (verified by querying length and hex of the raw row), so parseSettingsSidecarKey returned null and the collect filter dropped every retained settings sidecar. The separator changes to the unit separator U+001F, which survives TEXT binding, and the parser accepts legacy NUL-separated rows for runtimes whose binding preserved them. Test fixtures move to the new separator. Mirrored in domain/pluginSyncSidecar.ts and electron/plugins/pluginSyncSidecarHelpers.cjs.
+- Go canonical owner: none; fix lives in the frozen Electron plugin host and its renderer mirror
+- Frontend adapter: domain/pluginSyncSidecar.ts separator constants; application/pluginSyncSidecarBridge surface unchanged
+- Electron owner affected: electron/plugins/pluginSyncSidecarHelpers.cjs only
+- Preserved invariants: sync bundle shape unchanged; rows persisted before this fix on NUL-preserving runtimes still parse via the legacy separator; rows truncated by node:sqlite are unparsable and get dropped on the next collectForSync rewrite, which matches their previous dead state
+- Data/schema impact: sidecar keys in new cloud payloads use U+001F separators; older payloads with NUL keys still parse
+- Security impact: positive; the re-emit path covered by these tests keeps secret and non-sync settings excluded
+- Verification: electron/plugins/pluginSyncSidecarService.test.cjs 15/15, domain/pluginSyncSidecar.test.ts 9/9, application/pluginSyncSidecarBridge.test.ts 5/5; full npm run test:plugin-runtime rerun after the fix
+- Platforms covered: Windows 10 22H2 x64 with Node v24.14.1; the truncation is a node:sqlite binding behavior and may not reproduce on Electron's bundled runtime, where the legacy parser keeps old rows readable
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: ledger
+- Residual risks: pre-existing profiles may hold truncated setting-id-only sidecar rows; they were already non-functional and are cleaned by the next collection
+- Next safe slice: full plugin runtime suite green, then back to the open gate blockers
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
