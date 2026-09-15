@@ -719,7 +719,10 @@ test("script recording methods reach the Go recorder and other script methods st
     },
     StopRecording: async () => ({ steps: [], code: "" }),
     AppendRecordingStep: async () => ({ ok: true }),
-    Run: async (request: { sessionId: string; content: string }) => ({ ok: true, runId: "run-1", runIds: ["run-1"] }),
+    Run: async (request: { sessionId: string; content: string }) => {
+      assert.equal(request.sessionId, "s1");
+      return { ok: true, runId: "run-1", runIds: ["run-1"] };
+    },
     Stop: async () => ({ ok: true }),
     GetRuns: async () => [],
   };
@@ -733,6 +736,25 @@ test("script recording methods reach the Go recorder and other script methods st
   assert.deepEqual(await client.script.scriptRecordingAppendStep("s1", { type: "send", value: "ls" }), { ok: true });
   const ran = await client.transitionBridge.scriptRun!({ sessionId: "s1", content: "await nct.session.sleep(1);\nawait main();" });
   assert.deepEqual(ran, { runId: "run-1", runIds: ["run-1"] });
+});
+
+test("script run maps renderer session aliases onto native terminal ids", async () => {
+  const seen: string[] = [];
+  const bindings = stubBindings();
+  bindings.script = {
+    Run: async (request: { sessionId: string }) => {
+      seen.push(request.sessionId);
+      return { ok: true, runId: "run-2", runIds: ["run-2"] };
+    },
+    GetRuns: async () => [{ runId: "run-2", sessionId: "term-1", status: "running", startedAt: 1, logs: [] }],
+  };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession({ sessionId: "ui-session", hostname: "host", username: "user" });
+  const ran = await client.transitionBridge.scriptRun!({ sessionId: "ui-session", content: "await nct.session.sleep(1);\nawait main();" });
+  assert.deepEqual(ran, { runId: "run-2", runIds: ["run-2"] });
+  assert.deepEqual(seen, ["term-1"]);
+  const runs = await client.transitionBridge.scriptGetRuns!("ui-session");
+  assert.equal(runs[0]?.sessionId, "ui-session");
 });
 
 test("cloud OAuth methods surface on the sync port and transition bridge", async () => {

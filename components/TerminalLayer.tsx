@@ -1955,8 +1955,48 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
     mode: 'sequential' | 'parallel' = 'parallel',
   ) => {
     const workspace = activeWorkspaceRef.current;
+    const connectedSessionIds = () => sessionsRef.current
+      .filter((session) => session.status === 'connected')
+      .map((session) => session.id);
     if (!workspace) {
-      // Single terminal tab (no workspace): fall back to focused session.
+      const sessionIds = connectedSessionIds();
+      if (sessionIds.length > 1) {
+        const runnableSessionIds = sessionIds.filter((sid) => !isTerminalSensitiveInputActive(sid));
+        if (runnableSessionIds.length === 0) {
+          toast.info(t('scripts.actions.skippedSensitiveSessions', { count: sessionIds.length }));
+          return;
+        }
+        try {
+          if (!isScriptSnippet(snippet)) {
+            const command = await resolveSnippetCommand(snippet);
+            if (command === null) return;
+            for (const sid of runnableSessionIds) {
+              await sendCommandSnippetToSession(sid, command, snippet, { focus: false });
+            }
+            return;
+          }
+          if (mode === 'sequential') {
+            for (const sid of runnableSessionIds) {
+              const { runId } = await runAutomationScript({
+                snippet,
+                sessionId: sid,
+                sessionMeta: buildScriptSessionMeta(sid, sessionsRef.current, hosts),
+              });
+              await waitForScriptRun(runId);
+            }
+          } else {
+            await Promise.all(runnableSessionIds.map((sid) => runAutomationScript({
+              snippet,
+              sessionId: sid,
+              sessionMeta: buildScriptSessionMeta(sid, sessionsRef.current, hosts),
+            })));
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          toast.error(message.includes('Observer mode') ? t('scripts.observer.blocked') : message);
+        }
+        return;
+      }
       const sessionId = getActiveTerminalSessionId();
       if (!sessionId) {
         toast.error(t('scripts.recording.noSession'));

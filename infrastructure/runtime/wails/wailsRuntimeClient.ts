@@ -443,6 +443,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const rememberSession = (uiId: string | undefined, nativeId: string) => {
     if (uiId) sessionAliases.set(uiId, nativeId);
   };
+  const uiSessionId = (nativeId: string) => {
+    for (const [alias, native] of sessionAliases) {
+      if (native === nativeId) return alias;
+    }
+    return nativeId;
+  };
   const getSessionPwd = async (id: string, options?: Parameters<NonNullable<NetcattyBridge["getSessionPwd"]>>[1]) => {
     try {
       return await bindings.terminal.GetSessionPwd?.(nativeSessionId(id), {
@@ -1024,18 +1030,18 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const scriptRecordingStart = async (sessionId: string) => {
     if (!bindings.script?.StartRecording) missingBridgeMethod("scriptRecordingStart");
-    const result = await bindings.script.StartRecording(sessionId);
+    const result = await bindings.script.StartRecording(nativeSessionId(sessionId));
     if (result?.error) throw new Error(result.error);
     return { ok: result?.ok !== false };
   };
   const scriptRecordingStop = async (sessionId: string) => {
     if (!bindings.script?.StopRecording) missingBridgeMethod("scriptRecordingStop");
-    const result = await bindings.script.StopRecording(sessionId);
+    const result = await bindings.script.StopRecording(nativeSessionId(sessionId));
     return { steps: result?.steps ?? [], code: result?.code ?? "" };
   };
   const scriptRecordingAppendStep = (async (sessionId: string, step: unknown) => {
     if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
-    return bindings.script.AppendRecordingStep(sessionId, step);
+    return bindings.script.AppendRecordingStep(nativeSessionId(sessionId), step);
   }) as unknown as NetcattyBridge["scriptRecordingAppendStep"];
   const scriptRun = (async (params: {
     runId?: string;
@@ -1052,7 +1058,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       runId: params.runId,
       scriptId: params.scriptId,
       scriptLabel: params.scriptLabel,
-      sessionId,
+      sessionId: nativeSessionId(sessionId),
       content: params.content,
     });
     if (result?.error) throw new Error(result.error);
@@ -1066,8 +1072,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   };
   const scriptGetRuns = async (sessionId?: string) => {
     if (!bindings.script?.GetRuns) missingBridgeMethod("scriptGetRuns");
-    const runs = await bindings.script.GetRuns(sessionId ?? "");
-    return Array.isArray(runs) ? runs : [];
+    const nativeId = sessionId ? nativeSessionId(sessionId) : "";
+    const runs = await bindings.script.GetRuns(nativeId);
+    if (!Array.isArray(runs)) return [];
+    return runs.map((run) => {
+      const entry = run as { sessionId?: string };
+      return { ...entry, sessionId: entry.sessionId ? uiSessionId(entry.sessionId) : entry.sessionId };
+    });
   };
 
   const implementedBridge: Partial<NetcattyBridge> = {
