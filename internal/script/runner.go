@@ -13,15 +13,20 @@ import (
 type SessionWriter func(sessionID string, data []byte) error
 
 type Run struct {
-	RunID       string   `json:"runId"`
-	ScriptID    string   `json:"scriptId,omitempty"`
-	ScriptLabel string   `json:"scriptLabel,omitempty"`
-	SessionID   string   `json:"sessionId"`
-	Status      string   `json:"status"`
-	StartedAt   int64    `json:"startedAt"`
-	EndedAt     int64    `json:"endedAt,omitempty"`
-	Error       string   `json:"error,omitempty"`
-	Logs        []RunLog `json:"logs"`
+	RunID           string   `json:"runId"`
+	ScriptID        string   `json:"scriptId,omitempty"`
+	ScriptLabel     string   `json:"scriptLabel,omitempty"`
+	SessionID       string   `json:"sessionId"`
+	Status          string   `json:"status"`
+	StartedAt       int64    `json:"startedAt"`
+	EndedAt         int64    `json:"endedAt,omitempty"`
+	Error           string   `json:"error,omitempty"`
+	Logs            []RunLog `json:"logs"`
+	ProgressMode    string   `json:"progressMode,omitempty"`
+	ProgressLabel   string   `json:"progressLabel,omitempty"`
+	ProgressCurrent int      `json:"progressCurrent,omitempty"`
+	ProgressTotal   int      `json:"progressTotal,omitempty"`
+	ActivityLabel   string   `json:"activityLabel,omitempty"`
 }
 
 type RunLog struct {
@@ -290,6 +295,42 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 				r.finish(run, "failed", err.Error())
 				return
 			}
+		case "progressStart":
+			total := op.Total
+			if total < 1 {
+				total = 1
+			}
+			r.mu.Lock()
+			run.ProgressMode = "determinate"
+			run.ProgressLabel = op.Value
+			run.ProgressTotal = total
+			run.ProgressCurrent = 0
+			run.ActivityLabel = op.Value
+			r.mu.Unlock()
+		case "progressSet":
+			r.mu.Lock()
+			if run.ProgressMode == "determinate" {
+				run.ProgressCurrent = clampProgress(op.Current, run.ProgressTotal)
+				if op.Label != "" {
+					run.ActivityLabel = op.Label
+				}
+			}
+			r.mu.Unlock()
+		case "progressStep":
+			r.mu.Lock()
+			if run.ProgressMode == "determinate" && run.ProgressCurrent < run.ProgressTotal {
+				run.ProgressCurrent++
+			}
+			if op.Label != "" {
+				run.ActivityLabel = op.Label
+			}
+			r.mu.Unlock()
+		case "progressDone":
+			r.mu.Lock()
+			if run.ProgressMode == "determinate" {
+				run.ProgressCurrent = run.ProgressTotal
+			}
+			r.mu.Unlock()
 		case "sendLine":
 			value := op.Value
 			if op.Var != "" {
@@ -437,6 +478,16 @@ func cloneRun(run *Run) *Run {
 	copied := *run
 	copied.Logs = append([]RunLog(nil), run.Logs...)
 	return &copied
+}
+
+func clampProgress(current, total int) int {
+	if current < 0 {
+		return 0
+	}
+	if total > 0 && current > total {
+		return total
+	}
+	return current
 }
 
 func newRunID() string {

@@ -4219,3 +4219,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: pause granularity is per-op; a long waitForPrompt finishes its wait before honoring pause
 - Next safe slice: SYS-01 native dialogs or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L144 - 2026-09-16 - Progress API for recorded-script replay
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Support nct.progress.start/set/step/done in the Go runner with the Electron semantics: start switches the run to determinate mode with a label and total, set clamps the current value, step increments, done marks completion. Progress fields ride the run snapshot (progressMode/progressLabel/progressCurrent/progressTotal/activityLabel) so the existing overlay progress bar renders without renderer changes. Computed (non-literal) progress arguments still fail closed as unsupported lines.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`
+- Frontend adapter: none; run snapshot fields match the existing ScriptRun contract
+- Electron owner affected: none
+- Preserved invariants: progress mutations only apply in determinate mode; dialog/prompt/log/alert semantics unchanged; literal-args-only policy keeps evaluation honest
+- Data/schema impact: run snapshots gain optional progress fields already defined by the renderer contract
+- Security impact: none
+- Verification: go test -count=1 -race ./internal/script; go vet ./internal/script
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: activityLabel strings are truncated by the renderer, not the runner; scripts computing progress in loops with variables stay unsupported
+- Next safe slice: session.disconnect/startLog APIs or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

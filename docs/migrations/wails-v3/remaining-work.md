@@ -85,6 +85,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - waitForPrompt/waitForText 现在观察 TerminalService 输出（L141），匹配 Electron 的常见提示符和文本身，超时才失败
 - 敏感步骤可回放（L142）：`nct.dialog.prompt` 经 Wails 事件发给现有 ScriptDialogHost，答案经 ResolveDialog 回给 Go runner；alert/form 等仍拒绝
 - 脚本 pause/resume 接到 Go runner（L143），`nct.log` 和 `dialog.alert` 也已支持（log/alert 走运行日志与对话框）
+- `nct.progress.start/set/step/done` 接到 Go runner（L144）：确定型进度写入运行快照，面板进度条可见；含变量的进度参数仍拒绝
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 
 ### 数据与同步

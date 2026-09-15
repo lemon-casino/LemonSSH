@@ -13,6 +13,9 @@ type ReplayOp struct {
 	Kind      string
 	Value     string
 	Var       string
+	Label     string
+	Current   int
+	Total     int
 	Timeout   time.Duration
 	Sensitive bool
 }
@@ -25,7 +28,8 @@ var (
 	waitTextCall   = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForText\((.*),\s*(\d+)\);\s*$`)
 	promptAssign   = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.prompt\((.*)\);\s*$`)
 	logCall        = regexp.MustCompile(`(?m)^(?:nct\.log|(?:await )?nct\.dialog\.alert)\((.*)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.progress|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
+	progressCall   = regexp.MustCompile(`(?m)^(?:await )?nct\.progress\.(start|set|step|done)\((.*)\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -89,6 +93,14 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 				kind = "alert"
 			}
 			ops = append(ops, ReplayOp{Kind: kind, Value: value})
+			continue
+		}
+		if match := progressCall.FindStringSubmatch(line); match != nil {
+			op, err := progressOp(match[1], match[2])
+			if err != nil {
+				return nil, err
+			}
+			ops = append(ops, op)
 			continue
 		}
 		if match := waitPromptCall.FindStringSubmatch(line); match != nil {
@@ -173,6 +185,62 @@ func splitJSArgs(raw string) []string {
 		args = append(args, rest)
 	}
 	return args
+}
+
+// progressOp builds a progress op from literal args; computed values are
+// rejected as unsupported lines rather than guessed.
+func progressOp(method, rawArgs string) (ReplayOp, error) {
+	args := splitJSArgs(rawArgs)
+	switch method {
+	case "start":
+		if len(args) == 0 {
+			return ReplayOp{Kind: "progressStart"}, nil
+		}
+		label, err := unquoteJS(args[0])
+		if err != nil {
+			return ReplayOp{}, err
+		}
+		total := 1
+		if len(args) > 1 {
+			total = intArg(args[1])
+		}
+		return ReplayOp{Kind: "progressStart", Value: label, Total: total}, nil
+	case "set":
+		if len(args) == 0 {
+			return ReplayOp{}, fmt.Errorf("progress.set needs a current value")
+		}
+		current := intArg(args[0])
+		op := ReplayOp{Kind: "progressSet", Current: current}
+		if len(args) > 1 {
+			label, err := unquoteJS(args[1])
+			if err != nil {
+				return ReplayOp{}, err
+			}
+			op.Label = label
+		}
+		return op, nil
+	case "step":
+		op := ReplayOp{Kind: "progressStep"}
+		if len(args) > 0 {
+			label, err := unquoteJS(args[0])
+			if err != nil {
+				return ReplayOp{}, err
+			}
+			op.Label = label
+		}
+		return op, nil
+	case "done":
+		return ReplayOp{Kind: "progressDone"}, nil
+	}
+	return ReplayOp{}, fmt.Errorf("unsupported progress method: %s", method)
+}
+
+func intArg(raw string) int {
+	value, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil {
+		return 0
+	}
+	return value
 }
 
 func unquoteJS(raw string) (string, error) {

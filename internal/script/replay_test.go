@@ -155,6 +155,37 @@ await main();`,
 	}
 }
 
+func TestParseAndRunProgressScript(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  nct.progress.start("Inventory", 2);
+  nct.progress.set(1, "halfway");
+  nct.progress.step();
+  nct.progress.done();
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			if listed[0].ProgressMode != "determinate" || listed[0].ProgressCurrent != 2 || listed[0].ProgressTotal != 2 {
+				t.Fatalf("progress: %#v", listed[0])
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
 	wrote := make(chan string, 2)
 	runner := NewRunner(func(sessionID string, data []byte) error {
