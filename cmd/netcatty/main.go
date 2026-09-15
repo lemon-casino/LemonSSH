@@ -157,7 +157,8 @@ func main() {
 	filesystemService.setTempService(managedTemp)
 	transferService := newTransferService()
 	transferService.setTempService(managedTemp)
-	shortcutService := newNativeShortcutService(func() {
+		scriptService := newScriptService()
+		shortcutService := newNativeShortcutService(func() {
 		if win, ok := wailsApp.Window.GetByName("main"); ok {
 			if win.IsVisible() {
 				win.Hide()
@@ -207,7 +208,8 @@ func main() {
 	wailsApp.RegisterService(application.NewService(forwardService))
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
-	wailsApp.RegisterService(application.NewService(shortcutService))
+		wailsApp.RegisterService(application.NewService(scriptService))
+		wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))
 	wailsApp.RegisterService(application.NewService(diagnosticLogService))
 

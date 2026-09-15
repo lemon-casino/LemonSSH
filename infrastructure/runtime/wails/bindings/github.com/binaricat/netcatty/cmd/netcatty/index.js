@@ -15,6 +15,7 @@ import * as PopupWindowService from "./popupwindowservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as SFTPService from "./sftpservice.js";
+import * as ScriptService from "./scriptservice.js";
 import * as SettingsWindowService from "./settingswindowservice.js";
 import * as ShortcutService from "./shortcutservice.js";
 import * as SyncService from "./syncservice.js";
@@ -36,6 +37,7 @@ export {
     ProfileMigrationService,
     ProfileService,
     SFTPService,
+    ScriptService,
     SettingsWindowService,
     ShortcutService,
     SyncService,
@@ -79,6 +81,9 @@ export {
     ProxyProbeResult,
     SFTPOpenRequest,
     SSHConnectRequest,
+    ScriptRecordingStartResult,
+    ScriptRecordingStopResult,
+    ScriptStep,
     SerialStartRequest,
     SystemNotificationRequest,
     SystemNotificationResult,

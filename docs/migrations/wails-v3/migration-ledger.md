@@ -4094,3 +4094,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: AI-04.4 through AI-04.8 still need later scope-removal decisions before they can leave required scope; settings typed-unavailable UI is still a Phase 7 W21 deliverable
 - Next safe slice: migrate the unimplemented Wails script port, or continue non-AI evidence collection
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L139 - 2026-09-15 - Native script recording without the Node worker
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Replace the Wails `script: unimplemented("script")` fail-closed port with a Go recorder for Start/Stop/AppendStep so workbench script recording works without Electron IPC. Codegen matches the Electron `stepsToJavaScript` contract (sensitive prompts, waitForText, waitForPrompt, sleep gaps). Execution methods stay unmigrated because the Electron runner is a Node worker thread and cannot move in this slice.
+- Go canonical owner: `internal/script/recording.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` script port recording methods; generated `scriptservice` bindings
+- Electron owner affected: none; `electron/bridges/scriptBridge.cjs` remains the frozen release-carrier recorder
+- Preserved invariants: run/pause/resume/stop/getRuns/dialog/snapshot methods still throw not-migrated; recording limits stay 10_000 steps and 2 MiB; empty session IDs fail closed
+- Data/schema impact: none; recordings are in-memory per session
+- Security impact: positive; sensitive send steps still compile to a prompt rather than embedding the secret in generated source
+- Verification: go test -count=1 ./internal/script ./cmd/netcatty -run TestScriptServiceRecordsAndStops; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts application/state/useScriptRecorder.test.ts; npm run lint
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptBridge stays until script execution has a Go owner and three-platform evidence
+- Documentation updated: ledger, remaining-work
+- Residual risks: live GUI recording against a real terminal is untested; generated JS still assumes the Electron `nct` host API at run time
+- Next safe slice: SYS-01 native dialogs or plugin RuntimePorts alignment; script execution remains blocked on a non-Node runner
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

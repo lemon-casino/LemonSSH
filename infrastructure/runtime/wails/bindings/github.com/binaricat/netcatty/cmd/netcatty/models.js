@@ -14,6 +14,9 @@ import * as json$0 from "../../../../../encoding/json/models.js";
 import * as monitoring$0 from "../../internal/platform/monitoring/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as script$0 from "../../internal/script/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
 export class AppLockRuntimeState {
@@ -2190,6 +2193,86 @@ export class SSHConnectRequest {
     }
 }
 
+export class ScriptRecordingStartResult {
+    /**
+     * Creates a new ScriptRecordingStartResult instance.
+     * @param {Partial<ScriptRecordingStartResult>} [$$source = {}] - The source object to create the ScriptRecordingStartResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScriptRecordingStartResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScriptRecordingStartResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ScriptRecordingStartResult(/** @type {Partial<ScriptRecordingStartResult>} */($$parsedSource));
+    }
+}
+
+export class ScriptRecordingStopResult {
+    /**
+     * Creates a new ScriptRecordingStopResult instance.
+     * @param {Partial<ScriptRecordingStopResult>} [$$source = {}] - The source object to create the ScriptRecordingStopResult.
+     */
+    constructor($$source = {}) {
+        if (!("steps" in $$source)) {
+            /**
+             * @member
+             * @type {ScriptStep[]}
+             */
+            this["steps"] = [];
+        }
+        if (!("code" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["code"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScriptRecordingStopResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScriptRecordingStopResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField0_0 = $$createType12;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("steps" in $$parsedSource) {
+            $$parsedSource["steps"] = $$createField0_0($$parsedSource["steps"]);
+        }
+        return new ScriptRecordingStopResult(/** @type {Partial<ScriptRecordingStopResult>} */($$parsedSource));
+    }
+}
+
+export const ScriptStep = script$0.Step;
+
+/**
+ * @typedef {script$0.Step} ScriptStep
+ */
+
 /**
  * SerialStartRequest is the Wails-facing serial open payload. The renderer
  * forwards the full line configuration; the serial owner validates it and fails
@@ -3104,7 +3187,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType12;
+        const $$createField1_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -3136,7 +3219,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType13;
+        const $$createField0_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -3301,7 +3384,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType11;
+        const $$createField0_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -3382,7 +3465,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType14;
+        const $$createField7_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -3466,7 +3549,9 @@ const $$createType7 = SSHConnectRequest.createFrom;
 const $$createType8 = $Create.Array($$createType7);
 const $$createType9 = PortForwardRuntimeRecord.createFrom;
 const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = VaultBackupSummary.createFrom;
-const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = $Create.Array($$createType11);
-const $$createType14 = VaultBackupPreview.createFrom;
+const $$createType11 = script$0.Step.createFrom;
+const $$createType12 = $Create.Array($$createType11);
+const $$createType13 = VaultBackupSummary.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = $Create.Array($$createType13);
+const $$createType16 = VaultBackupPreview.createFrom;

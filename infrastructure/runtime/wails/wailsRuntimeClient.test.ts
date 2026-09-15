@@ -709,6 +709,25 @@ test("onSessionData fans out chunks from the data plane", async () => {
   assert.deepEqual(seen, ["prompt$ "]);
 });
 
+test("script recording methods reach the Go recorder and other script methods stay unmigrated", async () => {
+  const started: string[] = [];
+  const bindings = stubBindings();
+  bindings.script = {
+    StartRecording: async (sessionID: string) => {
+      started.push(sessionID);
+      return { ok: true };
+    },
+    StopRecording: async () => ({ steps: [], code: "" }),
+    AppendRecordingStep: async () => ({ ok: true }),
+  };
+  const client = createWailsRuntimeClient(bindings);
+  assert.deepEqual(await client.script.scriptRecordingStart("s1"), { ok: true });
+  assert.deepEqual(started, ["s1"]);
+  assert.deepEqual(await client.script.scriptRecordingStop("s1"), { steps: [], code: "" });
+  assert.deepEqual(await client.script.scriptRecordingAppendStep("s1", { type: "send", value: "ls" }), { ok: true });
+  assert.throws(() => client.script.scriptRun({ sessionId: "s1", code: "await main();" }), /not migrated/);
+});
+
 test("cloud OAuth methods surface on the sync port and transition bridge", async () => {
   const calls: string[] = [];
   const bindings = stubBindings();

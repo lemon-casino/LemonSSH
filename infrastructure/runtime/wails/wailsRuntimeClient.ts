@@ -17,6 +17,7 @@ import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd
 import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/transferservice";
 import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
 import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
+import * as scriptService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/scriptservice";
 import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
 import * as syncServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/syncservice";
 import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
@@ -299,6 +300,18 @@ export interface WailsBindingDeps {
     Unregister?: () => Promise<{ success: boolean }>;
     Status?: () => Promise<{ enabled: boolean; hotkey: string | null }>;
   };
+  script?: {
+    StartRecording?: (sessionID: string) => Promise<{ ok?: boolean; error?: string }>;
+    StopRecording?: (sessionID: string) => Promise<{ steps?: unknown[]; code?: string }>;
+    AppendRecordingStep?: (sessionID: string, step: unknown) => Promise<{
+      ok?: boolean;
+      stopped?: boolean;
+      reason?: string;
+      error?: string;
+      steps?: unknown[];
+      code?: string;
+    }>;
+  };
   diagnosticLog?: {
     Append?: (line: string) => Promise<unknown>;
   };
@@ -327,6 +340,7 @@ export interface WailsBindingDeps {
     transfer: transferService as unknown as WailsBindingDeps["transfer"],
     popup: popupWindowService as unknown as WailsBindingDeps["popup"],
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
+    script: scriptService as unknown as WailsBindingDeps["script"],
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
     tray: trayService as unknown as WailsBindingDeps["tray"],
     sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
@@ -1411,7 +1425,23 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }),
     agent: unimplemented("agent"),
     files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
-    script: unimplemented("script"),
+    script: portWith("script", {
+      scriptRecordingStart: async (sessionId: string) => {
+        if (!bindings.script?.StartRecording) missingBridgeMethod("scriptRecordingStart");
+        const result = await bindings.script.StartRecording(sessionId);
+        if (result?.error) throw new Error(result.error);
+        return { ok: result?.ok !== false };
+      },
+      scriptRecordingStop: async (sessionId: string) => {
+        if (!bindings.script?.StopRecording) missingBridgeMethod("scriptRecordingStop");
+        const result = await bindings.script.StopRecording(sessionId);
+        return { steps: result?.steps ?? [], code: result?.code ?? "" };
+      },
+      scriptRecordingAppendStep: (async (sessionId: string, step: unknown) => {
+        if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
+        return bindings.script.AppendRecordingStep(sessionId, step);
+      }) as unknown as NetcattyBridge["scriptRecordingAppendStep"],
+    }),
     terminal: portWith("terminal", {
       getDefaultShell,
       discoverShells,

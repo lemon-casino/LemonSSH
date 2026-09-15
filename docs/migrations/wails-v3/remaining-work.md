@@ -80,6 +80,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - App Lock 密码启用 / PBKDF2 verifier / Unlock/Disable 已接；UnlockWithBiometrics 已接原生 Hello/Touch ID adapter；本机 Hello IsSupported=false，成功认证与 macOS 活体仍缺（L116）（SYS-04）— 已处理
 - deep link 二次启动 argv 入队；System 标签新增开关，Windows 下写 HKCU 注册 ssh/telnet/netcatty 协议（无需管理员）；macOS/Linux 注册 adapter 已实现，安装包三平台投递仍缺（L116）（SYS-03）— 已处理
 - 快捷键 Register 接到 ShortcutService；原生 accelerator adapter 已接；Windows RegisterHotKey 冲突/释放实测通过，macOS/Linux 原生执行仍缺（L116）（SYS-02）— 已处理
+- 脚本录制 Start/Stop/AppendStep 接到 Go `internal/script` + ScriptService（L139）；敏感步骤、sleep gap、步数上限与 Electron codegen 对齐；`scriptRun`/`pause`/`dialog` 仍 unimplemented，因为执行器还是 Node Worker
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 
 ### 数据与同步
