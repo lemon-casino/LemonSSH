@@ -300,7 +300,53 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 			}
 			vars[op.Var] = value
 		case "log":
-			r.log(run, op.Value)
+			value := op.Value
+			if op.Var != "" {
+				resolved, ok := vars[op.Var]
+				if !ok {
+					r.finish(run, "failed", "variable "+op.Var+" has no value")
+					return
+				}
+				value = resolved
+			}
+			r.log(run, value)
+		case "send":
+			value := op.Value
+			if op.Var != "" {
+				resolved, ok := vars[op.Var]
+				if !ok {
+					r.finish(run, "failed", "variable "+op.Var+" has no value")
+					return
+				}
+				value = resolved
+			}
+			label := value
+			if op.Sensitive {
+				label = "[sensitive]"
+			}
+			r.log(run, "→ "+label)
+			if err := write(run.SessionID, []byte(value)); err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+		case "clear":
+			r.watch(run.SessionID).Reset()
+		case "getText":
+			watch := r.watch(run.SessionID)
+			r.mu.Lock()
+			vars[op.Var] = validUTF8Tail(watch.snapshot())
+			r.mu.Unlock()
+		case "confirm":
+			value, cancelled, err := r.askDialog(ctx, run, ReplayOp{Kind: "confirm", Value: op.Value})
+			if err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			if cancelled {
+				r.finish(run, "failed", "Dialog cancelled")
+				return
+			}
+			vars[op.Var] = value
 		case "alert":
 			if _, _, err := r.askDialog(ctx, run, ReplayOp{Kind: "alert", Value: op.Value}); err != nil && ctx.Err() == nil {
 				r.finish(run, "failed", err.Error())
@@ -468,7 +514,7 @@ func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, 
 	_, _ = rand.Read(buf[:])
 	request := DialogRequest{
 		RequestID:    "dlg-" + hex.EncodeToString(buf[:]),
-		Type:         "prompt",
+		Type:         op.Kind,
 		Message:      op.Value,
 		DefaultValue: "",
 		Sensitive:    op.Sensitive,

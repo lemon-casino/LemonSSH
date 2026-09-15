@@ -22,6 +22,7 @@ type ReplayOp struct {
 	Sensitive bool
 	Patterns  []string
 	Regexes   []*regexp2.Regexp
+	RangeArgs bool
 }
 
 var (
@@ -36,7 +37,11 @@ var (
 	disconnectCall = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.disconnect\(\);\s*$`)
 	waitRegexCall  = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForRegex\((.*)\);\s*$`)
 	waitAnyCall    = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForAny\((.*)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog`)
+	sendCall       = regexp.MustCompile(`(?m)^\s*await nct\.screen\.send\((.*)\);\s*$`)
+	clearCall      = regexp.MustCompile(`(?m)^\s*await nct\.screen\.clear\(\);\s*$`)
+	getTextAssign  = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.screen\.getText\((.*)\);\s*$`)
+	confirmAssign  = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.confirm\((.*)\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(form|select|radio|checkbox)|nct\.session\.startLog|nct\.session\.stopLog`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -91,13 +96,18 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 			continue
 		}
 		if match := logCall.FindStringSubmatch(line); match != nil {
-			value, err := unquoteJS(match[1])
-			if err != nil {
-				return nil, err
-			}
+			raw := strings.TrimSpace(match[1])
 			kind := "log"
 			if strings.HasPrefix(strings.TrimSpace(line), "await nct.dialog.alert") {
 				kind = "alert"
+			}
+			if identifier.MatchString(raw) {
+				ops = append(ops, ReplayOp{Kind: kind, Var: raw})
+				continue
+			}
+			value, err := unquoteJS(raw)
+			if err != nil {
+				return nil, err
 			}
 			ops = append(ops, ReplayOp{Kind: kind, Value: value})
 			continue
@@ -146,6 +156,34 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 			ops = append(ops, op)
 			continue
 		}
+		if match := sendCall.FindStringSubmatch(line); match != nil {
+			op, err := sendArg(match[1])
+			if err != nil {
+				return nil, err
+			}
+			op.Kind = "send"
+			ops = append(ops, op)
+			continue
+		}
+		if clearCall.FindStringSubmatch(line) != nil {
+			ops = append(ops, ReplayOp{Kind: "clear"})
+			continue
+		}
+		if match := getTextAssign.FindStringSubmatch(line); match != nil {
+			if strings.TrimSpace(match[2]) != "" {
+				return nil, fmt.Errorf("screen.getText with a range is not migrated to the Wails runner yet")
+			}
+			ops = append(ops, ReplayOp{Kind: "getText", Var: match[1]})
+			continue
+		}
+		if match := confirmAssign.FindStringSubmatch(line); match != nil {
+			message, err := unquoteJS(strings.TrimSpace(match[2]))
+			if err != nil {
+				return nil, err
+			}
+			ops = append(ops, ReplayOp{Kind: "confirm", Var: match[1], Value: message})
+			continue
+		}
 		if match := progressCall.FindStringSubmatch(line); match != nil {
 			op, err := progressOp(match[1], match[2])
 			if err != nil {
@@ -174,6 +212,31 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 		return nil, fmt.Errorf("Script content is empty")
 	}
 	return ops, nil
+}
+
+// sendArg accepts a string literal or variable reference with an optional
+// trailing { sensitive: true } options object.
+func sendArg(raw string) (ReplayOp, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ReplayOp{}, fmt.Errorf("send needs a value")
+	}
+	sensitive := false
+	if match := regexp.MustCompile(`^(.*),\s*\{\s*sensitive:\s*true\s*\}$`).FindStringSubmatch(raw); match != nil {
+		raw = strings.TrimSpace(match[1])
+		sensitive = true
+	}
+	if raw != "" && raw[0] == '"' {
+		value, err := unquoteJS(raw)
+		if err != nil {
+			return ReplayOp{}, err
+		}
+		return ReplayOp{Value: value, Sensitive: sensitive}, nil
+	}
+	if identifier.MatchString(raw) {
+		return ReplayOp{Var: raw, Sensitive: sensitive}, nil
+	}
+	return ReplayOp{}, fmt.Errorf("unsupported send argument: %s", raw)
 }
 
 // sendLineArg accepts either a string literal or a variable reference

@@ -44,6 +44,12 @@ func (w *OutputWatch) Append(data []byte) {
 	}
 }
 
+func (w *OutputWatch) Reset() {
+	w.mu.Lock()
+	w.buf.Reset()
+	w.mu.Unlock()
+}
+
 func (w *OutputWatch) snapshot() string {
 	w.mu.Lock()
 	defer w.mu.Unlock()

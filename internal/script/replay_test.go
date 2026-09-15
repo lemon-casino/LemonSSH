@@ -1,6 +1,7 @@
 package script
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -53,11 +54,11 @@ await main();`)
 		t.Fatalf("ops=%#v", ops)
 	}
 	_, err = ParseRecordedScript(`async function main() {
-  await nct.dialog.confirm("no");
+  await nct.dialog.form({ message: "no" });
 }
 await main();`)
 	if err == nil || !strings.Contains(err.Error(), "not migrated") {
-		t.Fatalf("confirm must stay rejected: %v", err)
+		t.Fatalf("form must stay rejected: %v", err)
 	}
 }
 
@@ -296,6 +297,77 @@ await main();`,
 			t.Fatalf("run state: %#v", listed)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestRunnerSendClearGetTextAndConfirm(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error {
+		return nil
+	})
+	var writes []string
+	runner.SetWriter(func(sessionID string, data []byte) error {
+		writes = append(writes, string(data))
+		return nil
+	})
+	var answered []string
+	runner.SetDialogResponder(func(ctx context.Context, request DialogRequest) (string, bool, error) {
+		answered = append(answered, request.Type)
+		if request.Type == "confirm" {
+			runner.ResolveDialog(request.RequestID, "true", false)
+		}
+		return "", false, nil
+	})
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.screen.send("he");
+  await nct.screen.send("llo");
+  await nct.screen.clear();
+  const text = await nct.screen.getText();
+  nct.log(text);
+  const ok = await nct.dialog.confirm("proceed?");
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	_ = writes
+	if len(answered) < 1 || answered[0] != "confirm" {
+		t.Fatalf("answered: %#v", answered)
+	}
+}
+
+func TestParseSendClearGetTextConfirm(t *testing.T) {
+	ops, err := ParseRecordedScript(`async function main() {
+  await nct.screen.send("he", { sensitive: true });
+  await nct.screen.clear();
+  const text = await nct.screen.getText();
+  const ok = await nct.dialog.confirm("go?");
+}
+await main();`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ops[0].Kind != "send" || ops[0].Value != "he" || !ops[0].Sensitive {
+		t.Fatalf("send: %#v", ops[0])
+	}
+	if ops[1].Kind != "clear" || ops[2].Kind != "getText" || ops[2].Var != "text" {
+		t.Fatalf("mid: %#v", ops)
+	}
+	if ops[3].Kind != "confirm" || ops[3].Var != "ok" || ops[3].Value != "go?" {
+		t.Fatalf("confirm: %#v", ops[3])
 	}
 }
 

@@ -4319,3 +4319,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: regexp2 is a backtrack engine — the 2s MatchTimeout bounds but does not eliminate CPU spikes from pathological patterns
 - Next safe slice: screen.getText/send or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L148 - 2026-09-16 - screen.send/clear/getText and dialog.confirm in replay
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Complete the nct.screen surface in the Go runner: screen.send writes without appending CR (string or variable, sensitive-aware), screen.clear resets the runner-side rolling output, and const-var assignments from screen.getText capture the current output text. dialog.confirm assignments return the renderer answer as true/false through the dialog host. A deadlock the new getText case introduced (r.watch locking r.mu while held) was caught by the race-enabled test run and fixed by resolving the watch reference before locking.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`, `internal/script/output.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: nct.log resolves variables from prior assignments; range-based getText and dialog form/select/radio/checkbox still fail closed
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 -race -timeout 120s ./internal/script; go test -count=1 ./cmd/netcatty -run Script; npm run lint; npm run check:migration-docs
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until session startLog/stopLog have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: getText reflects the runner-side rolling view, not the renderer viewport (OSC sequences included); scripts comparing text with JS string methods stay unsupported
+- Next safe slice: session startLog/stopLog with a Go log owner, or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
