@@ -2193,6 +2193,34 @@ export class SSHConnectRequest {
     }
 }
 
+export class ScriptOKResult {
+    /**
+     * Creates a new ScriptOKResult instance.
+     * @param {Partial<ScriptOKResult>} [$$source = {}] - The source object to create the ScriptOKResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScriptOKResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScriptOKResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ScriptOKResult(/** @type {Partial<ScriptOKResult>} */($$parsedSource));
+    }
+}
+
 export class ScriptRecordingStartResult {
     /**
      * Creates a new ScriptRecordingStartResult instance.
@@ -2264,6 +2292,126 @@ export class ScriptRecordingStopResult {
             $$parsedSource["steps"] = $$createField0_0($$parsedSource["steps"]);
         }
         return new ScriptRecordingStopResult(/** @type {Partial<ScriptRecordingStopResult>} */($$parsedSource));
+    }
+}
+
+export class ScriptRunRequest {
+    /**
+     * Creates a new ScriptRunRequest instance.
+     * @param {Partial<ScriptRunRequest>} [$$source = {}] - The source object to create the ScriptRunRequest.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["runId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["scriptId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["scriptLabel"] = undefined;
+        }
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("content" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["content"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScriptRunRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScriptRunRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ScriptRunRequest(/** @type {Partial<ScriptRunRequest>} */($$parsedSource));
+    }
+}
+
+export class ScriptRunResult {
+    /**
+     * Creates a new ScriptRunResult instance.
+     * @param {Partial<ScriptRunResult>} [$$source = {}] - The source object to create the ScriptRunResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["runId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string[] | undefined}
+             */
+            this["runIds"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {script$0.Run | null | undefined}
+             */
+            this["run"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScriptRunResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScriptRunResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType4;
+        const $$createField4_0 = $$createType14;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("runIds" in $$parsedSource) {
+            $$parsedSource["runIds"] = $$createField3_0($$parsedSource["runIds"]);
+        }
+        if ("run" in $$parsedSource) {
+            $$parsedSource["run"] = $$createField4_0($$parsedSource["run"]);
+        }
+        return new ScriptRunResult(/** @type {Partial<ScriptRunResult>} */($$parsedSource));
     }
 }
 
@@ -3187,7 +3335,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType14;
+        const $$createField1_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -3219,7 +3367,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType15;
+        const $$createField0_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -3384,7 +3532,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType13;
+        const $$createField0_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -3465,7 +3613,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType16;
+        const $$createField7_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -3551,7 +3699,9 @@ const $$createType9 = PortForwardRuntimeRecord.createFrom;
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = script$0.Step.createFrom;
 const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = VaultBackupSummary.createFrom;
+const $$createType13 = script$0.Run.createFrom;
 const $$createType14 = $Create.Nullable($$createType13);
-const $$createType15 = $Create.Array($$createType13);
-const $$createType16 = VaultBackupPreview.createFrom;
+const $$createType15 = VaultBackupSummary.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = $Create.Array($$createType15);
+const $$createType18 = VaultBackupPreview.createFrom;

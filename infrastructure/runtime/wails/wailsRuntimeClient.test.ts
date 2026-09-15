@@ -719,6 +719,9 @@ test("script recording methods reach the Go recorder and other script methods st
     },
     StopRecording: async () => ({ steps: [], code: "" }),
     AppendRecordingStep: async () => ({ ok: true }),
+    Run: async (request: { sessionId: string; content: string }) => ({ ok: true, runId: "run-1", runIds: ["run-1"] }),
+    Stop: async () => ({ ok: true }),
+    GetRuns: async () => [],
   };
   const client = createWailsRuntimeClient(bindings);
   assert.deepEqual(await client.script.scriptRecordingStart("s1"), { ok: true });
@@ -728,7 +731,8 @@ test("script recording methods reach the Go recorder and other script methods st
   assert.deepEqual(started, ["s1", "s1"]);
   assert.deepEqual(await client.script.scriptRecordingStop("s1"), { steps: [], code: "" });
   assert.deepEqual(await client.script.scriptRecordingAppendStep("s1", { type: "send", value: "ls" }), { ok: true });
-  assert.throws(() => client.script.scriptRun({ sessionId: "s1", code: "await main();" }), /not migrated/);
+  const ran = await client.transitionBridge.scriptRun!({ sessionId: "s1", content: "await nct.session.sleep(1);\nawait main();" });
+  assert.deepEqual(ran, { runId: "run-1", runIds: ["run-1"] });
 });
 
 test("cloud OAuth methods surface on the sync port and transition bridge", async () => {

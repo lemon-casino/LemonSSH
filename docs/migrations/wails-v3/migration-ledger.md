@@ -4119,3 +4119,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: live GUI recording against a real terminal is untested; generated JS still assumes the Electron `nct` host API at run time
 - Next safe slice: SYS-01 native dialogs or plugin RuntimePorts alignment; script execution remains blocked on a non-Node runner
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L140 - 2026-09-15 - Replay recorded scripts without the Node worker
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Make Run work for recorder-generated scripts on Wails. Parse sleep/sendLine/waitForPrompt/waitForText, write sendLine as body then CR through TerminalService, and reject dialog/log/disconnect scripts instead of pretending the Node worker ran. scriptPause/Resume/dialog stay unmigrated.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` scriptRun/Stop/GetRuns on transitionBridge; `application/state/useScriptExecution.ts` refreshes run snapshots after start/stop
+- Electron owner affected: none; Electron scriptRuntime remains the frozen JS worker
+- Preserved invariants: unsupported nct.dialog/progress/disconnect scripts fail closed; sendLine still splits body and CR; waitForPrompt currently waits the recorded timeout rather than parsing PTY text
+- Data/schema impact: none
+- Security impact: observer-mode write blocking stays in the renderer coordinator
+- Verification: go test -count=1 ./internal/script ./cmd/netcatty -run Script; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until waitForPrompt reads PTY text and remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: waitForPrompt does not yet inspect terminal output, so replay may continue before the prompt returns; GUI run against a live session is untested in this slice
+- Next safe slice: waitForPrompt against session output, then dialog APIs or SYS-01 dialogs
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

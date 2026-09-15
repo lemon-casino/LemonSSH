@@ -73,6 +73,129 @@ export class AppendResult {
     }
 }
 
+export class Run {
+    /**
+     * Creates a new Run instance.
+     * @param {Partial<Run>} [$$source = {}] - The source object to create the Run.
+     */
+    constructor($$source = {}) {
+        if (!("runId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["runId"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["scriptId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["scriptLabel"] = undefined;
+        }
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("status" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["status"] = "";
+        }
+        if (!("startedAt" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["startedAt"] = 0;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["endedAt"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (!("logs" in $$source)) {
+            /**
+             * @member
+             * @type {RunLog[]}
+             */
+            this["logs"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Run instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {Run}
+     */
+    static createFrom($$source = {}) {
+        const $$createField8_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("logs" in $$parsedSource) {
+            $$parsedSource["logs"] = $$createField8_0($$parsedSource["logs"]);
+        }
+        return new Run(/** @type {Partial<Run>} */($$parsedSource));
+    }
+}
+
+export class RunLog {
+    /**
+     * Creates a new RunLog instance.
+     * @param {Partial<RunLog>} [$$source = {}] - The source object to create the RunLog.
+     */
+    constructor($$source = {}) {
+        if (!("at" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["at"] = 0;
+        }
+        if (!("message" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RunLog instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {RunLog}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RunLog(/** @type {Partial<RunLog>} */($$parsedSource));
+    }
+}
+
 /**
  * Step is one recorded script action.
  */
@@ -128,3 +251,5 @@ export class Step {
 // Private type creation functions
 const $$createType0 = Step.createFrom;
 const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = RunLog.createFrom;
+const $$createType3 = $Create.Array($$createType2);

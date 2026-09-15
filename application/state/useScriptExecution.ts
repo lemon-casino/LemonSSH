@@ -5,6 +5,7 @@ import {
   getScriptRunsSnapshot,
   subscribeScriptRuns as subscribeScriptRunsStore,
 } from './scriptRunsStore.ts';
+import { setScriptRuns } from './scriptAutomationCoordinator.ts';
 
 /**
  * Script run list for UI. Bridge → coordinator.setScriptRuns → scriptRunsStore
@@ -22,17 +23,29 @@ export function useScriptExecution(options?: { enabled?: boolean }) {
     getScriptRunsSnapshot,
   );
 
+  const refreshRuns = useCallback(async (sessionId?: string) => {
+    const runsSnapshot = await netcattyBridge.get()?.scriptGetRuns?.(sessionId);
+    if (Array.isArray(runsSnapshot)) {
+      setScriptRuns(runsSnapshot);
+    }
+  }, []);
+
   const runScript = useCallback(async (params: ScriptRunParams) => {
     const bridge = netcattyBridge.get();
     if (!bridge?.scriptRun) {
       throw new Error('Script bridge unavailable');
     }
-    return bridge.scriptRun(params);
-  }, []);
+    const result = await bridge.scriptRun(params);
+    await refreshRuns(params.sessionId);
+    const poll = window.setInterval(() => { void refreshRuns(params.sessionId); }, 400);
+    window.setTimeout(() => window.clearInterval(poll), 15_000);
+    return result;
+  }, [refreshRuns]);
 
   const stopRun = useCallback(async (runId: string) => {
     await netcattyBridge.get()?.scriptStop?.(runId);
-  }, []);
+    await refreshRuns();
+  }, [refreshRuns]);
 
   const pauseRun = useCallback(async (runId: string) => {
     await netcattyBridge.get()?.scriptPause?.(runId);

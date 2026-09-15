@@ -311,6 +311,15 @@ export interface WailsBindingDeps {
       steps?: unknown[];
       code?: string;
     }>;
+    Run?: (request: {
+      runId?: string;
+      scriptId?: string;
+      scriptLabel?: string;
+      sessionId: string;
+      content: string;
+    }) => Promise<{ ok?: boolean; error?: string; runId?: string; runIds?: string[] }>;
+    Stop?: (runID: string) => Promise<{ ok?: boolean }>;
+    GetRuns?: (sessionID?: string) => Promise<unknown[]>;
   };
   diagnosticLog?: {
     Append?: (line: string) => Promise<unknown>;
@@ -1028,6 +1037,38 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
     return bindings.script.AppendRecordingStep(sessionId, step);
   }) as unknown as NetcattyBridge["scriptRecordingAppendStep"];
+  const scriptRun = (async (params: {
+    runId?: string;
+    scriptId?: string;
+    scriptLabel?: string;
+    content: string;
+    sessionId?: string;
+    sessionIds?: string[];
+  }) => {
+    if (!bindings.script?.Run) missingBridgeMethod("scriptRun");
+    const sessionId = params.sessionId || params.sessionIds?.[0];
+    if (!sessionId) throw new Error("sessionId required");
+    const result = await bindings.script.Run({
+      runId: params.runId,
+      scriptId: params.scriptId,
+      scriptLabel: params.scriptLabel,
+      sessionId,
+      content: params.content,
+    });
+    if (result?.error) throw new Error(result.error);
+    const runId = result?.runId || "";
+    return { runId, runIds: result?.runIds ?? (runId ? [runId] : []) };
+  }) as unknown as NetcattyBridge["scriptRun"];
+  const scriptStop = async (runId: string) => {
+    if (!bindings.script?.Stop) missingBridgeMethod("scriptStop");
+    const result = await bindings.script.Stop(runId);
+    return { ok: result?.ok !== false };
+  };
+  const scriptGetRuns = async (sessionId?: string) => {
+    if (!bindings.script?.GetRuns) missingBridgeMethod("scriptGetRuns");
+    const runs = await bindings.script.GetRuns(sessionId ?? "");
+    return Array.isArray(runs) ? runs : [];
+  };
 
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
@@ -1036,6 +1077,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     scriptRecordingStart,
     scriptRecordingStop,
     scriptRecordingAppendStep,
+    scriptRun,
+    scriptStop,
+    scriptGetRuns,
     credentialsAvailable,
     credentialsEncrypt,
     credentialsDecrypt,
@@ -1448,6 +1492,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       scriptRecordingStart,
       scriptRecordingStop,
       scriptRecordingAppendStep,
+      scriptRun,
+      scriptStop,
+      scriptGetRuns,
     }),
     terminal: portWith("terminal", {
       getDefaultShell,
@@ -1540,6 +1587,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     transitionBridge,
   };
 }
+
 
 /**
  * Wails-native terminal surface for the renderer: the Electron ports cannot

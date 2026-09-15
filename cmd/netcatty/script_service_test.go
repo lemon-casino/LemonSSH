@@ -1,6 +1,40 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestScriptServiceRunsRecordedScript(t *testing.T) {
+	service := newScriptService()
+	wrote := make(chan string, 4)
+	service.setWriter(func(sessionID string, data []byte) error {
+		if sessionID != "s1" {
+			t.Fatalf("session %q", sessionID)
+		}
+		wrote <- string(data)
+		return nil
+	})
+	result := service.Run(ScriptRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.screen.sendLine("ls");
+  await nct.screen.waitForPrompt(1);
+}
+await main();`,
+	})
+	if !result.OK || result.RunID == "" {
+		t.Fatalf("run: %+v", result)
+	}
+	select {
+	case got := <-wrote:
+		if got != "ls" && got != "\r" {
+			t.Fatalf("write %q", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("no write")
+	}
+}
 
 func TestScriptServiceRecordsAndStops(t *testing.T) {
 	service := newScriptService()

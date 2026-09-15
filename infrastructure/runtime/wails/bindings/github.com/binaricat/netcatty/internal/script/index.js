@@ -4,5 +4,7 @@
 
 export {
     AppendResult,
+    Run,
+    RunLog,
     Step
 } from "./models.js";

@@ -157,8 +157,8 @@ func main() {
 	filesystemService.setTempService(managedTemp)
 	transferService := newTransferService()
 	transferService.setTempService(managedTemp)
-		scriptService := newScriptService()
-		shortcutService := newNativeShortcutService(func() {
+	scriptService := newScriptService()
+	shortcutService := newNativeShortcutService(func() {
 		if win, ok := wailsApp.Window.GetByName("main"); ok {
 			if win.IsVisible() {
 				win.Hide()
@@ -193,6 +193,10 @@ func main() {
 	sftpService.setTerminalService(terminalSvc)
 	transferService.setSFTPService(sftpService)
 	forwardService := NewForwardService(sshPool, knownHosts)
+	scriptService.setWriter(func(sessionID string, data []byte) error {
+		_, err := terminalSvc.Write(sessionID, data)
+		return err
+	})
 
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
@@ -208,8 +212,8 @@ func main() {
 	wailsApp.RegisterService(application.NewService(forwardService))
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
-		wailsApp.RegisterService(application.NewService(scriptService))
-		wailsApp.RegisterService(application.NewService(shortcutService))
+	wailsApp.RegisterService(application.NewService(scriptService))
+	wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))
 	wailsApp.RegisterService(application.NewService(diagnosticLogService))
 
