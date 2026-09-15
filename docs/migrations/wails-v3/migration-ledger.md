@@ -4269,3 +4269,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: a disconnect followed by intentional post-disconnect script logic is not supported by design
 - Next safe slice: session startLog/stopLog with a Go log owner, or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L146 - 2026-09-16 - waitForRegex and waitForAny in recorded-script replay
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Support nct.screen.waitForRegex(pattern, timeout) and waitForAny(patterns[], timeout) in the Go runner. Pattern semantics mirror the Electron buffer: quoted strings are escaped literals, "/body/flags" strings compile as regexes with i/m/s honored, and matches must land in the fresh tail window of the rolling output. screen.getText/send/clear stay rejected.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/output.go`, `internal/script/runner.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: regex scans are bounded to a 64 KiB tail plus 512-byte fresh slack; bare regex literals outside strings are not parsed; unsupported APIs still fail closed
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 -race ./internal/script
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until screen.getText/send/clear and session startLog/stopLog have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: Go RE2 differs from JavaScript regex for backreferences and lookaround; such patterns fail to compile and reject the script with a clear error
+- Next safe slice: screen.getText/send or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

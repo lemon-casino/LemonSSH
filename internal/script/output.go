@@ -86,6 +86,29 @@ func containsFresh(text, needle string) bool {
 	return end >= len(text)-freshMatchTailSlack
 }
 
+const regexScanTail = 64 * 1024
+
+// anyRegexFresh reports whether any pattern matches within the fresh tail
+// window of the rolling buffer.
+func anyRegexFresh(text string, patterns []*regexp.Regexp) bool {
+	start := 0
+	if len(text) > regexScanTail {
+		start = len(text) - regexScanTail - utf8.UTFMax
+		if start < 0 {
+			start = 0
+		}
+	}
+	tail := text[start:]
+	for _, re := range patterns {
+		for _, m := range re.FindAllStringIndex(tail, -1) {
+			if start+m[1] >= len(text)-freshMatchTailSlack {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func validUTF8Tail(text string) string {
 	if utf8.ValidString(text) {
 		return text

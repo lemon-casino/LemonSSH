@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -369,7 +370,7 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 				r.finish(run, "failed", err.Error())
 				return
 			}
-		case "waitForPrompt", "waitForText":
+		case "waitForPrompt", "waitForText", "waitForRegex", "waitForAny":
 			wait := op.Timeout
 			if wait <= 0 {
 				wait = 30 * time.Second
@@ -407,20 +408,32 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 func (r *Runner) waitFor(ctx context.Context, sessionID string, op ReplayOp, timeout time.Duration) error {
 	watch := r.watch(sessionID)
 	deadline := time.Now().Add(timeout)
+	waitLabel := op.Kind
+	if op.Kind == "waitForText" {
+		waitLabel = op.Value
+	} else if op.Kind == "waitForRegex" {
+		waitLabel = "regex " + strings.Join(op.Patterns, "|")
+	} else if op.Kind == "waitForAny" {
+		waitLabel = "any " + strings.Join(op.Patterns, "|")
+	}
 	for {
 		text := validUTF8Tail(watch.snapshot())
-		if op.Kind == "waitForText" {
-			if containsFresh(text, op.Value) {
-				return nil
-			}
-		} else if looksLikePrompt(text) {
+		satisfied := false
+		switch op.Kind {
+		case "waitForText":
+			satisfied = containsFresh(text, op.Value)
+		case "waitForRegex":
+			satisfied = anyRegexFresh(text, op.Regexes)
+		case "waitForAny":
+			satisfied = anyRegexFresh(text, op.Regexes)
+		default:
+			satisfied = looksLikePrompt(text)
+		}
+		if satisfied {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			if op.Kind == "waitForText" {
-				return fmt.Errorf("timed out waiting for %q", op.Value)
-			}
-			return fmt.Errorf("timed out waiting for shell prompt")
+			return fmt.Errorf("timed out waiting for %q", waitLabel)
 		}
 		remaining := time.Until(deadline)
 		notify := watch.notify()
@@ -432,10 +445,7 @@ func (r *Runner) waitFor(ctx context.Context, sessionID string, op ReplayOp, tim
 		case <-notify:
 			timer.Stop()
 		case <-timer.C:
-			if op.Kind == "waitForText" {
-				return fmt.Errorf("timed out waiting for %q", op.Value)
-			}
-			return fmt.Errorf("timed out waiting for shell prompt")
+			return fmt.Errorf("timed out waiting for %q", waitLabel)
 		}
 	}
 }

@@ -87,6 +87,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - 脚本 pause/resume 接到 Go runner（L143），`nct.log` 和 `dialog.alert` 也已支持（log/alert 走运行日志与对话框）
 - `nct.progress.start/set/step/done` 接到 Go runner（L144）：确定型进度写入运行快照，面板进度条可见；含变量的进度参数仍拒绝
 - `session.disconnect` 接到 Go runner（L145）：断开后运行标记完成，不再写终端；`startLog/stopLog` 仍拒绝（无 Go 日志 owner）
+- `waitForRegex` / `waitForAny` 接到 Go runner（L146）：字符串按字面量、`/正则/i` 形式按正则，匹配新鲜输出尾部；`screen.getText/send/clear` 仍拒绝
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 
 ### 数据与同步

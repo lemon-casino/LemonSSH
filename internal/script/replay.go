@@ -18,6 +18,8 @@ type ReplayOp struct {
 	Total     int
 	Timeout   time.Duration
 	Sensitive bool
+	Patterns  []string
+	Regexes   []*regexp.Regexp
 }
 
 var (
@@ -30,7 +32,9 @@ var (
 	logCall        = regexp.MustCompile(`(?m)^(?:nct\.log|(?:await )?nct\.dialog\.alert)\((.*)\);\s*$`)
 	progressCall   = regexp.MustCompile(`(?m)^(?:await )?nct\.progress\.(start|set|step|done)\((.*)\);\s*$`)
 	disconnectCall = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.disconnect\(\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog`)
+	waitRegexCall  = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForRegex\((.*)\);\s*$`)
+	waitAnyCall    = regexp.MustCompile(`(?m)^\s*await nct\.screen\.waitForAny\((.*)\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -98,6 +102,46 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 		}
 		if match := disconnectCall.FindStringSubmatch(line); match != nil {
 			ops = append(ops, ReplayOp{Kind: "disconnect"})
+			continue
+		}
+		if match := waitRegexCall.FindStringSubmatch(line); match != nil {
+			args := splitJSArgs(match[1])
+			if len(args) == 0 {
+				return nil, fmt.Errorf("waitForRegex needs a pattern")
+			}
+			re, err := compileJSPattern(args[0])
+			if err != nil {
+				return nil, err
+			}
+			op := ReplayOp{Kind: "waitForRegex", Patterns: []string{args[0]}, Regexes: []*regexp.Regexp{re}}
+			if len(args) > 1 {
+				op.Timeout = time.Duration(intArg(args[1])) * time.Millisecond
+			}
+			ops = append(ops, op)
+			continue
+		}
+		if match := waitAnyCall.FindStringSubmatch(line); match != nil {
+			args := splitJSArgs(match[1])
+			if len(args) == 0 || !strings.HasPrefix(args[0], "[") || !strings.HasSuffix(args[0], "]") {
+				return nil, fmt.Errorf("waitForAny needs a patterns array: %s", line)
+			}
+			items := splitJSArgs(args[0][1 : len(args[0])-1])
+			if len(items) == 0 {
+				return nil, fmt.Errorf("waitForAny needs a non-empty patterns array")
+			}
+			op := ReplayOp{Kind: "waitForAny"}
+			for _, item := range items {
+				re, err := compileJSPattern(item)
+				if err != nil {
+					return nil, err
+				}
+				op.Patterns = append(op.Patterns, item)
+				op.Regexes = append(op.Regexes, re)
+			}
+			if len(args) > 1 {
+				op.Timeout = time.Duration(intArg(args[1])) * time.Millisecond
+			}
+			ops = append(ops, op)
 			continue
 		}
 		if match := progressCall.FindStringSubmatch(line); match != nil {
@@ -246,6 +290,43 @@ func intArg(raw string) int {
 		return 0
 	}
 	return value
+}
+
+// compileJSPattern mirrors the Electron buffer semantics: a string is an
+// escaped literal, a /body/flags form compiles as a regex (i/m/s honored).
+func compileJSPattern(raw string) (*regexp.Regexp, error) {
+	raw = strings.TrimSpace(raw)
+	if strings.HasPrefix(raw, "/") && strings.HasSuffix(raw, "/") {
+		return nil, fmt.Errorf("bare regex literals are not supported here; quote the pattern: %s", raw)
+	}
+	if len(raw) >= 3 && raw[0] == '"' {
+		value, err := strconv.Unquote(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pattern string: %s", raw)
+		}
+		if slash := regexp.MustCompile(`^/(.+)/([gimsuy]*)$`).FindStringSubmatch(value); slash != nil {
+			return compileRegex(slash[1], slash[2])
+		}
+		return regexp.Compile(regexp.QuoteMeta(value))
+	}
+	return nil, fmt.Errorf("waitFor pattern must be a quoted string: %s", raw)
+}
+
+func compileRegex(body, flags string) (*regexp.Regexp, error) {
+	prefix := ""
+	if strings.Contains(flags, "i") {
+		prefix += "i"
+	}
+	if strings.Contains(flags, "m") {
+		prefix += "m"
+	}
+	if strings.Contains(flags, "s") {
+		prefix += "s"
+	}
+	if prefix != "" {
+		prefix = "(?" + prefix + ")"
+	}
+	return regexp.Compile(prefix + body)
 }
 
 func unquoteJS(raw string) (string, error) {
