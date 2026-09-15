@@ -4244,3 +4244,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: activityLabel strings are truncated by the renderer, not the runner; scripts computing progress in loops with variables stay unsupported
 - Next safe slice: session.disconnect/startLog APIs or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L145 - 2026-09-16 - session.disconnect in recorded-script replay
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Support nct.session.disconnect in the Go runner: the session closes through TerminalService.Close and the run finishes completed immediately, since nothing further can execute in a closed session. startLog/stopLog stay rejected until a Go session-log owner exists.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`, `cmd/netcatty/scriptService.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: writes after disconnect cannot happen (run ends at disconnect); startLog/stopLog still fail closed
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 -race ./internal/script; go test -count=1 ./cmd/netcatty -run Script
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until startLog/stopLog and remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: a disconnect followed by intentional post-disconnect script logic is not supported by design
+- Next safe slice: session startLog/stopLog with a Go log owner, or plugin RuntimePorts alignment
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

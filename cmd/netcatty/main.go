@@ -197,6 +197,7 @@ func main() {
 		_, err := terminalSvc.Write(sessionID, data)
 		return err
 	})
+	scriptService.setSessionCloser(terminalSvc.Close)
 	scriptService.setDialogEmitter(func(name string, payload any) {
 		wailsApp.Event.Emit(name, payload)
 	})

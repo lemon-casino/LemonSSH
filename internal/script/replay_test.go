@@ -186,6 +186,49 @@ await main();`,
 	}
 }
 
+func TestRunnerDisconnectCompletesWithoutFurtherWrites(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error {
+		t.Fatal("must not write after disconnect")
+		return nil
+	})
+	var closed []string
+	runner.SetSessionCloser(func(sessionID string) error {
+		closed = append(closed, sessionID)
+		return nil
+	})
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.session.disconnect();
+  await nct.screen.sendLine("never");
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(closed) != 1 || closed[0] != "s1" {
+		t.Fatalf("closed: %#v", closed)
+	}
+	if _, err := ParseRecordedScript(`async function main() {
+  await nct.session.startLog();
+}
+await main();`); err == nil || !strings.Contains(err.Error(), "not migrated") {
+		t.Fatalf("startLog must stay rejected: %v", err)
+	}
+}
+
 func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
 	wrote := make(chan string, 2)
 	runner := NewRunner(func(sessionID string, data []byte) error {

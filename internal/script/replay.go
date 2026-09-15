@@ -29,7 +29,8 @@ var (
 	promptAssign   = regexp.MustCompile(`(?m)^\s*const ([A-Za-z_$][\w$]*) = await nct\.dialog\.prompt\((.*)\);\s*$`)
 	logCall        = regexp.MustCompile(`(?m)^(?:nct\.log|(?:await )?nct\.dialog\.alert)\((.*)\);\s*$`)
 	progressCall   = regexp.MustCompile(`(?m)^(?:await )?nct\.progress\.(start|set|step|done)\((.*)\);\s*$`)
-	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog|nct\.session\.disconnect`)
+	disconnectCall = regexp.MustCompile(`(?m)^(?:await )?nct\.session\.disconnect\(\);\s*$`)
+	unsupportedAPI = regexp.MustCompile(`nct\.dialog\.(confirm|form|select|radio|checkbox)|nct\.screen\.send\(|nct\.screen\.waitForRegex|nct\.screen\.waitForAny|nct\.screen\.getText|nct\.screen\.clear|nct\.session\.startLog|nct\.session\.stopLog`)
 )
 
 // ParseRecordedScript turns recorder-generated JS into replay ops.
@@ -93,6 +94,10 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 				kind = "alert"
 			}
 			ops = append(ops, ReplayOp{Kind: kind, Value: value})
+			continue
+		}
+		if match := disconnectCall.FindStringSubmatch(line); match != nil {
+			ops = append(ops, ReplayOp{Kind: "disconnect"})
 			continue
 		}
 		if match := progressCall.FindStringSubmatch(line); match != nil {

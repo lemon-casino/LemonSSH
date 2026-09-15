@@ -12,6 +12,9 @@ import (
 // SessionWriter writes bytes into an existing terminal session.
 type SessionWriter func(sessionID string, data []byte) error
 
+// SessionCloser closes an existing terminal session.
+type SessionCloser func(sessionID string) error
+
 type Run struct {
 	RunID           string   `json:"runId"`
 	ScriptID        string   `json:"scriptId,omitempty"`
@@ -54,6 +57,7 @@ type Runner struct {
 	paused         map[string]chan struct{}
 	pendingDialogs map[string]chan DialogAnswer
 	write          SessionWriter
+	closer         SessionCloser
 	dialog         DialogResponder
 	sleep          func(context.Context, time.Duration) error
 }
@@ -82,6 +86,12 @@ func NewRunner(write SessionWriter) *Runner {
 func (r *Runner) SetWriter(write SessionWriter) {
 	r.mu.Lock()
 	r.write = write
+	r.mu.Unlock()
+}
+
+func (r *Runner) SetSessionCloser(closer SessionCloser) {
+	r.mu.Lock()
+	r.closer = closer
 	r.mu.Unlock()
 }
 
@@ -372,6 +382,20 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 				r.finish(run, "failed", err.Error())
 				return
 			}
+		case "disconnect":
+			closer := r.closer
+			if closer == nil {
+				r.finish(run, "failed", "session closer unavailable")
+				return
+			}
+			r.log(run, "disconnect")
+			if err := closer(run.SessionID); err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			// Nothing further can run in a closed session; end honestly.
+			r.finish(run, "completed", "")
+			return
 		default:
 			r.finish(run, "failed", "unsupported replay op "+op.Kind)
 			return
