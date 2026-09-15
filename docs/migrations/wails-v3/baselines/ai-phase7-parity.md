@@ -8,11 +8,11 @@
 
 | 检查项 | 现状 |
 | --- | --- |
-| ledger 头 | `WV3-L132`（SYNC-02，2026-09-12，本文采集时点）；2026-09-14 已追加 `WV3-L133`（Wails 版本对齐，见 §10）；全文无 `NONAI-COMPLETE` 记录 |
-| matrix AI 行 | `AI-01`～`AI-04` 全部 `not-started`，均注明 hard-blocked by Non-AI Completion Gate |
+| ledger 头 | 采集时点 `WV3-L132`；之后已追加 L133～L138。全文无 `NONAI-COMPLETE` 记录 |
+| matrix AI 行 | `AI-01`～`AI-04` 及 `AI-04.1`～`AI-04.8` 全部 `not-started`；AI-04 子行见 WV3-L138 |
 | Wails runtime client | `infrastructure/runtime/wails/wailsRuntimeClient.ts:1412` 仍为 `agent: unimplemented("agent")` |
 | release-target 决策 | `WV3-011/012/013` 已接受（2026-09-08），覆盖 `release-target:windows/macos/linux` 三类 |
-| agent 决策 | `agent-runtime:cursor-bun`、`agent-runtime:opencode-bun`、`agent-disposition:copilot`、`agent-disposition:codebuddy`、`agent-disposition:cursor-cli` 五类**均无 accepted decision**（decisions.md *Required Future Decisions*） |
+| agent 决策 | 五类均已接受：WV3-014～018。Required Future Decisions 分类清单仍保留作 checker 注册表 |
 | 文档 checker | `npm run check:migration-docs` 通过（0 fail） |
 
 结论：AI 生产实施仍被阻断。本文是 P7-01 前置核对的产物，供门禁通过后的执行 AI 直接引用，不能当作开工授权。

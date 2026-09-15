@@ -150,33 +150,33 @@ Catty 完整功能：W12 -> W13 -> W14 -> W15
 
 ### W17：Codex App Server
 
-- 归属：P7-05，AI-04 对应子行；依赖 W16。
+- 归属：P7-05.1，AI-04.1；依赖 W16。
 - 读取：`electron/bridges/aiBridge/codexAppServer/` 与 committed protocol schema；依照技术设计的官方来源复核锁定版本。
 - 实施：initialize/initialized、thread/start/resume、turn/start/interrupt/steer、model/list、native approval/user input、账户/登录、usage/events；复用 InteractionRouter，SDK owner 从 Wails 退出。
 - 验收：retryable error 后继续、turn/completed 唯一终结、pending native grant 不永久化、SDK identity 拒绝 resume、cancel 后最终通知与 crash 均覆盖；schema 生成/check 与实 binary smoke 对应同版本。
 
 ### W18：Claude native headless
 
-- 归属：P7-05，AI-04 对应子行；依赖 W16。
+- 归属：P7-05.2，AI-04.2；依赖 W16。
 - 实施：验证 native provenance、stream-json/partial/result、resume、MCP、附件、权限交互、models、账户/配置；没有稳定模型发现协议时保留明确缺口，不用任意硬编码列表冒充实时发现。
 - 验收：完整最终 result 不被截断，流慢读/EOF/非零退出有区分；内置工具受约束，Confirm 不用自动批准；CLI 原生 runtime 与 models parity 均有目标平台证据才可完成。
 
 ### W19：Grok/ACP
 
-- 归属：P7-05，AI-04 对应子行；依赖 W16。
+- 归属：P7-05.3，AI-04.3；依赖 W16。
 - 实施：ACP initialize/auth/new/load/prompt/update/cancel 与 reverse permission/fs/terminal；host 只 advertise 可中介的能力，再加供应商具体扩展。
 - 验收：prompt response 的 stop reason、cancel 与 reverse request 竞态、deny/timeout、无 scope 拒绝；不支持 load/steer 返回 unsupported；旧 Confirm always-approve 路径退出。
 
 ### W20：OpenCode 与 Cursor API
 
-- 归属：P7-05，各自 AI-04 子行；依赖 W16 及各自 accepted Bun decision。
-- 分开提交：OpenCode 锁 HTTP/OpenAPI/SSE 与私有 server lifecycle；Cursor 锁 sdk.v1 descriptor、Connect/protobuf 与 CancelRun/model/resume。两者只有 supervisor/host policy 可共用，不能臆造一个通用协议。
+- 归属：P7-05.4（AI-04.4 Cursor API-key）与 P7-05.5（AI-04.5 OpenCode）；依赖 W16 及 WV3-014/WV3-015。
+- 分开提交：当前决策是 typed unavailable，不实现 Bun owner。若 superseding decision 重开，OpenCode 锁 HTTP/OpenAPI/SSE 与私有 server lifecycle；Cursor 锁 sdk.v1 descriptor、Connect/protobuf 与 CancelRun/model/resume。两者只有 supervisor/host policy 可共用，不能臆造一个通用协议。
 - 验收：各自独立的 schema/provenance/platform/permission/model/resume 附件证据；新文档不能代替实际 binary handshake；无 accepted decision 时保留 blocker。
 
 ### W21：其余 Agent disposition 与完整设置入口
 
-- 归属：P7-05，各 AI-04 子行；依赖 W16。
-- 实施：按 Cursor CLI login/Copilot/CodeBuddy decision 保留或退休；补 AgentPort 中 discover、account/login/logout、skills、MCP integration、plugin/marketplace 管理映射；已不支持功能需对应 decision 与明确 UI 原因。
+- 归属：P7-05.6（AI-04.6 Copilot）、P7-05.7（AI-04.7 CodeBuddy）、P7-05.8（AI-04.8 Cursor CLI）；依赖 W16 及 WV3-016～018。
+- 实施：按已接受 decision 退休；补 AgentPort 中 discover、account/login/logout、skills、MCP integration、plugin/marketplace 管理映射；已不支持功能需对应 decision 与明确 UI 原因。
 - 验收：历史可读，旧 active/default Agent 不可用时不盲选另一账户或发起付费调用；选模型/登录/取消/退出/设置启停均有可观察结果；retired 行必须有 capability-specific scope-removal 证据。
 
 ### W22：前端与 CJS/Node 调用链收口

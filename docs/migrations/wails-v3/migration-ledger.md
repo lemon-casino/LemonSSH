@@ -4069,3 +4069,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the Cursor-branded unified settings explanation and per-vendor typed unavailable mappings are still pending implementation in Phase 7 W16/W21
 - Next safe slice: create the AI-04 child rows (retained Codex, Claude, Grok; retired five with decision references), then continue the non-AI gate evidence
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L138 - 2026-09-15 - Split AI-04 into per-agent child rows
+
+- Capability rows: `AI-04`, `AI-04.1`, `AI-04.2`, `AI-04.3`, `AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, `AI-04.8`
+- Plan task: `P7-05`
+- Status change: `not-started -> not-started`
+- Scope change: none
+- Goal: Pass the Phase 7 decomposition gate for AI-04 without starting production adapters. The matrix now has eight stable child rows: AI-04.1 Codex App Server, AI-04.2 Claude native headless, and AI-04.3 Grok ACP remain required retained targets; AI-04.4 Cursor API-key, AI-04.5 OpenCode, AI-04.6 Copilot, AI-04.7 CodeBuddy, and AI-04.8 Cursor CLI login remain required and not-started, with Phase 7 owners recorded as typed unavailable per WV3-014 through WV3-018. No scope-removal decision is taken in this slice, so retired vendors stay required until a later capability-specific decision. implementation-plan P7-05 now lists per-child execution cards; work packages W17 through W21 cite the child IDs. internal/agent and cmd/netcatty-mcp are still forbidden until P6-05.
+- Go canonical owner: none; documentation slice only
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01 through AI-04 remain not-started; no production AI path was created; WV3-002 still forbids Node/Bun runtimes for retained adapters
+- Data/schema impact: none
+- Security impact: none in this slice; later Phase 7 typed-unavailable mappings must still block paid calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-014`, `WV3-015`, `WV3-016`, `WV3-017`, `WV3-018`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: capability-matrix, implementation-plan, ai-migration-work-packages, remaining-work, ledger
+- Residual risks: AI-04.4 through AI-04.8 still need later scope-removal decisions before they can leave required scope; settings typed-unavailable UI is still a Phase 7 W21 deliverable
+- Next safe slice: migrate the unimplemented Wails script port, or continue non-AI evidence collection
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

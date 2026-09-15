@@ -4,12 +4,12 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L135`。矩阵 36 行：implemented 17 / probe 12 / not-started 7 /
-**verified 0 / migrated 0**。2026-09-14 基础切片：Wails 模块对齐 beta.12 + 版本漂移守卫（L133）、
-go1.27.1 工具链评估探针（L134，暂不锁 1.27，生成钉保持 go1.25.0）、data-inventory/
-runtimePorts/codex-schema-check 存量漂移修复（L135）；AI Phase 7 基线清单与 agent 去留提案见
-[baselines/ai-phase7-parity.md](baselines/ai-phase7-parity.md) 与
-[proposals/agent-disposition-proposals.md](proposals/agent-disposition-proposals.md)。
+当前台账头：`WV3-L138`。矩阵 required 叶行含 AI-04.1～AI-04.8：implemented 17 /
+probe 12 / not-started 15 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
+模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
+1.27，生成钉保持 go1.25.0）、data-inventory/runtimePorts/codex-schema-check 存量
+漂移修复（L135）、插件 sidecar NUL 截断（L136）、五个 agent 去留决定 WV3-014～018
+（L137）。2026-09-15：AI-04 拆成八个子行（L138），生产 adapter 仍须等 P6-05。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -93,7 +93,10 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 
 ### AI（全部）
 - P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
-  外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01~04）— pending（禁止开工）
+  外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01~AI-04.8）— pending（禁止开工）
+- AI-04 已拆子行（L138）：保留 AI-04.1 Codex / AI-04.2 Claude / AI-04.3 Grok；
+  AI-04.4～AI-04.8 按 WV3-014～018 记为 typed unavailable，仍 required/not-started，
+  尚未做 capability-specific scope-removal
 
 ---
 

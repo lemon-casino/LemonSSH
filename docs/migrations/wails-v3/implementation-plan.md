@@ -1749,18 +1749,41 @@ Exit：Go 是 Catty turn canonical owner；React 不再编排 authoritative turn
 前置：P7-04；每个 retained Agent 的 Phase 7 入口 decision 已批准。仅 P0-05 的
 协议握手和 disposable fixture probe 可在本 phase 前存在。
 
-按 P0-05 审计结果逐个拆子任务，每个 agent 一个 capability child row/ledger entry：
+执行状态：decomposition gate 已通过文档切片 WV3-L138。复合行 AI-04 拆为
+AI-04.1～AI-04.8 八个 stable child rows 与下列执行卡。生产 adapter 仍须等
+P6-05；本切片只登记 child rows，不创建 `internal/agent`。
 
-1. Codex app-server JSONL。
-2. ACP agents。
-3. Cursor/OpenCode/Claude/Copilot/CodeBuddy 的已批准稳定 CLI/stdio/HTTP 协议。
-4. model discovery、session resume、approval、stop、steer、usage/event normalization。
-5. 没有稳定非 Node 协议的 agent 按入口决定退休，不创建永久 sidecar。
-6. 审计 retained executable 的 shebang、bundled runtime、动态依赖、SBOM 和递归
-   process tree；用户自行安装但由 Netcatty 启动的 Node CLI 同样违反 WV3-002。
+按 P0-05 审计结果与 WV3-014～018 逐个拆子任务，每个 agent 一个 capability
+child row/ledger entry：
+
+- **P7-05.1（AI-04.1 Codex App Server）**：Create
+  `internal/agent/adapters/codex/`；JSONL initialize/thread/turn/interrupt/steer、
+  model/list、native approval/input；SDK spawn 路径退出。
+- **P7-05.2（AI-04.2 Claude native headless）**：Create
+  `internal/agent/adapters/claude/`；stream-json result frames、resume、MCP、
+  附件、权限、model discovery；native provenance 未证明前保持缺口。
+- **P7-05.3（AI-04.3 Grok ACP）**：Create `internal/agent/adapters/acp/` 共用
+  ACP core 再加 Grok 扩展；reverse permission deny/timeout/cancel；禁止复制
+  Confirm always-approve。
+- **P7-05.4（AI-04.4 Cursor API-key）**：WV3-014 拒绝内嵌 Bun。Phase 7 映射
+  typed unavailable，不创建 Bun/Node owner。
+- **P7-05.5（AI-04.5 OpenCode）**：WV3-015 拒绝内嵌 Bun。Phase 7 映射 typed
+  unavailable，不创建 Bun/Node owner。
+- **P7-05.6（AI-04.6 Copilot）**：WV3-016 退休。Phase 7 映射 typed unavailable，
+  历史可读，禁止付费调用。
+- **P7-05.7（AI-04.7 CodeBuddy）**：WV3-017 退休。Phase 7 映射 typed unavailable。
+- **P7-05.8（AI-04.8 Cursor CLI login）**：WV3-018 退休。与 AI-04.4 共用 Cursor
+  不可用说明。
+
+共享步骤仍适用：model discovery、session resume、approval、stop、steer、
+usage/event normalization；没有稳定非 Node 协议的 agent 不创建永久 sidecar；
+retained executable 的 shebang、bundled runtime、动态依赖、SBOM 和递归
+process tree 必须审计；用户自行安装但由 Netcatty 启动的 Node CLI 同样违反
+WV3-002。
 
 Verification：每 adapter protocol fixture、process supervisor、session runtime identity、
-cancel/kill、malformed output 和 required target provenance。
+cancel/kill、malformed output 和 required target provenance。退休子行的验收是
+typed unavailable、设置页原因和零付费调用，不是协议 parity。
 
 Exit：所有 retained agent 不依赖 Node SDK、Node launcher、embedded Node runtime 或
 recursive Node child，并有 Gate 14 provenance/process evidence；AI-04 才可升级状态。

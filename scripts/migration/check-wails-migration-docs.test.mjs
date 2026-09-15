@@ -304,11 +304,11 @@ function appendCompleteNonAiGate(root, startOffset = 1) {
 
 function addReleaseLifecycleFixture(root, startOffset) {
   addAcceptedDecision(root, "WV3-903", "Fixture rollback window closure", ["rollback-window-closure"]);
-  mutate(root, "capability-matrix.md", (source) => source.replace(
-    /(^\| AI-04 \|.*$)/m,
-    "$1\n| AI-04.1 | Fixture external Agent child | required | fixture | fixture | fixture | fixture | not-started |",
-  ));
-  const aiIds = ["AI-01", "AI-02", "AI-03", "AI-04", "AI-04.1"];
+  const aiIds = [
+    "AI-01", "AI-02", "AI-03", "AI-04",
+    "AI-04.1", "AI-04.2", "AI-04.3", "AI-04.4",
+    "AI-04.5", "AI-04.6", "AI-04.7", "AI-04.8",
+  ];
   mutate(root, "capability-matrix.md", (source) => {
     for (const capability of [...aiIds, "REL-03.1", "REL-03.2"]) {
       source = setMatrixStatus(source, capability, "verified");
@@ -440,16 +440,16 @@ test("checker rejects broken local Markdown links", () => withFixture((root) => 
 
 test("checker requires composite capabilities to split before implementation", () => withFixture((root) => {
   mutate(root, "capability-matrix.md", (source) => source.replace(
-    /\| AI-04 \|([^\n]+)\| not-started \|/,
-    "| AI-04 |$1| implemented |",
+    /\| PLUG-02 \|([^\n]+)\| not-started \|/,
+    "| PLUG-02 |$1| implemented |",
   ));
   mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
     id: ledgerId(),
-    capability: "AI-04",
-    task: "P7-05",
+    capability: "PLUG-02",
+    task: "P5-04",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => (
-    error.includes("AI-04 must be split into stable child rows")
+    error.includes("PLUG-02 must be split into stable child rows")
   )));
 }));
 
