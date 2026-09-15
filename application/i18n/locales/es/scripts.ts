@@ -27,6 +27,7 @@ export const esScriptsMessages = {
   'scripts.actions.runParallel': 'Ejecutar en todas las pestañas (en paralelo)',
   'scripts.actions.runSequential': 'Ejecutar en todas las pestañas (en secuencia)',
   'scripts.actions.runOnAllTabs': 'Ejecutar en todas las pestañas',
+  'scripts.actions.runFocusedTab': 'Ejecutar en la pestaña actual',
   'scripts.actions.skippedConnectingSessions': '{count} pestaña(s) aún conectándose y fueron omitidas',
   'scripts.actions.skippedSensitiveSessions': '{count} pestaña(s) omitidas (entrada de contraseña/datos sensibles)',
   'scripts.actions.noRunnableHosts': 'Ningún host conectable coincide con los destinos de este script',

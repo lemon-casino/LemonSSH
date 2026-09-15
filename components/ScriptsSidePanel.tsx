@@ -63,6 +63,7 @@ interface ScriptsSidePanelProps {
   packages: string[];
   onSnippetClick: (snippet: Snippet) => void;
   onRunScript?: (snippet: Snippet) => void;
+  onRunFocused?: (snippet: Snippet) => void;
   onRunScriptOnWorkspace?: (snippet: Snippet, mode: 'sequential' | 'parallel') => void;
   onSnippetsChange?: (snippets: Snippet[]) => void;
   onPackagesChange?: (packages: string[]) => void;
@@ -273,6 +274,7 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
   packages,
   onSnippetClick,
   onRunScript,
+  onRunFocused,
   onRunScriptOnWorkspace,
   onSnippetsChange,
   onPackagesChange,
@@ -1071,6 +1073,10 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
                     onClick={() => handleSnippetClick(item.snippet)}
                     onEdit={() => handleEditSnippet(item.snippet)}
                     onDelete={() => handleDeleteSnippet(item.snippet.id)}
+                    onRunFocused={onRunFocused
+                      ? () => onRunFocused(item.snippet)
+                      : undefined}
+                    runFocusedLabel={t('scripts.actions.runFocusedTab')}
                     onRunParallel={onRunScriptOnWorkspace
                       ? () => onRunScriptOnWorkspace(item.snippet, 'parallel')
                       : undefined}
@@ -1115,6 +1121,10 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
                     onClick={() => handleSnippetClick(item.row.snippet)}
                     onEdit={() => handleEditSnippet(item.row.snippet)}
                     onDelete={() => handleDeleteSnippet(item.row.snippet.id)}
+                    onRunFocused={onRunFocused
+                      ? () => onRunFocused(item.row.snippet)
+                      : undefined}
+                    runFocusedLabel={t('scripts.actions.runFocusedTab')}
                     onRunParallel={onRunScriptOnWorkspace
                       ? () => onRunScriptOnWorkspace(item.row.snippet, 'parallel')
                       : undefined}
@@ -1368,6 +1378,8 @@ interface SnippetRowProps {
   onDelete: () => void;
   onRunParallel?: () => void;
   onRunSequential?: () => void;
+  onRunFocused?: () => void;
+  runFocusedLabel?: string;
   runParallelLabel?: string;
   runSequentialLabel?: string;
   editLabel: string;
@@ -1390,6 +1402,8 @@ const SnippetRow = memo<SnippetRowProps>(({
   onDelete,
   onRunParallel,
   onRunSequential,
+  onRunFocused,
+  runFocusedLabel,
   runParallelLabel,
   runSequentialLabel,
   editLabel,
@@ -1453,6 +1467,11 @@ const SnippetRow = memo<SnippetRowProps>(({
       </div>
     </ContextMenuTrigger>
     <ContextMenuContent>
+      {onRunFocused ? (
+        <ContextMenuItem onClick={onRunFocused}>
+          <Play className="mr-2 h-4 w-4" /> {runFocusedLabel}
+        </ContextMenuItem>
+      ) : null}
       {onRunParallel ? (
         <ContextMenuItem onClick={onRunParallel}>
           <Layers className="mr-2 h-4 w-4" /> {runParallelLabel}

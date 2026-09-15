@@ -328,6 +328,7 @@ function SidePanelScriptsSlotInner({
         onPackagesChange={updateSnippetPackages}
         onSnippetClick={handleSnippetFromPanel}
         onRunScript={handleRunScriptFromPanel}
+        onRunFocused={handleRunScriptFromPanel}
         onRunScriptOnWorkspace={handleRunScriptOnWorkspace}
         onStartRecording={handleStartRecordingFromPanel}
         runs={scriptRuns as import('@/types/global/netcatty-bridge-script.d.ts').ScriptRun[]}

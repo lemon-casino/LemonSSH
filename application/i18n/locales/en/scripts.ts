@@ -27,6 +27,7 @@ export const enScriptsMessages = {
   'scripts.actions.runParallel': 'Run on all tabs (parallel)',
   'scripts.actions.runSequential': 'Run on all tabs (sequential)',
   'scripts.actions.runOnAllTabs': 'Run on all tabs',
+  'scripts.actions.runFocusedTab': 'Run on current tab',
   'scripts.actions.skippedConnectingSessions': '{count} tab(s) still connecting and were skipped',
   'scripts.actions.skippedSensitiveSessions': '{count} tab(s) skipped (password/sensitive input)',
   'scripts.actions.noRunnableHosts': 'No connectable hosts match this script\'s targets',

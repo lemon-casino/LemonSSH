@@ -27,6 +27,7 @@ export const zhCNScriptsMessages = {
   'scripts.actions.runParallel': '在所有标签页并行运行',
   'scripts.actions.runSequential': '在所有标签页顺序运行',
   'scripts.actions.runOnAllTabs': '在所有标签页运行',
+  'scripts.actions.runFocusedTab': '在当前标签页运行',
   'scripts.actions.skippedConnectingSessions': '有 {count} 个标签仍在连接中，已跳过',
   'scripts.actions.skippedSensitiveSessions': '有 {count} 个标签处于密码/敏感输入，已跳过',
   'scripts.actions.noRunnableHosts': '没有与脚本目标匹配的可连接主机',

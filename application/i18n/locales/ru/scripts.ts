@@ -27,6 +27,7 @@ export const ruScriptsMessages = {
   'scripts.actions.runParallel': 'Запустить на всех вкладках (параллельно)',
   'scripts.actions.runSequential': 'Запустить на всех вкладках (последовательно)',
   'scripts.actions.runOnAllTabs': 'Запустить на всех вкладках',
+  'scripts.actions.runFocusedTab': 'Запустить на текущей вкладке',
   'scripts.actions.skippedConnectingSessions': 'Пропущено вкладок, которые ещё подключаются: {count}',
   'scripts.actions.skippedSensitiveSessions': 'Пропущено вкладок с паролем/чувствительным вводом: {count}',
   'scripts.actions.noRunnableHosts': 'Нет доступных для подключения хостов, соответствующих целям этого скрипта',
