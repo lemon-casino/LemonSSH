@@ -33,6 +33,7 @@ type Runner struct {
 	mu      sync.Mutex
 	runs    map[string]*Run
 	cancels map[string]context.CancelFunc
+	output  map[string]*OutputWatch
 	write   SessionWriter
 	sleep   func(context.Context, time.Duration) error
 }
@@ -41,6 +42,7 @@ func NewRunner(write SessionWriter) *Runner {
 	return &Runner{
 		runs:    make(map[string]*Run),
 		cancels: make(map[string]context.CancelFunc),
+		output:  make(map[string]*OutputWatch),
 		write:   write,
 		sleep: func(ctx context.Context, d time.Duration) error {
 			timer := time.NewTimer(d)
@@ -59,6 +61,31 @@ func (r *Runner) SetWriter(write SessionWriter) {
 	r.mu.Lock()
 	r.write = write
 	r.mu.Unlock()
+}
+
+func (r *Runner) ObserveOutput(sessionID string, data []byte) {
+	if sessionID == "" || len(data) == 0 {
+		return
+	}
+	r.mu.Lock()
+	watch := r.output[sessionID]
+	if watch == nil {
+		watch = &OutputWatch{}
+		r.output[sessionID] = watch
+	}
+	r.mu.Unlock()
+	watch.Append(data)
+}
+
+func (r *Runner) watch(sessionID string) *OutputWatch {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	watch := r.output[sessionID]
+	if watch == nil {
+		watch = &OutputWatch{}
+		r.output[sessionID] = watch
+	}
+	return watch
 }
 
 type StartRunRequest struct {
@@ -171,13 +198,14 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 		case "waitForPrompt", "waitForText":
 			wait := op.Timeout
 			if wait <= 0 {
-				wait = 800 * time.Millisecond
-			}
-			if wait > 800*time.Millisecond {
-				wait = 800 * time.Millisecond
+				wait = 30 * time.Second
 			}
 			r.log(run, "wait "+op.Kind)
-			if err := r.sleep(ctx, wait); err != nil {
+			if err := r.waitFor(ctx, run.SessionID, op, wait); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				r.finish(run, "failed", err.Error())
 				return
 			}
 		default:
@@ -186,6 +214,42 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 		}
 	}
 	r.finish(run, "completed", "")
+}
+
+func (r *Runner) waitFor(ctx context.Context, sessionID string, op ReplayOp, timeout time.Duration) error {
+	watch := r.watch(sessionID)
+	deadline := time.Now().Add(timeout)
+	for {
+		text := validUTF8Tail(watch.snapshot())
+		if op.Kind == "waitForText" {
+			if containsFresh(text, op.Value) {
+				return nil
+			}
+		} else if looksLikePrompt(text) {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			if op.Kind == "waitForText" {
+				return fmt.Errorf("timed out waiting for %q", op.Value)
+			}
+			return fmt.Errorf("timed out waiting for shell prompt")
+		}
+		remaining := time.Until(deadline)
+		notify := watch.notify()
+		timer := time.NewTimer(remaining)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-notify:
+			timer.Stop()
+		case <-timer.C:
+			if op.Kind == "waitForText" {
+				return fmt.Errorf("timed out waiting for %q", op.Value)
+			}
+			return fmt.Errorf("timed out waiting for shell prompt")
+		}
+	}
 }
 
 func (r *Runner) log(run *Run, message string) {

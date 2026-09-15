@@ -65,3 +65,45 @@ func TestParseRecordedScriptRoundTripFromRecorder(t *testing.T) {
 		t.Fatalf("%#v", ops)
 	}
 }
+
+func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
+	wrote := make(chan string, 2)
+	runner := NewRunner(func(sessionID string, data []byte) error {
+		wrote <- string(data)
+		return nil
+	})
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		runner.ObserveOutput("s1", []byte("root@host:/data# "))
+	}()
+	run, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.screen.sendLine("ls");
+  await nct.screen.waitForPrompt(1000);
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run did not complete: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if run.RunID == "" {
+		t.Fatal("missing run id")
+	}
+	select {
+	case <-wrote:
+	case <-time.After(time.Second):
+		t.Fatal("sendLine did not write")
+	}
+}

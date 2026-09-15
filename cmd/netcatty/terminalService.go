@@ -42,6 +42,7 @@ type TerminalService struct {
 	interactive   *ssh.InteractiveBroker
 	emitChallenge func(ssh.KeyboardChallenge)
 	emitEvent     func(name string, payload any)
+	observeOutput func(sessionID string, data []byte)
 	counter       int
 	helperTemp    *filesystem.TempService
 }
@@ -137,6 +138,10 @@ func (s *TerminalService) setEventEmitter(emit func(name string, payload any)) {
 	s.emitEvent = emit
 }
 
+func (s *TerminalService) setOutputObserver(observe func(sessionID string, data []byte)) {
+	s.observeOutput = observe
+}
+
 func (s *TerminalService) publishOutput(sessionID string, data []byte) bool {
 	s.mu.Lock()
 	var stream *terminalZmodemStream
@@ -159,7 +164,11 @@ func (s *TerminalService) publishTerminalBytes(sessionID string, data []byte) bo
 	if term := s.sessions[sessionID]; term != nil {
 		term.cwd.feed(data)
 	}
+	observe := s.observeOutput
 	s.mu.Unlock()
+	if observe != nil {
+		observe(sessionID, data)
+	}
 	if err := s.dp.Publish(sessionID, data); err != nil {
 		s.emit("terminal:error", map[string]any{"sessionId": sessionID, "error": err.Error()})
 		// A supervised pump must return before its lifecycle can join it.

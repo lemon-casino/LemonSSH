@@ -82,6 +82,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - 快捷键 Register 接到 ShortcutService；原生 accelerator adapter 已接；Windows RegisterHotKey 冲突/释放实测通过，macOS/Linux 原生执行仍缺（L116）（SYS-02）— 已处理
 - 脚本录制 Start/Stop/AppendStep 接到 Go `internal/script` + ScriptService（L139）；敏感步骤、sleep gap、步数上限与 Electron codegen 对齐
 - 录制脚本回放 `scriptRun`/`scriptStop`/`scriptGetRuns` 接到 Go runner（L140）：sleep、sendLine、waitForPrompt/waitForText；含 dialog/log/disconnect 的脚本仍拒绝，不假装 Node Worker 已迁移
+- waitForPrompt/waitForText 现在观察 TerminalService 输出（L141），匹配 Electron 的常见提示符和文本身，超时才失败
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 
 ### 数据与同步

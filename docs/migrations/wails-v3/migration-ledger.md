@@ -4144,3 +4144,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: waitForPrompt does not yet inspect terminal output, so replay may continue before the prompt returns; GUI run against a live session is untested in this slice
 - Next safe slice: waitForPrompt against session output, then dialog APIs or SYS-01 dialogs
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L141 - 2026-09-15 - Wait for real terminal prompts during script replay
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: none
+- Goal: Stop treating waitForPrompt as a short sleep. TerminalService now taps published session bytes into the script runner, which waits until the rolling output looks like a shell prompt or contains the requested text. Timeouts fail the run instead of continuing blindly.
+- Go canonical owner: `internal/script/output.go`, `internal/script/runner.go`, `cmd/netcatty/terminalService.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: dialog/log/disconnect scripts still fail closed; sendLine still writes body then CR
+- Data/schema impact: none
+- Security impact: none
+- Verification: go test -count=1 ./internal/script ./cmd/netcatty -run 'Script|Parse|WaitForPrompt|Records'
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until remaining nct APIs have a Go owner
+- Documentation updated: ledger, remaining-work
+- Residual risks: prompt matching uses the same suffix/regex set as Electron, not a full PTY parser; ANSI-heavy prompts may still time out
+- Next safe slice: dialog APIs or SYS-01 native dialogs
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

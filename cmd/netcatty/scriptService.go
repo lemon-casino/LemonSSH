@@ -21,6 +21,10 @@ func (s *ScriptService) setWriter(write script.SessionWriter) {
 	s.runner.SetWriter(write)
 }
 
+func (s *ScriptService) ObserveOutput(sessionID string, data []byte) {
+	s.runner.ObserveOutput(sessionID, data)
+}
+
 type ScriptStep = script.Step
 
 type ScriptRecordingStartResult struct {

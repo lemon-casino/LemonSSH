@@ -197,6 +197,7 @@ func main() {
 		_, err := terminalSvc.Write(sessionID, data)
 		return err
 	})
+	terminalSvc.setOutputObserver(scriptService.ObserveOutput)
 
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
