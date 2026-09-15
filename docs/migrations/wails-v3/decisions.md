@@ -131,6 +131,67 @@ the old ID and explains the changed evidence.
 - Recorded: 2026-09-08, product owner approval closing the `P0-01A`
   `pause-for-user` state.
 
+### WV3-014 - Reject the Cursor embedded Bun runtime
+
+- Categories: agent-runtime:cursor-bun
+- Decision: the Wails release does not accept the Cursor API-key adapter's
+  embedded Bun bridge. The Cursor API-key external agent is retired for the
+  Wails release and its AgentPort methods fail closed with a typed unavailable
+  reason. Reopen only when Cursor ships a native, non-Bun executable with
+  verifiable provenance and an `sdk.v1` compatible protocol, via a superseding
+  decision.
+- Recorded: 2026-09-14, product owner approval of
+  `proposals/agent-disposition-proposals.md` section 1.1.
+
+### WV3-015 - Reject the OpenCode embedded Bun runtime
+
+- Categories: agent-runtime:opencode-bun
+- Decision: the Wails release does not accept the OpenCode `opencode serve`
+  embedded Bun runtime. The OpenCode external agent is retired for the Wails
+  release; history stays readable and the settings surface shows an explicit
+  unavailable reason. Reopen only when OpenCode ships a native non-Bun
+  distribution whose loopback port, authentication and process isolation pass
+  provenance review, via a superseding decision.
+- Recorded: 2026-09-14, product owner approval of
+  `proposals/agent-disposition-proposals.md` section 1.2.
+
+### WV3-016 - Retire the Copilot external agent
+
+- Categories: agent-disposition:copilot
+- Decision: retire the Copilot external agent for the Wails release. Its
+  runtime embeds Node through the Copilot SDK and CLI and no official non-Node
+  runtime exists. Historical sessions stay readable, AgentPort methods fail
+  closed with a typed unavailable reason, and no paid calls are made. Reopen
+  when GitHub ships a non-Node Copilot agent runtime that passes the process
+  provenance review, via a superseding decision.
+- Recorded: 2026-09-14, product owner approval of
+  `proposals/agent-disposition-proposals.md` section 1.3.
+
+### WV3-017 - Retire the CodeBuddy external agent
+
+- Categories: agent-disposition:codebuddy
+- Decision: retire the CodeBuddy external agent for the Wails release. The ACP
+  and headless protocol semantics exist but the only executable is a Node CLI.
+  Historical sessions stay readable, AgentPort methods fail closed with a typed
+  unavailable reason, and no paid calls are made. Reopen when Tencent ships a
+  non-Node executable, via a superseding decision.
+- Recorded: 2026-09-14, product owner approval of
+  `proposals/agent-disposition-proposals.md` section 1.4.
+
+### WV3-018 - Retire the Cursor CLI login mode
+
+- Categories: agent-disposition:cursor-cli
+- Decision: retire the Cursor CLI login mode for the Wails release. The Windows
+  path runs `node.exe` with `index.js`, no non-Node authenticated ACP runtime
+  exists upstream, and CLI model discovery is not proven equivalent to the
+  SDK catalog. Both Cursor-branded entries (API key via WV3-014 and CLI login)
+  are unavailable in the Wails release with a unified settings explanation.
+  Historical sessions stay readable. Reopen when upstream ships a non-Node
+  authenticated ACP runtime with provable model-catalog parity, via a
+  superseding decision.
+- Recorded: 2026-09-14, product owner approval of
+  `proposals/agent-disposition-proposals.md` section 1.5.
+
 ## Required Future Decisions
 
 P6-05 `NONAI-COMPLETE` requires accepted decisions that collectively carry every

@@ -1,6 +1,6 @@
-# Agent disposition 提案（待产品 owner 批准）
+# Agent disposition 提案（已全部接受：WV3-014～018，2026-09-14）
 
-日期：2026-09-14。状态：**提案，未接受**。decisions.md 未因本文件改变；五个类别仍是 *Required Future Decisions* 的未决项。批准方式：产品 owner 确认后，按 decisions.md 格式写入 accepted decision（标题 + 精确 Categories），并在同一 ledger 条目引用；退休类决策同时建立对应 AI-04 子行与 capability-specific scope-removal 证据。P6-05 `NONAI-COMPLETE` 的 gate 字段必须引用这些 accepted decision 才能成立。
+日期：2026-09-14。状态：**已接受**。产品 owner 于 2026-09-14 批准全部五条建议；正式决定见 [decisions.md](../decisions.md) 的 WV3-014（拒绝 Cursor 内嵌 Bun）、WV3-015（拒绝 OpenCode 内嵌 Bun）、WV3-016（退休 Copilot）、WV3-017（退休 CodeBuddy）、WV3-018（退休 Cursor CLI login）。本文保留作为决定的证据基础与落地顺序说明。
 
 证据基线：[baselines/external-agent-protocols.md](../baselines/external-agent-protocols.md) §4/§11、[baselines/ai-phase7-parity.md](../baselines/ai-phase7-parity.md) §7（commit `4a641b5e` 时点）。共同硬约束：WV3-002（运行时排除 Electron 与 Node）、WV3-011～013（三平台 release target）、`internal/agent/process` 的 provenance 规则（拒绝 Node shebang/npm/npx/wrapper，递归 Node child 阻断 verified）。
 

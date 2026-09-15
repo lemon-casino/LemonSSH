@@ -4044,3 +4044,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: pre-existing profiles may hold truncated setting-id-only sidecar rows; they were already non-functional and are cleaned by the next collection
 - Next safe slice: full plugin runtime suite green, then back to the open gate blockers
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L137 - 2026-09-14 - Accept the five external agent disposition decisions
+
+- Capability rows: `AI-04`
+- Plan task: `P7-05`
+- Status change: `not-started -> not-started`
+- Scope change: none
+- Goal: Accept the five agent disposition proposals as governance decisions without advancing AI-04, which stays not-started until per-agent child rows carry their own evidence. The product owner approved all five agent disposition proposals. decisions.md gains accepted decisions WV3-014 (reject the Cursor embedded Bun runtime), WV3-015 (reject the OpenCode embedded Bun runtime), WV3-016 (retire Copilot), WV3-017 (retire CodeBuddy) and WV3-018 (retire Cursor CLI login), each carrying its exact Required Future Decisions category. The retained Phase 7 adapter targets are Codex App Server, Claude headless and Grok ACP; the five decided vendors fail closed with typed unavailable reasons, keep history readable and never make paid calls. The Required Future Decisions section stays as the canonical category registry per the checker contract; P6-05 gate validation can now bind agentDecisions to WV3-014,WV3-015,WV3-016,WV3-017,WV3-018.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings-surface unavailable reasons and AgentPort typed unavailable mappings land with the Phase 7 W16/W21 work packages
+- Electron owner affected: none
+- Preserved invariants: AI-01 through AI-04 remain not-started; no production path was created; the Required Future Decisions category list is unchanged as required by the migration checker
+- Data/schema impact: none; historical external-agent config and sessions stay in place and readable
+- Security impact: positive; the retired vendors can no longer reach paid APIs or Node child processes in the Wails release
+- Verification: npm run check:migration-docs exit 0 with the five new decision headings parsed; proposals document marked accepted
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-014`, `WV3-015`, `WV3-016`, `WV3-017`, `WV3-018`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: ledger, decisions.md, proposals/agent-disposition-proposals.md
+- Residual risks: the Cursor-branded unified settings explanation and per-vendor typed unavailable mappings are still pending implementation in Phase 7 W16/W21
+- Next safe slice: create the AI-04 child rows (retained Codex, Claude, Grok; retired five with decision references), then continue the non-AI gate evidence
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
