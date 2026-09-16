@@ -447,6 +447,42 @@ await main();`,
 	}
 }
 
+func TestRunnerGetTextRange(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	runner.ObserveOutput("s1", []byte("line0\r\nline1\r\nline2\r\nline3\r\n$ "))
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  const text = await nct.screen.getText(1, 2);
+  nct.log(text);
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			logged := false
+			for _, entry := range listed[0].Logs {
+				if strings.Contains(entry.Message, "line1\r\nline2") {
+					logged = true
+				}
+			}
+			if !logged {
+				t.Fatalf("range text missing: %#v", listed[0].Logs)
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func TestRunnerWaitForPromptSeesSessionOutput(t *testing.T) {
 	wrote := make(chan string, 2)
 	runner := NewRunner(func(sessionID string, data []byte) error {

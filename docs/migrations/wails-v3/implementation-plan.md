@@ -1366,13 +1366,24 @@ Exit：普通 plugin logic 不需要 BrowserWindow 或 Node。
 
 关联：PLUG-02
 
+执行状态：decomposition gate 已通过文档切片 WV3-L151。复合行 PLUG-02 拆为
+PLUG-02.1（WASM runtime 与资源配额）与 PLUG-02.2（声明式 UI 与 contribution broker），
+两个子行均有已测试的 Go owner；GUI/三平台活体验收仍 pending，父行保持 probe。
+
+- **P5-04.1（PLUG-02.1）**：`internal/plugin/wasm` —— wazero 执行、runtime
+  identity、memory/time/host-call 配额、WASI 默认关闭、取消与 trap 清理。
+- **P5-04.2（PLUG-02.2）**：`internal/plugin/ui` + `internal/plugin/host` ——
+  schema 验证的 host 渲染（settings/form/list/card）、literal bindings、
+  受控回滚、注入负例。
+
 由 host schema 验证并由可信 React components 渲染 settings/form/list/card/view；
 实现 commands、menus、keybindings、context keys、theme/i18n/accessibility 和 view state。
 
 Verification：malformed schema、CSS/DOM/script injection negative tests、theme/a11y、
-state namespace。
+state namespace；infinite loop、memory exhaustion、trap cleanup。
 
-Exit：普通插件不能向主 WebView 注入 arbitrary HTML/JS/CSS。
+Exit：普通插件不能向主 WebView 注入 arbitrary HTML/JS/CSS；三平台 GUI 活体验收后
+PLUG-02.1/02.2 才可升 verified。
 
 ### P5-05 实现 native child-process runtime
 

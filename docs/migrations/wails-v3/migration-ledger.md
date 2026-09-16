@@ -4394,3 +4394,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: dialog form/select/radio/checkbox parsing remains unimplemented
 - Next safe slice: dialog form/select/radio/checkbox parsing or plugin RuntimePorts alignment
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L151 - 2026-09-16 - Split PLUG-02 into tested child rows
+
+- Capability rows: `PLUG-02.1`, `PLUG-02.2`
+- Plan task: `P5-04`
+- Status change: `not-started -> probe`
+- Scope change: none
+- Goal: Pass the Phase 5 decomposition gate for PLUG-02. The matrix gains two stable child rows: PLUG-02.1 covers the wazero WASM runtime with runtime identity, memory/time/host-call quotas, WASI default-off, cancellation and trap cleanup (internal/plugin/wasm); PLUG-02.2 covers schema-validated declarative UI — settings/form/list/card rendering, literal bindings and controlled rollback (internal/plugin/ui plus internal/plugin/host). Both children land in probe matching the parent's conservative state: the Go code and tests exist locally, but installed-package GUI and three-platform acceptance remain pending before either can reach implemented. The parent PLUG-02 keeps probe with its blocker text pointing at the children.
+- Go canonical owner: `internal/plugin/wasm`, `internal/plugin/ui`, `internal/plugin/host`
+- Frontend adapter: existing host-rendered contribution components (unchanged)
+- Electron owner affected: none
+- Preserved invariants: PLUG-02 stays probe pending GUI/platform acceptance; no DOM/network/filesystem escape requirement carries to the children; plugin permission broker separation unchanged
+- Data/schema impact: none
+- Security impact: none in this slice; the children own the existing no-injection negative tests
+- Verification: go test -count=1 ./internal/plugin/wasm ./internal/plugin/ui ./internal/plugin/host (all ok); npm run check:migration-docs
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-005`
+- Gate: `none`
+- Closure evidence: none
+- Electron retirement: cutover-trigger: Electron plugin runtime stays until three-platform GUI acceptance closes P8-02
+- Documentation updated: capability-matrix, implementation-plan, ledger, remaining-work
+- Residual risks: live GUI acceptance and three-platform evidence remain pending for both children
+- Next safe slice: dialog form/select/radio/checkbox parsing or three-platform evidence collection
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

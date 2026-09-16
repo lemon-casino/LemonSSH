@@ -188,10 +188,17 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 			continue
 		}
 		if match := getTextAssign.FindStringSubmatch(line); match != nil {
-			if strings.TrimSpace(match[2]) != "" {
-				return nil, fmt.Errorf("screen.getText with a range is not migrated to the Wails runner yet")
+			op := ReplayOp{Kind: "getText", Var: match[1]}
+			if rawArgs := strings.TrimSpace(match[2]); rawArgs != "" {
+				args := splitJSArgs(rawArgs)
+				if len(args) != 2 {
+					return nil, fmt.Errorf("screen.getText needs zero or two row arguments: %s", line)
+				}
+				op.Current = intArg(args[0])
+				op.Total = intArg(args[1])
+				op.RangeArgs = true
 			}
-			ops = append(ops, ReplayOp{Kind: "getText", Var: match[1]})
+			ops = append(ops, op)
 			continue
 		}
 		if match := confirmAssign.FindStringSubmatch(line); match != nil {

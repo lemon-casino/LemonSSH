@@ -1,15 +1,17 @@
-# LemonSSH 剩余工作清单（2026-09-14 更新）
+# LemonSSH 剩余工作清单（2026-09-16 更新）
 
 本文档回答一个问题：**现在还有什么没有做完**。状态权威仍是
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L138`。矩阵 required 叶行含 AI-04.1～AI-04.8：implemented 17 /
+当前台账头：`WV3-L150`。矩阵 required 叶行含 AI-04.1～AI-04.8：implemented 17 /
 probe 12 / not-started 15 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
-1.27，生成钉保持 go1.25.0）、data-inventory/runtimePorts/codex-schema-check 存量
-漂移修复（L135）、插件 sidecar NUL 截断（L136）、五个 agent 去留决定 WV3-014～018
-（L137）。2026-09-15：AI-04 拆成八个子行（L138），生产 adapter 仍须等 P6-05。
+1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
+2026-09-14～16：五个 agent 去留决定 WV3-014～018（L137）、AI-04 拆八个子行（L138）、
+脚本录制与回放全链路（L139～L143、L146～L150：录制、敏感对话框、waitForRegex/Any、
+progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行范围（L151）。
+生产 adapter 仍须等 P6-05。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 

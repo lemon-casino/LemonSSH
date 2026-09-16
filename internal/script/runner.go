@@ -378,8 +378,12 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 			r.watch(run.SessionID).Reset()
 		case "getText":
 			watch := r.watch(run.SessionID)
+			text := validUTF8Tail(watch.snapshot())
+			if op.RangeArgs {
+				text = sliceRows(text, op.Current, op.Total)
+			}
 			r.mu.Lock()
-			vars[op.Var] = validUTF8Tail(watch.snapshot())
+			vars[op.Var] = text
 			r.mu.Unlock()
 		case "confirm":
 			value, cancelled, err := r.askDialog(ctx, run, ReplayOp{Kind: "confirm", Value: op.Value})
@@ -639,6 +643,25 @@ func clampProgress(current, total int) int {
 		return total
 	}
 	return current
+}
+
+// sliceRows returns the [start, end] inclusive run of lines from text,
+// clamped to the available range (mirrors the Electron getText contract).
+func sliceRows(text string, startRow, endRow int) string {
+	lines := strings.Split(text, "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+	if startRow < 0 {
+		startRow = 0
+	}
+	if endRow >= len(lines) {
+		endRow = len(lines) - 1
+	}
+	if startRow > endRow {
+		return ""
+	}
+	return strings.Join(lines[startRow:endRow+1], "\n")
 }
 
 func newRunID() string {
