@@ -4694,3 +4694,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: forward and Vault/snippet domains still owned by their Wails facades; `openStagingSource` stays in filesystemService.go pending the filesystem slice; transfer scheduler still enters through the facade shim
 - Next safe slice: W04 forward domain, then Vault/snippet domain, then W05 catalog
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L163 - 2026-09-17 - W04 forward domain shared use case
+
+- Capability rows: `AI-01`
+- Plan task: `P7-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Third W04 slice. Extract port-forward lifecycle from `cmd/netcatty/forwardService.go` (229 -> 55 lines) into `internal/app/forwarduse`: Start/Stop/StopByRuleId/List/Snapshot over the shared SSH pool (`KindForward` lease), dialing through `terminaluse.SSHDialConfig` so keepalive/host-key behavior is byte-identical. SOCKS5 handshake stays in `internal/terminal/forward`; forwarduse owns orchestration only. The facade keeps DTO aliases plus `RuntimeSnapshot(epoch)` taking the shell identity ("wails" today) so a future capability dispatch passes its own epoch without duplicating mapping. Deleted the now caller-less `sshConnectToInput`/`terminalSSHDialConfig` shims from the terminal facade. A gofmt-only drift on this and three sibling files was committed separately before extraction.
+- Go canonical owner: `internal/app/forwarduse/`
+- Frontend adapter: none; Wails service/method names and JSON field names unchanged
+- Electron owner affected: none
+- Preserved invariants: AI-01 stays probe; no `internal/capability`, `internal/agent`, `cmd/netcatty-mcp`, `cmd/netcatty-tool`; `internal/` imports no `package main` or `cmd/` package; one SSH pool; go.mod/go.sum untouched; characterization tests moved verbatim
+- Data/schema impact: none
+- Security impact: none; rule parsing, stop semantics, and dial config moved unchanged
+- Verification: go build ./...; go test -count=1 ./cmd/netcatty; go test -count=1 ./internal/app/... ./internal/...; go test -count=1 ./internal/app/contracts/; gofmt -l clean; boundary greps empty
+- Platforms covered: Windows 10 22H2 x64 unit tests; live forward tests skip without `NETCATTY_LIVE_HOST`
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron forward stack stays until three-platform evidence closes P8-02
+- Documentation updated: ledger, remaining-work
+- Residual risks: Vault/snippet domain still owned by its Wails facade; live forward relay needs the real-host matrix before any A-grade claim
+- Next safe slice: W04 Vault/snippet domain, then W05 catalog
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
