@@ -1,11 +1,12 @@
-package main
+package terminaluse
 
 import (
 	"fmt"
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 )
 
 func TestTerminalCwdProbeSelectsOnlyExactForegroundShell(t *testing.T) {
@@ -41,7 +42,7 @@ func TestTerminalCwdProbeSelectsOnlyExactForegroundShell(t *testing.T) {
 
 func TestTerminalCwdSplitOSCAndIsolation(t *testing.T) {
 	c := dataplane.NewRouteController()
-	s := NewTerminalService(c, dataplane.NewServer(c, "127.0.0.1:0"), nil)
+	s := New(c, dataplane.NewServer(c, "127.0.0.1:0"), nil)
 	for _, id := range []string{"a", "b"} {
 		boot, _ := c.Open(id)
 		s.sessions[id] = &terminalSession{bootstrap: boot}

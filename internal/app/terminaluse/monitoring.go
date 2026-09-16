@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-// MonitoringResult keeps the existing renderer success/error envelope. Payload
+// MonitoringResult keeps the existing shell success/error envelope. Payload
 // keys are collection-specific and omitted on failure.
 type MonitoringResult struct {
 	Success      bool           `json:"success"`
@@ -22,14 +22,18 @@ type MonitoringResult struct {
 	Containers   any            `json:"containers,omitempty"`
 	Images       any            `json:"images,omitempty"`
 }
+
+// DockerStatsOptions filters docker stats rows client-side by name or ID.
 type DockerStatsOptions struct {
 	SessionID string   `json:"sessionId"`
 	IDs       []string `json:"ids,omitempty"`
 }
+
 type monitoringSSHChannel struct{ *gossh.Session }
 
 func (c monitoringSSHChannel) SetOutput(out, stderr io.Writer) { c.Stdout = out; c.Stderr = stderr }
-func (s *TerminalService) monitoringExec(ctx context.Context, id, command string) (string, error) {
+
+func (s *Service) monitoringExec(ctx context.Context, id, command string) (string, error) {
 	term, ok := s.lookup(id)
 	if !ok {
 		return "", fmt.Errorf("terminal session is not connected")
@@ -48,8 +52,10 @@ func (s *TerminalService) monitoringExec(ctx context.Context, id, command string
 		return monitoringSSHChannel{ch}, nil
 	}, command)
 }
+
 func monitoringFailure(err error) MonitoringResult { return MonitoringResult{Error: err.Error()} }
-func (s *TerminalService) GetServerStats(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) GetServerStats(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.StatsCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -60,7 +66,8 @@ func (s *TerminalService) GetServerStats(ctx context.Context, sessionID string) 
 	}
 	return MonitoringResult{Success: true, Stats: stats}
 }
-func (s *TerminalService) ProbeSystemCapabilities(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) ProbeSystemCapabilities(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.ProbeCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -71,7 +78,8 @@ func (s *TerminalService) ProbeSystemCapabilities(ctx context.Context, sessionID
 	}
 	return MonitoringResult{Success: true, Capabilities: caps}
 }
-func (s *TerminalService) ListSystemProcesses(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) ListSystemProcesses(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.ProcessesCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -82,7 +90,8 @@ func (s *TerminalService) ListSystemProcesses(ctx context.Context, sessionID str
 	}
 	return MonitoringResult{Success: true, Processes: rows}
 }
-func (s *TerminalService) ListTmuxSessions(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) ListTmuxSessions(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.TmuxCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -93,7 +102,8 @@ func (s *TerminalService) ListTmuxSessions(ctx context.Context, sessionID string
 	}
 	return MonitoringResult{Success: true, Sessions: rows}
 }
-func (s *TerminalService) ListDockerContainers(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) ListDockerContainers(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.ContainersCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -104,7 +114,8 @@ func (s *TerminalService) ListDockerContainers(ctx context.Context, sessionID st
 	}
 	return MonitoringResult{Success: true, Containers: rows}
 }
-func (s *TerminalService) ListDockerImages(ctx context.Context, sessionID string) MonitoringResult {
+
+func (s *Service) ListDockerImages(ctx context.Context, sessionID string) MonitoringResult {
 	text, e := s.monitoringExec(ctx, sessionID, monitoring.ImagesCommand)
 	if e != nil {
 		return monitoringFailure(e)
@@ -115,7 +126,8 @@ func (s *TerminalService) ListDockerImages(ctx context.Context, sessionID string
 	}
 	return MonitoringResult{Success: true, Images: rows}
 }
-func (s *TerminalService) GetDockerStats(ctx context.Context, options DockerStatsOptions) MonitoringResult {
+
+func (s *Service) GetDockerStats(ctx context.Context, options DockerStatsOptions) MonitoringResult {
 	text, e := s.monitoringExec(ctx, options.SessionID, monitoring.DockerStatsCommand)
 	if e != nil {
 		return monitoringFailure(e)

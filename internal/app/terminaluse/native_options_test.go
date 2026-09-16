@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"crypto/ed25519"
@@ -64,27 +64,26 @@ func TestLocalNativeArgvAndValidation(t *testing.T) {
 	if config.Args[0] != "--login" {
 		t.Fatal("argv alias")
 	}
-	service := &TerminalService{}
 	file := filepath.Join(dir, "shell.exe")
 	if err := os.WriteFile(file, []byte("test"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if got := service.ValidatePath(file, "file"); !got.Exists || !got.IsFile || !got.IsExecutable {
+	if got := ValidatePath(file, "file"); !got.Exists || !got.IsFile || !got.IsExecutable {
 		t.Fatalf("file %#v", got)
 	}
-	if got := service.ValidatePath(dir, "directory"); !got.Exists || !got.IsDirectory || got.IsFile {
+	if got := ValidatePath(dir, "directory"); !got.Exists || !got.IsDirectory || got.IsFile {
 		t.Fatalf("directory %#v", got)
 	}
-	if got := service.ValidatePath(filepath.Join(dir, "missing"), "any"); got.Exists {
+	if got := ValidatePath(filepath.Join(dir, "missing"), "any"); got.Exists {
 		t.Fatalf("missing %#v", got)
 	}
-	shells := service.DiscoverShells()
+	shells := DiscoverShells()
 	if len(shells) == 0 {
 		t.Fatal("no default shell")
 	}
 	found := false
 	for _, shell := range shells {
-		if shell.IsDefault && shell.Command == service.GetDefaultShell() {
+		if shell.IsDefault && shell.Command == DefaultShell() {
 			found = true
 		}
 	}

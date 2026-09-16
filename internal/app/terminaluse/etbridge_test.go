@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -259,7 +259,7 @@ func TestETAuthMappingAndNativeFallback(t *testing.T) {
 		t.Fatal("native SSH config fallback lost")
 	}
 	controller := dataplane.NewRouteController()
-	service := NewTerminalService(controller, dataplane.NewServer(controller, ""), terminalssh.NewKnownHosts(filepath.Join(t.TempDir(), "known_hosts")))
+	service := New(controller, dataplane.NewServer(controller, ""), terminalssh.NewKnownHosts(filepath.Join(t.TempDir(), "known_hosts")))
 	no := false
 	config, err := sshBootstrapConfig(context.Background(), service, MoshStartRequest{SSHConnectRequest: SSHConnectRequest{Hostname: "target", Username: "user", Password: "pw", VerifyHostKeys: &no, JumpHosts: []SSHConnectRequest{{Hostname: "jump", Username: "hop", Password: "pw", VerifyHostKeys: &no}}}})
 	if err != nil {

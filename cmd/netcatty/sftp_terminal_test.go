@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	pkgsftp "github.com/pkg/sftp"
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -66,7 +65,7 @@ func TestSFTPOpenForTerminalKeepsAuthenticatedConnection(t *testing.T) {
 	defer client.Close()
 	// Closing the listener proves no new SSH connection can be authenticated.
 	_ = listener.Close()
-	terminals := &TerminalService{sessions: map[string]*terminalSession{"exact-native": {transport: &terminalssh.Transport{Client: client}}, "other": {}}}
+	terminals := newSeamTerminalService(t, []string{"other"}, map[string]*gossh.Client{"exact-native": client})
 	service := NewSFTPService(nil, nil)
 	service.setTerminalService(terminals)
 	first, err := service.OpenForTerminal("exact-native")

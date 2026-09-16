@@ -15,21 +15,15 @@ func (s *SFTPService) OpenForTerminal(sessionID string) (string, error) {
 	if s.terminal == nil {
 		return "", fmt.Errorf("terminal service unavailable")
 	}
-	s.terminal.mu.Lock()
-	terminal := s.terminal.sessions[sessionID]
-	if terminal == nil || terminal.transport == nil || terminal.transport.Client == nil {
-		s.terminal.mu.Unlock()
-		return "", fmt.Errorf("active SSH terminal %q not found", sessionID)
+	client, sameSession, err := s.terminal.TransportFor(sessionID)
+	if err != nil {
+		return "", err
 	}
-	transport := terminal.transport
-	s.terminal.mu.Unlock()
-	raw, err := pkgsftp.NewClient(transport.Client)
+	raw, err := pkgsftp.NewClient(client)
 	if err != nil {
 		return "", fmt.Errorf("terminal sftp subsystem: %w", err)
 	}
-	s.terminal.mu.Lock()
-	defer s.terminal.mu.Unlock()
-	if s.terminal.sessions[sessionID] != terminal {
+	if !sameSession() {
 		_ = raw.Close()
 		return "", fmt.Errorf("terminal session closed while opening SFTP")
 	}

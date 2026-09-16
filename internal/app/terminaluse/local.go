@@ -1,15 +1,19 @@
-package main
+package terminaluse
 
 import (
-	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/binaricat/netcatty/internal/terminal/pty"
 )
 
+// LocalStartRequest is the shell-facing local PTY payload.
 type LocalStartRequest struct {
 	Shell     string            `json:"shell"`
 	ShellArgs []string          `json:"shellArgs"`
@@ -19,6 +23,7 @@ type LocalStartRequest struct {
 	Rows      uint16            `json:"rows"`
 }
 
+// DiscoveredShell describes a locally available shell.
 type DiscoveredShell struct {
 	ID        string   `json:"id"`
 	Name      string   `json:"name"`
@@ -28,6 +33,7 @@ type DiscoveredShell struct {
 	IsDefault bool     `json:"isDefault"`
 }
 
+// PathValidation reports stat-derived facts about a candidate binary path.
 type PathValidation struct {
 	Exists       bool `json:"exists"`
 	IsFile       bool `json:"isFile"`
@@ -48,9 +54,66 @@ func localStartConfig(id string, request LocalStartRequest) pty.Config {
 	return pty.BuildConfig(id, request.Shell, request.CWD, request.ShellArgs, env, request.Cols, request.Rows)
 }
 
-func (s *TerminalService) GetDefaultShell() string { return pty.DefaultShell("") }
+// StartLocal launches a local PTY and streams it on the same data plane as SSH.
+func (s *Service) StartLocal(shell, cwd string, cols, rows uint16) (string, error) {
+	return s.StartLocalWithOptions(LocalStartRequest{Shell: shell, CWD: cwd, Cols: cols, Rows: rows})
+}
 
-func (s *TerminalService) ValidatePath(path, kind string) PathValidation {
+func (s *Service) StartLocalWithOptions(request LocalStartRequest) (string, error) {
+	cols, rows := request.Cols, request.Rows
+	if cols == 0 {
+		cols = 80
+	}
+	if rows == 0 {
+		rows = 24
+	}
+	s.mu.Lock()
+	s.counter++
+	sessionID := fmt.Sprintf("local-%d", s.counter)
+	s.mu.Unlock()
+
+	request.Cols, request.Rows = cols, rows
+	local := pty.NewSession(localStartConfig(sessionID, request))
+	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
+		return "", fmt.Errorf("local pty: %w", err)
+	}
+	bootstrap, err := s.controller.Open(sessionID)
+	if err != nil {
+		_ = local.Close()
+		return "", fmt.Errorf("open route: %w", err)
+	}
+
+	s.mu.Lock()
+	s.sessions[sessionID] = &terminalSession{local: local, bootstrap: bootstrap}
+	s.mu.Unlock()
+
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			n, readErr := local.ReadOnce(buf)
+			if n > 0 {
+				if !s.publishOutput(sessionID, buf[:n]) {
+					return
+				}
+			}
+			if readErr != nil {
+				return
+			}
+		}
+	}()
+	// ConPTY output handles can remain open after the child exits. Observe the
+	// process independently; EOF is never evidence of a successful exit.
+	go func() {
+		_ = s.closeWithStatus(sessionID, terminalWaitExit(sessionID, local.Wait()))
+	}()
+	return sessionID, nil
+}
+
+// DefaultShell reports the platform default shell.
+func DefaultShell() string { return pty.DefaultShell("") }
+
+// ValidatePath stats a candidate path for local shell selection.
+func ValidatePath(path, kind string) PathValidation {
 	if path == "~" || strings.HasPrefix(path, "~/") || strings.HasPrefix(path, `~\`) {
 		if home, err := os.UserHomeDir(); err == nil {
 			path = filepath.Join(home, strings.TrimLeft(strings.TrimPrefix(path, "~"), `/\`))
@@ -71,8 +134,9 @@ func (s *TerminalService) ValidatePath(path, kind string) PathValidation {
 	return result
 }
 
-func (s *TerminalService) DiscoverShells() []DiscoveredShell {
-	defaultShell := s.GetDefaultShell()
+// DiscoverShells enumerates locally installed shells with the platform default first.
+func DiscoverShells() []DiscoveredShell {
+	defaultShell := DefaultShell()
 	shells := []DiscoveredShell{}
 	seen := map[string]bool{}
 	add := func(command string, args []string) {

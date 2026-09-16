@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"errors"
@@ -8,6 +8,8 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+// TerminalExitStatus is the reliable side channel for binary Complete frames.
+// Records are published before route teardown and bounded to the last 256 exits.
 type TerminalExitStatus struct {
 	SessionID   string `json:"sessionId"`
 	Intentional bool   `json:"intentional,omitempty"`
@@ -41,7 +43,7 @@ func terminalWaitExit(id string, err error) TerminalExitStatus {
 
 // GetExitStatus is the reliable side channel for binary Complete frames. Records
 // are published before route teardown and bounded to the last 256 exits.
-func (s *TerminalService) GetExitStatus(id string) *TerminalExitStatus {
+func (s *Service) GetExitStatus(id string) *TerminalExitStatus {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	status, ok := s.exitStatuses[id]

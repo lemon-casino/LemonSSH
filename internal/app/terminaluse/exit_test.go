@@ -1,13 +1,13 @@
-package main
+package terminaluse
 
 import (
 	"errors"
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"runtime"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/pty"
 )
 
@@ -32,7 +32,7 @@ func TestTerminalExitStatusRequiresActualWaitResult(t *testing.T) {
 }
 func TestTerminalClosePreservesIntentAndPublishesStatusBeforeComplete(t *testing.T) {
 	controller := dataplane.NewRouteController()
-	service := NewTerminalService(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
+	service := New(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
 	bootstrap, err := controller.Open("test")
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestTerminalClosePreservesIntentAndPublishesStatusBeforeComplete(t *testing
 	id := bootstrap.SessionID
 	service.sessions[id] = &terminalSession{bootstrap: bootstrap}
 	count := 0
-	service.setEventEmitter(func(name string, payload any) {
+	service.SetEventEmitter(func(name string, payload any) {
 		if name != "terminal:exit" {
 			return
 		}
@@ -63,7 +63,7 @@ func TestTerminalActualLocalExit(t *testing.T) {
 	for _, code := range []int{0, 7} {
 		t.Run(strconv.Itoa(code), func(t *testing.T) {
 			controller := dataplane.NewRouteController()
-			service := NewTerminalService(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
+			service := New(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
 			request := LocalStartRequest{Shell: "/bin/sh", ShellArgs: []string{"-c", "exit " + strconv.Itoa(code)}, Cols: 80, Rows: 24}
 			if runtime.GOOS == "windows" {
 				request.Shell = "cmd.exe"

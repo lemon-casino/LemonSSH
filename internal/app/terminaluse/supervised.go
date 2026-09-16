@@ -1,15 +1,22 @@
-package main
+package terminaluse
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/binaricat/netcatty/internal/terminal/mosh"
 	"github.com/binaricat/netcatty/internal/terminal/pty"
@@ -30,7 +37,23 @@ type HelperSessionState struct {
 	RecoveryLimit string `json:"recoveryLimit"`
 }
 
-func (s *TerminalService) GetHelperSessionState(sessionID string) (HelperSessionState, error) {
+// MoshStartRequest is the shell-facing Mosh/ET bootstrap payload. The union of
+// SSH dial fields lets the handshake reuse the same auth path as Connect.
+type MoshStartRequest struct {
+	SSHConnectRequest
+	SessionID  string `json:"sessionId"`
+	BootEpoch  uint64 `json:"bootEpoch"`
+	EtPort     uint16 `json:"etPort"`
+	ServerFifo string `json:"serverFifo"`
+	// ClientPath is the absolute path to the local mosh-client / et binary.
+	ClientPath string `json:"clientPath"`
+	// ServerPath overrides the remote mosh-server command (empty uses default).
+	ServerPath string `json:"serverPath"`
+	Cols       uint16 `json:"cols"`
+	Rows       uint16 `json:"rows"`
+}
+
+func (s *Service) GetHelperSessionState(sessionID string) (HelperSessionState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	term := s.sessions[sessionID]
@@ -41,12 +64,12 @@ func (s *TerminalService) GetHelperSessionState(sessionID string) (HelperSession
 }
 
 // handleHelperLifecycle serializes supervised helper events into the session's
-// queryable state and the renderer-visible `<kind>:lifecycle` event. A "failed"
+// queryable state and the shell-visible `<kind>:lifecycle` event. A "failed"
 // helper keeps the terminal session alive so the renderer can offer a manual
 // restart (RestartHelper); mosh/et protocol state cannot resume, so the restart
 // opens a new remote shell under the same session. Only a clean user exit
 // ("exited") closes the session.
-func (s *TerminalService) handleHelperLifecycle(sessionID, kind string, term *terminalSession) func(supervised.TerminalEvent) {
+func (s *Service) handleHelperLifecycle(sessionID, kind string, term *terminalSession) func(supervised.TerminalEvent) {
 	return func(event supervised.TerminalEvent) {
 		s.mu.Lock()
 		if s.sessions[sessionID] != term || term.closing {
@@ -70,7 +93,7 @@ func (s *TerminalService) handleHelperLifecycle(sessionID, kind string, term *te
 // session after a "failed" lifecycle event. The follow-up "running" event
 // arrives through the existing lifecycle callback. Rejected for closing or
 // missing sessions and for helpers whose run loop is still alive.
-func (s *TerminalService) RestartHelper(sessionID string) (HelperSessionState, error) {
+func (s *Service) RestartHelper(sessionID string) (HelperSessionState, error) {
 	s.mu.Lock()
 	term := s.sessions[sessionID]
 	if term == nil || term.closing || term.helper == nil {
@@ -90,8 +113,8 @@ func (s *TerminalService) RestartHelper(sessionID string) (HelperSessionState, e
 	return term.helperState, nil
 }
 
-func sshBootstrapConfig(ctx context.Context, s *TerminalService, request MoshStartRequest) (ssh.DialConfig, error) {
-	// Bootstrap always uses the strict known-host owner, even if a renderer
+func sshBootstrapConfig(ctx context.Context, s *Service, request MoshStartRequest) (ssh.DialConfig, error) {
+	// Bootstrap always uses the strict known-host owner, even if a client
 	// sends a weaker verifyHostKeys setting intended for another transport.
 	request.VerifyHostKeys = new(bool)
 	*request.VerifyHostKeys = true
@@ -110,7 +133,23 @@ func sshBootstrapConfig(ctx context.Context, s *TerminalService, request MoshSta
 	return config, err
 }
 
-func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind string) (string, error) {
+// StartMosh runs the mosh bootstrap over SSH and supervises the local
+// mosh-client. The remote handshake scrapes the MOSH CONNECT line, then the
+// client process streams through the same data plane as other sessions.
+func (s *Service) StartMosh(request MoshStartRequest) (string, error) {
+	return s.startSupervisedTerminal(request, "mosh")
+}
+
+// StartEt runs the Eternal Terminal bootstrap. ET uses the same supervised
+// process model; the remote command differs but the local supervision and
+// data-plane wiring are identical to Mosh.
+func (s *Service) StartEt(request MoshStartRequest) (string, error) {
+	return s.startSupervisedTerminal(request, "et")
+}
+
+// startSupervisedTerminal resolves and verifies the pinned native client, then
+// supervises it through the shared data plane with restart/recovery policy.
+func (s *Service) startSupervisedTerminal(request MoshStartRequest, kind string) (string, error) {
 	if request.Hostname == "" || request.Username == "" {
 		return "", fmt.Errorf("host and username are required")
 	}
@@ -248,6 +287,109 @@ func (s *TerminalService) startSupervisedTerminal(request MoshStartRequest, kind
 		return "", err
 	}
 	return sessionID, nil
+}
+
+// runHandshake dials SSH and runs the remote mosh-server, returning the parsed
+// MOSH CONNECT announcement.
+func (s *Service) runHandshake(ctx context.Context, request MoshStartRequest) (mosh.Connect, error) {
+	if request.Port == 0 {
+		request.Port = 22
+	}
+	config, err := sshBootstrapConfig(ctx, s, request)
+	if err != nil {
+		return mosh.Connect{}, err
+	}
+	transport, err := ssh.Dial(ctx, config)
+	if err != nil {
+		return mosh.Connect{}, fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
+	}
+	defer transport.Close()
+	stop := context.AfterFunc(ctx, func() { _ = transport.Close() })
+	defer stop()
+	// mosh-client accepts numeric UDP destinations only. SSH jumps do not
+	// tunnel UDP; the target must remain directly reachable from this machine.
+	ip := net.ParseIP(request.Hostname)
+	if ip == nil {
+		addresses, resolveErr := net.DefaultResolver.LookupIPAddr(ctx, request.Hostname)
+		if resolveErr != nil || len(addresses) == 0 {
+			return mosh.Connect{}, fmt.Errorf("mosh: cannot resolve direct UDP destination")
+		}
+		ip = addresses[0].IP
+	}
+	sshSession, err := transport.Client.NewSession()
+	if err != nil {
+		return mosh.Connect{}, fmt.Errorf("new session: %w", err)
+	}
+	defer sshSession.Close()
+	if err := sshSession.RequestPty("xterm-256color", 24, 80, gossh.TerminalModes{}); err != nil {
+		return mosh.Connect{}, fmt.Errorf("pty request: %w", err)
+	}
+	stdout, err := sshSession.StdoutPipe()
+	if err != nil {
+		return mosh.Connect{}, fmt.Errorf("stdout pipe: %w", err)
+	}
+	if err := sshSession.Start(mosh.ServerCommand(request.ServerPath)); err != nil {
+		return mosh.Connect{}, fmt.Errorf("start mosh-server: %w", err)
+	}
+	connect, err := scanConnectDeadline(stdout, 30*time.Second, func() { _ = sshSession.Close() })
+	if err != nil {
+		return mosh.Connect{}, err
+	}
+	if connect.IP == "" {
+		connect.IP = ip.String()
+	}
+	return connect, nil
+}
+
+func scanConnectDeadline(source io.Reader, timeout time.Duration, closeChannel func()) (mosh.Connect, error) {
+	timer := time.AfterFunc(timeout, closeChannel)
+	defer timer.Stop()
+	return scanForConnect(source, timeout)
+}
+
+// scanForConnect reads the handshake stream until the MOSH CONNECT line
+// arrives, buffering a trailing partial marker across reads.
+func scanForConnect(source io.Reader, timeout time.Duration) (mosh.Connect, error) {
+	deadline := time.Now().Add(timeout)
+	buffer := make([]byte, 4096)
+	var pending []byte
+	for time.Now().Before(deadline) {
+		n, err := source.Read(buffer)
+		if n > 0 {
+			pending = append(pending, buffer[:n]...)
+			if connect, _, ok, parseErr := mosh.ParseConnect(pending); parseErr != nil {
+				return mosh.Connect{}, parseErr
+			} else if ok {
+				return connect, nil
+			}
+			// Keep only a tail that could still complete a marker; the rest is
+			// user-visible noise the handshake does not surface.
+			if len(pending) > 4096 && !mosh.TrailingMarkerPartial(string(pending)) {
+				pending = pending[len(pending)-128:]
+			}
+		}
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return mosh.Connect{}, mosh.ErrNoConnectLine
+			}
+			return mosh.Connect{}, err
+		}
+	}
+	return mosh.Connect{}, fmt.Errorf("mosh: handshake timed out: %w", mosh.ErrNoConnectLine)
+}
+
+// hashFile returns the SHA-256 hex digest of a file.
+func hashFile(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	sum := sha256.New()
+	if _, err := io.Copy(sum, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(sum.Sum(nil)), nil
 }
 
 func helperEnvironment(extra map[string]string) []string {

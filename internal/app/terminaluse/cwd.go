@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// cwdOSC is stream state, owned by one terminal and protected by TerminalService.mu.
+// cwdOSC is stream state, owned by one terminal and protected by Service.mu.
 // Keep bytes until BEL or ST so split UTF-8 and split escape sequences are intact.
 type cwdOSC struct {
 	state   byte
@@ -70,17 +70,20 @@ func (p *cwdOSC) finish() {
 	}
 }
 
+// TerminalPwdResult reports the tracked foreground working directory.
 type TerminalPwdResult struct {
 	Success bool   `json:"success"`
 	Cwd     string `json:"cwd,omitempty"`
 	Error   string `json:"error,omitempty"`
 }
+
+// TerminalRemoteInfo reports the remote SSH banner of a session's transport.
 type TerminalRemoteInfo struct {
 	Success          bool   `json:"success"`
 	RemoteSSHVersion string `json:"remoteSshVersion,omitempty"`
 }
 
-func (s *TerminalService) GetSessionRemoteInfo(sessionID string) TerminalRemoteInfo {
+func (s *Service) GetSessionRemoteInfo(sessionID string) TerminalRemoteInfo {
 	term, ok := s.lookup(sessionID)
 	if !ok || term.transport == nil {
 		return TerminalRemoteInfo{}
@@ -115,13 +118,14 @@ END {
 case "$selected" in ''|*[!0-9]*) exit 1;; esac
 readlink "/proc/$selected/cwd" 2>/dev/null`
 
+// TerminalPwdOptions bounds the best-effort foreground directory probe.
 type TerminalPwdOptions struct {
 	AllowHomeFallback       bool `json:"allowHomeFallback"`
 	AllowLoginShellFallback bool `json:"allowLoginShellFallback"`
 	TimeoutMs               int  `json:"timeoutMs"`
 }
 
-func (s *TerminalService) GetSessionPwd(sessionID string, options TerminalPwdOptions) TerminalPwdResult {
+func (s *Service) GetSessionPwd(sessionID string, options TerminalPwdOptions) TerminalPwdResult {
 	s.mu.Lock()
 	term := s.sessions[sessionID]
 	if term == nil {

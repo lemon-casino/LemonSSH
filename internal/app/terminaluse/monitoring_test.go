@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -72,7 +72,7 @@ func monitoringPeer(t *testing.T, name string, blocked bool) *terminalssh.Transp
 func TestMonitoringSSHIdentityCancellation(t *testing.T) {
 	a := monitoringPeer(t, "host-a", true)
 	b := monitoringPeer(t, "host-b", false)
-	s := &TerminalService{sessions: map[string]*terminalSession{"a": {transport: a}, "b": {transport: b}}}
+	s := &Service{sessions: map[string]*terminalSession{"a": {transport: a}, "b": {transport: b}}}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancel()
 	result := s.ListDockerImages(ctx, "a")

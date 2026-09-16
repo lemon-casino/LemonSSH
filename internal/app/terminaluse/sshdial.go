@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
@@ -11,6 +11,22 @@ func terminalTerm(request SSHConnectRequest) string {
 		return request.Term
 	}
 	return "xterm-256color"
+}
+
+// TermName reports the PTY term type requested for a session.
+func TermName(request SSHConnectRequest) string { return terminalTerm(request) }
+
+// SSHDialConfig builds the transport dial config with the strict known-host
+// policy and keepalive/verify options applied. Exported for facades that share
+// the same SSH auth path (SFTP, port forward).
+func SSHDialConfig(request SSHConnectRequest, hosts *ssh.KnownHosts, challenge func(string, string, []string, []bool) ([]string, error)) (ssh.DialConfig, error) {
+	return terminalSSHDialConfig(request, hosts, challenge)
+}
+
+// ConnectInputFromRequest maps the shell-facing request DTO to the transport
+// dial input, including nested jump hosts.
+func ConnectInputFromRequest(request SSHConnectRequest) ssh.ConnectInput {
+	return sshConnectToInput(request)
 }
 
 func terminalSSHDialConfig(request SSHConnectRequest, hosts *ssh.KnownHosts, challenge func(string, string, []string, []bool) ([]string, error)) (ssh.DialConfig, error) {

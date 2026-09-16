@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ type terminalZmodemStream struct {
 
 // detectZmodem retains only a possible initial hex header; non-protocol bytes
 // are delivered unchanged. Folder selection has a bounded capture deadline.
-func (s *TerminalService) detectZmodem(id string, data []byte) bool {
+func (s *Service) detectZmodem(id string, data []byte) bool {
 	marker := []byte("**\x18B")
 	s.mu.Lock()
 	term := s.sessions[id]
@@ -117,7 +117,7 @@ func (stream *terminalZmodemStream) readContext(ctx context.Context, data []byte
 	return stream.Read(data)
 }
 
-func (s *TerminalService) beginZmodem(id string, ctx context.Context, cancel context.CancelFunc) (*terminalZmodemStream, error) {
+func (s *Service) beginZmodem(id string, ctx context.Context, cancel context.CancelFunc) (*terminalZmodemStream, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	term, ok := s.sessions[id]
@@ -133,7 +133,7 @@ func (s *TerminalService) beginZmodem(id string, ctx context.Context, cancel con
 	go func() { <-ctx.Done(); _ = w.CloseWithError(ctx.Err()); _ = r.CloseWithError(ctx.Err()) }()
 	return stream, nil
 }
-func (s *TerminalService) endZmodem(id string, stream *terminalZmodemStream) {
+func (s *Service) endZmodem(id string, stream *terminalZmodemStream) {
 	stream.cancel()
 	_ = stream.Close()
 	_ = stream.writer.Close()
@@ -144,9 +144,30 @@ func (s *TerminalService) endZmodem(id string, stream *terminalZmodemStream) {
 	}
 }
 
+// CancelZmodem honours the existing CRC/safety cancellation boundary. A
+// cancellation is only meaningful for a live receiver, so it is reported as a
+// no-op success when nothing is in flight rather than as a spurious failure.
+func (s *Service) CancelZmodem(sessionID string) error {
+	s.mu.Lock()
+	term, ok := s.sessions[sessionID]
+	var cancel context.CancelFunc
+	if ok && term.zmodem != nil {
+		cancel = term.zmodem.cancel
+	} else if ok && term.serialYmodemCancel != nil {
+		cancel = term.serialYmodemCancel
+	}
+	s.mu.Unlock()
+	if cancel == nil {
+		return nil
+	}
+	cancel()
+	_, err := s.Write(sessionID, []byte{0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08})
+	return err
+}
+
 // SendZmodem holds the session's raw byte stream until the peer acknowledges
 // completion. The native terminal writer is shared by data and protocol replies.
-func (s *TerminalService) SendZmodem(sessionID, filePath, remoteName, command string) (resultErr error) {
+func (s *Service) SendZmodem(sessionID, filePath, remoteName, command string) (resultErr error) {
 	defer func() {
 		kind := "complete"
 		if resultErr != nil {
@@ -186,7 +207,7 @@ func (s *TerminalService) SendZmodem(sessionID, filePath, remoteName, command st
 
 // ReceiveZmodem refuses existing targets; transfer bytes are written only after
 // validated metadata, and partial files are removed if negotiation fails.
-func (s *TerminalService) ReceiveZmodem(sessionID, destinationDir string) (resultErr error) {
+func (s *Service) ReceiveZmodem(sessionID, destinationDir string) (resultErr error) {
 	defer func() {
 		kind := "complete"
 		if resultErr != nil {

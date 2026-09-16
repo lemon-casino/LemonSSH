@@ -70,7 +70,7 @@ func TestClipboardImageAbsenceFailureAndCancellation(t *testing.T) {
 
 func TestSFTPOpenForTerminalRejectsMissingAndNonSSH(t *testing.T) {
 	s := NewSFTPService(nil, nil)
-	s.setTerminalService(&TerminalService{sessions: map[string]*terminalSession{"local": {}}})
+	s.setTerminalService(newSeamTerminalService(t, []string{"local"}, nil))
 	for _, id := range []string{"missing", "local"} {
 		if _, err := s.OpenForTerminal(id); err == nil {
 			t.Fatalf("accepted %s", id)

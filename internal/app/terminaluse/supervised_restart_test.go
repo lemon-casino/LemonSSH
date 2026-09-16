@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -16,15 +16,15 @@ import (
 // newHelperServiceFixture builds a TerminalService with a supervised mosh
 // helper wired through the production lifecycle callback so the tests below
 // exercise the real "failed" handling instead of a look-alike.
-func newHelperServiceFixture(t *testing.T, policy supervised.RestartPolicy) (*TerminalService, *terminalSession, chan *recoveryProcess, chan HelperSessionState, *atomic.Int32) {
+func newHelperServiceFixture(t *testing.T, policy supervised.RestartPolicy) (*Service, *terminalSession, chan *recoveryProcess, chan HelperSessionState, *atomic.Int32) {
 	t.Helper()
 	controller := dataplane.NewRouteController()
-	service := NewTerminalService(controller, dataplane.NewServer(controller, ""), nil)
+	service := New(controller, dataplane.NewServer(controller, ""), nil)
 	running := make(chan HelperSessionState, 8)
 	var eventsMu sync.Mutex
 	var lifecycle []HelperSessionState
 	var exits []TerminalExitStatus
-	service.setEventEmitter(func(name string, payload any) {
+	service.SetEventEmitter(func(name string, payload any) {
 		switch name {
 		case "mosh:lifecycle":
 			if state, ok := payload.(HelperSessionState); ok {
@@ -70,7 +70,7 @@ func newHelperServiceFixture(t *testing.T, policy supervised.RestartPolicy) (*Te
 	return service, term, processes, running, &attempts
 }
 
-func awaitHelperState(t *testing.T, service *TerminalService, want string) HelperSessionState {
+func awaitHelperState(t *testing.T, service *Service, want string) HelperSessionState {
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
 	for {

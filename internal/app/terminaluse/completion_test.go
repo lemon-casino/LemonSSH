@@ -1,10 +1,9 @@
-package main
+package terminaluse
 
 import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	pkgsftp "github.com/pkg/sftp"
 	gossh "golang.org/x/crypto/ssh"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 )
 
 func TestAutocompleteLocalDirectories(t *testing.T) {
@@ -26,7 +27,7 @@ func TestAutocompleteLocalDirectories(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "Mihomo.yaml"), nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	service := &TerminalService{sessions: map[string]*terminalSession{"local": {cwd: cwdOSC{cwd: root}}}}
+	service := &Service{sessions: map[string]*terminalSession{"local": {cwd: cwdOSC{cwd: root}}}}
 	result := service.ListAutocompleteDirectory(context.Background(), "local", ".", true, "mi", 100)
 	if !result.Success || len(result.Entries) != 1 || result.Entries[0].Name != "Mihomo" || result.Entries[0].Type != "directory" {
 		t.Fatalf("unexpected listing: %+v", result)
@@ -114,7 +115,7 @@ func TestAutocompleteRemoteSameConnection(t *testing.T) {
 	if !strings.HasPrefix(remoteRoot, "/") {
 		remoteRoot = "/" + remoteRoot
 	}
-	service := &TerminalService{sessions: map[string]*terminalSession{"remote": {transport: &terminalssh.Transport{Client: client}, cwd: cwdOSC{cwd: remoteRoot}}}}
+	service := &Service{sessions: map[string]*terminalSession{"remote": {transport: &terminalssh.Transport{Client: client}, cwd: cwdOSC{cwd: remoteRoot}}}}
 	for _, directory := range []string{remoteRoot, "."} {
 		result := service.ListAutocompleteDirectory(context.Background(), "remote", directory, true, "Mi", 10)
 		if !result.Success || len(result.Entries) != 1 || result.Entries[0].Name != "Mihomo" {
@@ -124,7 +125,7 @@ func TestAutocompleteRemoteSameConnection(t *testing.T) {
 }
 
 func TestAutocompleteRejectsUnknownRelativeLocalCwd(t *testing.T) {
-	service := &TerminalService{sessions: map[string]*terminalSession{}}
+	service := &Service{sessions: map[string]*terminalSession{}}
 	if service.ListAutocompleteDirectory(context.Background(), "", ".", true, "", 100).Success {
 		t.Fatal("must not list app cwd in place of terminal cwd")
 	}

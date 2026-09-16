@@ -1,14 +1,15 @@
-package main
+package terminaluse
 
 import (
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"testing"
+
+	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 )
 
 func TestReconnectKeepsNativeSessionAndRotatesRoute(t *testing.T) {
 	controller := dataplane.NewRouteController()
 	dp := dataplane.NewServer(controller, "127.0.0.1:0")
-	s := NewTerminalService(controller, dp, nil)
+	s := New(controller, dp, nil)
 	old, _ := controller.Open("mosh")
 	term := &terminalSession{bootstrap: old}
 	s.sessions["mosh"] = term
@@ -28,14 +29,14 @@ func TestReconnectKeepsNativeSessionAndRotatesRoute(t *testing.T) {
 func TestTerminalPublishFailureReportsAndCloses(t *testing.T) {
 	controller := dataplane.NewRouteController()
 	dp := dataplane.NewServer(controller, "127.0.0.1:0")
-	service := NewTerminalService(controller, dp, nil)
+	service := New(controller, dp, nil)
 	bootstrap, err := controller.Open("bounded")
 	if err != nil {
 		t.Fatal(err)
 	}
 	service.sessions["bounded"] = &terminalSession{bootstrap: bootstrap}
 	reported := false
-	service.setEventEmitter(func(name string, payload any) {
+	service.SetEventEmitter(func(name string, payload any) {
 		if name == "terminal:error" {
 			reported = true
 		}

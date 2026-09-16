@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -12,10 +12,13 @@ import (
 	pkgsftp "github.com/pkg/sftp"
 )
 
+// AutocompleteDirectoryEntry is one filtered directory listing row.
 type AutocompleteDirectoryEntry struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
+
+// AutocompleteDirectoryResult is the directory completion payload.
 type AutocompleteDirectoryResult struct {
 	Success bool                         `json:"success"`
 	Entries []AutocompleteDirectoryEntry `json:"entries"`
@@ -23,8 +26,9 @@ type AutocompleteDirectoryResult struct {
 }
 
 // ListAutocompleteDirectory uses a separate SFTP channel on the terminal's
-// authenticated transport. It never writes to the interactive shell.
-func (s *TerminalService) ListAutocompleteDirectory(ctx context.Context, sessionID, directory string, foldersOnly bool, prefix string, limit int) AutocompleteDirectoryResult {
+// authenticated transport for remote sessions, and never writes to the
+// interactive shell. Local PTY sessions list the local filesystem.
+func (s *Service) ListAutocompleteDirectory(ctx context.Context, sessionID, directory string, foldersOnly bool, prefix string, limit int) AutocompleteDirectoryResult {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	failure := func(err error) AutocompleteDirectoryResult {

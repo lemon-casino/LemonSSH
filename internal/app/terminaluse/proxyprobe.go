@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
 )
 
+// ProxyProbeRequest describes a proxy reachability probe without opening a session.
 type ProxyProbeRequest struct {
 	Kind       string `json:"kind"`
 	Host       string `json:"host"`
@@ -18,14 +19,15 @@ type ProxyProbeRequest struct {
 	TargetPort int    `json:"targetPort"`
 }
 
+// ProxyProbeResult reports probe latency or the transport error.
 type ProxyProbeResult struct {
 	Ok        bool   `json:"ok"`
 	LatencyMs int64  `json:"latencyMs"`
 	Error     string `json:"error,omitempty"`
 }
 
-// TestProxy probes HTTP/SOCKS5/ProxyCommand reachability without opening a session.
-func (s *TerminalService) TestProxy(request ProxyProbeRequest) ProxyProbeResult {
+// ProbeProxy probes HTTP/SOCKS5/ProxyCommand reachability without opening a session.
+func ProbeProxy(request ProxyProbeRequest) ProxyProbeResult {
 	started := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()

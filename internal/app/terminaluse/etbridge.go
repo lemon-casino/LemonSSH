@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"bytes"
@@ -21,8 +21,6 @@ import (
 	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 )
-
-func (s *TerminalService) setTempService(temp *filesystem.TempService) { s.helperTemp = temp }
 
 func etUsesGoSSH(request MoshStartRequest) bool {
 	return request.Password != "" || request.PrivateKey != "" || request.Passphrase != "" || request.Certificate != "" || request.UseAgent || request.EnableMFA || len(request.IdentityFilePaths) > 0 || request.ProxyURL != "" || request.ProxyCommand != "" || len(request.JumpHosts) > 0
@@ -51,7 +49,7 @@ type etBridge struct {
 	stopTransport  func() bool
 }
 
-func (s *TerminalService) prepareEt(ctx context.Context, request MoshStartRequest) (*etBridge, error) {
+func (s *Service) prepareEt(ctx context.Context, request MoshStartRequest) (*etBridge, error) {
 	if s.helperTemp == nil {
 		return nil, errors.New("et: managed temp service unavailable")
 	}

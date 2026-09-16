@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -40,7 +40,7 @@ func (b recoveryBackend) Start(context.Context, pty.Config) (pty.Process, error)
 
 func TestHelperRouteRebindDuringRecoveryAndConcurrentClose(t *testing.T) {
 	controller := dataplane.NewRouteController()
-	service := NewTerminalService(controller, dataplane.NewServer(controller, ""), nil)
+	service := New(controller, dataplane.NewServer(controller, ""), nil)
 	bootstrap, _ := controller.Open("helper")
 	term := &terminalSession{bootstrap: bootstrap}
 	processes := make(chan *recoveryProcess, 4)
@@ -104,9 +104,9 @@ func TestHelperRouteRebindDuringRecoveryAndConcurrentClose(t *testing.T) {
 
 func TestHelperBootstrapCancellationRemovesMFARequest(t *testing.T) {
 	controller := dataplane.NewRouteController()
-	service := NewTerminalService(controller, dataplane.NewServer(controller, ""), ssh.NewKnownHosts(filepath.Join(t.TempDir(), "known_hosts")))
+	service := New(controller, dataplane.NewServer(controller, ""), ssh.NewKnownHosts(filepath.Join(t.TempDir(), "known_hosts")))
 	challenge := make(chan ssh.KeyboardChallenge, 1)
-	service.setChallengeEmitter(func(event ssh.KeyboardChallenge) { challenge <- event })
+	service.SetChallengeEmitter(func(event ssh.KeyboardChallenge) { challenge <- event })
 	ctx, cancel := context.WithCancel(context.Background())
 	config, err := sshBootstrapConfig(ctx, service, MoshStartRequest{SSHConnectRequest: SSHConnectRequest{Hostname: "target", Username: "user", EnableMFA: true, JumpHosts: []SSHConnectRequest{{Hostname: "jump", Username: "hop", EnableMFA: true}}}})
 	if err != nil {

@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"crypto/ed25519"
@@ -59,7 +59,7 @@ func TestTerminalActualSSHExit(t *testing.T) {
 				}
 			}()
 			controller := dataplane.NewRouteController()
-			service := NewTerminalService(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
+			service := New(controller, dataplane.NewServer(controller, "127.0.0.1:0"), nil)
 			verify := false
 			id, err := service.Connect(SSHConnectRequest{Hostname: "127.0.0.1", Port: uint16(listener.Addr().(*net.TCPAddr).Port), Username: "test", Password: "test", VerifyHostKeys: &verify})
 			if err != nil {

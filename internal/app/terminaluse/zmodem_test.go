@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 )
 
 func TestAutomaticZmodemReceiveDetection(t *testing.T) {
-	s := &TerminalService{sessions: map[string]*terminalSession{"term": {}}}
+	s := &Service{sessions: map[string]*terminalSession{"term": {}}}
 	detected := false
-	s.setEventEmitter(func(name string, payload any) {
+	s.SetEventEmitter(func(name string, payload any) {
 		if name == "terminal:zmodem" {
 			detected = true
 		}
@@ -67,7 +67,7 @@ func TestZmodemReadHonorsStepDeadline(t *testing.T) {
 }
 
 func TestZmodemCaptureDivertsTerminalBytes(t *testing.T) {
-	s := &TerminalService{sessions: map[string]*terminalSession{"term": {}}}
+	s := &Service{sessions: map[string]*terminalSession{"term": {}}}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	stream, err := s.beginZmodem("term", ctx, cancel)

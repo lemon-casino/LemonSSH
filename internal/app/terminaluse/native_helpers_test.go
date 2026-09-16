@@ -1,4 +1,4 @@
-package main
+package terminaluse
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 
 func verifiedTestHelper(t *testing.T, kind string) string {
 	t.Helper()
-	path, err := filepath.Abs(filepath.Join("..", "..", "resources", kind, helperPlatformDir(), helperBinaryName(kind)))
+	path, err := filepath.Abs(filepath.Join("..", "..", "..", "resources", kind, helperPlatformDir(), helperBinaryName(kind)))
 	if err != nil {
 		t.Fatal(err)
 	}
