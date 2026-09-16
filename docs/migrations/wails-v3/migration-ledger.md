@@ -4644,3 +4644,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: catalog, policy, dispatch and use-case extraction (W04, W05) still absent; matrix AI-01 evidence is C-grade local only
 - Next safe slice: W04 shared use-case extraction from cmd/netcatty facades
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L161 - 2026-09-16 - W04 terminal domain shared use case
+
+- Capability rows: `AI-01`
+- Plan task: `P7-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: First W04 slice. Extract the shell-neutral terminal/session/exec owner from `cmd/netcatty/terminalService.go` into `internal/app/terminaluse`: the single session pool, SSH dial/auth, telnet/serial/local/supervised (mosh/et) starts, exit tracking, cwd/zmodem/monitoring/completion/x11/helper paths. The Wails facade keeps DTO aliases (renderer JSON shapes unchanged) and one-line delegators only. `sftpTerminal.go` now uses the `TransportFor` seam instead of raw pool field access. No AI behavior was added; capability dispatch does not exist yet and will construct this same Service instance.
+- Go canonical owner: `internal/app/terminaluse/`
+- Frontend adapter: none; Wails service/method names and JSON field names unchanged
+- Electron owner affected: none; Electron terminal stack stays the frozen release carrier
+- Preserved invariants: AI-01 stays probe; no `internal/capability`, `internal/agent`, `cmd/netcatty-mcp`, `cmd/netcatty-tool`; `internal/` imports no `package main` or `cmd/` package; one session pool, no parallel pool; go.mod/go.sum untouched; `SeedSessionForTest`/`SeedTransportSessionForTest` exist because cross-package white-box fixtures cannot reach unexported fields, and their only callers are `cmd/netcatty` test files
+- Data/schema impact: none
+- Security impact: none; dial/auth semantics and known-hosts handling moved unchanged
+- Verification: go build ./...; go test -count=1 ./internal/app/... ./internal/terminal/...; go test -count=1 ./cmd/netcatty; go test -count=1 ./internal/app/contracts/; grep internal/ for `cmd/` imports (empty)
+- Platforms covered: Windows 10 22H2 x64 unit tests; live-matrix tests skip without `NETCATTY_LIVE_HOST`
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron terminal stack stays until three-platform evidence closes P8-02
+- Documentation updated: ledger, remaining-work
+- Residual risks: SFTP, forward, and Vault/snippet domains are still owned by their Wails facades; no capability dispatch consumes the use case yet; moved white-box tests verified against HEAD by scripted transform-diff
+- Next safe slice: W04 remaining domains (SFTP, forward, Vault/snippet), then W05 catalog
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
