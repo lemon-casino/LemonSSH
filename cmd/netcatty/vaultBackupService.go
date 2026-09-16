@@ -20,27 +20,27 @@ import (
 )
 
 const (
-	vaultBackupDirName     = "vault-backups"
-	vaultBackupFilePrefix  = "vault-backup-"
-	vaultBackupFileExt     = ".json"
-	vaultBackupPurpose     = "vault-backup"
-	vaultBackupMaxPayload  = 25 << 20
-	vaultBackupMaxFile     = vaultBackupMaxPayload * 2
-	vaultBackupMinCount    = 1
-	vaultBackupMaxCount    = 100
+	vaultBackupDirName      = "vault-backups"
+	vaultBackupFilePrefix   = "vault-backup-"
+	vaultBackupFileExt      = ".json"
+	vaultBackupPurpose      = "vault-backup"
+	vaultBackupMaxPayload   = 25 << 20
+	vaultBackupMaxFile      = vaultBackupMaxPayload * 2
+	vaultBackupMinCount     = 1
+	vaultBackupMaxCount     = 100
 	vaultBackupDefaultCount = 20
-	vaultBackupEncoding    = "credential-v1"
+	vaultBackupEncoding     = "credential-v1"
 )
 
 var errVaultBackupEncryptionUnavailable = errors.New("Secure storage is unavailable on this platform; vault backups cannot be created or read safely.")
 
 type VaultBackupPreview struct {
-	HostCount                int `json:"hostCount"`
-	KeyCount                 int `json:"keyCount"`
-	SnippetCount             int `json:"snippetCount"`
-	NoteCount                int `json:"noteCount"`
-	IdentityCount            int `json:"identityCount"`
-	PortForwardingRuleCount  int `json:"portForwardingRuleCount"`
+	HostCount               int `json:"hostCount"`
+	KeyCount                int `json:"keyCount"`
+	SnippetCount            int `json:"snippetCount"`
+	NoteCount               int `json:"noteCount"`
+	IdentityCount           int `json:"identityCount"`
+	PortForwardingRuleCount int `json:"portForwardingRuleCount"`
 }
 
 type VaultBackupSummary struct {

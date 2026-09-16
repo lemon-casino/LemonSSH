@@ -19,19 +19,19 @@ func TestResetSyncEverythingRemovesOAuthClientIDs(t *testing.T) {
 	t.Cleanup(func() { _ = profile.Close() })
 
 	reset := newCloudSyncResetService(profile, newCloudSyncSessionPassword(t.TempDir(), credentials.New(nil)))
-		const (
-			oauthKey    = "netcatty_sync_oauth_client_ids_v1"
-			secretsKey  = "netcatty_sync_oauth_client_secrets_v1"
-			masterKey   = "netcatty_master_key_config_v1"
-			themeKey    = "netcatty_theme_v1"
-			hostsKey    = "netcatty_hosts_v1"
-		)
-		if err := profile.SetRaw("settings", oauthKey, []byte(`{"github":"Ov23licrO6aqtR2h1WBC","google":"desktop.apps.googleusercontent.com"}`)); err != nil {
-			t.Fatal(err)
-		}
-		if err := profile.SetRaw("settings", secretsKey, []byte(`{"google":"GOCSPX-fixture"}`)); err != nil {
-			t.Fatal(err)
-		}
+	const (
+		oauthKey   = "netcatty_sync_oauth_client_ids_v1"
+		secretsKey = "netcatty_sync_oauth_client_secrets_v1"
+		masterKey  = "netcatty_master_key_config_v1"
+		themeKey   = "netcatty_theme_v1"
+		hostsKey   = "netcatty_hosts_v1"
+	)
+	if err := profile.SetRaw("settings", oauthKey, []byte(`{"github":"Ov23licrO6aqtR2h1WBC","google":"desktop.apps.googleusercontent.com"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := profile.SetRaw("settings", secretsKey, []byte(`{"google":"GOCSPX-fixture"}`)); err != nil {
+		t.Fatal(err)
+	}
 	if err := profile.SetRaw("settings", masterKey, []byte(`{"salt":"x"}`)); err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +56,12 @@ func TestResetSyncEverythingRemovesOAuthClientIDs(t *testing.T) {
 		t.Fatalf("reset must report the OAuth client IDs key, got %v", removed)
 	}
 
-		if _, err := profile.GetRaw("settings", oauthKey); !errors.Is(err, store.ErrNoSuchKey) {
-			t.Fatalf("OAuth client IDs must be gone after reset, got %v", err)
-		}
-		if _, err := profile.GetRaw("settings", secretsKey); !errors.Is(err, store.ErrNoSuchKey) {
-			t.Fatalf("OAuth client secrets must be gone after reset, got %v", err)
-		}
+	if _, err := profile.GetRaw("settings", oauthKey); !errors.Is(err, store.ErrNoSuchKey) {
+		t.Fatalf("OAuth client IDs must be gone after reset, got %v", err)
+	}
+	if _, err := profile.GetRaw("settings", secretsKey); !errors.Is(err, store.ErrNoSuchKey) {
+		t.Fatalf("OAuth client secrets must be gone after reset, got %v", err)
+	}
 	if _, err := profile.GetRaw("settings", masterKey); !errors.Is(err, store.ErrNoSuchKey) {
 		t.Fatalf("master key config must be gone after reset, got %v", err)
 	}
@@ -76,12 +76,12 @@ func TestResetSyncEverythingRemovesOAuthClientIDs(t *testing.T) {
 }
 
 func TestIsResetSyncProfileKeyIncludesOAuthClientIDs(t *testing.T) {
-		if !isResetSyncProfileKey("netcatty_sync_oauth_client_ids_v1") {
-			t.Fatal("OAuth client IDs are part of cloud-sync identity and must be reset")
-		}
-		if !isResetSyncProfileKey("netcatty_sync_oauth_client_secrets_v1") {
-			t.Fatal("OAuth client secrets are part of cloud-sync identity and must be reset")
-		}
+	if !isResetSyncProfileKey("netcatty_sync_oauth_client_ids_v1") {
+		t.Fatal("OAuth client IDs are part of cloud-sync identity and must be reset")
+	}
+	if !isResetSyncProfileKey("netcatty_sync_oauth_client_secrets_v1") {
+		t.Fatal("OAuth client secrets are part of cloud-sync identity and must be reset")
+	}
 	if isResetSyncProfileKey("netcatty_theme_v1") {
 		t.Fatal("theme is not cloud-sync identity")
 	}

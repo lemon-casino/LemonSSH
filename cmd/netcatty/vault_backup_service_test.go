@@ -35,10 +35,10 @@ func (k *memoryKeyring) Delete(service, user string) error {
 
 func sampleVaultPayload(hostLabel string) json.RawMessage {
 	body, _ := json.Marshal(map[string]any{
-		"hosts":     []any{map[string]any{"id": "h1", "label": hostLabel}},
-		"keys":      []any{},
-		"snippets":  []any{},
-		"syncedAt":  1,
+		"hosts":    []any{map[string]any{"id": "h1", "label": hostLabel}},
+		"keys":     []any{},
+		"snippets": []any{},
+		"syncedAt": 1,
 	})
 	return body
 }
@@ -47,8 +47,8 @@ func TestVaultBackupRoundTripAndDedupe(t *testing.T) {
 	dir := t.TempDir()
 	service := newVaultBackupService(dir, credentials.New(&memoryKeyring{}))
 	first, err := service.CreateVaultBackup(VaultBackupCreateRequest{
-		Payload: sampleVaultPayload("prod"),
-		Reason:  "before_restore",
+		Payload:  sampleVaultPayload("prod"),
+		Reason:   "before_restore",
 		MaxCount: 5,
 	})
 	if err != nil {
@@ -58,8 +58,8 @@ func TestVaultBackupRoundTripAndDedupe(t *testing.T) {
 		t.Fatalf("first backup: %#v", first)
 	}
 	duplicate, err := service.CreateVaultBackup(VaultBackupCreateRequest{
-		Payload: sampleVaultPayload("prod"),
-		Reason:  "before_restore",
+		Payload:  sampleVaultPayload("prod"),
+		Reason:   "before_restore",
 		MaxCount: 5,
 	})
 	if err != nil {

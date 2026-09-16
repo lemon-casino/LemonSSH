@@ -84,18 +84,18 @@ func (s *cloudSyncSessionPassword) Clear() bool {
 // store: the master key verifier, OAuth client IDs, convergent replicas
 // and baselines, per-provider snapshots/state and history. Forgetting the
 // master key removes all of them so the next sync run starts from scratch.
-	var resetSyncProfilePrefixes = []string{
-		"netcatty_master_key_config_v1",
-		"netcatty_convergent_sync_replica_v2",
-		"netcatty_convergent_sync_provider_baseline_v2_",
-		"netcatty_sync_base_payload_v1",
-		"netcatty_sync_snapshots_v1_",
-		"netcatty_sync_history_v1",
-		"netcatty_provider_",
-		"netcatty_cloudsync_session_password",
-		"netcatty_sync_oauth_client_ids_v1",
-		"netcatty_sync_oauth_client_secrets_v1",
-	}
+var resetSyncProfilePrefixes = []string{
+	"netcatty_master_key_config_v1",
+	"netcatty_convergent_sync_replica_v2",
+	"netcatty_convergent_sync_provider_baseline_v2_",
+	"netcatty_sync_base_payload_v1",
+	"netcatty_sync_snapshots_v1_",
+	"netcatty_sync_history_v1",
+	"netcatty_provider_",
+	"netcatty_cloudsync_session_password",
+	"netcatty_sync_oauth_client_ids_v1",
+	"netcatty_sync_oauth_client_secrets_v1",
+}
 
 func isResetSyncProfileKey(key string) bool {
 	for _, prefix := range resetSyncProfilePrefixes {

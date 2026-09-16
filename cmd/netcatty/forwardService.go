@@ -54,8 +54,8 @@ type PortForwardRuntimeRecord struct {
 }
 
 type PortForwardRuntimeSnapshot struct {
-	Epoch    string                    `json:"epoch"`
-	Revision uint64                    `json:"revision"`
+	Epoch    string                     `json:"epoch"`
+	Revision uint64                     `json:"revision"`
 	Records  []PortForwardRuntimeRecord `json:"records"`
 }
 
@@ -93,14 +93,14 @@ func (s *ForwardService) Start(id, kind, bindHost string, bindPort uint16, targe
 		lease.Discard()
 		return PortForwardResult{TunnelID: id, Error: "ssh client unavailable"}
 	}
-		tunnelFn := func(ctx context.Context, host string, port uint16, local net.Conn) error {
-			remote, dialErr := client.Dial("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)))
-			if dialErr != nil {
-				return dialErr
-			}
-			proxyConn(local, remote)
-			return nil
+	tunnelFn := func(ctx context.Context, host string, port uint16, local net.Conn) error {
+		remote, dialErr := client.Dial("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)))
+		if dialErr != nil {
+			return dialErr
 		}
+		proxyConn(local, remote)
+		return nil
+	}
 	listenRemote := func(ctx context.Context, spec forward.Spec) (net.Listener, error) {
 		addr := net.JoinHostPort(spec.BindHost, fmt.Sprintf("%d", spec.BindPort))
 		return client.Listen("tcp", addr)
@@ -110,23 +110,23 @@ func (s *ForwardService) Start(id, kind, bindHost string, bindPort uint16, targe
 		lease.Discard()
 		return PortForwardResult{TunnelID: id, Error: err.Error()}
 	}
-		_, err = manager.Start(context.Background(), forward.Spec{
-			ID:         id,
-			Kind:       forward.Kind(kind),
-			BindHost:   bindHost,
-			BindPort:   bindPort,
-			TargetHost: targetHost,
-			TargetPort: targetPort,
-			RuleID:     ruleID,
-		})
-		if err != nil {
-			lease.Discard()
-			return PortForwardResult{TunnelID: id, Error: err.Error()}
-		}
-		s.mu.Lock()
-		s.tunnels[id] = &forwardTunnel{ruleID: ruleID, kind: kind, lease: lease, manager: manager}
-		s.mu.Unlock()
-		return PortForwardResult{TunnelID: id, Success: true, Status: "active"}
+	_, err = manager.Start(context.Background(), forward.Spec{
+		ID:         id,
+		Kind:       forward.Kind(kind),
+		BindHost:   bindHost,
+		BindPort:   bindPort,
+		TargetHost: targetHost,
+		TargetPort: targetPort,
+		RuleID:     ruleID,
+	})
+	if err != nil {
+		lease.Discard()
+		return PortForwardResult{TunnelID: id, Error: err.Error()}
+	}
+	s.mu.Lock()
+	s.tunnels[id] = &forwardTunnel{ruleID: ruleID, kind: kind, lease: lease, manager: manager}
+	s.mu.Unlock()
+	return PortForwardResult{TunnelID: id, Success: true, Status: "active"}
 }
 
 func (s *ForwardService) Stop(id string) PortForwardResult {
