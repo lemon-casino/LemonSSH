@@ -253,16 +253,8 @@ function writeGateMarker(root, id = ledgerId(), decisionIds = ["WV3-901", "WV3-9
 
 function setupNonAiFixture(root) {
   addNonAiFixtureDecisions(root);
-  mutate(root, "capability-matrix.md", (source) => {
-    const childRows = new Map([
-      ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
-    ]);
-    for (const [parent, childRow] of childRows) {
-      const pattern = new RegExp(`(^\\| ${parent} \\|.*$)`, "m");
-      source = source.replace(pattern, `$1\n${childRow}`);
-    }
-    return source;
-  });
+  // The real matrix already carries the decomposed child rows (PLUG-02.1,
+  // AI-04.1 …), so no fixture injection is needed anymore.
   const capabilityIds = nonAiRequiredCapabilityIds(root);
   mutate(root, "release-target-matrix.md", resolveReleaseMatrix);
   return capabilityIds;
@@ -439,14 +431,18 @@ test("checker rejects broken local Markdown links", () => withFixture((root) => 
 }));
 
 test("checker requires composite capabilities to split before implementation", () => withFixture((root) => {
-  mutate(root, "capability-matrix.md", (source) => source.replace(
-    /\| PLUG-02 \|([^\n]+)\| not-started \|/,
-    "| PLUG-02 |$1| implemented |",
-  ));
+  // Simulate an undecomposed composite: strip the PLUG-02.x children, then
+  // implement the parent (probe -> implemented is a legal transition).
+  mutate(root, "capability-matrix.md", (source) => source
+    .split("\n")
+    .filter((line) => !/^\| PLUG-02\.\d+ \|/.test(line))
+    .join("\n"));
+  mutate(root, "capability-matrix.md", (source) => setMatrixStatus(source, "PLUG-02", "implemented"));
   mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
     id: ledgerId(),
     capability: "PLUG-02",
     task: "P5-04",
+    transition: "probe -> implemented",
   })}`);
   assert.ok(checkMigrationDocs(root).some((error) => (
     error.includes("PLUG-02 must be split into stable child rows")
@@ -690,16 +686,6 @@ test("checker reports malformed encoded Markdown anchors without throwing", () =
 
 test("checker accepts a complete non-AI gate without mutating mixed capability states", () => withFixture((root) => {
   addNonAiFixtureDecisions(root);
-  mutate(root, "capability-matrix.md", (source) => {
-    const childRows = new Map([
-      ["PLUG-02", "| PLUG-02.1 | Fixture WASM child | required | fixture | fixture | fixture | fixture | not-started |"],
-    ]);
-    for (const [parent, childRow] of childRows) {
-      const pattern = new RegExp(`(^\\| ${parent} \\|.*$)`, "m");
-      source = source.replace(pattern, `$1\n${childRow}`);
-    }
-    return source;
-  });
   const capabilityIds = nonAiRequiredCapabilityIds(root);
   mutate(root, "capability-matrix.md", (source) => capabilityIds.reduce(
     (current, capability) => setMatrixStatus(current, capability, "verified"),
@@ -746,6 +732,92 @@ test("checker requires removed scope to use retired status and latest approved r
   assert.ok(errors.some((error) => error.includes("retired a capability without an approved decision")));
   assert.ok(errors.some((error) => error.includes("retired a capability without removed: or deleted: evidence")));
   assert.ok(errors.some((error) => error.includes("FND-01 is removed without retained removed/deleted evidence")));
+}));
+
+test("checker allows a NONAI gate when AI-04.4 is already removed and retired", () => withFixture((root) => {
+  addAcceptedDecision(root, "WV3-904", "Fixture AI-04.4 removal", ["scope-removal:AI-04.4"]);
+  mutate(root, "capability-matrix.md", (source) => setMatrixScopeAndStatus(
+    source,
+    "AI-04.4",
+    "removed",
+    "retired",
+  ));
+  mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
+    id: ledgerId(1),
+    capability: "AI-04.4",
+    task: "P7-05",
+    transition: "not-started -> retired",
+    scopeChange: "AI-04.4: required -> removed",
+    decisions: "`WV3-904`",
+    retirement: "removed: fixture Cursor API-key Electron owner remains frozen",
+  })}`);
+  appendCompleteNonAiGate(root, 2);
+  assert.deepEqual(checkMigrationDocs(root), []);
+}));
+
+test("checker still rejects a NONAI gate when a retained AI row has advanced", () => withFixture((root) => {
+  addNonAiFixtureDecisions(root);
+  const capabilityIds = nonAiRequiredCapabilityIds(root);
+  mutate(root, "release-target-matrix.md", resolveReleaseMatrix);
+  mutate(root, "capability-matrix.md", (source) => {
+    source = capabilityIds.reduce(
+      (current, capability) => setMatrixStatus(current, capability, "verified"),
+      source,
+    );
+    return setMatrixStatus(source, "AI-01", "probe");
+  });
+  const capabilities = capabilityIds.map((id) => `\`${id}\``).join(", ");
+  mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
+    id: ledgerId(1),
+    capability: capabilities,
+    task: "P6-05",
+    transition: "not-started -> probe",
+  })}${ledgerEntry({
+    id: ledgerId(2),
+    capability: capabilities,
+    task: "P6-05",
+    transition: "probe -> implemented",
+  })}${ledgerEntry({
+    id: ledgerId(3),
+    capability: capabilities,
+    task: "P6-05",
+    transition: "implemented -> verified",
+    grade: "A",
+  })}${ledgerEntry({
+    id: ledgerId(4),
+    capability: "AI-01",
+    task: "P7-01",
+    transition: "not-started -> probe",
+  })}${gateEntry(ledgerId(5))}`);
+  const errors = checkMigrationDocs(root);
+  assert.ok(errors.some((error) => error.includes(
+    `${ledgerId(4)} advances AI-01 without a currently valid Gate NONAI-COMPLETE epoch`,
+  )));
+  assert.ok(errors.some((error) => error.includes(
+    `${ledgerId(5)} Gate NONAI-COMPLETE requires AI-01 to remain not-started`,
+  )));
+}));
+
+test("checker rejects AI-04.4 removal that cites only WV3-014", () => withFixture((root) => {
+  mutate(root, "capability-matrix.md", (source) => setMatrixScopeAndStatus(
+    source,
+    "AI-04.4",
+    "removed",
+    "retired",
+  ));
+  mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
+    id: ledgerId(),
+    capability: "AI-04.4",
+    task: "P7-05",
+    transition: "not-started -> retired",
+    scopeChange: "AI-04.4: required -> removed",
+    decisions: "`WV3-014`",
+    retirement: "removed: fixture Cursor API-key Electron owner remains frozen",
+  })}`);
+  const errors = checkMigrationDocs(root);
+  assert.ok(errors.some((error) => (
+    error.includes("Scope change requires decision category: scope-removal:AI-04.4")
+  )));
 }));
 
 test("checker rejects every production AI path before the non-AI gate", () => withFixture((root) => {

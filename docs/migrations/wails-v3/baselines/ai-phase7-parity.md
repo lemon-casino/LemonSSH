@@ -8,8 +8,8 @@
 
 | 检查项 | 现状 |
 | --- | --- |
-| ledger 头 | 采集时点 `WV3-L132`；之后已追加 L133～L138。全文无 `NONAI-COMPLETE` 记录 |
-| matrix AI 行 | `AI-01`～`AI-04` 及 `AI-04.1`～`AI-04.8` 全部 `not-started`；AI-04 子行见 WV3-L138 |
+| ledger 头 | 采集时点 `WV3-L132`；之后已追加 L133 至 L156。全文无 `NONAI-COMPLETE` 记录 |
+| matrix AI 行 | 采集时 `AI-01` 至 `AI-04.8` 全部 `not-started`。后注：L152 至 L156 把 `AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, `AI-04.8` 改为 `removed` / `retired`；保留行仍 `not-started` |
 | Wails runtime client | `infrastructure/runtime/wails/wailsRuntimeClient.ts:1412` 仍为 `agent: unimplemented("agent")` |
 | release-target 决策 | `WV3-011/012/013` 已接受（2026-09-08），覆盖 `release-target:windows/macos/linux` 三类 |
 | agent 决策 | 五类均已接受：WV3-014～018。Required Future Decisions 分类清单仍保留作 checker 注册表 |

@@ -16,7 +16,7 @@
 
 状态只以 [capability-matrix.md](capability-matrix.md) 和 [migration-ledger.md](migration-ledger.md) 为准；顺序与门禁以 [implementation-plan.md](implementation-plan.md)、[verification-gates.md](verification-gates.md)、[decisions.md](decisions.md) 为准。后续 AI 每次开工前重读这五份文件，不得把本文的时间快照当成新授权。
 
-**当前不得修改 AI production path。**矩阵中 `AI-01`～`AI-04` 均为 `not-started`；`SYNC-01` 明确记载 AI 数据仍使用 renderer localStorage；Wails `infrastructure/runtime/wails/wailsRuntimeClient.ts` 中 `agent: unimplemented("agent")`。截至台账 `WV3-L132`，没有 P6-05 `Gate: NONAI-COMPLETE`。`WV3-009` 要求 AI 最后迁移。现在可做的只有文档、Electron 基线比对及 P0-05 允许的只读协议/一次性 fixture 探针；以下 P7 production 工作须等门禁通过。
+**当前不得修改 AI production path。**矩阵中保留的 `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, `AI-04.3` 均为 `not-started`；`AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, `AI-04.8` 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。`SYNC-01` 明确记载 AI 数据仍使用 renderer localStorage；Wails `infrastructure/runtime/wails/wailsRuntimeClient.ts` 中 `agent: unimplemented("agent")`。截至台账 `WV3-L156`，没有 P6-05 `Gate: NONAI-COMPLETE`。`WV3-009` 要求 AI 最后迁移。现在可做的只有文档、Electron 基线比对及 P0-05 允许的只读协议/一次性 fixture 探针；以下 P7 production 工作须等门禁通过。
 
 P7 开工检查由执行 AI 实际读取并记录：
 
@@ -121,9 +121,9 @@ DeleteChatSession(chatSessionId) -> stopped turn + scoped cleanup
 | Codex | `internal/agent/adapters/codex/`：移植 `electron/bridges/aiBridge/codexAppServer/{connection,runtime}.cjs` 的 JSONL 相关性、thread/resume、turn/interrupt/steer、model/list、approval/user-input；使用锁定 schema | App Server 为单一 Codex owner；SDK 路径退出。必须验证 native executable，不能允许旧 `.js` 启动分支 |
 | Grok | `internal/agent/adapters/acp/` 共用 ACP core，再做 Grok 扩展 | initialize/version、reverse RPC、permission allow/deny/timeout、resume/load、cancel；旧 Grok Confirm→always-approve 不可复制；streaming-json 只在明确决定的降级范围内使用 |
 | Claude | 原生 headless stream-json adapter | session resume、MCP、图片、取消、model catalog 和 tool policy；若 native provenance 或 model discovery parity 仍缺，先记录阻断/产品决定 |
-| OpenCode | Go HTTP/OpenAPI/SSE client | 只在 `agent-runtime:opencode-bun` 决策允许且 executable provenance 达标后实施；session/model/event/permission/config isolation 必测 |
-| Cursor API key | Go `sdk.v1` Connect/protobuf client | 只在 `agent-runtime:cursor-bun` 决策允许后实施；CancelRun、model、resume、scope；SDK `autoReview:false` 不等于 Netcatty Confirm |
-| Cursor CLI login、Copilot、CodeBuddy | 按各 `agent-disposition:*` 决策处理 | 无非 Node 可验证 runtime 则退休并保留历史可读/明确 UX；不得因 Go client 可调用 Node CLI 就宣称迁移完成 |
+| OpenCode | none; typed unavailable | WV3-015 plus WV3-020 / L153 already `removed` / `retired`. Phase 7 maps fail-closed only. Reopen needs a superseding decision plus native non-Bun provenance |
+| Cursor API key | none; typed unavailable | WV3-014 plus WV3-019 / L152 already `removed` / `retired`. Phase 7 maps fail-closed only. SDK `autoReview:false` is not Netcatty Confirm |
+| Cursor CLI login、Copilot、CodeBuddy | none; typed unavailable | WV3-016, WV3-017, WV3-018 plus WV3-021, WV3-022, WV3-023 / L154, L155, L156 already `removed` / `retired`. History stays readable; do not call a Node CLI |
 
 每个可保留 adapter 必须声明 `Start/Resume/Stop/Steer/ListModels/Inspect` 支持矩阵；不支持的操作返回 typed `unsupported`，不得假造成功或默默新建 session。外部 session identity 至少绑定 profile/chat、vendor/protocol/version、binary digest/version、auth profile、permission/tool mode、workspace/cwd/roots、network class、catalog/policy revision。任一边界不匹配返回 `stale-session`；只有完整安全 history seed 且明确创建新会话时才可续聊。vendor 内置 shell/edit/network/plugin/extension 路径无法经过 Netcatty policy 时禁用，不能用 `--force` 或永久自动批准代替 Confirm。
 

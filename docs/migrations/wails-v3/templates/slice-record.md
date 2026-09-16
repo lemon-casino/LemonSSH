@@ -73,7 +73,9 @@ completed state invalidates the current epoch; `verified -> migrated` does not.
 An approved post-gate scope removal invalidates the epoch that counted the row
 as required; a later gate may exclude it. Production AI paths then become
 forbidden again, and after recovery another NONAI record is required before AI
-advancement.
+advancement. Remaining required AI rows must stay `not-started` at the gate;
+AI rows already `removed` with `retired` status are allowed and do not count
+as AI advancement.
 
 The release lifecycle gate forms are:
 

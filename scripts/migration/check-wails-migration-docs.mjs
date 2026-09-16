@@ -625,6 +625,10 @@ function isRequiredNonAiGateRow(row, rows) {
   return NON_AI_GATE_PREFIXES.has(prefix);
 }
 
+function isRemovedRetired(state) {
+  return state?.scope === "removed" && state?.status === "retired";
+}
+
 function normalizeRepoPath(value) {
   return value.replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/$/, "");
 }
@@ -993,7 +997,7 @@ function validateMatrixProgress(rows, entriesWithRefs, releaseMatrixSource, erro
       }
       for (const row of rows.filter((candidate) => candidate.id.startsWith(AI_CAPABILITY_PREFIX))) {
         const state = stateByCapability.get(row.id);
-        if (state?.status !== "not-started") {
+        if (state?.status !== "not-started" && !isRemovedRetired(state)) {
           errors.push(`${entry.entry.id} Gate NONAI-COMPLETE requires ${row.id} to remain not-started`);
           valid = false;
         }
@@ -1096,7 +1100,13 @@ function validateMatrixProgress(rows, entriesWithRefs, releaseMatrixSource, erro
       if (row?.scope === "aggregate" && entry.transition[2] !== "not-started") {
         errors.push(`${entry.entry.id} advances aggregate capability ${capabilityId}`);
       }
-      if (capabilityId.startsWith(AI_CAPABILITY_PREFIX) && entry.transition[2] !== "not-started" && !nonAiGateValid) {
+      const isAiScopeRemoval = entry.transition[2] === "retired" && entry.scopeRemoval === capabilityId;
+      if (
+        capabilityId.startsWith(AI_CAPABILITY_PREFIX)
+        && entry.transition[2] !== "not-started"
+        && !isAiScopeRemoval
+        && !nonAiGateValid
+      ) {
         errors.push(`${entry.entry.id} advances ${capabilityId} without a currently valid Gate NONAI-COMPLETE epoch`);
       }
       const isAdvancement = entry.transition[1] !== entry.transition[2]

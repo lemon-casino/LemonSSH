@@ -4,13 +4,14 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L150`。矩阵 required 叶行含 AI-04.1～AI-04.8：implemented 17 /
-probe 12 / not-started 15 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
+当前台账头：`WV3-L156`。矩阵 required 叶行：implemented 15 / probe 13 /
+not-started 8 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
 2026-09-14～16：五个 agent 去留决定 WV3-014～018（L137）、AI-04 拆八个子行（L138）、
-脚本录制与回放全链路（L139～L143、L146～L150：录制、敏感对话框、waitForRegex/Any、
-progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行范围（L151）。
+脚本录制与回放全链路（L139、L140、L141、L142、L143、L146、L147、L148、L149、L150：录制、敏感对话框、waitForRegex/Any、
+progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行范围（L151）、
+AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）。
 生产 adapter 仍须等 P6-05。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -106,11 +107,10 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - native 进程运行时已接到 PluginService；Stop 关闭 Windows job handle 以回收子孙；本机 TestStopReapsDescendant 通过；签名变体和 macOS/Linux 活体树仍 pending（PLUG-03）— 已处理
 
 ### AI（全部）
-- P7-01~P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
-  外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01~AI-04.8）— pending（禁止开工）
-- AI-04 已拆子行（L138）：保留 AI-04.1 Codex / AI-04.2 Claude / AI-04.3 Grok；
-  AI-04.4～AI-04.8 按 WV3-014～018 记为 typed unavailable，仍 required/not-started，
-  尚未做 capability-specific scope-removal
+- P7-01, P7-02, P7-03, P7-04, P7-05, P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
+  保留的外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01, AI-02, AI-03, AI-04.1, AI-04.2, AI-04.3）— pending（禁止开工）
+- AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
+  不挡 P6-05，也不挡 Phase 7 开工。Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
 
 ---
 

@@ -4419,3 +4419,128 @@ capability row, source paths, verification output or CI run.
 - Residual risks: live GUI acceptance and three-platform evidence remain pending for both children
 - Next safe slice: dialog form/select/radio/checkbox parsing or three-platform evidence collection
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L152 - 2026-09-16 - Remove AI-04.4 from required Wails scope
+
+- Capability rows: `AI-04.4`
+- Plan task: `P7-05`
+- Status change: `not-started -> retired`
+- Scope change: `AI-04.4: required -> removed`
+- Goal: Exit required Wails scope for the Cursor API-key adapter. This is not an adapter implementation. AgentPort stays typed unavailable, history stays readable, and no paid calls are made. Electron `@cursor/sdk` remains the frozen release-carrier owner until P9.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings unavailable copy and AgentPort fail-closed mapping remain Phase 7 W20 work
+- Electron owner affected: `@cursor/sdk` with embedded Bun bridge; source is not deleted
+- Preserved invariants: `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, and `AI-04.3` remain not-started; no production AI path was created
+- Data/schema impact: none; historical Cursor API-key sessions stay readable
+- Security impact: positive; the Wails release cannot spawn the Bun bridge or make paid Cursor API-key calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-014`, `WV3-019`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: removed: Electron `@cursor/sdk` Bun bridge remains the frozen release-carrier owner; no Wails owner; source not deleted until P9
+- Documentation updated: capability-matrix, decisions, implementation-plan, remaining-work, work packages, ledger, checker
+- Residual risks: settings typed-unavailable UI is still a Phase 7 W20 deliverable
+- Next safe slice: `AI-04.5` scope-removal
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L153 - 2026-09-16 - Remove AI-04.5 from required Wails scope
+
+- Capability rows: `AI-04.5`
+- Plan task: `P7-05`
+- Status change: `not-started -> retired`
+- Scope change: `AI-04.5: required -> removed`
+- Goal: Exit required Wails scope for the OpenCode adapter. This is not an adapter implementation. AgentPort stays typed unavailable, history stays readable, and no paid calls are made. Electron `@opencode-ai/sdk` remains the frozen release-carrier owner until P9.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings unavailable copy and AgentPort fail-closed mapping remain Phase 7 W20 work
+- Electron owner affected: `@opencode-ai/sdk` starting `opencode serve`; source is not deleted
+- Preserved invariants: `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, and `AI-04.3` remain not-started; no production AI path was created
+- Data/schema impact: none; historical OpenCode sessions stay readable
+- Security impact: positive; the Wails release cannot spawn embedded Bun `opencode serve` or make paid OpenCode calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-015`, `WV3-020`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: removed: Electron `@opencode-ai/sdk` `opencode serve` path remains the frozen release-carrier owner; no Wails owner; source not deleted until P9
+- Documentation updated: capability-matrix, decisions, implementation-plan, remaining-work, work packages, ledger, checker
+- Residual risks: settings typed-unavailable UI is still a Phase 7 W20 deliverable
+- Next safe slice: `AI-04.6` scope-removal
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L154 - 2026-09-16 - Remove AI-04.6 from required Wails scope
+
+- Capability rows: `AI-04.6`
+- Plan task: `P7-05`
+- Status change: `not-started -> retired`
+- Scope change: `AI-04.6: required -> removed`
+- Goal: Exit required Wails scope for the Copilot adapter. This is not an adapter implementation. AgentPort stays typed unavailable, history stays readable, and no paid calls are made. Electron Copilot SDK/CLI remains the frozen release-carrier owner until P9.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings unavailable copy and AgentPort fail-closed mapping remain Phase 7 W21 work
+- Electron owner affected: `@github/copilot-sdk` plus Copilot CLI; source is not deleted
+- Preserved invariants: `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, and `AI-04.3` remain not-started; no production AI path was created
+- Data/schema impact: none; historical Copilot sessions stay readable
+- Security impact: positive; the Wails release cannot spawn a Node Copilot child or make paid Copilot calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-016`, `WV3-021`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: removed: Electron `@github/copilot-sdk` plus Copilot CLI remains the frozen release-carrier owner; no Wails owner; source not deleted until P9
+- Documentation updated: capability-matrix, decisions, implementation-plan, remaining-work, work packages, ledger, checker
+- Residual risks: settings typed-unavailable UI is still a Phase 7 W21 deliverable
+- Next safe slice: `AI-04.7` scope-removal
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L155 - 2026-09-16 - Remove AI-04.7 from required Wails scope
+
+- Capability rows: `AI-04.7`
+- Plan task: `P7-05`
+- Status change: `not-started -> retired`
+- Scope change: `AI-04.7: required -> removed`
+- Goal: Exit required Wails scope for the CodeBuddy adapter. This is not an adapter implementation. AgentPort stays typed unavailable, history stays readable, and no paid calls are made. Electron CodeBuddy Node CLI remains the frozen release-carrier owner until P9.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings unavailable copy and AgentPort fail-closed mapping remain Phase 7 W21 work
+- Electron owner affected: `@tencent-ai/agent-sdk` plus Node CLI; source is not deleted
+- Preserved invariants: `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, and `AI-04.3` remain not-started; no production AI path was created
+- Data/schema impact: none; historical CodeBuddy sessions stay readable
+- Security impact: positive; the Wails release cannot spawn a Node CodeBuddy child or make paid CodeBuddy calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-017`, `WV3-022`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: removed: Electron `@tencent-ai/agent-sdk` plus Node CLI remains the frozen release-carrier owner; no Wails owner; source not deleted until P9
+- Documentation updated: capability-matrix, decisions, implementation-plan, remaining-work, work packages, ledger, checker
+- Residual risks: settings typed-unavailable UI is still a Phase 7 W21 deliverable
+- Next safe slice: `AI-04.8` scope-removal
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L156 - 2026-09-16 - Remove AI-04.8 from required Wails scope
+
+- Capability rows: `AI-04.8`
+- Plan task: `P7-05`
+- Status change: `not-started -> retired`
+- Scope change: `AI-04.8: required -> removed`
+- Goal: Exit required Wails scope for Cursor CLI login. This is not an adapter implementation. AgentPort stays typed unavailable, history stays readable, and no paid calls are made. Both Cursor-branded entries share the unified unavailable explanation. Electron `cursor-agent` remains the frozen release-carrier owner until P9.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none in this slice; settings unavailable copy and AgentPort fail-closed mapping remain Phase 7 W21 work
+- Electron owner affected: `cursor-agent` stream-json (`node.exe` plus `index.js` on Windows); source is not deleted
+- Preserved invariants: `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, and `AI-04.3` remain not-started; no production AI path was created
+- Data/schema impact: none; historical Cursor CLI sessions stay readable
+- Security impact: positive; the Wails release cannot spawn `node.exe` `index.js` for Cursor CLI login or make paid Cursor CLI calls
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-018`, `WV3-023`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: removed: Electron `cursor-agent` Node path remains the frozen release-carrier owner; no Wails owner; source not deleted until P9
+- Documentation updated: capability-matrix, decisions, implementation-plan, remaining-work, work packages, ledger, checker
+- Residual risks: unified Cursor unavailable settings copy is still a Phase 7 W21 deliverable
+- Next safe slice: continue non-AI live evidence collection; do not start Catty or `internal/agent`
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

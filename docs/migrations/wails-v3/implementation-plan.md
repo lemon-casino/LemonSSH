@@ -1574,7 +1574,10 @@ Required evidence:
    不参与；更早 accepted scope-removal decision 已改为 `removed` 的 rows 不参与。
 2. Wails 已与这些 Electron/Node paths 断开；旧 paths 是冻结、不可演进且不被 Wails
    调用的 release carriers，不是 fallback 或第二 owner。
-3. `AI-01`、`AI-02`、`AI-03`、`AI-04` 仍为 `not-started`。
+3. Remaining required AI rows (`AI-01`, `AI-02`, `AI-03`, `AI-04`, and
+   required children) stay `not-started`. AI leaf rows already changed to
+   `removed` with `retired` status by an earlier capability-specific
+   `scope-removal:<ID>` decision are excluded.
 4. `release-target-matrix.md` 中每个 `decision-required` classification 已由 accepted
    decision 解决；gate 引用的 decisions collectively carry exact categories
    `release-target:windows`, `release-target:macos`, `release-target:linux`,
@@ -1761,8 +1764,9 @@ Exit：Go 是 Catty turn canonical owner；React 不再编排 authoritative turn
 协议握手和 disposable fixture probe 可在本 phase 前存在。
 
 执行状态：decomposition gate 已通过文档切片 WV3-L138。复合行 AI-04 拆为
-AI-04.1～AI-04.8 八个 stable child rows 与下列执行卡。生产 adapter 仍须等
-P6-05；本切片只登记 child rows，不创建 `internal/agent`。
+八个 stable child rows 与下列执行卡。WV3-L152 through WV3-L156 已把
+`AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, and `AI-04.8` 改为 `removed` /
+`retired`。生产 adapter 仍须等 P6-05；不创建 `internal/agent`。
 
 按 P0-05 审计结果与 WV3-014～018 逐个拆子任务，每个 agent 一个 capability
 child row/ledger entry：
@@ -1776,15 +1780,16 @@ child row/ledger entry：
 - **P7-05.3（AI-04.3 Grok ACP）**：Create `internal/agent/adapters/acp/` 共用
   ACP core 再加 Grok 扩展；reverse permission deny/timeout/cancel；禁止复制
   Confirm always-approve。
-- **P7-05.4（AI-04.4 Cursor API-key）**：WV3-014 拒绝内嵌 Bun。Phase 7 映射
-  typed unavailable，不创建 Bun/Node owner。
-- **P7-05.5（AI-04.5 OpenCode）**：WV3-015 拒绝内嵌 Bun。Phase 7 映射 typed
-  unavailable，不创建 Bun/Node owner。
-- **P7-05.6（AI-04.6 Copilot）**：WV3-016 退休。Phase 7 映射 typed unavailable，
-  历史可读，禁止付费调用。
-- **P7-05.7（AI-04.7 CodeBuddy）**：WV3-017 退休。Phase 7 映射 typed unavailable。
-- **P7-05.8（AI-04.8 Cursor CLI login）**：WV3-018 退休。与 AI-04.4 共用 Cursor
-  不可用说明。
+- **P7-05.4（AI-04.4 Cursor API-key）**：WV3-014 拒绝内嵌 Bun；WV3-019 / WV3-L152
+  已 `removed` / `retired`。Phase 7 只映射 typed unavailable，不创建 Bun/Node owner。
+- **P7-05.5（AI-04.5 OpenCode）**：WV3-015 拒绝内嵌 Bun；WV3-020 / WV3-L153
+  已 `removed` / `retired`。Phase 7 只映射 typed unavailable，不创建 Bun/Node owner。
+- **P7-05.6（AI-04.6 Copilot）**：WV3-016 退休；WV3-021 / WV3-L154 已 `removed` /
+  `retired`。Phase 7 映射 typed unavailable，历史可读，禁止付费调用。
+- **P7-05.7（AI-04.7 CodeBuddy）**：WV3-017 退休；WV3-022 / WV3-L155 已 `removed` /
+  `retired`。Phase 7 映射 typed unavailable。
+- **P7-05.8（AI-04.8 Cursor CLI login）**：WV3-018 退休；WV3-023 / WV3-L156 已
+  `removed` / `retired`。与 AI-04.4 共用 Cursor 不可用说明。
 
 共享步骤仍适用：model discovery、session resume、approval、stop、steer、
 usage/event normalization；没有稳定非 Node 协议的 agent 不创建永久 sidecar；

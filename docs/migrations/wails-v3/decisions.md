@@ -192,6 +192,67 @@ the old ID and explains the changed evidence.
 - Recorded: 2026-09-14, product owner approval of
   `proposals/agent-disposition-proposals.md` section 1.5.
 
+### WV3-019 - Remove AI-04.4 from required Wails scope
+
+- Categories: scope-removal:AI-04.4
+- Decision: AI-04.4 leaves required Wails scope. WV3-014 already retired the
+  Cursor API-key adapter for the Wails release. The stable row becomes `removed`
+  with `retired` status. AgentPort methods fail closed with a typed unavailable
+  reason, historical sessions stay readable, and no paid calls are made. The
+  Electron `@cursor/sdk` Bun bridge remains the frozen release-carrier owner
+  until P9. Reopen only via a superseding decision.
+- Recorded: 2026-09-16, product owner approval of governance slice B citing
+  WV3-014.
+
+### WV3-020 - Remove AI-04.5 from required Wails scope
+
+- Categories: scope-removal:AI-04.5
+- Decision: AI-04.5 leaves required Wails scope. WV3-015 already retired the
+  OpenCode adapter for the Wails release. The stable row becomes `removed` with
+  `retired` status. AgentPort methods fail closed with a typed unavailable
+  reason, historical sessions stay readable, and no paid calls are made. The
+  Electron `@opencode-ai/sdk` `opencode serve` path remains the frozen
+  release-carrier owner until P9. Reopen only via a superseding decision.
+- Recorded: 2026-09-16, product owner approval of governance slice B citing
+  WV3-015.
+
+### WV3-021 - Remove AI-04.6 from required Wails scope
+
+- Categories: scope-removal:AI-04.6
+- Decision: AI-04.6 leaves required Wails scope. WV3-016 already retired the
+  Copilot adapter for the Wails release. The stable row becomes `removed` with
+  `retired` status. AgentPort methods fail closed with a typed unavailable
+  reason, historical sessions stay readable, and no paid calls are made. The
+  Electron Copilot SDK/CLI path remains the frozen release-carrier owner until
+  P9. Reopen only via a superseding decision.
+- Recorded: 2026-09-16, product owner approval of governance slice B citing
+  WV3-016.
+
+### WV3-022 - Remove AI-04.7 from required Wails scope
+
+- Categories: scope-removal:AI-04.7
+- Decision: AI-04.7 leaves required Wails scope. WV3-017 already retired the
+  CodeBuddy adapter for the Wails release. The stable row becomes `removed` with
+  `retired` status. AgentPort methods fail closed with a typed unavailable
+  reason, historical sessions stay readable, and no paid calls are made. The
+  Electron CodeBuddy Node CLI path remains the frozen release-carrier owner
+  until P9. Reopen only via a superseding decision.
+- Recorded: 2026-09-16, product owner approval of governance slice B citing
+  WV3-017.
+
+### WV3-023 - Remove AI-04.8 from required Wails scope
+
+- Categories: scope-removal:AI-04.8
+- Decision: AI-04.8 leaves required Wails scope. WV3-018 already retired the
+  Cursor CLI login mode for the Wails release. The stable row becomes `removed`
+  with `retired` status. AgentPort methods fail closed with a typed unavailable
+  reason, historical sessions stay readable, and no paid calls are made. Both
+  Cursor-branded entries share the unified unavailable explanation. The Electron
+  `cursor-agent` Node path remains the frozen release-carrier owner until P9.
+  Reopen only via a superseding decision.
+- Recorded: 2026-09-16, product owner approval of governance slice B citing
+  WV3-018.
+
 ## Required Future Decisions
 
 P6-05 `NONAI-COMPLETE` requires accepted decisions that collectively carry every

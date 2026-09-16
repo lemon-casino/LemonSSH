@@ -169,15 +169,15 @@ Catty 完整功能：W12 -> W13 -> W14 -> W15
 
 ### W20：OpenCode 与 Cursor API
 
-- 归属：P7-05.4（AI-04.4 Cursor API-key）与 P7-05.5（AI-04.5 OpenCode）；依赖 W16 及 WV3-014/WV3-015。
-- 分开提交：当前决策是 typed unavailable，不实现 Bun owner。若 superseding decision 重开，OpenCode 锁 HTTP/OpenAPI/SSE 与私有 server lifecycle；Cursor 锁 sdk.v1 descriptor、Connect/protobuf 与 CancelRun/model/resume。两者只有 supervisor/host policy 可共用，不能臆造一个通用协议。
-- 验收：各自独立的 schema/provenance/platform/permission/model/resume 附件证据；新文档不能代替实际 binary handshake；无 accepted decision 时保留 blocker。
+- 归属：P7-05.4（AI-04.4 Cursor API-key）与 P7-05.5（AI-04.5 OpenCode）；依赖 W16、WV3-014、WV3-015、WV3-019、WV3-020。
+- 分开提交：两行已 `removed` / `retired`（L152, L153）。本包在 P6-05 之后只做 typed-unavailable 映射，不实现 Bun owner，也不再补 scope-removal。若 superseding decision 重开，OpenCode 锁 HTTP/OpenAPI/SSE 与私有 server lifecycle；Cursor 锁 sdk.v1 descriptor、Connect/protobuf 与 CancelRun/model/resume。两者只有 supervisor/host policy 可共用，不能臆造一个通用协议。
+- 验收：AgentPort fail-closed、设置页 unavailable 原因、历史可读、零付费调用、无 Bun/Node child。
 
 ### W21：其余 Agent disposition 与完整设置入口
 
-- 归属：P7-05.6（AI-04.6 Copilot）、P7-05.7（AI-04.7 CodeBuddy）、P7-05.8（AI-04.8 Cursor CLI）；依赖 W16 及 WV3-016～018。
-- 实施：按已接受 decision 退休；补 AgentPort 中 discover、account/login/logout、skills、MCP integration、plugin/marketplace 管理映射；已不支持功能需对应 decision 与明确 UI 原因。
-- 验收：历史可读，旧 active/default Agent 不可用时不盲选另一账户或发起付费调用；选模型/登录/取消/退出/设置启停均有可观察结果；retired 行必须有 capability-specific scope-removal 证据。
+- 归属：P7-05.6（AI-04.6 Copilot）、P7-05.7（AI-04.7 CodeBuddy）、P7-05.8（AI-04.8 Cursor CLI）；依赖 W16、WV3-016、WV3-017、WV3-018、WV3-021、WV3-022、WV3-023。
+- 实施：三行已 `removed` / `retired`（L154, L155, L156）。本包不再补 scope-removal。P6-05 之后补 AgentPort 中 discover、account/login/logout、skills、MCP integration、plugin/marketplace 管理的 fail-closed 映射与明确 UI 原因。
+- 验收：历史可读，旧 active/default Agent 不可用时不盲选另一账户或发起付费调用；选模型/登录/取消/退出/设置启停均有可观察结果。
 
 ### W22：前端与 CJS/Node 调用链收口
 
