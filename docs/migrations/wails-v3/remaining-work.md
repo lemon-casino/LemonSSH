@@ -4,14 +4,15 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L156`。矩阵 required 叶行：implemented 15 / probe 13 /
+当前台账头：`WV3-L157`。矩阵 required 叶行：implemented 15 / probe 13 /
 not-started 8 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
 2026-09-14～16：五个 agent 去留决定 WV3-014～018（L137）、AI-04 拆八个子行（L138）、
 脚本录制与回放全链路（L139、L140、L141、L142、L143、L146、L147、L148、L149、L150：录制、敏感对话框、waitForRegex/Any、
 progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行范围（L151）、
-AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）。
+AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）、
+dialog.form/select/radio/checkbox（L157）。
 生产 adapter 仍须等 P6-05。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
@@ -64,10 +65,11 @@ AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）。
 
 ET inline auth/proxy/jump 仍不支持（超出原始 roaming 范围）；route/roaming 仅保留活进程，进程死亡恢复未实现。
 
-Helper 交付审计：Git 仅跟踪 resources/mosh 与 resources/et 的 README；本地
-win32-x64 mosh-client.exe 存在但缺少 manifest pin，其余 Windows/macOS
-helper binary 和对应 pin 均缺。已通过的 Wails build 不等于 package-wails
-带 helper 的发布打包成功；供给/校验脚本已实现，实际 helper 交付待完成。
+Helper 供给与校验已由 L123 交付：`fetch-wails-helpers.lock.json` 锁定
+MoshCatty 0.1.8 与 et-bin 6.2.10-1，八个目标本机 `--verify-only --all` 通过，
+`package-wails` 经 lock 校验捆绑 helper、sidecar 与许可证。Git 仍只跟踪
+`resources/mosh` 与 `resources/et` 的 README，binary 由脚本下载不入库。
+装机后的三平台活体连接仍属验收。
 
 ### SFTP / 传输
 - 本地面板 HomeDir/ListDir 接到真实文件系统；桌面桥缺失能力时报错，演示文件仅用于无后端浏览器预览（SYS-01 / WV3-L094）— 已处理；真实远端上传复验仍 pending
@@ -86,14 +88,15 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - 脚本录制 Start/Stop/AppendStep 接到 Go `internal/script` + ScriptService（L139）；敏感步骤、sleep gap、步数上限与 Electron codegen 对齐
 - 录制脚本回放 `scriptRun`/`scriptStop`/`scriptGetRuns` 接到 Go runner（L140）：sleep、sendLine、waitForPrompt/waitForText；含 dialog/log/disconnect 的脚本仍拒绝，不假装 Node Worker 已迁移
 - waitForPrompt/waitForText 现在观察 TerminalService 输出（L141），匹配 Electron 的常见提示符和文本身，超时才失败
-- 敏感步骤可回放（L142）：`nct.dialog.prompt` 经 Wails 事件发给现有 ScriptDialogHost，答案经 ResolveDialog 回给 Go runner；alert/form 等仍拒绝
+- 敏感步骤可回放（L142）：`nct.dialog.prompt` 经 Wails 事件发给现有 ScriptDialogHost，答案经 ResolveDialog 回给 Go runner
 - 脚本 pause/resume 接到 Go runner（L143），`nct.log` 和 `dialog.alert` 也已支持（log/alert 走运行日志与对话框）
 - `nct.progress.start/set/step/done` 接到 Go runner（L144）：确定型进度写入运行快照，面板进度条可见；含变量的进度参数仍拒绝
 - `session.disconnect` 接到 Go runner（L145）：断开后运行标记完成，不再写终端；`startLog/stopLog` 仍拒绝（无 Go 日志 owner）
 - `waitForRegex` / `waitForAny` 接到 Go runner（L146）：字符串按字面量、`/正则/i` 形式按正则，匹配新鲜输出尾部；`screen.getText/send/clear` 仍拒绝
 - 正则引擎换成 regexp2（L147）：回引用、环视等 JavaScript 特有语法可以工作，2 秒匹配超时防回溯挂死
 - `screen.send/clear/getText` 与 `dialog.confirm` 接到 Go runner（L148）：send 不追加回车，clear 清空 runner 输出视图，getText 捕获当前输出到变量，confirm 返回 true/false
-- `session.startLog/stopLog` 接到 Go 会话日志流（L149）：默认写入 profile 目录 session-logs/，支持自定义路径；至此录制器与手写脚本常用的 nct API 已全部可跑，仅剩 dialog.form/select/radio/checkbox
+- `session.startLog/stopLog` 接到 Go 会话日志流（L149）：默认写入 profile 目录 session-logs/，支持自定义路径
+- `dialog.form/select/radio/checkbox` 接到 Go runner（L157）：select/radio/checkbox 收成 form，答案 JSON 回传现有 ScriptDialogHost
 - 运行状态改为实时推送（L150）：runner 每次变更广播 `netcatty:script:runs-updated`，面板进度条/日志/状态即时刷新，替代临时轮询
 - 弹出终端窗口：PopupWindowService 打开 `#/terminal-popup` 并 emit config；会话窗口角色栅栏与清理代码已接；多显示器/崩溃活体矩阵仍缺（L116）（FND-04）— 已处理
 

@@ -738,6 +738,25 @@ test("script recording methods reach the Go recorder and other script methods st
   assert.deepEqual(ran, { runId: "run-1", runIds: ["run-1"] });
 });
 
+test("script dialog response JSON-encodes form objects", async () => {
+  const seen: Array<{ requestId: string; value: string; cancelled: boolean }> = [];
+  const bindings = stubBindings();
+  bindings.script = {
+    ResolveDialog: async (requestId: string, value: string, cancelled: boolean) => {
+      seen.push({ requestId, value, cancelled });
+      return true;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const responded = await client.script.scriptDialogResponse!("dlg-1", { env: "prod", restart: true });
+  assert.deepEqual(responded, { ok: true });
+  assert.deepEqual(seen, [{
+    requestId: "dlg-1",
+    value: JSON.stringify({ env: "prod", restart: true }),
+    cancelled: false,
+  }]);
+});
+
 test("script run maps renderer session aliases onto native terminal ids", async () => {
   const seen: string[] = [];
   const bindings = stubBindings();

@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,11 +49,12 @@ type RunLog struct {
 // DialogRequest mirrors the renderer's ScriptDialogRequest contract so the
 // existing dialog host renders it unchanged.
 type DialogRequest struct {
-	RequestID    string `json:"requestId"`
-	Type         string `json:"type"`
-	Message      string `json:"message"`
-	DefaultValue string `json:"defaultValue,omitempty"`
-	Sensitive    bool   `json:"sensitive,omitempty"`
+	RequestID    string      `json:"requestId"`
+	Type         string      `json:"type"`
+	Message      string      `json:"message"`
+	DefaultValue string      `json:"defaultValue,omitempty"`
+	Sensitive    bool        `json:"sensitive,omitempty"`
+	Form         *DialogForm `json:"form,omitempty"`
 }
 
 type DialogResponder func(ctx context.Context, request DialogRequest) (value string, cancelled bool, err error)
@@ -396,6 +399,22 @@ func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write Se
 				return
 			}
 			vars[op.Var] = value
+		case "form":
+			value, cancelled, err := r.askDialog(ctx, run, op)
+			if err != nil {
+				r.finish(run, "failed", err.Error())
+				return
+			}
+			if cancelled {
+				r.finish(run, "failed", "Dialog cancelled")
+				return
+			}
+			if op.Extract != "" {
+				value = extractFormValue(value, op.Extract)
+			}
+			if op.Var != "" {
+				vars[op.Var] = value
+			}
 		case "alert":
 			if _, _, err := r.askDialog(ctx, run, ReplayOp{Kind: "alert", Value: op.Value}); err != nil && ctx.Err() == nil {
 				r.finish(run, "failed", err.Error())
@@ -592,6 +611,10 @@ func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, 
 		Message:      op.Value,
 		DefaultValue: "",
 		Sensitive:    op.Sensitive,
+		Form:         op.Form,
+	}
+	if request.Type == "form" && request.Form != nil && request.Message == "" {
+		request.Message = request.Form.Message
 	}
 	answered := make(chan DialogAnswer, 1)
 	r.mu.Lock()
@@ -613,6 +636,34 @@ func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, 
 		return answer.Value, answer.Cancelled, nil
 	case <-timer.C:
 		return "", false, fmt.Errorf("Dialog timed out")
+	}
+}
+
+func extractFormValue(raw, key string) string {
+	var values map[string]any
+	if err := json.Unmarshal([]byte(raw), &values); err != nil {
+		return raw
+	}
+	extracted, ok := values[key]
+	if !ok {
+		return raw
+	}
+	switch value := extracted.(type) {
+	case string:
+		return value
+	case bool:
+		if value {
+			return "true"
+		}
+		return "false"
+	case float64:
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	default:
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			return fmt.Sprint(value)
+		}
+		return string(encoded)
 	}
 }
 

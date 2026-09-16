@@ -4544,3 +4544,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: unified Cursor unavailable settings copy is still a Phase 7 W21 deliverable
 - Next safe slice: continue non-AI live evidence collection; do not start Catty or `internal/agent`
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L157 - 2026-09-16 - Replay dialog.form/select/radio/checkbox
+
+- Capability rows: `FND-01`
+- Plan task: `P1-02`
+- Status change: `implemented -> implemented`
+- Scope change: `none`
+- Goal: Run recorder and hand-written `nct.dialog.form`, `select`, `radio`, and `checkbox` on the Go runner. Select/radio/checkbox become a one-field form. The existing ScriptDialogHost still draws the dialog. Form answers JSON-encode through ResolveDialog. Cancel still fails the run with Dialog cancelled. Empty forms and reserved field names stay rejected.
+- Go canonical owner: `internal/script/replay.go`, `internal/script/runner.go`
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` JSON-encodes object dialog answers and forwards form payloads on `netcatty:script:dialog-request`
+- Electron owner affected: none; `electron/scripts/scriptRuntime.cjs` remains the frozen release-carrier dialog host
+- Preserved invariants: FND-01 stays implemented; prompt/confirm/alert keep their previous string answers; no production AI path was created
+- Data/schema impact: none
+- Security impact: none; reserved form field names stay rejected
+- Verification: go test -count=1 -race ./internal/script; go test -count=1 ./cmd/netcatty -run Script; node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron scriptRuntime stays until three-platform evidence closes P8-02
+- Documentation updated: ledger, remaining-work
+- Residual risks: computed form specs and variable-interpolated field values stay unsupported line-parser input
+- Next safe slice: continue non-AI live evidence collection; do not start Catty or `internal/agent`
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -57,8 +57,8 @@ await main();`)
   await nct.dialog.form({ message: "no" });
 }
 await main();`)
-	if err == nil || !strings.Contains(err.Error(), "not migrated") {
-		t.Fatalf("form must stay rejected: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "at least one field") {
+		t.Fatalf("empty form must stay rejected: %v", err)
 	}
 }
 
@@ -360,8 +360,122 @@ await main();`)
 	if ops[1].Kind != "clear" || ops[2].Kind != "getText" || ops[2].Var != "text" {
 		t.Fatalf("mid: %#v", ops)
 	}
-	if ops[3].Kind != "confirm" || ops[3].Var != "ok" || ops[3].Value != "go?" {
-		t.Fatalf("confirm: %#v", ops[3])
+		if ops[3].Kind != "confirm" || ops[3].Var != "ok" || ops[3].Value != "go?" {
+			t.Fatalf("confirm: %#v", ops[3])
+		}
+	}
+
+func TestParseAndRunDialogFormSelectRadioCheckbox(t *testing.T) {
+	ops, err := ParseRecordedScript(`async function main() {
+  const values = await nct.dialog.form({
+    title: "Deploy",
+    message: "Choose options",
+    fields: [
+      { type: "select", name: "env", label: "Environment", options: ["dev", "prod"], defaultValue: "dev" },
+      { type: "checkbox", name: "restart", label: "Restart", defaultValue: false },
+    ],
+  });
+  const env = await nct.dialog.select("Environment", ["dev", "prod"], "dev");
+  const mode = await nct.dialog.radio("Mode", ["safe", "fast"], "safe");
+  const restart = await nct.dialog.checkbox("Restart", true);
+  nct.log(env);
+}
+await main();`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) != 5 || ops[0].Kind != "form" || ops[0].Form == nil || len(ops[0].Form.Fields) != 2 {
+		t.Fatalf("form: %#v", ops[0])
+	}
+	if ops[1].Extract != "value" || ops[2].Extract != "value" || ops[3].Extract != "value" {
+		t.Fatalf("extract: %#v", ops)
+	}
+
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	answered := 0
+	runner.SetDialogResponder(func(ctx context.Context, request DialogRequest) (string, bool, error) {
+		if request.Type != "form" || request.Form == nil {
+			t.Fatalf("request: %#v", request)
+		}
+		answered++
+		switch answered {
+		case 1:
+			runner.ResolveDialog(request.RequestID, `{"env":"prod","restart":true}`, false)
+		case 2:
+			runner.ResolveDialog(request.RequestID, `{"value":"prod"}`, false)
+		case 3:
+			runner.ResolveDialog(request.RequestID, `{"value":"fast"}`, false)
+		default:
+			runner.ResolveDialog(request.RequestID, `{"value":false}`, false)
+		}
+		return "", false, nil
+	})
+	_, err = runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  const values = await nct.dialog.form({
+    message: "Choose options",
+    fields: [
+      { type: "select", name: "env", label: "Environment", options: ["dev", "prod"], defaultValue: "dev" },
+      { type: "checkbox", name: "restart", label: "Restart", defaultValue: false },
+    ],
+  });
+  const env = await nct.dialog.select("Environment", ["dev", "prod"], "dev");
+  nct.log(env);
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "completed" {
+			if !strings.Contains(listed[0].Logs[len(listed[0].Logs)-1].Message, "prod") {
+				t.Fatalf("logs: %#v", listed[0].Logs)
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestRunnerFormDialogCancelFails(t *testing.T) {
+	runner := NewRunner(func(sessionID string, data []byte) error { return nil })
+	runner.SetDialogResponder(func(ctx context.Context, request DialogRequest) (string, bool, error) {
+		runner.ResolveDialog(request.RequestID, "", true)
+		return "", false, nil
+	})
+	_, err := runner.Start(StartRunRequest{
+		SessionID: "s1",
+		Content: `async function main() {
+  await nct.dialog.form({
+    message: "Choose options",
+    fields: [{ type: "checkbox", name: "restart", label: "Restart" }],
+  });
+}
+await main();`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		listed := runner.List("s1")
+		if len(listed) == 1 && listed[0].Status == "failed" {
+			if listed[0].Error != "Dialog cancelled" {
+				t.Fatalf("error: %#v", listed[0])
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("run state: %#v", listed)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

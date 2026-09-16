@@ -1100,6 +1100,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     message: string;
     defaultValue?: string;
     sensitive?: boolean;
+    form?: unknown;
   }) => void>();
   const scriptRunsUpdatedListeners = new Set<(payload: { runs: unknown[] }) => void>();
   let scriptEventsSubscribed = false;
@@ -1120,6 +1121,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         message?: string;
         defaultValue?: string;
         sensitive?: boolean;
+        form?: unknown;
       };
       if (!payload?.requestId) return;
       const request = {
@@ -1128,6 +1130,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         message: payload.message ?? "",
         defaultValue: payload.defaultValue,
         sensitive: payload.sensitive,
+        form: payload.form,
       };
       for (const listener of scriptDialogRequestListeners) listener(request);
     });
@@ -1148,9 +1151,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   };
   const scriptDialogResponse = async (requestId: string, value?: unknown, cancelled?: boolean) => {
     if (!bindings.script?.ResolveDialog) missingBridgeMethod("scriptDialogResponse");
+    const encoded = typeof value === "string" || value === undefined || value === null
+      ? (typeof value === "string" ? value : "")
+      : JSON.stringify(value);
     const ok = await bindings.script.ResolveDialog(
       requestId,
-      typeof value === "string" ? value : value === undefined || value === null ? "" : String(value),
+      encoded,
       Boolean(cancelled),
     );
     return { ok };
@@ -1589,6 +1595,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       scriptResume,
       scriptGetRuns,
       onScriptRunsUpdated,
+      onScriptDialogRequest,
+      scriptDialogResponse,
     }),
     terminal: portWith("terminal", {
       getDefaultShell,
