@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L161`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L162`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -14,8 +14,8 @@ progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行
 AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）、
 dialog.form/select/radio/checkbox（L157）、unsigned qualification 不挡 P6-05（L158 / WV3-024）、
 WV3-025 允许 unsigned 资格包之后开工 Phase 7（L159）、W03 Agent wire DTO（L160，AI-01 probe）、
-W04 terminal 域共享 use case（L161）。
-生产 AI 下一刀是 W04 剩余域（SFTP/forward/Vault），不是伪造 NONAI-COMPLETE。
+W04 terminal 域共享 use case（L161）、W04 SFTP 域共享 use case（L162）。
+生产 AI 下一刀是 W04 剩余域（forward/Vault），不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -115,9 +115,10 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - WV3-025 取代 WV3-009：unsigned 资格包之后可建 `internal/capability` / `internal/agent`。不要伪造 NONAI-COMPLETE。
 - W03 已落（L160）：`internal/app/contracts/agent.go` 的 Prepare/Prepared/Command/ReadEvents/EventPage DTO、
   十进制字符串序列、fake driver 仅测试；`AI-01` 已 `not-started -> probe`。
-- 下一刀 W04 剩余域（SFTP/forward/Vault），然后 W05 catalog。
-  W04 第一刀已落（L161）：terminal/session/exec 抽到 `internal/app/terminaluse`，
-  facade 只剩 DTO 别名与委托；SFTP 已改走 `TransportFor` seam。
+- 下一刀 W04 剩余域（forward/Vault），然后 W05 catalog。
+  W04 已落两刀（L161、L162）：terminal/session/exec 抽到 `internal/app/terminaluse`，
+  SFTP 抽到 `internal/app/sftpuse`（复用 terminaluse 传输 seam，无第二套池）。
+  forward 与 Vault facade 仍是旧 owner。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
