@@ -66,8 +66,8 @@ jobs:
       - name: Verify macOS universal helper slices
         if: runner.os == 'macOS'
         run: |
-          lipo -verify_arch x86_64 arm64 resources/mosh/darwin-universal/mosh-client
-          lipo -verify_arch x86_64 arm64 resources/et/darwin-universal/et
+          lipo resources/mosh/darwin-universal/mosh-client -verify_arch x86_64 arm64
+          lipo resources/et/darwin-universal/et -verify_arch x86_64 arm64
 
       - name: Verify installed helpers against lock
         run: node scripts/fetch-wails-helpers.mjs --verify-only
@@ -79,6 +79,18 @@ jobs:
 
       - name: Package unsigned Wails binary
         run: node scripts/package-wails.mjs
+
+      - name: Inspect packaged binary
+        shell: bash
+        run: |
+          ls -l dist/wails
+          artifact=$(ls dist/wails/LemonSSH-* | head -1)
+          test -s "$artifact"
+          file "$artifact"
+          case "${{ runner.os }}" in
+            macOS) lipo -info "$artifact" || true ;;
+            Linux) readelf -h "$artifact" | sed -n '1,16p' ;;
+          esac
 
       - name: Record unsigned Authenticode status
         if: runner.os == 'Windows'
