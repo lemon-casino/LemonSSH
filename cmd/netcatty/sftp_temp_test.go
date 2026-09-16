@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	pkgsftp "github.com/pkg/sftp"
 )
 
@@ -61,7 +60,7 @@ func TestSFTPDownloadPinSurvivesRendererReleaseAndClear(t *testing.T) {
 	})
 	service := NewSFTPService(nil, nil)
 	service.setTempService(temp)
-	service.sessions["test"] = &sftpClient{raw: raw, fs: sftp.NewClientFS(raw), bounded: sftp.NewSession(4)}
+	service.core.SeedClientSessionForTest("test", raw)
 	fs := &FilesystemService{temp: temp}
 	path, err := fs.TempFilePath("download.txt")
 	if err != nil {

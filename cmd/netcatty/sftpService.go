@@ -1,342 +1,59 @@
 package main
 
 import (
-	"archive/zip"
-	"context"
-	"fmt"
-	"io"
 	"os"
-	"path/filepath"
-	"strconv"
-	"sync"
-	"time"
 
-	"github.com/binaricat/netcatty/internal/platform/applog"
+	pkgsftp "github.com/pkg/sftp"
+
+	"github.com/binaricat/netcatty/internal/app/sftpuse"
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
-	pkgsftp "github.com/pkg/sftp"
 )
 
-// SFTPService exposes SFTP browsing and file transfer over the shared SSH
-// transport pool. Each Open call borrows a pooled transport (KindSFTP), opens
-// one SFTP subsystem client and registers it under an opaque session ID;
-// operations are bounded by the per-session client limit.
+// SFTPOpenRequest is the shell-facing SFTP open payload. The canonical
+// definition (and JSON contract) lives in internal/app/sftpuse; this alias
+// keeps the Wails API name stable.
+type SFTPOpenRequest = sftpuse.OpenRequest
+
+// SFTPService is the Wails-facing facade over internal/app/sftpuse. It owns
+// only shell wiring: renderer service registration, the terminal transport
+// seam and the local staging opener. All SFTP session rules (transport borrow,
+// subsystem lifecycle, browsing, transfers, archive staging) live in the
+// shared sftpuse.Service, so a future capability dispatch entry point can call
+// the same instance.
 type SFTPService struct {
-	terminal   *TerminalService
-	temp       *filesystem.TempService
-	mu         sync.Mutex
-	pool       *sshpool.Pool
-	knownHosts *netcattyssh.KnownHosts
-	sessions   map[string]*sftpClient
-	counter    int
+	core *sftpuse.Service
 }
 
-func (s *SFTPService) setTempService(temp *filesystem.TempService) { s.temp = temp }
-
-func parseSFTPPermissions(text string) (os.FileMode, error) {
-	if len(text) < 3 || len(text) > 4 {
-		return 0, fmt.Errorf("permissions must contain 3 or 4 octal digits")
-	}
-	for _, digit := range text {
-		if digit < '0' || digit > '7' {
-			return 0, fmt.Errorf("invalid octal permissions %q", text)
-		}
-	}
-	value, err := strconv.ParseUint(text, 8, 12)
-	if err != nil {
-		return 0, err
-	}
-	mode := os.FileMode(value & 0777)
-	if value&04000 != 0 {
-		mode |= os.ModeSetuid
-	}
-	if value&02000 != 0 {
-		mode |= os.ModeSetgid
-	}
-	if value&01000 != 0 {
-		mode |= os.ModeSticky
-	}
-	return mode, nil
-}
-
-func (s *SFTPService) Chmod(sessionID, target, permissions string) error {
-	mode, err := parseSFTPPermissions(permissions)
-	if err != nil {
-		return err
-	}
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
-	if err != nil {
-		return err
-	}
-	return client.raw.Chmod(resolved, mode)
-}
-
-type sftpClient struct {
-	channel io.Closer
-	fs      *sftp.ClientFS
-	lease   *sshpool.Lease
-	raw     *pkgsftp.Client
-	bounded *sftp.Session
-}
-
-// NewSFTPService wires the pool and known-hosts store.
+// NewSFTPService wires the pool, known-hosts store and the local upload-source
+// staging opener shared with the filesystem staging path.
 func NewSFTPService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *SFTPService {
-	return &SFTPService{
-		pool:       pool,
-		knownHosts: knownHosts,
-		sessions:   make(map[string]*sftpClient),
-	}
+	core := sftpuse.New(pool, knownHosts)
+	core.SetStagingOpener(openLocalForUpload)
+	return &SFTPService{core: core}
 }
 
-type SFTPOpenRequest struct {
-	SSHConnectRequest
-	Sudo bool `json:"sudo"`
+func (s *SFTPService) setTempService(temp *filesystem.TempService) { s.core.SetTempService(temp) }
+
+func (s *SFTPService) setTerminalService(terminal *TerminalService) {
+	s.core.SetTerminalTransport(terminal.TransportFor)
 }
 
-// Open dials (or borrows) a transport for host and registers an SFTP session.
-func (s *SFTPService) Open(request SFTPOpenRequest) (string, error) {
-	if request.Hostname == "" || request.Username == "" {
-		return "", fmt.Errorf("host and username are required")
-	}
-	if request.Port == 0 {
-		request.Port = 22
-	}
-	config, err := netcattyssh.BuildDialConfigErr(sshConnectToInput(request.SSHConnectRequest), netcattyssh.StrictPolicy(s.knownHosts), nil)
-	if err != nil {
-		return "", err
-	}
-	lease, err := s.pool.Get(context.Background(), config, sshpool.KindSFTP)
-	if err != nil {
-		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
-	}
-	var raw *pkgsftp.Client
-	var channel io.Closer
-	if request.Sudo {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		raw, channel, err = sftp.OpenElevated(ctx, lease.Client())
-	} else {
-		raw, err = pkgsftp.NewClient(lease.Client())
-	}
-	if err != nil {
-		lease.Discard()
-		return "", fmt.Errorf("sftp subsystem: %w", err)
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.counter++
-	id := fmt.Sprintf("sftp-%d", s.counter)
-	s.sessions[id] = &sftpClient{
-		channel: channel,
-		fs:      sftp.NewClientFS(raw),
-		lease:   lease,
-		raw:     raw,
-		bounded: sftp.NewSession(4),
-	}
-	return id, nil
+// sftpClient is the legacy package-main view handed to TransferService's
+// chunked scheduler, which opens transfer handles with explicit flags; the
+// canonical session state lives in internal/app/sftpuse.
+type sftpClient struct {
+	raw *pkgsftp.Client
 }
 
-// List returns one directory listing (directories first, name-ordered).
-func (s *SFTPService) List(sessionID, dir string) ([]sftp.Entry, error) {
-	client, done, err := s.acquire(sessionID)
+func (s *SFTPService) acquire(sessionID string) (*sftpClient, func(), error) {
+	raw, release, err := s.core.Acquire(sessionID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	defer done()
-	target, err := sftp.NormalizePath(".", dir)
-	if err != nil {
-		return nil, err
-	}
-	entries, err := client.fs.ReadDir(target)
-	sftp.SortEntries(entries)
-	return entries, err
-}
-
-// Stat stats one remote path.
-func (s *SFTPService) Stat(sessionID, target string) (sftp.FileInfo, error) {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return sftp.FileInfo{}, err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
-	if err != nil {
-		return sftp.FileInfo{}, err
-	}
-	return client.fs.Stat(resolved)
-}
-
-// Mkdir creates a remote directory.
-func (s *SFTPService) Mkdir(sessionID, dir string) error {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return err
-	}
-	defer done()
-	target, err := sftp.NormalizePath(".", dir)
-	if err != nil {
-		return err
-	}
-	return client.fs.Mkdir(target)
-}
-
-// Remove deletes a remote file or directory tree.
-func (s *SFTPService) Remove(sessionID, target string) error {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
-	if err != nil {
-		return err
-	}
-	return client.fs.Remove(resolved)
-}
-
-// Rename moves or renames a remote path.
-func (s *SFTPService) Rename(sessionID, oldPath, newPath string) error {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return err
-	}
-	defer done()
-	from, err := sftp.NormalizePath(".", oldPath)
-	if err != nil {
-		return err
-	}
-	to, err := sftp.NormalizePath(".", newPath)
-	if err != nil {
-		return err
-	}
-	return client.fs.Rename(from, to)
-}
-
-// Read returns a remote file as UTF-8 text.
-func (s *SFTPService) Read(sessionID, remotePath string) (string, error) {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return "", err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
-	if err != nil {
-		return "", err
-	}
-	reader, err := client.fs.Open(resolved)
-	if err != nil {
-		return "", err
-	}
-	defer reader.Close()
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-// WriteText writes UTF-8 text to a remote file, creating or truncating it.
-func (s *SFTPService) WriteText(sessionID, remotePath, content string) error {
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
-	if err != nil {
-		return err
-	}
-	writer, err := client.fs.Create(resolved)
-	if err != nil {
-		return err
-	}
-	defer writer.Close()
-	_, err = io.WriteString(writer, content)
-	return err
-}
-
-// HomeDir returns the remote working directory for the SFTP session.
-func (s *SFTPService) HomeDir(sessionID string) (string, error) {
-	s.mu.Lock()
-	client, ok := s.sessions[sessionID]
-	s.mu.Unlock()
-	if !ok {
-		return "", fmt.Errorf("sftp session %q not found", sessionID)
-	}
-	return client.raw.Getwd()
-}
-
-// Download streams a remote file to a local destination path.
-func (s *SFTPService) Download(sessionID, remotePath, localPath string) (int64, error) {
-	release, err := s.temp.Acquire(localPath)
-	if err != nil {
-		return 0, err
-	}
-	defer release()
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return 0, err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
-	if err != nil {
-		return 0, err
-	}
-	reader, err := client.fs.Open(resolved)
-	if err != nil {
-		return 0, err
-	}
-	defer reader.Close()
-	if mkdirErr := os.MkdirAll(filepath.Dir(localPath), 0o755); mkdirErr != nil {
-		return 0, mkdirErr
-	}
-	writer, err := os.Create(localPath)
-	if err != nil {
-		return 0, err
-	}
-	defer writer.Close()
-	return io.Copy(writer, reader)
-}
-
-// Upload streams a local file to a remote destination path.
-func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, error) {
-	release, err := s.temp.Acquire(localPath)
-	if err != nil {
-		return 0, err
-	}
-	defer release()
-	client, done, err := s.acquire(sessionID)
-	if err != nil {
-		return 0, err
-	}
-	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
-	if err != nil {
-		return 0, err
-	}
-	// Transient drag sources (chat apps, browser download popups, archive
-	// previews) can delete or rename the file between drop and read; give
-	// the path one short retry before failing.
-	reader, err := openLocalForUpload(localPath)
-	if err != nil {
-		applog.Errorf("sftp upload open failed path=%q err=%v", localPath, err)
-		return 0, fmt.Errorf("upload open %q: %w", localPath, err)
-	}
-	defer reader.Close()
-	writer, err := client.fs.Create(resolved)
-	if err != nil {
-		return 0, err
-	}
-	defer writer.Close()
-	return io.Copy(writer, reader)
+	return &sftpClient{raw: raw}, release, nil
 }
 
 // openLocalForUpload opens the local source, retrying once after a short
@@ -345,137 +62,74 @@ func openLocalForUpload(localPath string) (*os.File, error) {
 	return openStagingSource(localPath)
 }
 
+// Open dials (or borrows) a transport for host and registers an SFTP session.
+func (s *SFTPService) Open(request SFTPOpenRequest) (string, error) { return s.core.Open(request) }
+
+// OpenForTerminal opens only a subsystem on the exact authenticated transport.
+// It owns the SFTP channel, never the terminal's SSH connection or credentials.
+func (s *SFTPService) OpenForTerminal(sessionID string) (string, error) {
+	return s.core.OpenForTerminal(sessionID)
+}
+
+// List returns one directory listing (directories first, name-ordered).
+func (s *SFTPService) List(sessionID, dir string) ([]sftp.Entry, error) {
+	return s.core.List(sessionID, dir)
+}
+
+// Stat stats one remote path.
+func (s *SFTPService) Stat(sessionID, target string) (sftp.FileInfo, error) {
+	return s.core.Stat(sessionID, target)
+}
+
+// Mkdir creates a remote directory.
+func (s *SFTPService) Mkdir(sessionID, dir string) error { return s.core.Mkdir(sessionID, dir) }
+
+// Remove deletes a remote file or directory tree.
+func (s *SFTPService) Remove(sessionID, target string) error { return s.core.Remove(sessionID, target) }
+
+// Rename moves or renames a remote path.
+func (s *SFTPService) Rename(sessionID, oldPath, newPath string) error {
+	return s.core.Rename(sessionID, oldPath, newPath)
+}
+
+// Chmod updates the permission bits of one remote path.
+func (s *SFTPService) Chmod(sessionID, target, permissions string) error {
+	return s.core.Chmod(sessionID, target, permissions)
+}
+
+// Read returns a remote file as UTF-8 text.
+func (s *SFTPService) Read(sessionID, remotePath string) (string, error) {
+	return s.core.Read(sessionID, remotePath)
+}
+
+// WriteText writes UTF-8 text to a remote file, creating or truncating it.
+func (s *SFTPService) WriteText(sessionID, remotePath, content string) error {
+	return s.core.WriteText(sessionID, remotePath, content)
+}
+
+// HomeDir returns the remote working directory for the SFTP session.
+func (s *SFTPService) HomeDir(sessionID string) (string, error) { return s.core.HomeDir(sessionID) }
+
+// Download streams a remote file to a local destination path.
+func (s *SFTPService) Download(sessionID, remotePath, localPath string) (int64, error) {
+	return s.core.Download(sessionID, remotePath, localPath)
+}
+
+// Upload streams a local file to a remote destination path.
+func (s *SFTPService) Upload(sessionID, localPath, remotePath string) (int64, error) {
+	return s.core.Upload(sessionID, localPath, remotePath)
+}
+
 // ExtractArchive downloads a remote zip, extracts it locally with zip-slip
 // protection, and uploads the files next to the archive.
 func (s *SFTPService) ExtractArchive(sessionID, remotePath string) (int, error) {
-	if s.temp == nil {
-		return 0, fmt.Errorf("managed temp unavailable")
-	}
-	tempDir, err := s.temp.CreateDir(filesystem.TransferTempPrefix + "extract-")
-	if err != nil {
-		return 0, err
-	}
-	defer s.temp.Remove(filepath.Base(tempDir))
-	localZip := filepath.Join(tempDir, "archive.zip")
-	if _, err := s.Download(sessionID, remotePath, localZip); err != nil {
-		return 0, err
-	}
-	outDir := filepath.Join(tempDir, "out")
-	count, err := sftp.ExtractZipArchive(localZip, outDir)
-	if err != nil {
-		return 0, err
-	}
-	parent := filepath.ToSlash(filepath.Dir(remotePath))
-	if parent == "." || parent == "" {
-		parent = "/"
-	}
-	if walkErr := filepath.Walk(outDir, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(outDir, path)
-		if err != nil {
-			return err
-		}
-		if rel == "." {
-			return nil
-		}
-		remote := parent + "/" + filepath.ToSlash(rel)
-		if info.IsDir() {
-			return s.Mkdir(sessionID, remote)
-		}
-		_, err = s.Upload(sessionID, path, remote)
-		return err
-	}); walkErr != nil {
-		return count, walkErr
-	}
-	return count, nil
+	return s.core.ExtractArchive(sessionID, remotePath)
 }
 
 // UploadCompressedFolder zips a local folder and uploads the archive.
 func (s *SFTPService) UploadCompressedFolder(sessionID, localFolder, remoteZipPath string) (int64, error) {
-	if s.temp == nil {
-		return 0, fmt.Errorf("managed temp unavailable")
-	}
-	temp, err := s.temp.CreateFile(filesystem.TransferTempPrefix + "upload-*.zip")
-	if err != nil {
-		return 0, err
-	}
-	tempPath := temp.Name()
-	defer s.temp.Remove(filepath.Base(tempPath))
-	zipWriter := zip.NewWriter(temp)
-	err = filepath.Walk(localFolder, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(localFolder, path)
-		if err != nil {
-			return err
-		}
-		if rel == "." {
-			return nil
-		}
-		name := filepath.ToSlash(rel)
-		if info.IsDir() {
-			_, err := zipWriter.Create(name + "/")
-			return err
-		}
-		writer, err := zipWriter.Create(name)
-		if err != nil {
-			return err
-		}
-		reader, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer reader.Close()
-		_, err = io.Copy(writer, reader)
-		return err
-	})
-	if err != nil {
-		_ = zipWriter.Close()
-		_ = temp.Close()
-		return 0, err
-	}
-	if err := zipWriter.Close(); err != nil {
-		_ = temp.Close()
-		return 0, err
-	}
-	if err := temp.Close(); err != nil {
-		return 0, err
-	}
-	return s.Upload(sessionID, tempPath, remoteZipPath)
+	return s.core.UploadCompressedFolder(sessionID, localFolder, remoteZipPath)
 }
 
 // Close releases the SFTP client and returns the transport to the pool.
-func (s *SFTPService) Close(sessionID string) error {
-	s.mu.Lock()
-	client, ok := s.sessions[sessionID]
-	delete(s.sessions, sessionID)
-	s.mu.Unlock()
-	if !ok {
-		return nil
-	}
-	_ = client.raw.Close()
-	if client.channel != nil {
-		_ = client.channel.Close()
-	}
-	if client.lease != nil {
-		client.lease.Return()
-	}
-	return nil
-}
-
-func (s *SFTPService) acquire(sessionID string) (*sftpClient, func(), error) {
-	s.mu.Lock()
-	client, ok := s.sessions[sessionID]
-	s.mu.Unlock()
-	if !ok {
-		return nil, nil, fmt.Errorf("sftp session %q not found", sessionID)
-	}
-	release, err := client.bounded.Acquire()
-	if err != nil {
-		return nil, nil, err
-	}
-	return client, release, nil
-}
+func (s *SFTPService) Close(sessionID string) error { return s.core.Close(sessionID) }
