@@ -55,6 +55,7 @@ const AI_SOURCE_PREFIXES = Object.freeze([
   "cmd/netcatty-mcp",
   "cmd/netcatty-tool",
 ]);
+const AI_PARALLEL_DECISION_CATEGORY = "sequencing:ai-parallel-with-unsigned-qualification";
 const MIGRATION_GOVERNANCE_PATH = "docs/migrations/wails-v3/README.md";
 const NONAI_GATE_MARKER_PATH = "docs/migrations/wails-v3/gates/nonai-complete.json";
 const NONAI_GATE_MARKER_FIELDS = Object.freeze([
@@ -619,7 +620,6 @@ function isLeafCapability(row, rows) {
 }
 
 function isRequiredNonAiGateRow(row, rows) {
-  if (row.id === "REL-01" || row.id === "REL-02") return true;
   if (!isLeafCapability(row, rows)) return false;
   const prefix = row.id.split("-", 1)[0];
   return NON_AI_GATE_PREFIXES.has(prefix);
@@ -709,7 +709,10 @@ function readGitDocumentGateAuthority(rootDir, ref) {
     entry,
     ...validateLedgerEntry(entry, matrixIds, planTasks, acceptedDecisions, errors),
   }));
-  const progress = validateMatrixProgress(matrix, entriesWithRefs, releaseMatrixSource, errors);
+  const aiParallelAuthorized = [...acceptedDecisions.values()].some((decision) => (
+    decision.categories.has(AI_PARALLEL_DECISION_CATEGORY)
+  ));
+  const progress = validateMatrixProgress(matrix, entriesWithRefs, releaseMatrixSource, errors, aiParallelAuthorized);
   return errors.length === 0 && progress.nonAiGateValid ? progress.latestValidNonAiGate : null;
 }
 
@@ -889,7 +892,8 @@ function existingAiSourcePrefixes(rootDir) {
   return AI_SOURCE_PREFIXES.filter((prefix) => fs.existsSync(path.join(rootDir, prefix)));
 }
 
-function validateAiSourceCommitBoundary(rootDir, progress, options, errors) {
+function validateAiSourceCommitBoundary(rootDir, progress, options, errors, aiParallelAuthorized = false) {
+  if (aiParallelAuthorized) return;
   readCurrentNonAiGateMarker(rootDir, progress.latestValidNonAiGate, errors);
   const existingAiPaths = existingAiSourcePrefixes(rootDir);
 
@@ -951,7 +955,7 @@ function validateAiSourceCommitBoundary(rootDir, progress, options, errors) {
   }
 }
 
-function validateMatrixProgress(rows, entriesWithRefs, releaseMatrixSource, errors) {
+function validateMatrixProgress(rows, entriesWithRefs, releaseMatrixSource, errors, aiParallelAuthorized = false) {
   const stateByCapability = new Map(rows.map((row) => [row.id, {
     status: "not-started",
     scope: row.scope === "aggregate" ? "aggregate" : "required",
@@ -1106,6 +1110,7 @@ function validateMatrixProgress(rows, entriesWithRefs, releaseMatrixSource, erro
         && entry.transition[2] !== "not-started"
         && !isAiScopeRemoval
         && !nonAiGateValid
+        && !aiParallelAuthorized
       ) {
         errors.push(`${entry.entry.id} advances ${capabilityId} without a currently valid Gate NONAI-COMPLETE epoch`);
       }
@@ -1377,13 +1382,17 @@ export function checkMigrationDocs(rootDir = defaultRoot, options = {}) {
     ...validateLedgerEntry(entry, matrixIds, planTasks, acceptedDecisions, errors),
   }));
 
+  const aiParallelAuthorized = [...acceptedDecisions.values()].some((decision) => (
+    decision.categories.has(AI_PARALLEL_DECISION_CATEGORY)
+  ));
   const progress = validateMatrixProgress(
     matrix,
     entriesWithRefs,
     readText(path.join(docsDir, "release-target-matrix.md")),
     errors,
+    aiParallelAuthorized,
   );
-  validateAiSourceCommitBoundary(rootDir, progress, options, errors);
+  validateAiSourceCommitBoundary(rootDir, progress, options, errors, aiParallelAuthorized);
   const markdownFiles = listMarkdownFiles(docsDir);
   validateDecisionReferences(markdownFiles, new Set(acceptedDecisions.keys()), errors);
   validateCrossDocumentIds(

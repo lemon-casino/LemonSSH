@@ -59,6 +59,10 @@ transition to the mixed capability states:
 - Electron retirement: `none: Wails disconnected; Electron frozen release carrier until approved cutover/rollback triggers`
 ```
 
+P6-05 evaluates required `FND`/`TERM`/`SSH`/`SFTP`/`NET`/`SYS`/`SYNC`/`PLUG`
+leaves only. `REL-01` and `REL-02` stay out of that set per WV3-024 until a
+later paid-signing decision.
+
 The referenced NONAI decisions must collectively carry all exact categories:
 `release-target:windows`, `release-target:macos`, `release-target:linux`,
 `agent-runtime:cursor-bun`, `agent-runtime:opencode-bun`,

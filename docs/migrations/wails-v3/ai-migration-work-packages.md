@@ -1,15 +1,15 @@
 # AI 迁移工作包与验收手册
 
-日期：2026-09-14。状态：全部为待实施任务，本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
+日期：2026-09-14（2026-09-16 更新）。状态：W01-W03 已实施（W03 见 WV3-L160）；W04 起待实施。本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
 
 ## 1. 执行顺序与本轮允许范围
 
-**目前只完善计划。**生产实施 AI 必须先读 matrix/ledger/decisions，取得有效 P6-05 NONAI-COMPLETE，并满足既有范围/运行时决策。Gate 未开时，W01 只能做文档/冻结基线分析；W02 只能提出版本对齐和非 AI 复验任务；一次性协议探针须遵守原 P0-05 边界。本手册不授权绕过门禁创建 `internal/agent` 等生产路径。
+**WV3-025 已开生产门。** 先读 matrix/ledger/decisions。不要伪造 `NONAI-COMPLETE`。W01 基线已在；W02 是非 AI 资格，不能计成 AI 完成。W03 契约已落（WV3-L160，AI-01 probe）。下一刀 W04 共享 use case。仍禁止永久 Node sidecar，仍禁止把 `not-started` 写成 `verified`。
 
 开工后的推荐顺序：
 
 ```text
-文档/资格准备：W01 + W02 -> 有效 NONAI-COMPLETE
+文档/资格准备：W01 + W02（NONAI-COMPLETE 不再是 W03+ 的开工前置，WV3-025；其证据债保留）
 契约与宿主能力：W03 -> W04 -> W05 -> W06 -> W07
 Provider：      W03 -> W08 -> W09
 最小完整链路：  W05 + W07 + W09 -> W10 -> W11 -> W12

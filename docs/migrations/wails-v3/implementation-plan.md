@@ -257,8 +257,9 @@ Phase 9  回滚观察收口、Electron/Node 删除与最终证明
 ```
 
 Phase 0-9 按上述 exit/entry gate 串行推进；一个 phase 内可以并行的任务必须不共享
-canonical owner 或 generated artifact。Phase 7 AI production implementation 不得与
-Phase 3-6 并行或提前搭建 production owner；Phase 0 只允许 P0-05 的只读审计、协议
+canonical owner 或 generated artifact。Phase 7 AI production implementation 在 WV3-025 之前不得与
+Phase 3-6 并行或提前搭建 production owner（WV3-025 修订：unsigned 资格包之后可开工，
+见 §13）；Phase 0 只允许 P0-05 的只读审计、协议
 握手和 disposable fixtures。
 
 ## 5. Phase 0：基线与证伪探针
@@ -1570,8 +1571,9 @@ Files:
 Required evidence:
 
 1. `FND`、`TERM`、`SSH`、`SFTP`、`NET`、`SYS`、`SYNC`、`PLUG` domains 中每个
-   required leaf row，以及 `REL-01` 和 `REL-02`，均为 `verified`。Aggregate rows
-   不参与；更早 accepted scope-removal decision 已改为 `removed` 的 rows 不参与。
+   required leaf row 均为 `verified`。Aggregate rows、`REL-01`、`REL-02`、
+   `REL-03.1` 和 `REL-03.2` 不参与；更早 accepted scope-removal decision 已改为
+   `removed` 的 rows 不参与。WV3-024 keeps signing and update feed on P8-01.
 2. Wails 已与这些 Electron/Node paths 断开；旧 paths 是冻结、不可演进且不被 Wails
    调用的 release carriers，不是 fallback 或第二 owner。
 3. Remaining required AI rows (`AI-01`, `AI-02`, `AI-03`, `AI-04`, and
@@ -1623,8 +1625,9 @@ epoch 失效；恢复到 verified 后必须追加新的 P6-05 gate 才可继续�
 
 ## 12. Non-AI Completion Gate
 
-Phase 7 的任何 production source edit 或 maintained owner 创建前，必须由 P6-05 在
-matrix、ledger 和本计划中记录以下证据：
+P6-05 要求在 matrix、ledger 和本计划中记录以下证据。WV3-025 已把该 gate 从 Phase 7
+生产开工条件改为切换前置：unsigned 资格包之后即可创建 production owner，但不得
+伪造 gate record，AI 行状态推进仍以 checker 为准：
 
 1. `FND`、`TERM`、`SSH`、`SFTP`、`NET`、`SYS`、`SYNC`、`PLUG` domains 的所有
    required leaf target owners 以及 `REL-01`、`REL-02` 均为 `verified`；required child
@@ -1647,8 +1650,9 @@ matrix、ledger 和本计划中记录以下证据：
    collectively carry `release-target:windows`, `release-target:macos`, and
    `release-target:linux`。Verification prose 或 irrelevant decision IDs 不足以开 gate。
 
-Exit：P6-05 的 canonical ledger record 宣布 Non-AI Completion Gate 通过并列出证据；
-在此之前，P7-01、P7-02、P7-03、P7-04、P7-05、P7-06 全部被硬阻断。
+Exit：P6-05 的 canonical ledger record 宣布 Non-AI Completion Gate 通过并列出证据。
+WV3-025 已把该 gate 移出 Phase 7 生产开工条件：Phase 7 可在 unsigned 资格包后开工，
+非 AI verified 证据债并行偿还；P8-02 仍要求保留 AI 叶子 verified 或 removed。
 Gate 按 replay 时点使用 scope；gate 后 removal 不会 retroactively 满足它。
 Gate 后 required non-AI row 从 `verified` 或 `migrated` 降到未完成状态会立即使
 latest epoch 失效；post-gate approved removal 也会使曾把该 row 计为 required 的
@@ -1657,10 +1661,10 @@ epoch 失效。Production AI path 再次 forbidden，recovery 或 scope change �
 
 ## 13. Phase 7：Capability、MCP/CLI 与 AI Agent
 
-Hard prerequisite：P6-05 已完成，且 append-only ledger 中按 chronology 存在通过
-checker 的 `Gate: NONAI-COMPLETE` record；P0-05/Bun/runtime/Agent retirement 入口决策
-和 release-target matrix 决策均已批准。AI production implementation 不能提前开始；
-Phase 0 唯一允许的 AI 工作是 P0-05 只读 probes。
+Hard prerequisite（WV3-025 修订）：unsigned 资格包（v0.0.2 与本机 `package-wails`）
+加三平台开窗已完成；P0-05/Bun/runtime/Agent retirement 入口决策和 release-target
+matrix 决策均已批准。P6-05 `Gate: NONAI-COMPLETE` 不再是开工前置，其非 AI verified
+证据债并行偿还；AI 行状态推进仍以 checker 为准。Phase 0 只允许 P0-05 只读 probes。
 
 `internal/capability` 从本 phase 开始拥有 Agent-facing catalog/policy、Agent kinds、
 Observer/Confirm/Auto projections、MCP/CLI 和 Catty/global tool metadata。它调用与
@@ -1766,7 +1770,8 @@ Exit：Go 是 Catty turn canonical owner；React 不再编排 authoritative turn
 执行状态：decomposition gate 已通过文档切片 WV3-L138。复合行 AI-04 拆为
 八个 stable child rows 与下列执行卡。WV3-L152 through WV3-L156 已把
 `AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, and `AI-04.8` 改为 `removed` /
-`retired`。生产 adapter 仍须等 P6-05；不创建 `internal/agent`。
+`retired`。按 WV3-025，`internal/agent` 可在 unsigned 资格包之后创建；各 retained
+adapter 仍逐个资格验证，不建永久 Node sidecar。
 
 按 P0-05 审计结果与 WV3-014～018 逐个拆子任务，每个 agent 一个 capability
 child row/ledger entry：
@@ -1992,10 +1997,11 @@ formal evidence 补齐路线，P0-05 可继续只读验证。但 `P0-01` 的三�
 
 ### Batch E：AI、最终 RC、切换与删除
 
-`P6-05/Non-AI Completion Gate -> (P7-01 -> P7-02) + P7-03 -> P7-04 -> P7-05 ->
+`unsigned 资格包（WV3-025）-> (P7-01 -> P7-02) + P7-03 -> P7-04 -> P7-05 ->
 P7-06 -> P8-01 -> P8-02 -> 观测窗口 -> P8-03 -> P9-01 -> P9-02 -> P9-03`
 
-P7-01/P7-03 只可在 Non-AI Completion Gate 后并行；P7-02 只依赖 P7-01，P7-04
+P7-01/P7-03 可在 WV3-025 的 unsigned 资格包满足后并行；P6-05 的非 AI verified
+证据债与 Phase 7 并行偿还，P8-02 前闭合。P7-02 只依赖 P7-01，P7-04
 等待 P7-01、P7-02、P7-03 和 required handlers。P8-01 是唯一 final signed RC
 qualification；P9-01/P9-02 在 rollback observation closure 后完成 REL-03.2。
 
@@ -2017,9 +2023,10 @@ qualification；P9-01/P9-02 在 rollback observation closure 后完成 REL-03.2�
 - Review Gates：每个 phase exit；data/security/architecture/release 变更需独立 review。
 - Drift / Rewind Rules：关键 probe 失败、secret 不可迁移、双写、永久 sidecar 或
   三平台缺口时回到设计，不添加 fallback。
-- Evidence Required Before Phase 7：P6-05 ledger gate 存在；所有 required non-AI leaf
-  owners 已验证并断开旧路径、Electron 冻结、Phase 6 focused qualification evidence、
-  AI rows 仍 `not-started`、release/Agent entry decisions 已解决。
+- Evidence Required Before Phase 7（WV3-025 修订）：unsigned 资格包与三平台开窗
+  完成；release/Agent entry decisions 已批准；P6-05 的非 AI verified 证据债并行
+  偿还、不随开工免除；矩阵 AI 行状态以台账为准（`AI-01` probe，其余保留行
+  `not-started`）。
 - Evidence Required Before Cutover：P8-01 final signed RC、完整 Gate 1-14 和
   REL-03.1 artifact purity；REL-03.2 不得作为 pre-cutover circular prerequisite。
 - Evidence Required Before Completion：matrix、ledger、tests、benchmarks、三平台

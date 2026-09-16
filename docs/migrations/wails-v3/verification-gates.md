@@ -13,8 +13,8 @@ resume authority. Plan prose is a navigation hint. The checker replays status,
 scope, retirement evidence and gates in ledger order.
 
 P6-05 `NONAI-COMPLETE` evaluates required non-AI leaf rows in `FND`, `TERM`,
-`SSH`, `SFTP`, `NET`, `SYS`, `SYNC` and `PLUG`, plus `REL-01` and `REL-02`.
-It excludes AI rows, aggregate rows, `REL-03.1`, `REL-03.2`, and rows already
+`SSH`, `SFTP`, `NET`, `SYS`, `SYNC` and `PLUG`.
+It excludes AI rows, aggregate rows, `REL-01`, `REL-02`, `REL-03.1`, `REL-03.2`, and rows already
 removed at that chronological point. Remaining required AI rows must stay
 `not-started`. AI rows already `removed` with `retired` status are allowed and
 do not satisfy or block the gate. Its accepted decision references must

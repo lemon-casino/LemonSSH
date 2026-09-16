@@ -4,16 +4,17 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L157`。矩阵 required 叶行：implemented 15 / probe 13 /
-not-started 8 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
+当前台账头：`WV3-L160`。矩阵 required 叶行：implemented 15 / probe 14 /
+not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
 2026-09-14～16：五个 agent 去留决定 WV3-014～018（L137）、AI-04 拆八个子行（L138）、
 脚本录制与回放全链路（L139、L140、L141、L142、L143、L146、L147、L148、L149、L150：录制、敏感对话框、waitForRegex/Any、
 progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行范围（L151）、
 AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）、
-dialog.form/select/radio/checkbox（L157）。
-生产 adapter 仍须等 P6-05。
+dialog.form/select/radio/checkbox（L157）、unsigned qualification 不挡 P6-05（L158 / WV3-024）、
+WV3-025 允许 unsigned 资格包之后开工 Phase 7（L159）、W03 Agent wire DTO（L160，AI-01 probe）。
+生产 AI 下一刀是 W04 共享 use case，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -110,10 +111,13 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - native 进程运行时已接到 PluginService；Stop 关闭 Windows job handle 以回收子孙；本机 TestStopReapsDescendant 通过；签名变体和 macOS/Linux 活体树仍 pending（PLUG-03）— 已处理
 
 ### AI（全部）
-- P7-01, P7-02, P7-03, P7-04, P7-05, P7-06：capability catalog、MCP/CLI、providers、Catty runtime、
-  保留的外部 Agent、退役 CJS 路径——**硬阻塞于 P6-05 gate**（AI-01, AI-02, AI-03, AI-04.1, AI-04.2, AI-04.3）— pending（禁止开工）
+- WV3-025 取代 WV3-009：unsigned 资格包之后可建 `internal/capability` / `internal/agent`。不要伪造 NONAI-COMPLETE。
+- W03 已落（L160）：`internal/app/contracts/agent.go` 的 Prepare/Prepared/Command/ReadEvents/EventPage DTO、
+  十进制字符串序列、fake driver 仅测试；`AI-01` 已 `not-started -> probe`。
+- 下一刀 W04 共享 use case，然后 W05 catalog。
+- 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
-  不挡 P6-05，也不挡 Phase 7 开工。Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
+  Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
 
 ---
 
@@ -124,10 +128,9 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 1. **三平台活体证据**：Windows 仅有本机 C 级；macOS/Linux 无窗口、拖拽、
    托盘、PTY、数据面配对基准 — pending；CI 已扩 remaining-work 契约测试
 2. **真实服务器矩阵**：SSH MFA/跳板、真实 SFTP 服务器、编码/符号链接 — pending
-3. **签名与安装包**：无代码签名、无 msi/pkg/AppImage/deb/rpm 打包 — pending；
-   `scripts/sign-wails-probe.mjs` 只记录 unsigned 原因，不伪造签名；
-   `package-wails.mjs` 现在写出 purity inventory，signed 恒为 false（WV3-L103）
-4. **自动更新**：无签名 feed、无 N-1→N 活体演练（REL-02 probe）— pending
+3. **签名与安装包**：WV3-024 把付费证书推迟到以后。REL-01 保持 probe，不挡 P6-05。
+   v0.0.2 与本机 `package-wails` 三平台开窗已通过（C 级）。`signed` 恒为 false。
+4. **自动更新**：无生产签名 feed（REL-02 probe）。N-1→N 演练基础设施在；P8-01 仍要签名。不挡 P6-05。
 5. **Electron 性能基线**：CI 上 3 个 best-effort 基线 job 抖动失败
    （不阻塞 `test` workflow）— pending
 6. **干净机冒烟**：P8-01 Gate 所需的 signed clean-machine 矩阵 — pending
@@ -138,7 +141,7 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 ## 四、硬门槛与顺序（不能跳）
 
 ```
-P6-05 NONAI-COMPLETE（全部非 AI required 叶子 verified + REL-01/02 verified）
+P6-05 NONAI-COMPLETE（FND/TERM/SSH/SFTP/NET/SYS/SYNC/PLUG required 叶子 verified；REL-01/02 按 WV3-024 不参与）
         │  ← 当前卡这里
         ▼
 Phase 7 AI（P7-01 → P7-06）
@@ -147,7 +150,7 @@ P8-01 签名 RC 全量 Gate → P8-02 WAILS-CUTOVER → P9 退役 Electron
 ```
 
 - `NONAI-COMPLETE` **不能记录**：verified=0。
-- Phase 7 任何 production 代码在 gate 前禁止开工（WV3-009）。
+- Phase 7 production 路径按 WV3-025 可在 unsigned 资格包之后开工；P8-02 仍要 AI 叶子 verified 或 removed。
 - Phase 8/9 切默认发行物、删除 Electron 全部排队。
 - REL-03 是 aggregate，必须保持 not-started。
 - REL-03.1 第一次推进只能走 P8-01；现在还没有签名 RC，所以保持 not-started。

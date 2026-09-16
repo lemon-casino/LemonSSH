@@ -253,6 +253,32 @@ the old ID and explains the changed evidence.
 - Recorded: 2026-09-16, product owner approval of governance slice B citing
   WV3-018.
 
+### WV3-024 - Defer paid signing; unsigned qualification stays probe
+
+- Categories: release-policy:unsigned-qualification
+- Decision: the Wails qualification release does not buy Authenticode or Apple
+  certificates. Self-signing later is allowed and does not count as evidence
+  grade A. `REL-01` and `REL-02` stay `required` and `probe` until a later
+  paid-signing decision. P6-05 `NONAI-COMPLETE` does not wait on those rows.
+  P8-01 still needs signed RC evidence before cutover.
+- Recorded: 2026-09-16, product owner chose option B: no paid certs now;
+  certificates later.
+
+### WV3-025 - Start AI production after unsigned qualification
+
+- Categories: sequencing:ai-parallel-with-unsigned-qualification
+- Decision: this supersedes WV3-009 for production AI start. Catalog, MCP/CLI,
+  Catty, and retained external-agent owners may be created after the unsigned
+  qualification package (v0.0.2 and matching local `package-wails`) plus
+  three-platform launch smoke. Non-AI required leaves keep their own `verified`
+  evidence debt and no longer block `internal/capability` or `internal/agent`.
+  Do not record a fake `NONAI-COMPLETE` gate. Do not write `not-started` as
+  `verified`. Do not add a permanent Node sidecar. P8-02 cutover still needs
+  required AI leaves `verified` or removed, and P8-01 still needs signed RC
+  evidence per WV3-024.
+- Recorded: 2026-09-16, product owner moved the main line from A-grade non-AI
+  evidence collection to Phase 7 AI migration.
+
 ## Required Future Decisions
 
 P6-05 `NONAI-COMPLETE` requires accepted decisions that collectively carry every

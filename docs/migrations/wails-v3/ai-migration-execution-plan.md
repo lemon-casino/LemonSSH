@@ -1,6 +1,6 @@
 # AI 迁移执行方案（Electron/Node → Go/Wails v3）
 
-状态：**仅实施方案，未开工**。基线日期：2026-09-14。供后续 AI 按切片落地；本文不改变任何 capability 状态，也不是 `NONAI-COMPLETE` 的证据。
+状态：**已开工**。WV3-025 之后 W03 契约已落（WV3-L160，`AI-01` probe），下一刀是 W04 共享 use case。基线日期：2026-09-14。供后续 AI 按切片落地；本文不改变任何 capability 状态，也不是 `NONAI-COMPLETE` 的证据。
 
 本方案已扩展成三份配套文档，按下列顺序使用：
 
@@ -16,9 +16,9 @@
 
 状态只以 [capability-matrix.md](capability-matrix.md) 和 [migration-ledger.md](migration-ledger.md) 为准；顺序与门禁以 [implementation-plan.md](implementation-plan.md)、[verification-gates.md](verification-gates.md)、[decisions.md](decisions.md) 为准。后续 AI 每次开工前重读这五份文件，不得把本文的时间快照当成新授权。
 
-**当前不得修改 AI production path。**矩阵中保留的 `AI-01`, `AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, `AI-04.3` 均为 `not-started`；`AI-04.4`, `AI-04.5`, `AI-04.6`, `AI-04.7`, `AI-04.8` 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。`SYNC-01` 明确记载 AI 数据仍使用 renderer localStorage；Wails `infrastructure/runtime/wails/wailsRuntimeClient.ts` 中 `agent: unimplemented("agent")`。截至台账 `WV3-L156`，没有 P6-05 `Gate: NONAI-COMPLETE`。`WV3-009` 要求 AI 最后迁移。现在可做的只有文档、Electron 基线比对及 P0-05 允许的只读协议/一次性 fixture 探针；以下 P7 production 工作须等门禁通过。
+**WV3-025 取代 WV3-009。** unsigned 资格包（v0.0.2 与本机 `package-wails`）和三平台开窗之后，可以创建 `internal/capability` / `internal/agent`。不要伪造 `NONAI-COMPLETE`。矩阵中 `AI-01` 已随 W03 契约落地升为 `probe`（WV3-L160）；`AI-02`, `AI-03`, `AI-04`, `AI-04.1`, `AI-04.2`, `AI-04.3` 仍为 `not-started`；`AI-04.4` 至 `AI-04.8` 已 `removed` / `retired`。`SYNC-01` 明确记载 AI 数据仍使用 renderer localStorage；Wails `agent` 端口仍是 `unimplemented("agent")`。下一刀是 W04 共享 use case，不是完整 Catty。
 
-P7 开工检查由执行 AI 实际读取并记录：
+P7 开工检查由执行 AI 实际读取并记录（第 1、2 条的 verified/断开要求已被 WV3-025 移出生产开工条件，转为并行偿还的证据债；P8-02 前仍须闭合）：
 
 1. 所有 `FND/TERM/SSH/SFTP/NET/SYS/SYNC/PLUG` **required leaf** 和 `REL-01/REL-02` 为 `verified`；Wails 与旧 Electron 路径已断开，Electron 仅为冻结的 release carrier。
 2. P6-02/03/04 的发布、更新、升级 bootstrap 定向证据完整；ledger 中已有通过 `npm run check:migration-docs` 的 P6-05 `NONAI-COMPLETE` 记录，且之后没有使 gate epoch 失效的回退或 scope change。

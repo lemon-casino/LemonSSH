@@ -71,6 +71,20 @@ function resetFixtureProgress(root) {
     .replace(/^- Closure evidence: .*$/gm, "- Closure evidence: `none`")
     .replace(/^- Electron retirement:.*$/gm, "- Electron retirement: none: fixture baseline only"));
   fs.rmSync(path.join(root, "docs/migrations/wails-v3/gates"), { recursive: true, force: true });
+  mutate(root, "decisions.md", (source) => source.replace(
+    /\n### WV3-025 -[\s\S]*?(?=\n### WV3-|\n## Required Future Decisions)/,
+    "\n",
+  ));
+  for (const relativePath of [
+    "capability-matrix.md",
+    "migration-ledger.md",
+    "remaining-work.md",
+    "ai-migration-execution-plan.md",
+    "ai-migration-work-packages.md",
+    "implementation-plan.md",
+  ]) {
+    mutate(root, relativePath, (source) => source.replaceAll("WV3-025", "WV3-001"));
+  }
 }
 
 function fixtureGit(root, ...args) {
@@ -183,7 +197,6 @@ function nonAiRequiredCapabilityIds(root) {
   const prefixes = new Set(["FND", "TERM", "SSH", "SFTP", "NET", "SYS", "SYNC", "PLUG"]);
   return rows.filter((row) => {
     if (row.scope !== "required") return false;
-    if (row.id === "REL-01" || row.id === "REL-02") return true;
     if (!prefixes.has(row.id.split("-", 1)[0])) return false;
     return !rows.some((candidate) => candidate.id.startsWith(`${row.id}.`));
   }).map((row) => row.id);
@@ -755,6 +768,26 @@ test("checker allows a NONAI gate when AI-04.4 is already removed and retired", 
   assert.deepEqual(checkMigrationDocs(root), []);
 }));
 
+test("checker allows a NONAI gate while REL-01 and REL-02 stay probe", () => withFixture((root) => {
+  mutate(root, "capability-matrix.md", (source) => {
+    source = setMatrixStatus(source, "REL-01", "probe");
+    return setMatrixStatus(source, "REL-02", "probe");
+  });
+  mutate(root, "migration-ledger.md", (source) => `${source}${ledgerEntry({
+    id: ledgerId(1),
+    capability: "REL-01",
+    task: "P6-02",
+    transition: "not-started -> probe",
+  })}${ledgerEntry({
+    id: ledgerId(2),
+    capability: "REL-02",
+    task: "P6-03",
+    transition: "not-started -> probe",
+  })}`);
+  appendCompleteNonAiGate(root, 3);
+  assert.deepEqual(checkMigrationDocs(root), []);
+}));
+
 test("checker still rejects a NONAI gate when a retained AI row has advanced", () => withFixture((root) => {
   addNonAiFixtureDecisions(root);
   const capabilityIds = nonAiRequiredCapabilityIds(root);
@@ -818,6 +851,14 @@ test("checker rejects AI-04.4 removal that cites only WV3-014", () => withFixtur
   assert.ok(errors.some((error) => (
     error.includes("Scope change requires decision category: scope-removal:AI-04.4")
   )));
+}));
+
+test("checker allows a production AI path after WV3-025 without NONAI-COMPLETE", () => withFixture((root) => {
+  addAcceptedDecision(root, "WV3-025", "Start AI production after unsigned qualification", [
+    "sequencing:ai-parallel-with-unsigned-qualification",
+  ]);
+  fs.mkdirSync(path.join(root, "internal/capability"), { recursive: true });
+  assert.deepEqual(checkMigrationDocs(root), []);
 }));
 
 test("checker rejects every production AI path before the non-AI gate", () => withFixture((root) => {

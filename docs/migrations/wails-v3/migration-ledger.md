@@ -4569,3 +4569,78 @@ capability row, source paths, verification output or CI run.
 - Residual risks: computed form specs and variable-interpolated field values stay unsupported line-parser input
 - Next safe slice: continue non-AI live evidence collection; do not start Catty or `internal/agent`
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L158 - 2026-09-16 - Defer paid signing out of P6-05
+
+- Capability rows: `REL-01`, `REL-02`
+- Plan task: `P6-05`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Record WV3-024. The product owner will not buy Authenticode or Apple certificates now. Unsigned qualification binaries stay the Wails release shape. REL-01 and REL-02 remain required probe rows. P6-05 no longer waits for them to reach verified. P8-01 still needs signed RC evidence later. Three-platform unsigned packages from v0.0.2 and local package-wails launched on Windows, macOS, and Linux as C-grade smoke only.
+- Go canonical owner: none; governance documentation slice
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: REL-01 and REL-02 stay probe; no signed claim; no production AI path was created; FND/TERM/SSH/SFTP/NET/SYS/SYNC/PLUG still need verified before NONAI-COMPLETE
+- Data/schema impact: none
+- Security impact: none; unsigned qualification remains explicit
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation plus prior C-grade launch smoke on Windows, macOS, and Linux
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-024`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron stays the frozen release carrier until three-platform evidence closes P8-02
+- Documentation updated: decisions, capability-matrix, verification-gates, implementation-plan, remaining-work, ledger, checker
+- Residual risks: paid certificates and signed feeds remain a later P8-01 decision
+- Next safe slice: gather A-grade evidence for remaining non-AI required leaves; do not start Catty or `internal/agent`
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L159 - 2026-09-16 - Authorize Phase 7 after unsigned qualification
+
+- Capability rows: `AI-01`, `AI-02`, `AI-03`, `AI-04`
+- Plan task: `P7-01`
+- Status change: `not-started -> not-started`
+- Scope change: `none`
+- Goal: Record WV3-025 superseding WV3-009 for production AI start. Unsigned qualification (v0.0.2, local package-wails, three-platform launch smoke) is enough to create `internal/capability` and `internal/agent`. Do not record a fake NONAI-COMPLETE gate. AI rows stay not-started until W03 contracts land. Next slice is W03 DTOs, not a full Catty runtime.
+- Go canonical owner: none in this slice; production path now allowed
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: no production AI path created in this slice; retired AI-04.4 through AI-04.8 stay removed; no Node sidecar; P8-02 still needs AI leaves verified or removed
+- Data/schema impact: none
+- Security impact: none; Observer/Confirm/Auto policy still required when owners land
+- Verification: npm run check:migration-docs
+- Platforms covered: documentation only
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron AI harness stays the frozen release carrier until P9
+- Documentation updated: decisions, capability-matrix, remaining-work, execution plan, work packages, ledger, checker
+- Residual risks: W03 contracts and use-case extraction still absent
+- Next safe slice: W03 Agent DTO contracts under `internal/app/contracts`
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L160 - 2026-09-16 - W03 agent wire DTOs and fake driver
+
+- Capability rows: `AI-01`
+- Plan task: `P7-01`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: Land the W03 shell-neutral agent contracts under internal/app/contracts: PrepareTurnRequest, PreparedTurn, TurnCommand, ReadEventsRequest, EventPage, AgentEventEnvelope plus chat/turn/agent opaque IDs and five new structured error codes (busy, stale_revision, unsupported, scope_denied, cursor_expired). Sequences and revisions travel as decimal strings so JavaScript never loses uint64 precision. The fake turn driver lives only in _test files; no production runtime or provider was created. Generated TS contracts regenerate cleanly and the drift check passes.
+- Go canonical owner: `internal/app/contracts/agent.go`, `internal/app/contracts/ids.go`, `internal/app/contracts/errors.go`
+- Frontend adapter: `infrastructure/runtime/contracts/generated/contracts.ts` regenerated
+- Electron owner affected: none
+- Preserved invariants: internal package imports no Wails, Electron, or UI package; AI-02 through AI-04.3 stay not-started; no provider, no Catty runtime, no Node sidecar; AI-01 is probe, not implemented
+- Data/schema impact: none; wire DTOs only
+- Security impact: none; DTOs carry no credentials, no raw vendor payloads
+- Verification: go test -count=1 ./internal/app/contracts/; go vet ./internal/app/contracts/; go run ./tools/contracts-codegen --check; npm run check:contracts; npm run check:migration-docs
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron AI harness stays the frozen release carrier until P9
+- Documentation updated: capability-matrix, ledger, remaining-work
+- Residual risks: catalog, policy, dispatch and use-case extraction (W04, W05) still absent; matrix AI-01 evidence is C-grade local only
+- Next safe slice: W04 shared use-case extraction from cmd/netcatty facades
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
