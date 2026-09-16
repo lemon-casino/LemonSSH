@@ -15,6 +15,9 @@ const (
 	idPrefixWindow   = "win_"
 	idPrefixSession  = "ses_"
 	idPrefixRequest  = "req_"
+	idPrefixChat     = "chat_"
+	idPrefixTurn     = "turn_"
+	idPrefixAgent    = "agnt_"
 )
 
 // idBodyHex is the number of random hex characters after the prefix.
@@ -33,6 +36,15 @@ type SessionID string
 
 // RequestID correlates one request/response pair.
 type RequestID string
+
+// ChatSessionID identifies one AI chat session.
+type ChatSessionID string
+
+// TurnID identifies one prepared or running AI turn.
+type TurnID string
+
+// AgentID identifies one agent kind or adapter.
+type AgentID string
 
 func newPrefixedID(prefix string) string {
 	body := make([]byte, idBodyHex/2)
@@ -55,6 +67,15 @@ func NewSessionID() SessionID { return SessionID(newPrefixedID(idPrefixSession))
 // NewRequestID mints a fresh request correlation identity.
 func NewRequestID() RequestID { return RequestID(newPrefixedID(idPrefixRequest)) }
 
+// NewChatSessionID mints a fresh chat session identity.
+func NewChatSessionID() ChatSessionID { return ChatSessionID(newPrefixedID(idPrefixChat)) }
+
+// NewTurnID mints a fresh turn identity.
+func NewTurnID() TurnID { return TurnID(newPrefixedID(idPrefixTurn)) }
+
+// NewAgentID mints a fresh agent identity.
+func NewAgentID() AgentID { return AgentID(newPrefixedID(idPrefixAgent)) }
+
 // Valid reports whether the ID has the expected prefix and body shape.
 func (id InstanceID) Valid() bool { return validateID(idPrefixInstance, string(id)) }
 
@@ -66,6 +87,15 @@ func (id SessionID) Valid() bool { return validateID(idPrefixSession, string(id)
 
 // Valid reports whether the ID has the expected prefix and body shape.
 func (id RequestID) Valid() bool { return validateID(idPrefixRequest, string(id)) }
+
+// Valid reports whether the ID has the expected prefix and body shape.
+func (id ChatSessionID) Valid() bool { return validateID(idPrefixChat, string(id)) }
+
+// Valid reports whether the ID has the expected prefix and body shape.
+func (id TurnID) Valid() bool { return validateID(idPrefixTurn, string(id)) }
+
+// Valid reports whether the ID has the expected prefix and body shape.
+func (id AgentID) Valid() bool { return validateID(idPrefixAgent, string(id)) }
 
 func validateID(prefix, value string) bool {
 	if len(value) != len(prefix)+idBodyHex || value[:len(prefix)] != prefix {

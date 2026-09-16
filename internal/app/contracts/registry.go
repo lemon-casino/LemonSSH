@@ -15,6 +15,11 @@ func AllErrorCodes() []ErrorCode {
 		CodeCancelled,
 		CodeUnavailable,
 		CodeInternal,
+		CodeBusy,
+		CodeStaleRevision,
+		CodeUnsupported,
+		CodeScopeDenied,
+		CodeCursorExpired,
 	}
 }
 
@@ -30,5 +35,11 @@ func WireTypes() []any {
 		app.HealthStatus{},
 		app.VersionInfo{},
 		app.WindowRoleInfo{},
+		PrepareTurnRequest{},
+		PreparedTurn{},
+		TurnCommand{},
+		ReadEventsRequest{},
+		EventPage{},
+		AgentEventEnvelope{},
 	}
 }

@@ -27,6 +27,16 @@ const (
 	CodeUnavailable ErrorCode = "netcatty.unavailable"
 	// CodeInternal marks an unexpected internal failure.
 	CodeInternal ErrorCode = "netcatty.internal"
+	// CodeBusy marks a turn or chat that already has an active writer.
+	CodeBusy ErrorCode = "netcatty.busy"
+	// CodeStaleRevision marks a mismatched chat or turn revision.
+	CodeStaleRevision ErrorCode = "netcatty.stale_revision"
+	// CodeUnsupported marks an operation the adapter does not implement.
+	CodeUnsupported ErrorCode = "netcatty.unsupported"
+	// CodeScopeDenied marks a requested scope the host refused.
+	CodeScopeDenied ErrorCode = "netcatty.scope_denied"
+	// CodeCursorExpired marks an event cursor the host no longer holds.
+	CodeCursorExpired ErrorCode = "netcatty.cursor_expired"
 )
 
 // Error is the structured error envelope crossing shell boundaries.

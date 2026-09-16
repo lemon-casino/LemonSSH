@@ -4,14 +4,19 @@
 
 /** Stable, wire-visible error identity. Never rename or reuse a code. */
 export type ErrorCode =
+  | "netcatty.busy"
   | "netcatty.cancelled"
   | "netcatty.conflict"
+  | "netcatty.cursor_expired"
   | "netcatty.deadline_exceeded"
   | "netcatty.internal"
   | "netcatty.invalid_request"
   | "netcatty.not_found"
+  | "netcatty.scope_denied"
+  | "netcatty.stale_revision"
   | "netcatty.unavailable"
-  | "netcatty.unknown";
+  | "netcatty.unknown"
+  | "netcatty.unsupported";
 
 /** Structured error envelope crossing shell boundaries. */
 export interface ServiceError {
@@ -55,5 +60,65 @@ export interface VersionInfo {
 export interface WindowRoleInfo {
   role: string;
   singleInstance: boolean;
+}
+
+export interface PrepareTurnRequest {
+  requestId: string;
+  chatSessionId: string;
+  expectedChatRevision?: string;
+  agentId: string;
+  providerConfigId?: string;
+  modelId?: string;
+  input: TurnInput;
+  requestedScope: TurnScope;
+}
+
+export interface PreparedTurn {
+  turnId: string;
+  leaseExpiresAtMs: number;
+  cursor: string;
+  snapshotRevision: string;
+  effectiveScope: TurnScope;
+  effectiveConfigRevision: string;
+  policyRevision: string;
+}
+
+export interface TurnCommand {
+  requestId: string;
+  kind: string;
+  turnId: string;
+  reason?: string;
+  input?: TurnInput | null;
+  expectedTurnRevision?: string;
+}
+
+export interface ReadEventsRequest {
+  requestId: string;
+  turnId: string;
+  afterSequence: string;
+  limit?: number;
+}
+
+export interface EventPage {
+  events: AgentEventEnvelope[];
+  nextCursor?: string;
+  hasMore?: boolean;
+  cursorExpired?: boolean;
+  snapshot?: TurnSnapshot | null;
+}
+
+export interface AgentEventEnvelope {
+  schemaVersion: number;
+  instanceId: string;
+  chatSessionId: string;
+  turnId: string;
+  sequence: string;
+  type: string;
+  backend: string;
+  timestampMs: number;
+  messageId?: string;
+  modelCallId?: string;
+  toolCallId?: string;
+  payload?: string;
 }
 
