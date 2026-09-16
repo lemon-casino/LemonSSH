@@ -4719,3 +4719,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: Vault/snippet domain still owned by its Wails facade; live forward relay needs the real-host matrix before any A-grade claim
 - Next safe slice: W04 Vault/snippet domain, then W05 catalog
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L164 - 2026-09-17 - W04 vault audit: scope removal, no extraction
+
+- Capability rows: `AI-01`
+- Plan task: `P7-01`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Fourth W04 slice closes the work package by audit instead of extraction. Surface map: the only Go-side Wails owner of vault/snippet data is `ProfileService` (7 methods), already a no-policy one-line passthrough over `internal/profile/store` (P2-02 CAS/transaction owner, internal and shell-neutral); vault document rules (host/key/group normalization, order) live in renderer React hooks by design; a candidate `internal/app/vaultuse` package was built and then removed in review as a pass-through layer with one caller (facade) — capability dispatch can import `internal/profile/store` directly, and a real policy seam will be created when W13 approval gating needs one. W04's vault acceptance ("Vault 写完原 UI 收到一致 revision") is already satisfied by store CAS plus `WriteResult.Revision` returning to the renderer. Net production change: none; the gofmt-only drift on sibling files was committed separately this day.
+- Go canonical owner: `internal/profile/store/` (unchanged); facade `cmd/netcatty/profileService.go` (unchanged, 78 lines)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01 stays probe; no `internal/capability`, `internal/agent`, `cmd/netcatty-mcp`, `cmd/netcatty-tool`; secrets stay opaque bytes over the raw channel; no second profile transaction path; `vaultuse` deliberately does not exist — do not re-create it without a real policy to own
+- Data/schema impact: none
+- Security impact: none
+- Verification: go build ./...; go test -count=1 ./cmd/netcatty ./internal/app/... ./internal/profile/... (9 pkgs ok); go test -count=1 ./internal/app/contracts/; store suite covers ExpectedRevision/RevisionConflict (store_test.go, staging_test.go)
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Electron vault stack stays until three-platform evidence closes P8-02
+- Documentation updated: ledger, remaining-work, work-packages
+- Residual risks: vault write approval policy does not exist yet on the Go side; W13 must add it at the dispatch layer (or a then-real use-case package), not re-introduce an empty seam
+- Next safe slice: W05 catalog/policy/dispatch under `internal/capability`
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -1,6 +1,6 @@
 # AI 迁移工作包与验收手册
 
-日期：2026-09-14（2026-09-16 更新）。状态：W01-W03 已实施（W03 见 WV3-L160）；W04 起待实施。本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
+日期：2026-09-14（2026-09-17 更新）。状态：W01-W04 已实施（L160-L164，W04 Vault 域经审计裁决为无需提取）；W05 起待实施。本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
 
 ## 1. 执行顺序与本轮允许范围
 
