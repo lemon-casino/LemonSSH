@@ -68,17 +68,6 @@ func (s *TerminalService) setTempService(temp *filesystem.TempService) {
 	s.core.SetTempService(temp)
 }
 
-// sshConnectToInput and terminalSSHDialConfig adapt the shell-facing request
-// DTO to the transport layer for facades that share the terminal SSH auth path
-// (SFTP, port forward). The implementation lives in terminaluse.
-func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
-	return terminaluse.ConnectInputFromRequest(request)
-}
-
-func terminalSSHDialConfig(request SSHConnectRequest, hosts *ssh.KnownHosts, challenge func(string, string, []string, []bool) ([]string, error)) (ssh.DialConfig, error) {
-	return terminaluse.SSHDialConfig(request, hosts, challenge)
-}
-
 // TransportFor exposes a live session's authenticated SSH client for the SFTP
 // subsystem seam; see terminaluse.Service.TransportFor.
 func (s *TerminalService) TransportFor(sessionID string) (*gossh.Client, func() bool, error) {

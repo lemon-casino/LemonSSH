@@ -1,229 +1,56 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"net"
-	"strings"
-	"sync"
-
-	"github.com/binaricat/netcatty/internal/terminal/forward"
 	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
+
+	"github.com/binaricat/netcatty/internal/app/forwarduse"
 	"github.com/binaricat/netcatty/internal/terminal/sshpool"
 )
 
+// Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+// internal/app/forwarduse; these aliases keep the Wails API names stable.
+type (
+	PortForwardResult          = forwarduse.Result
+	PortForwardListItem        = forwarduse.ListItem
+	PortForwardRuntimeRecord   = forwarduse.RuntimeRecord
+	PortForwardRuntimeSnapshot = forwarduse.RuntimeSnapshot
+)
+
+// ForwardService is the Wails-facing facade over internal/app/forwarduse. It
+// owns only shell wiring: renderer service registration and the shell epoch
+// label. All forward rules (tunnel lifecycle, SOCKS5 handling, port binding,
+// relaying) live in the shared forwarduse.Service, so a future capability
+// dispatch entry point can call the same instance.
 type ForwardService struct {
-	mu         sync.Mutex
-	pool       *sshpool.Pool
-	knownHosts *netcattyssh.KnownHosts
-	tunnels    map[string]*forwardTunnel
+	core *forwarduse.Service
 }
 
-type forwardTunnel struct {
-	ruleID  string
-	kind    string
-	lease   *sshpool.Lease
-	manager *forward.Manager
-}
-
-type PortForwardResult struct {
-	TunnelID         string `json:"tunnelId"`
-	Success          bool   `json:"success"`
-	Status           string `json:"status,omitempty"`
-	Error            string `json:"error,omitempty"`
-	Cancelled        bool   `json:"cancelled,omitempty"`
-	BlockedByCleanup bool   `json:"blockedByCleanup,omitempty"`
-	Reused           bool   `json:"reused,omitempty"`
-}
-
-type PortForwardListItem struct {
-	RuleID   string `json:"ruleId"`
-	TunnelID string `json:"tunnelId"`
-	Type     string `json:"type"`
-	Status   string `json:"status"`
-	Error    string `json:"error,omitempty"`
-}
-
-type PortForwardRuntimeRecord struct {
-	RuleID   string `json:"ruleId"`
-	TunnelID string `json:"tunnelId"`
-	Phase    string `json:"phase"`
-	Error    string `json:"error,omitempty"`
-	Revision uint64 `json:"revision"`
-}
-
-type PortForwardRuntimeSnapshot struct {
-	Epoch    string                     `json:"epoch"`
-	Revision uint64                     `json:"revision"`
-	Records  []PortForwardRuntimeRecord `json:"records"`
-}
-
+// NewForwardService wires the shared SSH pool and known-hosts store.
 func NewForwardService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *ForwardService {
-	return &ForwardService{pool: pool, knownHosts: knownHosts, tunnels: make(map[string]*forwardTunnel)}
+	return &ForwardService{core: forwarduse.New(pool, knownHosts)}
 }
 
+// Start starts (or reuses) one tunnel for the rule encoded in id.
 func (s *ForwardService) Start(id, kind, bindHost string, bindPort uint16, targetHost string, targetPort uint16, request SSHConnectRequest) PortForwardResult {
-	ruleID := parseForwardRuleID(id)
-	s.mu.Lock()
-	for tunnelID, existing := range s.tunnels {
-		if existing.ruleID == ruleID {
-			s.mu.Unlock()
-			return PortForwardResult{TunnelID: tunnelID, Success: true, Status: "active", Reused: true}
-		}
-	}
-	s.mu.Unlock()
-
-	if s.pool == nil {
-		return PortForwardResult{TunnelID: id, Error: "ssh pool unavailable"}
-	}
-	if request.Port == 0 {
-		request.Port = 22
-	}
-	config, err := terminalSSHDialConfig(request, s.knownHosts, nil)
-	if err != nil {
-		return PortForwardResult{TunnelID: id, Error: err.Error()}
-	}
-	lease, err := s.pool.Get(context.Background(), config, sshpool.KindForward)
-	if err != nil {
-		return PortForwardResult{TunnelID: id, Error: err.Error()}
-	}
-	client := lease.Client()
-	if client == nil {
-		lease.Discard()
-		return PortForwardResult{TunnelID: id, Error: "ssh client unavailable"}
-	}
-	tunnelFn := func(ctx context.Context, host string, port uint16, local net.Conn) error {
-		remote, dialErr := client.Dial("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", port)))
-		if dialErr != nil {
-			return dialErr
-		}
-		proxyConn(local, remote)
-		return nil
-	}
-	listenRemote := func(ctx context.Context, spec forward.Spec) (net.Listener, error) {
-		addr := net.JoinHostPort(spec.BindHost, fmt.Sprintf("%d", spec.BindPort))
-		return client.Listen("tcp", addr)
-	}
-	manager, err := forward.NewManagerForRemote(listenRemote, tunnelFn)
-	if err != nil {
-		lease.Discard()
-		return PortForwardResult{TunnelID: id, Error: err.Error()}
-	}
-	_, err = manager.Start(context.Background(), forward.Spec{
-		ID:         id,
-		Kind:       forward.Kind(kind),
-		BindHost:   bindHost,
-		BindPort:   bindPort,
-		TargetHost: targetHost,
-		TargetPort: targetPort,
-		RuleID:     ruleID,
-	})
-	if err != nil {
-		lease.Discard()
-		return PortForwardResult{TunnelID: id, Error: err.Error()}
-	}
-	s.mu.Lock()
-	s.tunnels[id] = &forwardTunnel{ruleID: ruleID, kind: kind, lease: lease, manager: manager}
-	s.mu.Unlock()
-	return PortForwardResult{TunnelID: id, Success: true, Status: "active"}
+	return s.core.Start(id, kind, bindHost, bindPort, targetHost, targetPort, request)
 }
 
-func (s *ForwardService) Stop(id string) PortForwardResult {
-	s.mu.Lock()
-	tunnel := s.tunnels[id]
-	delete(s.tunnels, id)
-	s.mu.Unlock()
-	if tunnel == nil {
-		return PortForwardResult{TunnelID: id, Success: true, Status: "inactive"}
-	}
-	_, _ = tunnel.manager.Stop(id)
-	tunnel.lease.Return()
-	return PortForwardResult{TunnelID: id, Success: true, Status: "inactive"}
-}
+// Stop stops one tunnel and returns its lease to the pool.
+func (s *ForwardService) Stop(id string) PortForwardResult { return s.core.Stop(id) }
 
+// StopByRuleId stops every tunnel started for one rule.
 func (s *ForwardService) StopByRuleId(ruleID string) map[string]any {
-	s.mu.Lock()
-	ids := make([]string, 0)
-	for id, tunnel := range s.tunnels {
-		if tunnel.ruleID == ruleID {
-			ids = append(ids, id)
-		}
-	}
-	s.mu.Unlock()
-	for _, id := range ids {
-		_ = s.Stop(id)
-	}
-	return map[string]any{"stopped": len(ids)}
+	return s.core.StopByRuleId(ruleID)
 }
 
-func (s *ForwardService) List() []PortForwardListItem {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	items := make([]PortForwardListItem, 0, len(s.tunnels))
-	for id, tunnel := range s.tunnels {
-		status := "active"
-		errText := ""
-		if state, err := tunnel.manager.Snapshot(id); err == nil && state.Err != "" {
-			status = "error"
-			errText = state.Err
-		}
-		items = append(items, PortForwardListItem{
-			RuleID:   tunnel.ruleID,
-			TunnelID: id,
-			Type:     tunnel.kind,
-			Status:   status,
-			Error:    errText,
-		})
-	}
-	return items
-}
+// List reports all active tunnels with their live status.
+func (s *ForwardService) List() []PortForwardListItem { return s.core.List() }
 
-func (s *ForwardService) Snapshot(id string) PortForwardResult {
-	s.mu.Lock()
-	tunnel := s.tunnels[id]
-	s.mu.Unlock()
-	if tunnel == nil {
-		return PortForwardResult{TunnelID: id, Success: true, Status: "inactive"}
-	}
-	state, err := tunnel.manager.Snapshot(id)
-	if err != nil {
-		return PortForwardResult{TunnelID: id, Success: true, Status: "inactive"}
-	}
-	status := "active"
-	if state.Err != "" {
-		status = "error"
-	}
-	return PortForwardResult{TunnelID: id, Success: true, Status: status, Error: state.Err}
-}
+// Snapshot reports one tunnel's status.
+func (s *ForwardService) Snapshot(id string) PortForwardResult { return s.core.Snapshot(id) }
 
+// RuntimeSnapshot renders the tunnel table for the renderer poll, stamped
+// with this shell's epoch.
 func (s *ForwardService) RuntimeSnapshot() PortForwardRuntimeSnapshot {
-	items := s.List()
-	records := make([]PortForwardRuntimeRecord, 0, len(items))
-	for _, item := range items {
-		records = append(records, PortForwardRuntimeRecord{
-			RuleID:   item.RuleID,
-			TunnelID: item.TunnelID,
-			Phase:    item.Status,
-			Error:    item.Error,
-		})
-	}
-	return PortForwardRuntimeSnapshot{Epoch: "wails", Records: records}
-}
-
-func parseForwardRuleID(tunnelID string) string {
-	trimmed := strings.TrimPrefix(tunnelID, "pf-")
-	if index := strings.LastIndex(trimmed, "-"); index > 0 {
-		return trimmed[:index]
-	}
-	return tunnelID
-}
-
-func proxyConn(left, right net.Conn) {
-	defer left.Close()
-	defer right.Close()
-	done := make(chan struct{}, 2)
-	go func() { _, _ = io.Copy(left, right); done <- struct{}{} }()
-	go func() { _, _ = io.Copy(right, left); done <- struct{}{} }()
-	<-done
+	return s.core.RuntimeSnapshot("wails")
 }
