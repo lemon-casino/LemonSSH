@@ -124,6 +124,8 @@ experiments/*
 /testdata/ai/*
 !/testdata/ai/catalog/
 !/testdata/ai/catalog/**
+!/testdata/ai/provider/
+!/testdata/ai/provider/**
 
 # --- Layer 3: classical denylist (applies inside allowlisted trees) ---
 
