@@ -4794,3 +4794,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: composition root not yet wired (no production listener); POSIX file-mode evidence is Windows-C only; client-side envelope helper for the Go CLI lives in W07
 - Next safe slice: W07 native MCP/CLI binaries (`cmd/netcatty-mcp`, `cmd/netcatty-tool`) wiring this RPC core
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L167 - 2026-09-18 - W07 native MCP/CLI binaries (projection slices)
+
+- Capability rows: `AI-02`
+- Plan task: `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W07 first slices landed (SDK version lock per ai-migration-technical-design.md §1). Slice 1 (W07 CLI): `internal/rpc` gained a typed Client (Dial over the discovery file with UNAVAILABLE typing for missing/invalid/dead endpoints, serialized Call with decimal-safe envelope and id correlation) and `internal/capability` gained the CJS CLI projection port (CLIFieldBindings, ResolveCLIRPCMethod, ListCLICapabilities/FormatCLIHelpLines, BuildCatalogCLIParams with variables-JSON/offset coercion and INVALID_ARGUMENT wording); `cmd/netcatty-tool` is the native binary replacing the Node CLI: help/capabilities offline, catalog dispatch, requiresChatSession gate with CJS wording, `--chat-session`/`--scope-session`/`--json` flags, `{ok:false,error:{code,message}}` stderr payloads, exit 0/1/2, error precedence unavailable -> unknown -> chat gate -> args (CJS order), HTML-safe JSON output. Slice 2 (W07 MCP): official MCP Go SDK pinned at v1.7.0 (go.sum h1:yqjY2dsbKAC0LSuWZVBMrHgiG8ukXv6NRo0JiALay44=, design-cited version); `cmd/netcatty-mcp` projects ListMcpTools (67 tools) as stdio tools with 2020-12 input schemas (required from non-optional fields) and relays tools/call over the RPC client; host-reported failures surface as isError content carrying host code/message, unreachable host surfaces typed unavailable; zero policy copy in the binary.
+- Go canonical owner: `cmd/netcatty-mcp/`, `cmd/netcatty-tool/`, `internal/rpc/client.go`, `internal/capability/cli.go`
+- Frontend adapter: none
+- Electron owner affected: none; Node `netcatty-tool-cli.cjs` and `mcpServerBridge.cjs` stay until W22 retirement
+- Preserved invariants: no second policy implementation (authorization is host-side); token material only in the 0600 discovery file, never argv; MCP server speaks only the SDK protocol on stdout, diagnostics on stderr
+- Data/schema impact: go.mod gains direct `github.com/modelcontextprotocol/go-sdk v1.7.0` + indirect `github.com/google/jsonschema-go v0.4.3`
+- Security impact: typed UNAVAILABLE avoids stack-trace leakage; MCP tool schemas carry only catalog fields; relay never widens surface beyond ListMcpTools
+- Verification: go build ./...; go vet ./internal/rpc/... ./internal/capability/... ./cmd/netcatty-tool/... ./cmd/netcatty-mcp/...; go test -count=1 ./internal/rpc/... ./internal/capability/... (ok; CLI golden cases ported from cliAdapter.test.cjs); go test -race ./internal/rpc/... (ok); live stdio smoke: initialize -> serverInfo netcatty/0.1.0, tools/list 67 tools, terminal_execute required=[command sessionId], tools/call with app down -> isError "Netcatty is not running... Start Netcatty first."; CLI smoke: help exit 0, unavailable JSON payload exit 1
+- Platforms covered: Windows 10 22H2 x64 unit tests + local stdio smoke; real vendor MCP clients untested
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22 removes the call chain and P8-02 closes
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: host side has no production listener yet (composition root lands with W12/W13 handler population); old CLI special-case commands (exec/jobs/SFTP/session custom output formatting) are relay-thin by design — their formatting moves into host handlers at W13; two-generation protocol/legacy initialize validation and real vendor client matrix still pending; Windows CLI quoting goldens pending
+- Next safe slice: W08 provider network policy (`internal/platform/netpolicy`), or W07.2 residual golden work before W13 integration
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

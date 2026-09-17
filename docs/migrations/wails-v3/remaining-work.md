@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L166`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L167`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -18,7 +18,9 @@ W04 terminal 域共享 use case（L161）、W04 SFTP 域共享 use case（L162�
 8f212038/5cef2877/4917b1fe/b7ded241，77 行 fixture parity + 投影语义全等）。
 W06 本机 host RPC 核心已落 internal/rpc（L166：versioned envelope、frame 上限、
 token 认证+principal scope、撤销/关闭生命周期、first-party discovery 契约；
-composition root 随 W07 接线）。生产 AI 下一刀是 W07 原生 MCP/CLI，不是伪造 NONAI-COMPLETE。
+composition root 随 W07 接线）。W07 原生二进制首两刀已落（L167：cmd/netcatty-tool + cmd/netcatty-mcp，
+SDK 锁 v1.7.0，67 工具 stdio 冒烟 + typed unavailable 通过；composition root
+与真实 vendor 矩阵仍欠）。生产 AI 下一刀是 W08 Provider 网络策略，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -136,7 +138,11 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
   （first-party/external principal、RevokeAll 永久撤销）、scope 守卫
   （RequireSession 挡伪造 session）、per-request deadline、frames-only-on-wire、
   Close 收敛全部连接，discovery 文件复用既有 0600 first-party 契约。
-- 下一刀 W07：`cmd/netcatty-mcp` + `cmd/netcatty-tool` 接上该 RPC 核心。
+- W07 首两刀已落（L167）：`cmd/netcatty-tool`（catalog CLI 投影 + RPC client +
+  typed unavailable + CJS 错误措辞/退出码）与 `cmd/netcatty-mcp`（官方 Go SDK
+  v1.7.0 stdio server，67 工具投影，tools/call 中继 host RPC，零 policy 副本）。
+  旧 CLI 特例命令的输出格式随 W13 落入 host handler；真实 vendor 客户端矩阵未跑。
+- 下一刀 W08：`internal/platform/netpolicy` Provider 网络策略。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
