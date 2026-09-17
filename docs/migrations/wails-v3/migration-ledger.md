@@ -4819,3 +4819,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: host side has no production listener yet (composition root lands with W12/W13 handler population); old CLI special-case commands (exec/jobs/SFTP/session custom output formatting) are relay-thin by design — their formatting moves into host handlers at W13; two-generation protocol/legacy initialize validation and real vendor client matrix still pending; Windows CLI quoting goldens pending
 - Next safe slice: W08 provider network policy (`internal/platform/netpolicy`), or W07.2 residual golden work before W13 integration
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L168 - 2026-09-18 - W08 provider network policy and enforced transport
+
+- Capability rows: `AI-03`
+- Plan task: `P7-03`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: W08 landed as `internal/platform/netpolicy`. Policy core ports the providerHandlers.cjs authority exactly: builtin fetch hosts, builtin localhost ports (Ollama/LM Studio/dev), SSRF private-address set (RFC1918, loopback, link-local, CGNAT 100.64/10, unspecified, IPv6 ULA/link-local, 4-in-6 mapped), metadata hostname block, dynamic provider endpoint registration (localhost base URLs extend allowed ports scheme-agnostically — CJS parity pinned by test), explicit http:// provider hosts, web search host handling, and the skipHostCheck custom-endpoint mode (private still blocked, HTTPS mandatory). Transport adds what the design requires beyond the CJS guard: a dial-phase guard validating EVERY resolved address and connecting only to one validated address (DNS rebinding refusal, T48), redirect revalidation per hop with a 5-hop limit, 10 MiB response body cap enforced in the transport, and SkipTLSVerify mapped to TLS config without ever bypassing host policy. NewClient returns a stdlib http.Client so provider SDKs inject it as their transport (W09).
+- Go canonical owner: `internal/platform/netpolicy/`
+- Frontend adapter: none
+- Electron owner affected: none (providerHandlers.cjs untouched until W22)
+- Preserved invariants: AI-03 stays probe until runtime+providers land; no provider SDK exists on the Go side yet to inject the transport (enforcement is proven by tests and awaits W09 wiring); unparsable addresses fail closed
+- Data/schema impact: none
+- Security impact: DNS-to-dial address consistency closes the rebinding gap the hostname-only CJS guard leaves; redirect targets re-judged per hop; body cap prevents memory exhaustion
+- Verification: go build ./...; go vet ./internal/platform/netpolicy/...; go test -count=1 ./internal/platform/netpolicy/ (ok: private-IP table, normal/custom URL matrices, local provider round trip, redirect allowlist + metadata refusal, body limit, rebinding refusal, dial guard unit cases, redirect limit); go test -race ./internal/platform/netpolicy/ (ok); gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests with httptest fixtures; real TLS/proxy fixtures pending W09 integration
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node provider fetch stack stays until W22 removes the call chain
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: loopback-port decision precedes scheme check in CJS parity (non-http schemes to allowed loopback ports pass policy; Go transport then refuses the dial) — acceptable divergence documented by test; remote-DNS-through-proxy semantics are defined but no proxy transport is wired yet (W09 provider clients bring proxies)
+- Next safe slice: W09 provider protocol families (`internal/agent/providers`) consuming netpolicy transports
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
