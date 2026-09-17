@@ -4869,3 +4869,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: OpenAI Responses API family not yet assembled (Chat family is the current Catty path; Responses is a W09.2 slice if a provider config needs it); model list/probe surfaces pending; live TLS/proxy wiring into netpolicy clients pending W11 runtime; canonical trace comparison (Gate 11 fixtures) pending
 - Next safe slice: W10 AI Profile data & secret references, or W09.2 Responses family when a provider config requires it
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L170 - 2026-09-18 - W11 runtime prepare lease (first slice)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W11 first slice lands `internal/agent/runtime` TurnManager prepare-lease invariants: per-chat single slot, same-request idempotent retry returning the identical reservation, same-request changed-parameters rejected as STALE_REVISION, different-request prepare during a live lease rejected as BUSY (T01 concurrent case decided by per-chat mutex — exactly one winner), lease expiry releasing the slot with no phantom terminal record (T03). Turn IDs come from the contracts random generator. Event ring, driver-driven Start/Stop lifecycle and ReadEvents reconciliation are the next W11 slices.
+- Go canonical owner: `internal/agent/runtime/`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; runtime imports only contracts (no Wails/Electron); implemented-vs-verified separation kept
+- Data/schema impact: none
+- Security impact: none
+- Verification: go vet ./internal/agent/runtime/...; go test -count=1 ./internal/agent/runtime/ (ok: idempotent retry, conflict, busy, concurrent T01, expiry T03); gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: canonical param snapshot is a field-concatenation stand-in until W10 defines canonical request hashing; event ring and Stop convergence (T04-T16) pending
+- Next safe slice: W11 slice 2 event ring + ReadEvents reconciliation, then driver lifecycle
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
