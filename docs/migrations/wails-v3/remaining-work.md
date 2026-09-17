@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L165`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L166`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -16,7 +16,9 @@ dialog.form/select/radio/checkbox（L157）、unsigned qualification 不挡 P6-0
 WV3-025 允许 unsigned 资格包之后开工 Phase 7（L159）、W03 Agent wire DTO（L160，AI-01 probe）、
 W04 terminal 域共享 use case（L161）、W04 SFTP 域共享 use case（L162）、W04 forward 域共享 use case（L163）、W04 Vault 域裁决为无需提取（L164）、W05 catalog/policy/dispatch Go 权威（L165，四提交：
 8f212038/5cef2877/4917b1fe/b7ded241，77 行 fixture parity + 投影语义全等）。
-生产 AI 下一刀是 W06 host RPC，不是伪造 NONAI-COMPLETE。
+W06 本机 host RPC 核心已落 internal/rpc（L166：versioned envelope、frame 上限、
+token 认证+principal scope、撤销/关闭生命周期、first-party discovery 契约；
+composition root 随 W07 接线）。生产 AI 下一刀是 W07 原生 MCP/CLI，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -129,7 +131,12 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
   与 `cmd/netcatty-capability-codegen`。parity 由 `testdata/ai/catalog` fixtures
   钉住（77 行 + 73 schema + 72/67/67 specs 与 CJS 语义全等）；Node 生成器保持
   提交物 owner 至 W22。
-- 下一刀 W06：`internal/rpc` 本机 host RPC 与生命周期，然后 W07 原生 MCP/CLI。
+- W06 核心已落（L166）：`internal/rpc` 拥有 versioned NDJSON 协议（1 MiB 帧
+  上限、oversized 排空后连接可用、EOF 截断终止）、SHA-256 digest token 认证
+  （first-party/external principal、RevokeAll 永久撤销）、scope 守卫
+  （RequireSession 挡伪造 session）、per-request deadline、frames-only-on-wire、
+  Close 收敛全部连接，discovery 文件复用既有 0600 first-party 契约。
+- 下一刀 W07：`cmd/netcatty-mcp` + `cmd/netcatty-tool` 接上该 RPC 核心。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。

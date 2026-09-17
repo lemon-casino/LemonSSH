@@ -4769,3 +4769,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: Go catalog has no Wails production caller yet (W12 wires the agent service to it); grants enter as a function seam with no persistence owner until W10/W12; native MCP/CLI binaries are W06/W07; dispatch handlers map is unpopulated until W13 fills host domains
 - Next safe slice: W06 local host RPC and lifecycle under `internal/rpc`
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L166 - 2026-09-18 - W06 authenticated local host RPC core
+
+- Capability rows: `AI-02`
+- Plan task: `P7-02`
+- Status change: `not-started -> probe`
+- Scope change: `none`
+- Goal: W06 core landed as `internal/rpc`. Protocol: versioned envelope (`v`/`id`/`method`/`deadlineMs`/`params`) with typed VERSION_UNSUPPORTED mismatch errors and NDJSON framing under a byte-based 1 MiB default bound; oversized frames are drained to their terminator so the connection stays usable, EOF-mid-frame ends the connection. Auth: 256-bit crypto/rand bearer tokens stored only as SHA-256 digests, first-party/external principals decided at issuance (never from request parameters), permanent revocation via RevokeAll. Server: serial per-connection request/response, per-request deadlines capped by MaxDeadline, handlers keyed by method with UNKNOWN_METHOD fail-closed, typed SCOPE_DENIED via RequireSession so forged session references cannot escalate (T42), frames-only-on-wire with no log interleaving (stdio purity). Lifecycle: Close revokes all tokens and stops tracked connections; ServeConn on a closed server answers SERVER_CLOSING on entry. Discovery: WriteDiscovery/LoadDiscovery/RemoveDiscovery reproduce the existing first-party `{port, token, pid, permissionMode, updatedAt}` 0600 file contract (NETCATTY_TOOL_CLI_DISCOVERY_FILE consumers) with atomic rename. Composition-root wiring (listener + token issuance at app start) intentionally lands with the W07 binaries that consume it.
+- Go canonical owner: `internal/rpc/`
+- Frontend adapter: none
+- Electron owner affected: none (mcpServerBridge.cjs untouched until W07/W22)
+- Preserved invariants: AI-02 stays probe until native binaries + live evidence; no Wails/Electron imports in internal/rpc; token material never in argv or traces (discovery file only); revoked tokens keep failing after reuse
+- Data/schema impact: none
+- Security impact: digest-only token retention; unsupported regex/frame conditions fail closed; oversized/truncated frames bounded (T43); Windows ACL tightening recorded as pending platform evidence
+- Verification: go build ./... (exit 0); go vet ./internal/rpc/...; go test -count=1 -timeout 60s ./internal/rpc/... (ok, 12 tests); go test -race -count=1 ./internal/rpc/... (ok); gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests; loopback/stdio live matrix pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server stays until three-platform evidence closes P8-02
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: composition root not yet wired (no production listener); POSIX file-mode evidence is Windows-C only; client-side envelope helper for the Go CLI lives in W07
+- Next safe slice: W07 native MCP/CLI binaries (`cmd/netcatty-mcp`, `cmd/netcatty-tool`) wiring this RPC core
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
