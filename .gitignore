@@ -120,6 +120,10 @@ experiments/*
 !/testdata/migration/electron/**
 !/testdata/migration/contracts/
 !/testdata/migration/contracts/**
+!/testdata/ai/
+/testdata/ai/*
+!/testdata/ai/catalog/
+!/testdata/ai/catalog/**
 
 # --- Layer 3: classical denylist (applies inside allowlisted trees) ---
 
