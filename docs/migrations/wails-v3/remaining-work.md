@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L168`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L169`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -22,7 +22,10 @@ composition root 随 W07 接线）。W07 原生二进制首两刀已落（L167�
 SDK 锁 v1.7.0，67 工具 stdio 冒烟 + typed unavailable 通过；composition root
 与真实 vendor 矩阵仍欠）。W08 Provider 网络策略已落 internal/platform/netpolicy（L168：SSRF 守卫、
 dial 地址校验防重绑定、redirect 逐跳重判、10MiB body 上限、自定义端点受限授权）。
-生产 AI 下一刀是 W09 三家 Provider 协议族，不是伪造 NONAI-COMPLETE。
+W09 Provider 协议族流装配核心已落 internal/agent/providers（L169：SSE 解析器、
+OpenAI Chat/Anthropic Messages/Google 三族装配器、usage 单次观测、签名 continuation
+私有记录、单一 retry owner；Responses 族与 model list/probe 仍欠）。
+生产 AI 下一刀是 W10 AI Profile 数据，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -147,7 +150,11 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - W08 已落（L168）：`internal/platform/netpolicy` 端点白名单/SSRF 守卫/
   dial-IP 校验（DNS 重绑定拒绝）/redirect 重判/body 限额；NewClient 输出标准
   http.Client 供 W09 的 Provider SDK 注入。
-- 下一刀 W09：`internal/agent/providers` 三家协议族。
+- W09 核心已落（L169）：`internal/agent/providers` — SSE 解析器（T17 字节边界
+  安全）、三族装配器（OpenAI Chat 交错工具调用 T18/T19；Anthropic 签名 continuation
+  私有记录 T20；Google 整体 functionCall + 累计 usage 单次观测 T22）、单一 retry
+  owner（T23 Retry-After 精确遵从 + capped 指数退避 + fake clock）。
+- 下一刀 W10：AI Profile 数据与 secret references。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。

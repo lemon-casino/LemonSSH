@@ -4844,3 +4844,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: loopback-port decision precedes scheme check in CJS parity (non-http schemes to allowed loopback ports pass policy; Go transport then refuses the dial) — acceptable divergence documented by test; remote-DNS-through-proxy semantics are defined but no proxy transport is wired yet (W09 provider clients bring proxies)
 - Next safe slice: W09 provider protocol families (`internal/agent/providers`) consuming netpolicy transports
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L169 - 2026-09-18 - W09 provider protocol families (stream assembly core)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-03`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W09 stream-assembly core landed as `internal/agent/providers`. Shared SSE parser is byte-boundary safe (1-byte feeds equal whole-stream feeds across CJK/emoji, CRLF/LF, BOM, keep-alive comments, multi-line data — T17). OpenAI Chat assembler: interleaved tool-call indices keep per-index state (T18), tool-only responses carry no text (T19), finish_reason mapping incl. tool_calls/function_call, stream_options usage with cached/reasoning details, unknown usage stays unknown (T22), error payloads surface as StreamError. Anthropic assembler: message_start/message_delta usage merged into one observation per turn (input/cache read/cache write + final output), thinking_delta reasoning, input_json_delta tool fragments, signature_delta assembled into a private_record continuation record at block stop consumed only by the next same-family request (T20), redacted_thinking records, stop_reason mapping. Google assembler: thought parts, thoughtSignature private records, whole functionCall emitted as start+complete-args delta keeping downstream uniform, cumulative usageMetadata overwritten and emitted exactly once (T22), finishReason mapping. RetryPolicy is the single retry owner: Retry-After honored exactly without multiplicative stacking (T23), exponential backoff capped, fake-clock (RecordingClock) tested, context cancellation interrupts waits.
+- Go canonical owner: `internal/agent/providers/`
+- Frontend adapter: none
+- Electron owner affected: none (providers.ts / Vercel SDK stay until W22)
+- Preserved invariants: AI-03 stays probe; no network dialing inside the package (netpolicy client injected at W11); provider-private records never cross families (T21 stale-continuation refusal lands with the runtime)
+- Data/schema impact: none
+- Security impact: malformed chunks and provider errors fail loudly as StreamError, never as silent empty streams
+- Verification: go build ./...; go vet ./internal/agent/providers/...; go test -count=1 ./internal/agent/providers/ (ok); go test -race ./internal/agent/providers/ (ok); fixtures under testdata/ai/provider with manifest (openai-chat-basic/toolcalls, anthropic-messages, google-generatecontent; all synthetic)
+- Platforms covered: Windows 10 22H2 x64 unit tests; no real provider calls (accepted: fixture-only until API consumption is authorized)
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer provider stack stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: OpenAI Responses API family not yet assembled (Chat family is the current Catty path; Responses is a W09.2 slice if a provider config needs it); model list/probe surfaces pending; live TLS/proxy wiring into netpolicy clients pending W11 runtime; canonical trace comparison (Gate 11 fixtures) pending
+- Next safe slice: W10 AI Profile data & secret references, or W09.2 Responses family when a provider config requires it
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
