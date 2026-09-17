@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L164`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L165`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -14,8 +14,9 @@ progress、startLog/stopLog、pause/resume、实时运行推送）、getText 行
 AI-04.4 至 AI-04.8 scope-removal（L152、L153、L154、L155、L156）、
 dialog.form/select/radio/checkbox（L157）、unsigned qualification 不挡 P6-05（L158 / WV3-024）、
 WV3-025 允许 unsigned 资格包之后开工 Phase 7（L159）、W03 Agent wire DTO（L160，AI-01 probe）、
-W04 terminal 域共享 use case（L161）、W04 SFTP 域共享 use case（L162）、W04 forward 域共享 use case（L163）、W04 Vault 域裁决为无需提取（L164）。
-生产 AI 下一刀是 W05 catalog，不是伪造 NONAI-COMPLETE。
+W04 terminal 域共享 use case（L161）、W04 SFTP 域共享 use case（L162）、W04 forward 域共享 use case（L163）、W04 Vault 域裁决为无需提取（L164）、W05 catalog/policy/dispatch Go 权威（L165，四提交：
+8f212038/5cef2877/4917b1fe/b7ded241，77 行 fixture parity + 投影语义全等）。
+生产 AI 下一刀是 W06 host RPC，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -120,7 +121,15 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
   forward → `internal/app/forwarduse`（同池 KindForward 租约，epoch 参数留给
   capability dispatch）；Vault 复核确认 Go 侧 owner 已是 `internal/profile/store`
   + 薄 facade，不再包一层（L164）。
-- 下一刀 W05：`internal/capability/{catalog,policy,dispatch}`，然后 W06 host RPC。
+- W05 已落（L165）：`internal/capability` 拥有 77 行 catalog（含 CJS last-wins
+  查找语义）、policy 决策（observer/confirm/auto、chatSession/cancel 门）、
+  permission grant 匹配（含 shell 分段安全边界：heredoc/算术展开/注释/后台段）、
+  fail-closed dispatch（未知默认拒绝、harness 显式 HANDLER_MISSING、审批与
+  grant 双路径 + 授权后 re-check 挡撤销/Stop 竞态）、rpc 超时、agent-kind 投影
+  与 `cmd/netcatty-capability-codegen`。parity 由 `testdata/ai/catalog` fixtures
+  钉住（77 行 + 73 schema + 72/67/67 specs 与 CJS 语义全等）；Node 生成器保持
+  提交物 owner 至 W22。
+- 下一刀 W06：`internal/rpc` 本机 host RPC 与生命周期，然后 W07 原生 MCP/CLI。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
