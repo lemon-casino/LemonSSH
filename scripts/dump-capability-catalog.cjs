@@ -1,22 +1,31 @@
 #!/usr/bin/env node
 "use strict";
 
-// Dumps the Electron capability catalog to the fixture consumed by
-// internal/capability's parity test (W05 semantic diff). Run after any
-// intentional change to electron/capabilities/catalog and commit the
-// regenerated JSON together with the Go catalog port.
+// Syncs the Go capability authority (internal/capability) with the Electron
+// CJS source (W05). Outputs, all committed together:
 //
-//   node scripts/dump-capability-catalog.cjs
+//   1. testdata/ai/catalog/electron-catalog.json        fixture for the
+//      per-ID semantic diff in catalog_electron_test.go
+//   2. testdata/ai/catalog/electron-tool-inputs.json    fixture for the
+//      tool-input schema parity test
+//   3. testdata/ai/catalog/electron-agent-specs-sidebar.json
+//   4. testdata/ai/catalog/electron-agent-specs-global.json
+//   5. testdata/ai/catalog/electron-mcp-tools.json      projection fixtures
+//   6. internal/capability/toolinputs_data.go           generated Go data
+//      (TOOL_INPUT_FIELDS + MODEL_DESCRIPTION_HINTS); DO NOT EDIT by hand
+//
+// Run after any intentional change to electron/capabilities and commit the
+// regenerated outputs together with the Go port.
 
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { ALL_CAPABILITIES } = require("../electron/capabilities/catalog/index.cjs");
+const { TOOL_INPUT_FIELDS, MODEL_DESCRIPTION_HINTS } = require("../electron/capabilities/schemas/toolInputs.cjs");
+const { AGENT_KINDS, listAgentToolSpecs, listMcpTools } = require("../electron/capabilities/codegen/toolSurfaces.cjs");
 
-const outputPath = path.join(
-  __dirname,
-  "../testdata/ai/catalog/electron-catalog.json",
-);
+const fixtureDir = path.join(__dirname, "../testdata/ai/catalog");
+const generatedGoPath = path.join(__dirname, "../internal/capability/toolinputs_data.go");
 
 function gitCommit() {
   try {
@@ -26,23 +35,24 @@ function gitCommit() {
   }
 }
 
-const payload = {
+function writeJSON(fileName, payload) {
+  const outputPath = path.join(fixtureDir, fileName);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return outputPath;
+}
+
+const dumpedFromCommit = gitCommit();
+
+const catalogFixture = {
   source: "electron/capabilities/catalog (ALL_CAPABILITIES, catalog order)",
-  dumpedFromCommit: gitCommit(),
+  dumpedFromCommit,
   capabilities: ALL_CAPABILITIES.map((capability) => ({
     id: capability.id,
     domain: capability.domain,
     status: capability.status,
     description: capability.description,
-    policy: {
-      write: capability.policy.write,
-      sensitiveRead: capability.policy.sensitiveRead,
-      longRunning: capability.policy.longRunning,
-      requiresChatSession: capability.policy.requiresChatSession,
-      bypassesObserverBlock: capability.policy.bypassesObserverBlock,
-      bypassesApproval: capability.policy.bypassesApproval,
-      bypassesChatCancel: capability.policy.bypassesChatCancel,
-    },
+    policy: { ...capability.policy },
     surfaces: Object.fromEntries(
       Object.entries(capability.surfaces || {}).map(([surface, binding]) => [
         surface,
@@ -52,9 +62,7 @@ const payload = {
           toolName: binding.toolName ?? null,
           command: Array.isArray(binding.command) ? [...binding.command] : null,
           confirmInConfirmMode:
-            binding.confirmInConfirmMode === undefined
-              ? null
-              : binding.confirmInConfirmMode,
+            binding.confirmInConfirmMode === undefined ? null : binding.confirmInConfirmMode,
         },
       ]),
     ),
@@ -62,8 +70,92 @@ const payload = {
   })),
 };
 
-fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+const toolInputsFixture = {
+  source: "electron/capabilities/schemas/toolInputs.cjs (normalized to the buildZodShape projection)",
+  dumpedFromCommit,
+  toolInputFields: Object.fromEntries(
+    Object.entries(TOOL_INPUT_FIELDS).map(([capabilityID, fields]) => [
+      capabilityID,
+      Object.fromEntries(
+        Object.entries(fields || {}).map(([key, field]) => [
+          key,
+          {
+            type: field.type,
+            optional: Boolean(field.optional),
+            description: field.description || "",
+          },
+        ]),
+      ),
+    ]),
+  ),
+  modelDescriptionHints: { ...MODEL_DESCRIPTION_HINTS },
+};
+
+writeJSON("electron-catalog.json", catalogFixture);
+writeJSON("electron-tool-inputs.json", toolInputsFixture);
+writeJSON("electron-agent-specs-sidebar.json", {
+  source: "electron/capabilities/codegen/toolSurfaces.cjs listCattyToolSpecs()",
+  dumpedFromCommit,
+  specs: listAgentToolSpecs(AGENT_KINDS.SIDEBAR),
+});
+writeJSON("electron-agent-specs-global.json", {
+  source: "electron/capabilities/codegen/toolSurfaces.cjs listAgentToolSpecs('global')",
+  dumpedFromCommit,
+  specs: listAgentToolSpecs(AGENT_KINDS.GLOBAL),
+});
+writeJSON("electron-mcp-tools.json", {
+  source: "electron/capabilities/codegen/toolSurfaces.cjs listMcpTools()",
+  dumpedFromCommit,
+  tools: listMcpTools(),
+});
+
+// ---- generated Go data ----
+
+function goQuote(value) {
+  return JSON.stringify(value);
+}
+
+const fieldEntries = Object.entries(TOOL_INPUT_FIELDS)
+  .map(([capabilityID, fields]) => {
+    const fieldLines = Object.entries(fields || {})
+      .map(([key, field]) => {
+        return `\t\t\t${goQuote(key)}: {Type: ${goQuote(field.type)}, Optional: ${Boolean(field.optional)}, Description: ${goQuote(field.description || "")}},`;
+      })
+      .join("\n");
+    return `\t${goQuote(capabilityID)}: {\n${fieldLines}\n\t},`;
+  })
+  .join("\n");
+
+const hintEntries = Object.entries(MODEL_DESCRIPTION_HINTS)
+  .map(([capabilityID, hint]) => `\t${goQuote(capabilityID)}: ${goQuote(hint)},`)
+  .join("\n");
+
+const generatedGo = `// Code generated by scripts/dump-capability-catalog.cjs from
+// electron/capabilities/schemas/toolInputs.cjs. DO NOT EDIT by hand; rerun
+// the script and commit the regenerated file.
+
+package capability
+
+// toolInputFields mirrors TOOL_INPUT_FIELDS: agent-facing input schemas
+// keyed by capability id.
+var toolInputFields = map[string]map[string]ToolInputField{
+${fieldEntries}
+}
+
+// modelDescriptionHints mirrors MODEL_DESCRIPTION_HINTS: long-form model
+// guidance appended to catalog descriptions during projection.
+var modelDescriptionHints = map[string]string{
+${hintEntries}
+}
+`;
+
+fs.writeFileSync(generatedGoPath, generatedGo, "utf8");
+
 process.stdout.write(
-  `Wrote ${payload.capabilities.length} capabilities to ${outputPath}\n`,
+  `Wrote ${catalogFixture.capabilities.length} catalog rows, ` +
+    `${Object.keys(TOOL_INPUT_FIELDS).length} tool input schemas, ` +
+    `${listAgentToolSpecs(AGENT_KINDS.SIDEBAR).length} sidebar specs, ` +
+    `${listAgentToolSpecs(AGENT_KINDS.GLOBAL).length} global specs, ` +
+    `${listMcpTools().length} MCP tools\n`,
 );
+process.stdout.write(`Fixture dir: ${fixtureDir}\nGenerated: ${generatedGoPath}\n`);

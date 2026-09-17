@@ -1,6 +1,6 @@
 {
   "source": "electron/capabilities/catalog (ALL_CAPABILITIES, catalog order)",
-  "dumpedFromCommit": "77b630ac105f3c8c2607a4657f7808d1c9ba944b",
+  "dumpedFromCommit": "4917b1fe307d02e78f2afeee3f87ceca6141acf9",
   "capabilities": [
     {
       "id": "session.environment",

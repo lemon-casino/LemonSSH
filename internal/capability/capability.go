@@ -47,13 +47,13 @@ const (
 
 // Policy is the static decision input set of one capability.
 type Policy struct {
-	Write                 bool
-	SensitiveRead         bool
-	LongRunning           bool
-	RequiresChatSession   bool
-	BypassesObserverBlock bool
-	BypassesApproval      bool
-	BypassesChatCancel    bool
+	Write                 bool `json:"write"`
+	SensitiveRead         bool `json:"sensitiveRead"`
+	LongRunning           bool `json:"longRunning"`
+	RequiresChatSession   bool `json:"requiresChatSession"`
+	BypassesObserverBlock bool `json:"bypassesObserverBlock"`
+	BypassesApproval      bool `json:"bypassesApproval"`
+	BypassesChatCancel    bool `json:"bypassesChatCancel"`
 }
 
 // SurfaceBinding is one capability's registration on one surface. Absent
