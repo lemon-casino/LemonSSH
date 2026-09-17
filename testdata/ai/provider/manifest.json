@@ -1,5 +1,6 @@
 {
   "source": "synthetic provider stream fixtures (W09); no real API output",
   "openai-chat-basic.sse": "text deltas with CJK/emoji, keep-alive comments, usage details, stop finish, [DONE]",
-  "openai-chat-toolcalls.sse": "interleaved tool call indices 0/1 (T18), tool-only response (T19), tool_calls finish"
+  "openai-chat-toolcalls.sse": "interleaved tool call indices 0/1 (T18), tool-only response (T19), tool_calls finish",
+  "anthropic-messages.sse": "thinking+signature continuation, text, tool_use input_json_delta, merged usage (T20)"
 }

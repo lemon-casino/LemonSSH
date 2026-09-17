@@ -37,6 +37,7 @@ const (
 	EventToolCallDelta  EventKind = "tool_call_delta"
 	EventFinish         EventKind = "finish"
 	EventUsage          EventKind = "usage"
+	EventPrivateRecord  EventKind = "private_record"
 )
 
 // Event is one unified provider event. ProviderPrivate carries opaque
