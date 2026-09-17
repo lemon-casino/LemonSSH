@@ -75,7 +75,6 @@ func TestAnthropicStreamFullTurn(t *testing.T) {
 	}
 }
 
-
 func TestAnthropicStreamError(t *testing.T) {
 	stream := NewAnthropicStream()
 	_, err := stream.Consume(SSEEvent{Data: `{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}`})
