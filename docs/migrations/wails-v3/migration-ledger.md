@@ -5119,3 +5119,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: handler table covers meta only — terminal/SFTP/vault domains land one per slice; real netcatty-tool/netcatty-mcp against the live exe pending; approval-gated writes unreachable until InteractionRouter (W13 later slices)
 - Next safe slice: W13 slice 2 — terminal read-only domain (jobPoll/getContext session get) and then SFTP reads over the shared use cases; each domain one commit
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L180 - 2026-09-18 - W13 capability dispatch integration and SFTP read domain
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 second slice promotes the agent host from direct handlers to the W05 capability dispatcher: the served method table is derived from the catalog itself (implemented + builtin method + registered host handler -> dispatch), so policy, approval demand and fail-closed semantics are enforced on every call — the host holds no parallel authorization. SFTP read domain registered over the shared sftpuse shapes (list/read/stat/home with session-existence scope checks; the host session list is the scope owner). Terminal execute advertises but fails closed: dispatch demands approval and with no approval gate wired the request never reaches a handler. Error-code plumbing: capability DispatchError and contracts Error expose ErrorCode(); the RPC server maps them to stable wire codes (plus SCOPE_DENIED and deadline mapping), so CLI/MCP clients see HOST-side codes instead of generic BAD_REQUEST. Tests: SFTP list round trip with reader-call assertions, unknown-session SCOPE_DENIED, exec fail-closed with APPROVAL_GATE_UNAVAILABLE over the real loopback stack.
+- Go canonical owner: `cmd/netcatty/agentHost.go`; error-code plumbing in internal/rpc, internal/capability, internal/app/contracts
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; sftp handlers satisfied by sftpuse only (no second SFTP stack); writes fail closed without an approval gate; sessions the host does not report are SCOPE_DENIED
+- Data/schema impact: none
+- Security impact: policy enforced on every RPC call; read-domain scope checks; write paths unreachable pre-approval
+- Verification: go vet ./cmd/netcatty/; go test -run "TestAgentHost" ./cmd/netcatty/ (ok: status/context via dispatch, sftp list round trip, unknown-session denial, exec fail-closed APPROVAL_GATE_UNAVAILABLE, discovery removal); go test -race ./cmd/netcatty/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests over the real loopback stack
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: remaining domains (terminal job queue, vault reads, attachments, forward, transfer) land one slice each; the approval gate itself is the InteractionRouter slice; live netcatty-tool/netcatty-mcp runs against the exe pending
+- Next safe slice: W13 slice 3 — terminal job queue over terminaluse (exec/jobStart/jobPoll/jobStop) or vault read domain, each with positive + deny cases
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
