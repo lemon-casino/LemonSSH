@@ -162,15 +162,7 @@ func (s *Server) authorizedCall(ctx context.Context, envelope *Envelope) *Respon
 	defer cancel()
 	result, err := handler(callCtx, principal, envelope.Params)
 	if err != nil {
-		code := CodeBadRequest
-		var scopeErr *ScopeError
-		switch {
-		case errors.As(err, &scopeErr):
-			code = scopeErr.Code
-		case errors.Is(err, context.DeadlineExceeded):
-			code = CodeDeadline
-		}
-		return s.errorResponse(envelope.ID, code, err.Error())
+		return s.errorResponse(envelope.ID, errorCodeFor(err), err.Error())
 	}
 
 	raw, err := json.Marshal(result)
@@ -189,6 +181,25 @@ func (s *Server) callContext(ctx context.Context, envelope *Envelope) (context.C
 		}
 	}
 	return context.WithTimeout(ctx, deadline)
+}
+
+// errorCodeFor maps handler errors to stable wire codes. Errors exposing
+// their own code (capability dispatch failures, contracts errors) win;
+// scope refusals keep SCOPE_DENIED; context deadlines map to the deadline
+// code.
+func errorCodeFor(err error) string {
+	var scopeErr *ScopeError
+	if errors.As(err, &scopeErr) {
+		return scopeErr.Code
+	}
+	var coded interface{ ErrorCode() string }
+	if errors.As(err, &coded) {
+		return coded.ErrorCode()
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return CodeDeadline
+	}
+	return CodeBadRequest
 }
 
 // ScopeError lets handlers deny out-of-scope session/chat references with

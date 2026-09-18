@@ -52,6 +52,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
+// ErrorCode exposes the stable code to error mappers without a type
+// dependency between packages.
+func (e *Error) ErrorCode() string { return string(e.Code) }
+
 // NewError builds an Error envelope.
 func NewError(code ErrorCode, message string) *Error {
 	return &Error{Code: code, Message: message}

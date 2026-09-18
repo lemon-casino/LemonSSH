@@ -26,6 +26,10 @@ type DispatchError struct {
 
 func (e *DispatchError) Error() string { return e.Code + ": " + e.Message }
 
+// ErrorCode exposes the stable code to error mappers without a type
+// dependency between packages.
+func (e *DispatchError) ErrorCode() string { return e.Code }
+
 // Handler executes one resolved capability on behalf of a dispatcher.
 type Handler func(ctx context.Context, params map[string]any, def *Definition) (any, error)
 
