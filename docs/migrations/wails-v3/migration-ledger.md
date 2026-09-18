@@ -5269,3 +5269,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: no per-transfer size cap at this layer (W14 owns budgets); progress events not streamed (poll/offset is W14 tool-output territory); real remote transfer matrix pending
 - Next safe slice: W13 scripts.reference doc port, then the InteractionRouter approval gate for write domains
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L186 - 2026-09-19 - W13 interaction router approval gate
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: The W13 approval gate lands, unlocking confirm-mode write domains. `cmd/netcatty/interactionRouter.go` implements capability.ApprovalGate: RequestApproval creates a pending prompt (random ia_ id, capability ID, sanitized param summary — method/session/command/hostId/ruleId/paths, deadline), emits `agent:interaction` to the renderer via an injected notifier, and blocks bounded (110s ported from DEFAULT_APPROVAL_TIMEOUT_MS) until Respond/timeout/context. Respond consumes each decision exactly once (respondOnce + typed failure on unknown/stale IDs); timeout and context cancellation deny without invoking the handler. AgentHost passes the router as the dispatcher's Approval gate — confirm writes now prompt instead of failing closed, observer and auto semantics unchanged. AgentService exposes AgentPendingInteractions (settings-UI listing, no secret material) and AgentRespondInteraction. main.go wires the router with wailsApp.Event.Emit as the notifier. Tests: approve round trip with capability/summary assertions, deny blocks write (USER_DENIED), double-respond fails, timeout denies, pending-listing through the facade. Full cmd suite race-clean; the count=3 stress failure in TestOpenProviderConsoleAllowlist pre-exists at HEAD (verified by stash) — shared-global test pollution unrelated to this slice.
+- Go canonical owner: `cmd/netcatty/interactionRouter.go`
+- Frontend adapter: renderer subscribes to `agent:interaction` events and calls AgentRespondInteraction — the settings-UI prompt surface is the remaining W13/W10 slice
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; decisions consumed exactly once; timeout/context denial never invokes the handler; approval prompts carry no secret material beyond the sanitized command summary the user is approving
+- Data/schema impact: none
+- Security impact: confirm writes now require a live user decision with a bounded deadline; re-check after approval (W05 dispatch) still guards revocation/Stop races
+- Verification: go vet ./cmd/netcatty/; go test -count=1 ./cmd/netcatty/ (ok); go test -race -count=1 ./cmd/netcatty/ (ok after fixing a test-side unsynchronized emit collector); stress race count=3: approval tests clean; TestOpenProviderConsoleAllowlist fails at count>=2 both with and without this slice (pre-existing, stash-verified); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests over the real loopback stack
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer approval UI + Node bridges stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: the renderer prompt UI (subscribe agent:interaction, list + respond buttons) is the W13/W10 settings-UI slice; grant persistence across restarts is W10 grants territory; live WebView approval flow pending
+- Next safe slice: scripts.reference doc port (small), then W14 handles/context or the renderer approval UI slice
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
