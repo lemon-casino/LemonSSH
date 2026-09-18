@@ -4894,3 +4894,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: canonical param snapshot is a field-concatenation stand-in until W10 defines canonical request hashing; event ring and Stop convergence (T04-T16) pending
 - Next safe slice: W11 slice 2 event ring + ReadEvents reconciliation, then driver lifecycle
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L171 - 2026-09-18 - W11 event ring and ReadEvents reconciliation
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W11 second slice lands the per-turn bounded event ring and ReadEvents reconciliation in `internal/agent/runtime`. Ring semantics: strictly increasing sequences as decimal strings; byte-identical redelivery of the newest event is idempotent; same-sequence-different-payload is a typed consistency failure and older sequences are rejected (T06); eviction drops the oldest past the capacity bound. ReadEvents: pages after a cursor with HasMore; a cursor below oldest-1 reports CursorExpired with an authoritative TurnSnapshot and empty events, while a cursor exactly at oldest-1 is served normally (T07 boundary); missed live notifications reconcile from cursor 0 with no duplicates or gaps (T04); the snapshot projection carries status/revision/throughSequence readable after the turn ends (T05 groundwork). TurnManager now owns a turn registry created at Prepare, exposing Append/ReadEvents/Snapshot; the driver sink assigns sequences in slice 3.
+- Go canonical owner: `internal/agent/runtime/` (event_ring.go, turn_manager.go)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; runtime imports only contracts; sequences never compared as strings
+- Data/schema impact: none
+- Security impact: conflicting redelivery fails closed instead of overwriting history
+- Verification: go vet ./internal/agent/runtime/...; go test -count=1 ./internal/agent/runtime/ (ok: backfill T04, limit+HasMore, redelivery/conflict T06, cursor-expiry boundary T07, manager end-to-end missed notifications, expired-cursor snapshot, unknown turn NOT_FOUND); go test -race ./internal/agent/runtime/ (ok); gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: ring bounds are event-count-based until W14 adds byte budgets; T05 terminal-notification-loss case completes with slice 3 terminal records; driver sink and Stop convergence are slice 3
+- Next safe slice: W11 slice 3 driver lifecycle and unified Stop (T11-T16), or W10 profiles in parallel
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
