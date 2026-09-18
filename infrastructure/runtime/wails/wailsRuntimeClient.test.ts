@@ -55,6 +55,52 @@ function stubBindings(overrides: Partial<WailsBindingDeps["terminal"]> = {}): Wa
   };
 }
 
+test("agentRuntime relays the Go turn runtime DTOs", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings({
+  }) as WailsBindingDeps;
+  bindings.agentservice = {
+    AgentPrepare: async (request) => {
+      calls.push("prepare");
+      return {
+        TurnID: "turn_1",
+        LeaseExpiresAtMS: 1,
+        Cursor: "0",
+        SnapshotRevision: "1",
+        EffectiveScope: request.RequestedScope,
+        EffectiveConfigRevision: "1",
+        PolicyRevision: "1",
+      };
+    },
+    AgentStart: async () => { calls.push("start"); },
+    AgentStop: async () => { calls.push("stop"); return { Status: "stopped", Revision: "2", ThroughSequence: "3" }; },
+    AgentReadEvents: async () => { calls.push("read"); return { Events: [] }; },
+    AgentSnapshot: async () => { calls.push("snapshot"); return { Status: "running", Revision: "1", ThroughSequence: "2" }; },
+  };
+  const client = createWailsRuntimeClient(bindings);
+
+  const prepared = await client.agentRuntime.agentPrepare({
+    RequestID: "req_1",
+    ChatSessionID: "chat_1",
+    AgentID: "agnt_1",
+    Input: { Text: "hello" },
+    RequestedScope: { TerminalRead: true },
+  } as never);
+  assert.equal(prepared.TurnID, "turn_1");
+  await client.agentRuntime.agentStart({ RequestID: "req_1", Kind: "start", TurnID: "turn_1" } as never);
+  await client.agentRuntime.agentStop("turn_1", "test");
+  await client.agentRuntime.agentReadEvents("turn_1", "0", 10);
+  await client.agentRuntime.agentSnapshot("turn_1");
+  assert.deepEqual(calls, ["prepare", "start", "stop", "read", "snapshot"]);
+});
+
+test("agentRuntime throws typed unavailable without bindings", () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  delete (bindings as Partial<WailsBindingDeps>).agentservice;
+  const client = createWailsRuntimeClient(bindings);
+  assert.throws(() => client.agentRuntime.agentPrepare({} as never), /agent runtime is unavailable/);
+});
+
 test("Complete resolves authoritative clean/error/closed exit metadata", async () => {
   for (const status of [{ reason: "exited" as const, exitCode: 0 }, { reason: "exited" as const, exitCode: 7 }, { reason: "closed" as const }, { reason: "error" as const, error: "transport lost" }]) {
     const bindings = stubBindings({ GetExitStatus: async () => ({ sessionId: "term-1", ...status }) });

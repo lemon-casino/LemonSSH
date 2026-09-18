@@ -11,7 +11,13 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as json$0 from "../../../../../encoding/json/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as monitoring$0 from "../../internal/platform/monitoring/models.js";
+import * as forwarduse$0 from "../../internal/app/forwarduse/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as sftpuse$0 from "../../internal/app/sftpuse/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as terminaluse$0 from "../../internal/app/terminaluse/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as script$0 from "../../internal/script/models.js";
@@ -89,86 +95,17 @@ export class AppLockRuntimeState {
     }
 }
 
-export class AutocompleteDirectoryEntry {
-    /**
-     * Creates a new AutocompleteDirectoryEntry instance.
-     * @param {Partial<AutocompleteDirectoryEntry>} [$$source = {}] - The source object to create the AutocompleteDirectoryEntry.
-     */
-    constructor($$source = {}) {
-        if (!("name" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["name"] = "";
-        }
-        if (!("type" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["type"] = "";
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const AutocompleteDirectoryResult = terminaluse$0.AutocompleteDirectoryResult;
 
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new AutocompleteDirectoryEntry instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {AutocompleteDirectoryEntry}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new AutocompleteDirectoryEntry(/** @type {Partial<AutocompleteDirectoryEntry>} */($$parsedSource));
-    }
-}
-
-export class AutocompleteDirectoryResult {
-    /**
-     * Creates a new AutocompleteDirectoryResult instance.
-     * @param {Partial<AutocompleteDirectoryResult>} [$$source = {}] - The source object to create the AutocompleteDirectoryResult.
-     */
-    constructor($$source = {}) {
-        if (!("success" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["success"] = false;
-        }
-        if (!("entries" in $$source)) {
-            /**
-             * @member
-             * @type {AutocompleteDirectoryEntry[]}
-             */
-            this["entries"] = [];
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new AutocompleteDirectoryResult instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {AutocompleteDirectoryResult}
-     */
-    static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType1;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("entries" in $$parsedSource) {
-            $$parsedSource["entries"] = $$createField1_0($$parsedSource["entries"]);
-        }
-        return new AutocompleteDirectoryResult(/** @type {Partial<AutocompleteDirectoryResult>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.AutocompleteDirectoryResult} AutocompleteDirectoryResult
+ */
 
 export class BiometricSettings {
     /**
@@ -403,7 +340,7 @@ export class CloudSyncDownloadResult {
      * @returns {CloudSyncDownloadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType3;
+        const $$createField0_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("syncedFile" in $$parsedSource) {
             $$parsedSource["syncedFile"] = $$createField0_0($$parsedSource["syncedFile"]);
@@ -554,214 +491,41 @@ export class CloudSyncWebDAVConfig {
     }
 }
 
-export class DiscoveredShell {
-    /**
-     * Creates a new DiscoveredShell instance.
-     * @param {Partial<DiscoveredShell>} [$$source = {}] - The source object to create the DiscoveredShell.
-     */
-    constructor($$source = {}) {
-        if (!("id" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["id"] = "";
-        }
-        if (!("name" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["name"] = "";
-        }
-        if (!("command" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["command"] = "";
-        }
-        if (!("args" in $$source)) {
-            /**
-             * @member
-             * @type {string[]}
-             */
-            this["args"] = [];
-        }
-        if (!("icon" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["icon"] = "";
-        }
-        if (!("isDefault" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["isDefault"] = false;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new DiscoveredShell instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {DiscoveredShell}
-     */
-    static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("args" in $$parsedSource) {
-            $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
-        }
-        return new DiscoveredShell(/** @type {Partial<DiscoveredShell>} */($$parsedSource));
-    }
-}
-
-export class DockerStatsOptions {
-    /**
-     * Creates a new DockerStatsOptions instance.
-     * @param {Partial<DockerStatsOptions>} [$$source = {}] - The source object to create the DockerStatsOptions.
-     */
-    constructor($$source = {}) {
-        if (!("sessionId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["sessionId"] = "";
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string[] | undefined}
-             */
-            this["ids"] = undefined;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new DockerStatsOptions instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {DockerStatsOptions}
-     */
-    static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType4;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("ids" in $$parsedSource) {
-            $$parsedSource["ids"] = $$createField1_0($$parsedSource["ids"]);
-        }
-        return new DockerStatsOptions(/** @type {Partial<DockerStatsOptions>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const DiscoveredShell = terminaluse$0.DiscoveredShell;
 
 /**
- * HelperSessionState is queryable after Start/route rebind so early lifecycle
- * events cannot be lost. Running/ready means the native client was launched;
- * encrypted native protocol readiness is not exposed by the upstream CLI.
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.DiscoveredShell} DiscoveredShell
  */
-export class HelperSessionState {
-    /**
-     * Creates a new HelperSessionState instance.
-     * @param {Partial<HelperSessionState>} [$$source = {}] - The source object to create the HelperSessionState.
-     */
-    constructor($$source = {}) {
-        if (!("state" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["state"] = "";
-        }
-        if (!("attempt" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["attempt"] = 0;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {number | undefined}
-             */
-            this["delayMs"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {number | null | undefined}
-             */
-            this["exitCode"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-        if (!("sessionId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["sessionId"] = "";
-        }
-        if (!("bootEpoch" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["bootEpoch"] = 0;
-        }
-        if (!("kind" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["kind"] = "";
-        }
-        if (!("recoveryMode" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["recoveryMode"] = "";
-        }
-        if (!("readiness" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["readiness"] = "";
-        }
-        if (!("recoveryLimit" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["recoveryLimit"] = "";
-        }
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const DockerStatsOptions = terminaluse$0.DockerStatsOptions;
 
-    /**
-     * Creates a new HelperSessionState instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {HelperSessionState}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new HelperSessionState(/** @type {Partial<HelperSessionState>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.DockerStatsOptions} DockerStatsOptions
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const HelperSessionState = terminaluse$0.HelperSessionState;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.HelperSessionState} HelperSessionState
+ */
 
 export class HotkeyResult {
     /**
@@ -892,385 +656,41 @@ export class LocalPathStat {
     }
 }
 
-export class LocalStartRequest {
-    /**
-     * Creates a new LocalStartRequest instance.
-     * @param {Partial<LocalStartRequest>} [$$source = {}] - The source object to create the LocalStartRequest.
-     */
-    constructor($$source = {}) {
-        if (!("shell" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["shell"] = "";
-        }
-        if (!("shellArgs" in $$source)) {
-            /**
-             * @member
-             * @type {string[]}
-             */
-            this["shellArgs"] = [];
-        }
-        if (!("cwd" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["cwd"] = "";
-        }
-        if (!("env" in $$source)) {
-            /**
-             * @member
-             * @type {{ [_ in string]?: string }}
-             */
-            this["env"] = {};
-        }
-        if (!("cols" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["cols"] = 0;
-        }
-        if (!("rows" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["rows"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new LocalStartRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {LocalStartRequest}
-     */
-    static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType4;
-        const $$createField3_0 = $$createType5;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("shellArgs" in $$parsedSource) {
-            $$parsedSource["shellArgs"] = $$createField1_0($$parsedSource["shellArgs"]);
-        }
-        if ("env" in $$parsedSource) {
-            $$parsedSource["env"] = $$createField3_0($$parsedSource["env"]);
-        }
-        return new LocalStartRequest(/** @type {Partial<LocalStartRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const LocalStartRequest = terminaluse$0.LocalStartRequest;
 
 /**
- * MonitoringResult keeps the existing renderer success/error envelope. Payload
- * keys are collection-specific and omitted on failure.
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.LocalStartRequest} LocalStartRequest
  */
-export class MonitoringResult {
-    /**
-     * Creates a new MonitoringResult instance.
-     * @param {Partial<MonitoringResult>} [$$source = {}] - The source object to create the MonitoringResult.
-     */
-    constructor($$source = {}) {
-        if (!("success" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["success"] = false;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {any | undefined}
-             */
-            this["stats"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {monitoring$0.Row | undefined}
-             */
-            this["capabilities"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {any | undefined}
-             */
-            this["processes"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {any | undefined}
-             */
-            this["sessions"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {any | undefined}
-             */
-            this["containers"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {any | undefined}
-             */
-            this["images"] = undefined;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new MonitoringResult instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {MonitoringResult}
-     */
-    static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType6;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("capabilities" in $$parsedSource) {
-            $$parsedSource["capabilities"] = $$createField3_0($$parsedSource["capabilities"]);
-        }
-        return new MonitoringResult(/** @type {Partial<MonitoringResult>} */($$parsedSource));
-    }
-}
 
 /**
- * MoshStartRequest is the Wails-facing Mosh/ET bootstrap payload. The union of
- * SSH dial fields lets the handshake reuse the same auth path as Connect.
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
  */
-export class MoshStartRequest {
-    /**
-     * Creates a new MoshStartRequest instance.
-     * @param {Partial<MoshStartRequest>} [$$source = {}] - The source object to create the MoshStartRequest.
-     */
-    constructor($$source = {}) {
-        if (!("hostname" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["hostname"] = "";
-        }
-        if (!("port" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["port"] = 0;
-        }
-        if (!("username" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["password"] = "";
-        }
-        if (!("privateKey" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["privateKey"] = "";
-        }
-        if (!("passphrase" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["passphrase"] = "";
-        }
-        if (!("certificate" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["certificate"] = "";
-        }
-        if (!("proxyUrl" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyUrl"] = "";
-        }
-        if (!("proxyCommand" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyCommand"] = "";
-        }
-        if (!("enableMfa" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["enableMfa"] = false;
-        }
-        if (!("useAgent" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["useAgent"] = false;
-        }
-        if (!("identityFilePaths" in $$source)) {
-            /**
-             * @member
-             * @type {string[]}
-             */
-            this["identityFilePaths"] = [];
-        }
-        if (!("term" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["term"] = "";
-        }
-        if (!("verifyHostKeys" in $$source)) {
-            /**
-             * @member
-             * @type {boolean | null}
-             */
-            this["verifyHostKeys"] = null;
-        }
-        if (!("keepaliveInterval" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveInterval"] = null;
-        }
-        if (!("keepaliveCountMax" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveCountMax"] = null;
-        }
-        if (!("forwardX11" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["forwardX11"] = false;
-        }
-        if (!("x11Display" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["x11Display"] = "";
-        }
-        if (!("jumpHosts" in $$source)) {
-            /**
-             * @member
-             * @type {SSHConnectRequest[]}
-             */
-            this["jumpHosts"] = [];
-        }
-        if (!("sessionId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["sessionId"] = "";
-        }
-        if (!("bootEpoch" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["bootEpoch"] = 0;
-        }
-        if (!("etPort" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["etPort"] = 0;
-        }
-        if (!("serverFifo" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["serverFifo"] = "";
-        }
-        if (!("clientPath" in $$source)) {
-            /**
-             * ClientPath is the absolute path to the local mosh-client / et binary.
-             * @member
-             * @type {string}
-             */
-            this["clientPath"] = "";
-        }
-        if (!("serverPath" in $$source)) {
-            /**
-             * ServerPath overrides the remote mosh-server command (empty uses default).
-             * @member
-             * @type {string}
-             */
-            this["serverPath"] = "";
-        }
-        if (!("cols" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["cols"] = 0;
-        }
-        if (!("rows" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["rows"] = 0;
-        }
+export const MonitoringResult = terminaluse$0.MonitoringResult;
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.MonitoringResult} MonitoringResult
+ */
 
-    /**
-     * Creates a new MoshStartRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {MoshStartRequest}
-     */
-    static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType4;
-        const $$createField18_0 = $$createType8;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("identityFilePaths" in $$parsedSource) {
-            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
-        }
-        if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField18_0($$parsedSource["jumpHosts"]);
-        }
-        return new MoshStartRequest(/** @type {Partial<MoshStartRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const MoshStartRequest = terminaluse$0.MoshStartRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.MoshStartRequest} MoshStartRequest
+ */
 
 /**
  * NativeStartRequest is the Wails-facing native plugin spawn payload.
@@ -1333,8 +753,8 @@ export class NativeStartRequest {
      * @returns {NativeStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
-        const $$createField5_0 = $$createType5;
+        const $$createField3_0 = $$createType2;
+        const $$createField5_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("args" in $$parsedSource) {
             $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
@@ -1346,54 +766,17 @@ export class NativeStartRequest {
     }
 }
 
-export class PathValidation {
-    /**
-     * Creates a new PathValidation instance.
-     * @param {Partial<PathValidation>} [$$source = {}] - The source object to create the PathValidation.
-     */
-    constructor($$source = {}) {
-        if (!("exists" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["exists"] = false;
-        }
-        if (!("isFile" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["isFile"] = false;
-        }
-        if (!("isDirectory" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["isDirectory"] = false;
-        }
-        if (!("isExecutable" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["isExecutable"] = false;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const PathValidation = terminaluse$0.PathValidation;
 
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PathValidation instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {PathValidation}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PathValidation(/** @type {Partial<PathValidation>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.PathValidation} PathValidation
+ */
 
 export class PopupOpenResult {
     /**
@@ -1437,233 +820,41 @@ export class PopupOpenResult {
     }
 }
 
-export class PortForwardListItem {
-    /**
-     * Creates a new PortForwardListItem instance.
-     * @param {Partial<PortForwardListItem>} [$$source = {}] - The source object to create the PortForwardListItem.
-     */
-    constructor($$source = {}) {
-        if (!("ruleId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["ruleId"] = "";
-        }
-        if (!("tunnelId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["tunnelId"] = "";
-        }
-        if (!("type" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["type"] = "";
-        }
-        if (!("status" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["status"] = "";
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ */
+export const PortForwardListItem = forwarduse$0.ListItem;
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ * @typedef {forwarduse$0.ListItem} PortForwardListItem
+ */
 
-    /**
-     * Creates a new PortForwardListItem instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {PortForwardListItem}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PortForwardListItem(/** @type {Partial<PortForwardListItem>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ */
+export const PortForwardResult = forwarduse$0.Result;
 
-export class PortForwardResult {
-    /**
-     * Creates a new PortForwardResult instance.
-     * @param {Partial<PortForwardResult>} [$$source = {}] - The source object to create the PortForwardResult.
-     */
-    constructor($$source = {}) {
-        if (!("tunnelId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["tunnelId"] = "";
-        }
-        if (!("success" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["success"] = false;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["status"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {boolean | undefined}
-             */
-            this["cancelled"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {boolean | undefined}
-             */
-            this["blockedByCleanup"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {boolean | undefined}
-             */
-            this["reused"] = undefined;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ * @typedef {forwarduse$0.Result} PortForwardResult
+ */
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ */
+export const PortForwardRuntimeSnapshot = forwarduse$0.RuntimeSnapshot;
 
-    /**
-     * Creates a new PortForwardResult instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {PortForwardResult}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PortForwardResult(/** @type {Partial<PortForwardResult>} */($$parsedSource));
-    }
-}
-
-export class PortForwardRuntimeRecord {
-    /**
-     * Creates a new PortForwardRuntimeRecord instance.
-     * @param {Partial<PortForwardRuntimeRecord>} [$$source = {}] - The source object to create the PortForwardRuntimeRecord.
-     */
-    constructor($$source = {}) {
-        if (!("ruleId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["ruleId"] = "";
-        }
-        if (!("tunnelId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["tunnelId"] = "";
-        }
-        if (!("phase" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["phase"] = "";
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-        if (!("revision" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["revision"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PortForwardRuntimeRecord instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {PortForwardRuntimeRecord}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PortForwardRuntimeRecord(/** @type {Partial<PortForwardRuntimeRecord>} */($$parsedSource));
-    }
-}
-
-export class PortForwardRuntimeSnapshot {
-    /**
-     * Creates a new PortForwardRuntimeSnapshot instance.
-     * @param {Partial<PortForwardRuntimeSnapshot>} [$$source = {}] - The source object to create the PortForwardRuntimeSnapshot.
-     */
-    constructor($$source = {}) {
-        if (!("epoch" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["epoch"] = "";
-        }
-        if (!("revision" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["revision"] = 0;
-        }
-        if (!("records" in $$source)) {
-            /**
-             * @member
-             * @type {PortForwardRuntimeRecord[]}
-             */
-            this["records"] = [];
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PortForwardRuntimeSnapshot instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {PortForwardRuntimeSnapshot}
-     */
-    static createFrom($$source = {}) {
-        const $$createField2_0 = $$createType10;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("records" in $$parsedSource) {
-            $$parsedSource["records"] = $$createField2_0($$parsedSource["records"]);
-        }
-        return new PortForwardRuntimeSnapshot(/** @type {Partial<PortForwardRuntimeSnapshot>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/forwarduse; these aliases keep the Wails API names stable.
+ * @typedef {forwarduse$0.RuntimeSnapshot} PortForwardRuntimeSnapshot
+ */
 
 /**
  * ProtocolRegistrationResult reports the OS handoff state for the URL schemes
@@ -1711,487 +902,55 @@ export class ProtocolRegistrationResult {
     }
 }
 
-export class ProxyProbeRequest {
-    /**
-     * Creates a new ProxyProbeRequest instance.
-     * @param {Partial<ProxyProbeRequest>} [$$source = {}] - The source object to create the ProxyProbeRequest.
-     */
-    constructor($$source = {}) {
-        if (!("kind" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["kind"] = "";
-        }
-        if (!("host" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["host"] = "";
-        }
-        if (!("port" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["port"] = 0;
-        }
-        if (!("username" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["password"] = "";
-        }
-        if (!("command" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["command"] = "";
-        }
-        if (!("targetHost" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["targetHost"] = "";
-        }
-        if (!("targetPort" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["targetPort"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ProxyProbeRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {ProxyProbeRequest}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ProxyProbeRequest(/** @type {Partial<ProxyProbeRequest>} */($$parsedSource));
-    }
-}
-
-export class ProxyProbeResult {
-    /**
-     * Creates a new ProxyProbeResult instance.
-     * @param {Partial<ProxyProbeResult>} [$$source = {}] - The source object to create the ProxyProbeResult.
-     */
-    constructor($$source = {}) {
-        if (!("ok" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["ok"] = false;
-        }
-        if (!("latencyMs" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["latencyMs"] = 0;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ProxyProbeResult instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {ProxyProbeResult}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ProxyProbeResult(/** @type {Partial<ProxyProbeResult>} */($$parsedSource));
-    }
-}
-
-export class SFTPOpenRequest {
-    /**
-     * Creates a new SFTPOpenRequest instance.
-     * @param {Partial<SFTPOpenRequest>} [$$source = {}] - The source object to create the SFTPOpenRequest.
-     */
-    constructor($$source = {}) {
-        if (!("hostname" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["hostname"] = "";
-        }
-        if (!("port" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["port"] = 0;
-        }
-        if (!("username" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["password"] = "";
-        }
-        if (!("privateKey" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["privateKey"] = "";
-        }
-        if (!("passphrase" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["passphrase"] = "";
-        }
-        if (!("certificate" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["certificate"] = "";
-        }
-        if (!("proxyUrl" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyUrl"] = "";
-        }
-        if (!("proxyCommand" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyCommand"] = "";
-        }
-        if (!("enableMfa" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["enableMfa"] = false;
-        }
-        if (!("useAgent" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["useAgent"] = false;
-        }
-        if (!("identityFilePaths" in $$source)) {
-            /**
-             * @member
-             * @type {string[]}
-             */
-            this["identityFilePaths"] = [];
-        }
-        if (!("cols" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["cols"] = 0;
-        }
-        if (!("rows" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["rows"] = 0;
-        }
-        if (!("term" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["term"] = "";
-        }
-        if (!("verifyHostKeys" in $$source)) {
-            /**
-             * @member
-             * @type {boolean | null}
-             */
-            this["verifyHostKeys"] = null;
-        }
-        if (!("keepaliveInterval" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveInterval"] = null;
-        }
-        if (!("keepaliveCountMax" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveCountMax"] = null;
-        }
-        if (!("forwardX11" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["forwardX11"] = false;
-        }
-        if (!("x11Display" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["x11Display"] = "";
-        }
-        if (!("jumpHosts" in $$source)) {
-            /**
-             * @member
-             * @type {SSHConnectRequest[]}
-             */
-            this["jumpHosts"] = [];
-        }
-        if (!("sudo" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["sudo"] = false;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new SFTPOpenRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {SFTPOpenRequest}
-     */
-    static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType4;
-        const $$createField20_0 = $$createType8;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("identityFilePaths" in $$parsedSource) {
-            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
-        }
-        if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField20_0($$parsedSource["jumpHosts"]);
-        }
-        return new SFTPOpenRequest(/** @type {Partial<SFTPOpenRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const ProxyProbeRequest = terminaluse$0.ProxyProbeRequest;
 
 /**
- * SSHConnectRequest is the Wails-facing SSH dial payload. JumpHosts nest;
- * proxyCommand carries OpenSSH ProxyCommand semantics (%h/%p tokens).
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.ProxyProbeRequest} ProxyProbeRequest
  */
-export class SSHConnectRequest {
-    /**
-     * Creates a new SSHConnectRequest instance.
-     * @param {Partial<SSHConnectRequest>} [$$source = {}] - The source object to create the SSHConnectRequest.
-     */
-    constructor($$source = {}) {
-        if (!("hostname" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["hostname"] = "";
-        }
-        if (!("port" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["port"] = 0;
-        }
-        if (!("username" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["password"] = "";
-        }
-        if (!("privateKey" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["privateKey"] = "";
-        }
-        if (!("passphrase" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["passphrase"] = "";
-        }
-        if (!("certificate" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["certificate"] = "";
-        }
-        if (!("proxyUrl" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyUrl"] = "";
-        }
-        if (!("proxyCommand" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["proxyCommand"] = "";
-        }
-        if (!("enableMfa" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["enableMfa"] = false;
-        }
-        if (!("useAgent" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["useAgent"] = false;
-        }
-        if (!("identityFilePaths" in $$source)) {
-            /**
-             * @member
-             * @type {string[]}
-             */
-            this["identityFilePaths"] = [];
-        }
-        if (!("cols" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["cols"] = 0;
-        }
-        if (!("rows" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["rows"] = 0;
-        }
-        if (!("term" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["term"] = "";
-        }
-        if (!("verifyHostKeys" in $$source)) {
-            /**
-             * @member
-             * @type {boolean | null}
-             */
-            this["verifyHostKeys"] = null;
-        }
-        if (!("keepaliveInterval" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveInterval"] = null;
-        }
-        if (!("keepaliveCountMax" in $$source)) {
-            /**
-             * @member
-             * @type {number | null}
-             */
-            this["keepaliveCountMax"] = null;
-        }
-        if (!("forwardX11" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["forwardX11"] = false;
-        }
-        if (!("x11Display" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["x11Display"] = "";
-        }
-        if (!("jumpHosts" in $$source)) {
-            /**
-             * @member
-             * @type {SSHConnectRequest[]}
-             */
-            this["jumpHosts"] = [];
-        }
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const ProxyProbeResult = terminaluse$0.ProxyProbeResult;
 
-    /**
-     * Creates a new SSHConnectRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {SSHConnectRequest}
-     */
-    static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType4;
-        const $$createField20_0 = $$createType8;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("identityFilePaths" in $$parsedSource) {
-            $$parsedSource["identityFilePaths"] = $$createField11_0($$parsedSource["identityFilePaths"]);
-        }
-        if ("jumpHosts" in $$parsedSource) {
-            $$parsedSource["jumpHosts"] = $$createField20_0($$parsedSource["jumpHosts"]);
-        }
-        return new SSHConnectRequest(/** @type {Partial<SSHConnectRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.ProxyProbeResult} ProxyProbeResult
+ */
+
+/**
+ * SFTPOpenRequest is the shell-facing SFTP open payload. The canonical
+ * definition (and JSON contract) lives in internal/app/sftpuse; this alias
+ * keeps the Wails API name stable.
+ */
+export const SFTPOpenRequest = sftpuse$0.OpenRequest;
+
+/**
+ * SFTPOpenRequest is the shell-facing SFTP open payload. The canonical
+ * definition (and JSON contract) lives in internal/app/sftpuse; this alias
+ * keeps the Wails API name stable.
+ * @typedef {sftpuse$0.OpenRequest} SFTPOpenRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const SSHConnectRequest = terminaluse$0.SSHConnectRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.SSHConnectRequest} SSHConnectRequest
+ */
 
 export class ScriptOKResult {
     /**
@@ -2286,7 +1045,7 @@ export class ScriptRecordingStopResult {
      * @returns {ScriptRecordingStopResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType12;
+        const $$createField0_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("steps" in $$parsedSource) {
             $$parsedSource["steps"] = $$createField0_0($$parsedSource["steps"]);
@@ -2402,8 +1161,8 @@ export class ScriptRunResult {
      * @returns {ScriptRunResult}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
-        const $$createField4_0 = $$createType14;
+        const $$createField3_0 = $$createType2;
+        const $$createField4_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("runIds" in $$parsedSource) {
             $$parsedSource["runIds"] = $$createField3_0($$parsedSource["runIds"]);
@@ -2422,72 +1181,16 @@ export const ScriptStep = script$0.Step;
  */
 
 /**
- * SerialStartRequest is the Wails-facing serial open payload. The renderer
- * forwards the full line configuration; the serial owner validates it and fails
- * closed on combinations the backend cannot honour.
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
  */
-export class SerialStartRequest {
-    /**
-     * Creates a new SerialStartRequest instance.
-     * @param {Partial<SerialStartRequest>} [$$source = {}] - The source object to create the SerialStartRequest.
-     */
-    constructor($$source = {}) {
-        if (!("path" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["path"] = "";
-        }
-        if (!("baudRate" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["baudRate"] = 0;
-        }
-        if (!("dataBits" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["dataBits"] = 0;
-        }
-        if (!("stopBits" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["stopBits"] = "";
-        }
-        if (!("parity" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["parity"] = "";
-        }
-        if (!("flowControl" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["flowControl"] = "";
-        }
+export const SerialStartRequest = terminaluse$0.SerialStartRequest;
 
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new SerialStartRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {SerialStartRequest}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new SerialStartRequest(/** @type {Partial<SerialStartRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.SerialStartRequest} SerialStartRequest
+ */
 
 export class SystemNotificationRequest {
     /**
@@ -2567,85 +1270,16 @@ export class SystemNotificationResult {
 }
 
 /**
- * TelnetStartRequest is the Wails-facing telnet dial payload. Auto-login
- * credentials are held in memory for the prompt exchange and never persisted.
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
  */
-export class TelnetStartRequest {
-    /**
-     * Creates a new TelnetStartRequest instance.
-     * @param {Partial<TelnetStartRequest>} [$$source = {}] - The source object to create the TelnetStartRequest.
-     */
-    constructor($$source = {}) {
-        if (!("hostname" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["hostname"] = "";
-        }
-        if (!("port" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["port"] = 0;
-        }
-        if (!("cols" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["cols"] = 0;
-        }
-        if (!("rows" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["rows"] = 0;
-        }
-        if (!("username" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["username"] = "";
-        }
-        if (!("password" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["password"] = "";
-        }
-        if (!("autoLogin" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["autoLogin"] = false;
-        }
-        if (!("promptTimeoutSecs" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["promptTimeoutSecs"] = 0;
-        }
+export const TelnetStartRequest = terminaluse$0.TelnetStartRequest;
 
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TelnetStartRequest instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {TelnetStartRequest}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TelnetStartRequest(/** @type {Partial<TelnetStartRequest>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TelnetStartRequest} TelnetStartRequest
+ */
 
 export class TempClearResult {
     /**
@@ -2724,180 +1358,53 @@ export class TempDirectoryInfo {
     }
 }
 
-export class TerminalExitStatus {
-    /**
-     * Creates a new TerminalExitStatus instance.
-     * @param {Partial<TerminalExitStatus>} [$$source = {}] - The source object to create the TerminalExitStatus.
-     */
-    constructor($$source = {}) {
-        if (!("sessionId" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["sessionId"] = "";
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {boolean | undefined}
-             */
-            this["intentional"] = undefined;
-        }
-        if (!("reason" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["reason"] = "";
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {number | null | undefined}
-             */
-            this["exitCode"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TerminalExitStatus = terminaluse$0.TerminalExitStatus;
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TerminalExitStatus} TerminalExitStatus
+ */
 
-    /**
-     * Creates a new TerminalExitStatus instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {TerminalExitStatus}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TerminalExitStatus(/** @type {Partial<TerminalExitStatus>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TerminalPwdOptions = terminaluse$0.TerminalPwdOptions;
 
-export class TerminalPwdOptions {
-    /**
-     * Creates a new TerminalPwdOptions instance.
-     * @param {Partial<TerminalPwdOptions>} [$$source = {}] - The source object to create the TerminalPwdOptions.
-     */
-    constructor($$source = {}) {
-        if (!("allowHomeFallback" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["allowHomeFallback"] = false;
-        }
-        if (!("allowLoginShellFallback" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["allowLoginShellFallback"] = false;
-        }
-        if (!("timeoutMs" in $$source)) {
-            /**
-             * @member
-             * @type {number}
-             */
-            this["timeoutMs"] = 0;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TerminalPwdOptions} TerminalPwdOptions
+ */
 
-        Object.assign(this, $$source);
-    }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TerminalPwdResult = terminaluse$0.TerminalPwdResult;
 
-    /**
-     * Creates a new TerminalPwdOptions instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {TerminalPwdOptions}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TerminalPwdOptions(/** @type {Partial<TerminalPwdOptions>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TerminalPwdResult} TerminalPwdResult
+ */
 
-export class TerminalPwdResult {
-    /**
-     * Creates a new TerminalPwdResult instance.
-     * @param {Partial<TerminalPwdResult>} [$$source = {}] - The source object to create the TerminalPwdResult.
-     */
-    constructor($$source = {}) {
-        if (!("success" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["success"] = false;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["cwd"] = undefined;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["error"] = undefined;
-        }
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TerminalRemoteInfo = terminaluse$0.TerminalRemoteInfo;
 
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TerminalPwdResult instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {TerminalPwdResult}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TerminalPwdResult(/** @type {Partial<TerminalPwdResult>} */($$parsedSource));
-    }
-}
-
-export class TerminalRemoteInfo {
-    /**
-     * Creates a new TerminalRemoteInfo instance.
-     * @param {Partial<TerminalRemoteInfo>} [$$source = {}] - The source object to create the TerminalRemoteInfo.
-     */
-    constructor($$source = {}) {
-        if (!("success" in $$source)) {
-            /**
-             * @member
-             * @type {boolean}
-             */
-            this["success"] = false;
-        }
-        if (/** @type {any} */(false)) {
-            /**
-             * @member
-             * @type {string | undefined}
-             */
-            this["remoteSshVersion"] = undefined;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new TerminalRemoteInfo instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {TerminalRemoteInfo}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new TerminalRemoteInfo(/** @type {Partial<TerminalRemoteInfo>} */($$parsedSource));
-    }
-}
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TerminalRemoteInfo} TerminalRemoteInfo
+ */
 
 export class TransferSnapshot {
     /**
@@ -3205,7 +1712,7 @@ export class UpgradeStatus {
      * @returns {UpgradeStatus}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
+        const $$createField3_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("history" in $$parsedSource) {
             $$parsedSource["history"] = $$createField3_0($$parsedSource["history"]);
@@ -3335,7 +1842,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType16;
+        const $$createField1_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -3367,7 +1874,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType17;
+        const $$createField0_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -3532,7 +2039,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType15;
+        const $$createField0_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -3613,7 +2120,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType18;
+        const $$createField7_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -3686,22 +2193,15 @@ export class VaultBackupTrimResult {
 }
 
 // Private type creation functions
-const $$createType0 = AutocompleteDirectoryEntry.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = CloudSyncSyncedFile.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
-const $$createType6 = $Create.Map($Create.Any, $Create.Any);
-const $$createType7 = SSHConnectRequest.createFrom;
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = PortForwardRuntimeRecord.createFrom;
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = script$0.Step.createFrom;
-const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = script$0.Run.createFrom;
-const $$createType14 = $Create.Nullable($$createType13);
-const $$createType15 = VaultBackupSummary.createFrom;
-const $$createType16 = $Create.Nullable($$createType15);
-const $$createType17 = $Create.Array($$createType15);
-const $$createType18 = VaultBackupPreview.createFrom;
+const $$createType0 = CloudSyncSyncedFile.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($Create.Any);
+const $$createType3 = $Create.Map($Create.Any, $Create.Any);
+const $$createType4 = script$0.Step.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = script$0.Run.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = VaultBackupSummary.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType8);
+const $$createType11 = VaultBackupPreview.createFrom;

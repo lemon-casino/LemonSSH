@@ -4,8 +4,7 @@
 
 /**
  * ScriptService is the Wails facade for terminal script recording and
- * recorded-script replay. Arbitrary JS (dialogs, Node worker APIs) stays
- * unimplemented until a non-Node runner exists.
+ * recorded-script replay. Dialog answers stay on the existing host event.
  * @module
  */
 

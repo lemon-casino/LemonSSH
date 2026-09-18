@@ -5,6 +5,14 @@
 
 import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
+import * as agentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentservice";
+import type {
+  EventPage as AgentEventPage,
+  PrepareTurnRequest as AgentPrepareTurnRequest,
+  PreparedTurn as AgentPreparedTurn,
+  TurnCommand as AgentTurnCommand,
+  TurnSnapshot as AgentTurnSnapshot,
+} from "./bindings/github.com/binaricat/netcatty/internal/app/contracts/models";
 import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
 import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
 import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
@@ -333,6 +341,13 @@ export interface WailsBindingDeps {
   };
   clipboard?: { SetText: (text: string) => Promise<boolean>; Text: () => Promise<string> };
   openDataPlane?: typeof openDataPlaneSession;
+  agentservice?: {
+    AgentPrepare: (request: AgentPrepareTurnRequest) => Promise<AgentPreparedTurn>;
+    AgentStart: (command: AgentTurnCommand) => Promise<void>;
+    AgentStop: (turnID: string, reason: string) => Promise<AgentTurnSnapshot>;
+    AgentReadEvents: (turnID: string, afterSequence: string, limit: number) => Promise<AgentEventPage>;
+    AgentSnapshot: (turnID: string) => Promise<AgentTurnSnapshot>;
+  };
 }
 
   const defaultBindings: WailsBindingDeps = {
@@ -356,6 +371,7 @@ export interface WailsBindingDeps {
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
     tray: trayService as unknown as WailsBindingDeps["tray"],
     sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
+    agentservice: agentServiceBinding as unknown as WailsBindingDeps["agentservice"],
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -363,7 +379,42 @@ type SessionExitEvent = { sessionId: string; exitCode?: number; reason?: "exited
 type SessionExitCallback = (evt: SessionExitEvent) => void;
 type HelperLifecycleCallback = Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1];
 
-export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBindings): RuntimeClient {
+/** Go turn runtime methods (W12). The Go side is the single authoritative
+ *  state owner; this port only relays the W03 wire DTOs. */
+export interface AgentRuntimePort {
+  agentPrepare(request: AgentPrepareTurnRequest): Promise<AgentPreparedTurn>;
+  agentStart(command: AgentTurnCommand): Promise<void>;
+  agentStop(turnID: string, reason: string): Promise<AgentTurnSnapshot>;
+  agentReadEvents(turnID: string, afterSequence: string, limit: number): Promise<AgentEventPage>;
+  agentSnapshot(turnID: string): Promise<AgentTurnSnapshot>;
+}
+
+export type WailsRuntimeClient = RuntimeClient & { agentRuntime: AgentRuntimePort };
+
+function buildAgentRuntimePort(bindings: WailsBindingDeps): AgentRuntimePort {
+  const service = bindings.agentservice;
+  if (!service) {
+    const unavailable = (): never => {
+      throw new Error("agent runtime is unavailable in this shell");
+    };
+    return {
+      agentPrepare: unavailable,
+      agentStart: unavailable,
+      agentStop: unavailable,
+      agentReadEvents: unavailable,
+      agentSnapshot: unavailable,
+    };
+  }
+  return {
+    agentPrepare: (request) => service.AgentPrepare(request),
+    agentStart: (command) => service.AgentStart(command),
+    agentStop: (turnID, reason) => service.AgentStop(turnID, reason),
+    agentReadEvents: (turnID, afterSequence, limit) => service.AgentReadEvents(turnID, afterSequence, limit),
+    agentSnapshot: (turnID) => service.AgentSnapshot(turnID),
+  };
+}
+
+export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBindings): WailsRuntimeClient {
   // Field-level credential storage over the Go credential provider. The
   // envelope keeps the Electron enc:v1: sentinel so renderer-side detection
   // (no double encryption, migration) behaves identically.
@@ -1584,6 +1635,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       },
     }),
     agent: unimplemented("agent"),
+    agentRuntime: buildAgentRuntimePort(bindings),
     files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
     script: portWith("script", {
       scriptRecordingStart,
