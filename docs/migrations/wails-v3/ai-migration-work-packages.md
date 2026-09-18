@@ -1,10 +1,10 @@
 # AI 迁移工作包与验收手册
 
-日期：2026-09-14（2026-09-18 更新）。状态：W01-W05 已实施（L160-L165；W04 Vault 域经审计裁决为无需提取，W05 落于 internal/capability 四提交并过 77 行 fixture parity）；W06 核心已落（L166，internal/rpc）；W07 首两刀已落（L167，native binaries + SDK v1.7.0，composition root 与 vendor 矩阵待后续切片）；W08 已落（L168，internal/platform/netpolicy）；W09 流装配核心已落（L169；Responses 族与 model list/probe 待补）；W11 三刀已落（L170-L172）；W10 首刀已落（L173 key 清单+迁移计划）；W12 Go 切片已落（L174 facade+fixture）；TS/UI 接线待实施。本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
+日期：2026-09-14（2026-09-18 更新）。状态：W01-W05 已实施（L160-L165；W04 Vault 域经审计裁决为无需提取，W05 落于 internal/capability 四提交并过 77 行 fixture parity）；W06 核心已落（L166，internal/rpc）；W07 首两刀已落（L167，native binaries + SDK v1.7.0，composition root 与 vendor 矩阵待后续切片）；W08 已落（L168，internal/platform/netpolicy）；W09 流装配核心已落（L169；Responses 族与 model list/probe 待补）；W11 三刀已落（L170-L172）；W10 首刀已落（L173 key 清单+迁移计划）；W12 Go 切片与 bindings/端口已落（L174/L175）；useAIChatStreaming 接线待实施。本文件不记录 capability 完成状态。先读 [执行方案](ai-migration-execution-plan.md)，再读 [技术设计](ai-migration-technical-design.md)。W 编号仅为本手册内部工作包编号，不是新增正式 plan task、capability ID 或 ledger ID。
 
 ## 1. 执行顺序与本轮允许范围
 
-**WV3-025 已开生产门。** 先读 matrix/ledger/decisions。不要伪造 `NONAI-COMPLETE`。W01 基线已在；W02 是非 AI 资格，不能计成 AI 完成。W03 契约已落（WV3-L160，AI-01 probe），W04 共享 use case 已收口（L161-L164），W05 catalog/policy/dispatch 已落（L165）。下一刀 W12 切片 2 bindings+TS 接线。仍禁止永久 Node sidecar，仍禁止把 `not-started` 写成 `verified`。
+**WV3-025 已开生产门。** 先读 matrix/ledger/decisions。不要伪造 `NONAI-COMPLETE`。W01 基线已在；W02 是非 AI 资格，不能计成 AI 完成。W03 契约已落（WV3-L160，AI-01 probe），W04 共享 use case 已收口（L161-L164），W05 catalog/policy/dispatch 已落（L165）。下一刀 W12 切片 3 useAIChatStreaming 接线。仍禁止永久 Node sidecar，仍禁止把 `not-started` 写成 `verified`。
 
 开工后的推荐顺序：
 

@@ -4994,3 +4994,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: bindings/TS/React wiring is slice 2 (reload/StrictMode/multi-window cases T08 need the client loop); provider-side fixture remains the only driver until W09 live wiring; capability dispatch stays empty until W13
 - Next safe slice: W12 slice 2 bindings + TS client + useAIChatStreaming rewiring, or W10 slice 2 reseal
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L175 - 2026-09-18 - W12 bindings regeneration and agentRuntime port
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W12 TS slice lands the renderer-facing agentRuntime seam. Bindings regenerated with the pinned toolchain (GOTOOLCHAIN=go1.25.0, wails3 beta.12): 22 services / 229 methods / 143 models; new `agentservice` module maps AgentPrepare/AgentStart/AgentStop/AgentReadEvents/AgentSnapshot onto the W03 contract models (PreparedTurn/EventPage/TurnSnapshot get typed createFrom hydration). The one generator warning (function-typed fields) is pre-existing at HEAD from trayService ShowMain/OpenSettings — verified by stashing this slice and re-running. wailsRuntimeClient gains `agentservice` in WailsBindingDeps + defaultBindings, an `AgentRuntimePort` interface, and `WailsRuntimeClient = RuntimeClient & { agentRuntime }` so the Go turn runtime is callable without touching the generated runtimePorts or the legacy AgentPort (which stays typed-unavailable until W13 populates it). The port fails with a typed unavailable error when the binding is absent (non-Wails shells, tests). Targeted tests: relay order prepare->start->stop->read->snapshot with fake bindings, and unavailable typing without bindings; full wailsRuntimeClient suite 45/45.
+- Go canonical owner: none (TS slice); generated bindings under infrastructure/runtime/wails/bindings
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` (agentRuntime port); useAIChatStreaming rewiring is the next W12 slice
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; React consumes only the new port — no second authoritative runtime; legacy AgentPort surface unchanged; generated runtimePorts.ts untouched
+- Data/schema impact: bindings now reference internal/app/contracts models (W03 DTOs on the wire)
+- Security impact: none; the port carries no capability dispatch
+- Verification: GOTOOLCHAIN=go1.25.0 wails3 generate bindings (22 services/229 methods); npx tsc --noEmit -p tsconfig.json filtered to wailsRuntimeClient.ts shows only the 5 pre-existing errors (clipboard/removedKeys/script-recording lines untouched by this slice); node --test --import tsx wailsRuntimeClient.test.ts 45/45; go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests; WebView live pass pending slice 3 (reload/StrictMode/multi-window T08)
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: useAIChatStreaming two-layer rewiring (T08 StrictMode double-mount, multi-window, unmount-no-Stop) is slice 3; the fixture driver still requires NETCATTY_AI_DEV_DRIVER=1 at launch
+- Next safe slice: W12 slice 3 useAIChatStreaming rewiring over agentRuntime, then the React-side T08 cases
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
