@@ -45,7 +45,10 @@ type ApprovalGate interface {
 type Dispatcher struct {
 	Registry *Registry
 	Surface  Surface
-	Handlers map[string]Handler
+	// PermissionMode is the agent safety mode for calls through this
+	// dispatcher; zero falls back to confirm inside policy evaluation.
+	PermissionMode PermissionMode
+	Handlers       map[string]Handler
 	// Grants returns the current grant list; nil disables grant matching.
 	Grants func() []Grant
 	// Approval clears confirm-mode prompts; nil fails closed when an
@@ -92,6 +95,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, rpcMethod string, params map[
 	req := Request{
 		RPCMethod:            rpcMethod,
 		Surface:              surface,
+		PermissionMode:       d.PermissionMode,
 		Params:               params,
 		ChatSessionCancelled: d.ChatCancelled != nil && d.ChatCancelled(),
 	}

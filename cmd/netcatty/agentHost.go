@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net"
 	"os"
+	"time"
 
+	"github.com/binaricat/netcatty/internal/app/terminaluse"
 	"github.com/binaricat/netcatty/internal/capability"
 	"github.com/binaricat/netcatty/internal/rpc"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
@@ -35,6 +37,7 @@ type SFTPReader interface {
 // parallel authorization.
 type AgentHost struct {
 	listener       net.Listener
+	jobs           *terminaluse.JobQueue
 	tokens         *rpc.TokenStore
 	server         *rpc.Server
 	token          string
@@ -57,6 +60,7 @@ type AgentHostConfig struct {
 	Version        appVersion
 	Sessions       func() []SessionEntry
 	SFTP           SFTPReader
+	Jobs           *terminaluse.JobQueue
 	PermissionMode string
 }
 
@@ -72,6 +76,7 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		version:        config.Version,
 		sessions:       config.Sessions,
 		sftp:           config.SFTP,
+		jobs:           config.Jobs,
 	}
 }
 
@@ -103,14 +108,84 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		handlers["sftp.stat"] = h.sftpStatHandler
 		handlers["sftp.home"] = h.sftpHomeHandler
 	}
-	// Terminal writes advertise but fail closed until the real job queue
-	// lands: dispatch demands approval first, and with no approval gate
-	// wired the request never reaches this handler. Reaching it at all is
-	// a dispatch invariant violation.
-	handlers["terminal.execute"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
-		return nil, errors.New("terminal.execute reached its handler without an approval gate")
+	if h.jobs != nil {
+		// Terminal write operations route through the job queue. In
+		// confirm mode they demand approval first (fail-closed without a
+		// gate); auto mode reaches the handlers directly.
+		handlers["terminal.execute"] = h.terminalExecHandler
+		handlers["terminal.start"] = h.terminalStartHandler
+		handlers["terminal.poll"] = h.terminalPollHandler
+		handlers["terminal.stop"] = h.terminalStopHandler
+	} else {
+		// Without a job queue the write still advertises but fails closed:
+		// dispatch demands approval first, and with no approval gate wired
+		// the request never reaches this handler.
+		handlers["terminal.execute"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			return nil, errors.New("terminal.execute reached its handler without an approval gate")
+		}
 	}
 	return handlers
+}
+
+func (h *AgentHost) terminalExecHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	sessionID, _ := params["sessionId"].(string)
+	chatSessionID, _ := params["chatSessionId"].(string)
+	command, _ := params["command"].(string)
+	timeout := time.Duration(0)
+	if ms, ok := params["timeoutMs"].(float64); ok {
+		timeout = time.Duration(ms) * time.Millisecond
+	}
+	output, exitCode, known, err := h.jobs.Exec(ctx, sessionID, chatSessionID, command, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"ok": true, "output": string(output),
+		"exitCode": exitCode, "exitCodeKnown": known,
+	}, nil
+}
+
+func (h *AgentHost) terminalStartHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	sessionID, _ := params["sessionId"].(string)
+	chatSessionID, _ := params["chatSessionId"].(string)
+	command, _ := params["command"].(string)
+	jobID, err := h.jobs.Start(sessionID, chatSessionID, command, 0)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "jobId": jobID, "status": string(terminaluse.JobRunning)}, nil
+}
+
+func (h *AgentHost) terminalPollHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	chatSessionID, _ := params["chatSessionId"].(string)
+	jobID, _ := params["jobId"].(string)
+	offset := 0
+	if v, ok := params["offset"].(float64); ok {
+		offset = int(v)
+	}
+	output, status, exitCode, known, err := h.jobs.Poll(jobID, chatSessionID, offset)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]any{
+		"ok": true, "jobId": jobID, "status": string(status),
+		"output":        string(output),
+		"exitCodeKnown": known,
+	}
+	if known {
+		payload["exitCode"] = exitCode
+	}
+	return payload, nil
+}
+
+func (h *AgentHost) terminalStopHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	chatSessionID, _ := params["chatSessionId"].(string)
+	jobID, _ := params["jobId"].(string)
+	status, err := h.jobs.Stop(jobID, chatSessionID)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "jobId": jobID, "status": string(status)}, nil
 }
 
 func (h *AgentHost) sessionContextHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -196,6 +271,15 @@ func hostSessionAndPath(params map[string]any) (sessionID, path string) {
 	return sessionID, path
 }
 
+func permissionModeOf(mode string) capability.PermissionMode {
+	switch capability.PermissionMode(mode) {
+	case capability.ModeObserver, capability.ModeAuto:
+		return capability.PermissionMode(mode)
+	default:
+		return capability.ModeConfirm
+	}
+}
+
 // newHostPrincipal is the host-list-scoped principal used by session
 // checks; the real per-principal narrowing lands with token scopes in a
 // later slice.
@@ -255,9 +339,10 @@ func (h *AgentHost) Start(discoveryPath string) error {
 // fail-closed), everything else stays UNKNOWN_METHOD.
 func (h *AgentHost) methodTable() map[string]rpc.Handler {
 	dispatcher := &capability.Dispatcher{
-		Registry: capability.Default(),
-		Surface:  capability.SurfaceBuiltin,
-		Handlers: h.capabilityHandlers(),
+		Registry:       capability.Default(),
+		Surface:        capability.SurfaceBuiltin,
+		PermissionMode: permissionModeOf(h.permissionMode),
+		Handlers:       h.capabilityHandlers(),
 	}
 	registered := h.capabilityHandlers()
 	table := make(map[string]rpc.Handler)

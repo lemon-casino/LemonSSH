@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/binaricat/netcatty/internal/app/terminaluse"
 	"github.com/binaricat/netcatty/internal/rpc"
 	"github.com/binaricat/netcatty/internal/terminal/sftp"
 )
@@ -218,6 +220,153 @@ func TestAgentHostWriteFailsClosedWithoutApprovalGate(t *testing.T) {
 	}
 	if rpcErr.Code != "APPROVAL_GATE_UNAVAILABLE" {
 		t.Errorf("expected APPROVAL_GATE_UNAVAILABLE, got %q (%s)", rpcErr.Code, rpcErr.Message)
+	}
+}
+
+// TestAgentHostTerminalJobsInAutoMode drives the job queue through the
+// dispatcher with auto permission mode: exec runs, jobStart/jobPoll/stop
+// manage a background job owned by the chat session.
+func TestAgentHostTerminalJobsInAutoMode(t *testing.T) {
+	queue := terminaluse.NewJobQueue(func(sessionID string) (terminaluse.CommandRunner, error) {
+		return scriptRunner{}, nil
+	})
+	host := newAgentHost(AgentHostConfig{
+		Version:        appVersion{Name: "LemonSSH", Version: "0.0.1"},
+		PermissionMode: "auto",
+		Jobs:           queue,
+		Sessions: func() []SessionEntry {
+			return []SessionEntry{{ID: "sess-1", Kind: "local"}}
+		},
+	})
+	path := filepath.Join(t.TempDir(), "discovery.json")
+	if err := host.Start(path); err != nil {
+		t.Fatalf("host start: %v", err)
+	}
+	t.Cleanup(func() {
+		host.Stop()
+		_ = rpc.RemoveDiscovery(path)
+	})
+
+	client, err := rpc.Dial(path)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer client.Close()
+
+	result, err := client.Call(context.Background(), "netcatty/exec", map[string]any{
+		"chatSessionId": "chat-1",
+		"sessionId":     "sess-1",
+		"command":       "echo hi",
+	})
+	if err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+	if !strings.Contains(string(result), `"exitCode":0`) {
+		t.Errorf("exec result = %s", result)
+	}
+
+	started, err := client.Call(context.Background(), "netcatty/jobStart", map[string]any{
+		"chatSessionId": "chat-1",
+		"sessionId":     "sess-1",
+		"command":       "long-run",
+	})
+	if err != nil {
+		t.Fatalf("jobStart: %v", err)
+	}
+	var startPayload struct {
+		JobID string `json:"jobId"`
+	}
+	if err := json.Unmarshal(started, &startPayload); err != nil {
+		t.Fatalf("parse start: %v", err)
+	}
+
+	var pollPayload struct {
+		Status string `json:"status"`
+		Output string `json:"output"`
+	}
+	for i := 0; i < 100; i++ {
+		page, err := client.Call(context.Background(), "netcatty/jobPoll", map[string]any{
+			"chatSessionId": "chat-1",
+			"jobId":         startPayload.JobID,
+			"offset":        0,
+		})
+		if err != nil {
+			t.Fatalf("jobPoll: %v", err)
+		}
+		if err := json.Unmarshal(page, &pollPayload); err != nil {
+			t.Fatalf("parse poll: %v", err)
+		}
+		if pollPayload.Status == "completed" {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if pollPayload.Status != "completed" || !strings.Contains(pollPayload.Output, "script ran") {
+		t.Errorf("final poll = %+v", pollPayload)
+	}
+
+	stopped, err := client.Call(context.Background(), "netcatty/jobStop", map[string]any{
+		"chatSessionId": "chat-1",
+		"jobId":         startPayload.JobID,
+	})
+	if err != nil {
+		t.Fatalf("jobStop on completed job: %v", err)
+	}
+	if !strings.Contains(string(stopped), `"status":"completed"`) {
+		t.Errorf("stop of completed job = %s", stopped)
+	}
+}
+
+// scriptRunner is a real local runner stand-in: executes a known script
+// body so the full queue path runs an actual process.
+type scriptRunner struct{}
+
+func (scriptRunner) Run(ctx context.Context, command string, sink func([]byte)) (int, bool, error) {
+	if strings.Contains(command, "long-run") {
+		time.Sleep(30 * time.Millisecond)
+	}
+	sink([]byte("script ran"))
+	return 0, true, nil
+}
+
+// TestAgentHostTerminalExecConfirmModeFailsClosed pins the confirm-mode
+// rule at the host level: without an approval gate the exec is refused
+// even in an otherwise authorized session.
+func TestAgentHostTerminalExecConfirmModeFailsClosed(t *testing.T) {
+	queue := terminaluse.NewJobQueue(func(sessionID string) (terminaluse.CommandRunner, error) {
+		return scriptRunner{}, nil
+	})
+	host := newAgentHost(AgentHostConfig{
+		Version:        appVersion{Name: "LemonSSH", Version: "0.0.1"},
+		PermissionMode: "confirm",
+		Jobs:           queue,
+		Sessions: func() []SessionEntry {
+			return []SessionEntry{{ID: "sess-1", Kind: "local"}}
+		},
+	})
+	path := filepath.Join(t.TempDir(), "discovery.json")
+	if err := host.Start(path); err != nil {
+		t.Fatalf("host start: %v", err)
+	}
+	t.Cleanup(func() {
+		host.Stop()
+		_ = rpc.RemoveDiscovery(path)
+	})
+
+	client, err := rpc.Dial(path)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer client.Close()
+
+	_, err = client.Call(context.Background(), "netcatty/exec", map[string]any{
+		"chatSessionId": "chat-1",
+		"sessionId":     "sess-1",
+		"command":       "echo hi",
+	})
+	var rpcErr *rpc.RPCError
+	if !errors.As(err, &rpcErr) || rpcErr.Code != "APPROVAL_GATE_UNAVAILABLE" {
+		t.Fatalf("confirm exec must fail APPROVAL_GATE_UNAVAILABLE, got %v", err)
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/binaricat/netcatty/internal/agent/drivers/fixture"
 	agentruntime "github.com/binaricat/netcatty/internal/agent/runtime"
 	"github.com/binaricat/netcatty/internal/app"
+	"github.com/binaricat/netcatty/internal/app/terminaluse"
 	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/applog"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
@@ -240,6 +241,7 @@ func main() {
 			GOOS:    runtime.GOOS,
 			GOARCH:  runtime.GOARCH,
 		},
+		Jobs: terminaluse.NewJobQueue(terminalSvc.RunnerFor),
 	})
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {

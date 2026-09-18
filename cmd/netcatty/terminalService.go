@@ -116,6 +116,12 @@ func (s *TerminalService) Reconnect(sessionID string) (dataplane.RouteBootstrap,
 
 func (s *TerminalService) ListenAddr() string { return s.core.ListenAddr() }
 
+// RunnerFor exposes the transport-specific command runner for the agent
+// job queue (W13). Not a Wails method.
+func (s *TerminalService) RunnerFor(sessionID string) (terminaluse.CommandRunner, error) {
+	return s.core.RunnerFor(sessionID)
+}
+
 func (s *TerminalService) Write(sessionID string, data []byte) (int, error) {
 	return s.core.Write(sessionID, data)
 }
