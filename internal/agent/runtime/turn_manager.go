@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -24,25 +25,19 @@ type chatState struct {
 	// Start or expired.
 	reservation *reservation
 	// active is the currently running turn, nil when idle.
-	active *activeTurn
+	active *turnRecord
 	// completed turns by request id keep idempotent retries answerable.
 	byRequest map[contracts.RequestID]*reservation
 }
 
 type reservation struct {
 	turn      contracts.PreparedTurn
+	chatID    contracts.ChatSessionID
 	requestID contracts.RequestID
+	input     contracts.TurnInput
 	inputJSON string // canonical params snapshot for conflict detection (T02)
 	createdAt time.Time
 	consumed  bool
-}
-
-type activeTurn struct {
-	turnID   contracts.TurnID
-	chatID   contracts.ChatSessionID
-	sequence uint64
-	terminal bool
-	stopSeen bool
 }
 
 // TurnManager arbitrates prepare/start/stop across chats. Slice 2 adds the
@@ -55,17 +50,29 @@ type TurnManager struct {
 	// DefaultRingCapacity. Test-only in practice until W14 byte budgets.
 	RingCapacity int
 
-	mu    sync.Mutex
-	chats map[contracts.ChatSessionID]*chatState
-	turns map[contracts.TurnID]*turnRecord
+	driver TurnDriver
+
+	mu       sync.Mutex
+	chats    map[contracts.ChatSessionID]*chatState
+	turns    map[contracts.TurnID]*turnRecord
+	requests map[contracts.RequestID]*reservation
+}
+
+// SetDriver injects the model-turn driver. Starting turns without one is
+// unavailable, never a silent no-op.
+func (m *TurnManager) SetDriver(driver TurnDriver) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.driver = driver
 }
 
 func NewTurnManager() *TurnManager {
 	return &TurnManager{
-		now:   time.Now,
-		lease: LeaseTTL,
-		chats: map[contracts.ChatSessionID]*chatState{},
-		turns: map[contracts.TurnID]*turnRecord{},
+		now:      time.Now,
+		lease:    LeaseTTL,
+		chats:    map[contracts.ChatSessionID]*chatState{},
+		turns:    map[contracts.TurnID]*turnRecord{},
+		requests: map[contracts.RequestID]*reservation{},
 	}
 }
 
@@ -79,9 +86,20 @@ type turnRecord struct {
 	status    string
 	revision  uint64
 	ring      *EventRing
+
+	// Lifecycle state guarded by mu (slice 3).
+	mu         sync.Mutex
+	nextSeq    uint64
+	cancel     context.CancelFunc
+	done       chan struct{}
+	stopSeen   bool
+	stopReason string
+	finalized  bool
 }
 
 func (r *turnRecord) snapshot() contracts.TurnSnapshot {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return contracts.TurnSnapshot{
 		Status:          r.status,
 		Revision:        strconv.FormatUint(r.revision, 10),
@@ -149,12 +167,15 @@ func (m *TurnManager) Prepare(req contracts.PrepareTurnRequest) (contracts.Prepa
 	}
 	res := &reservation{
 		turn:      turn,
+		chatID:    req.ChatSessionID,
 		requestID: req.RequestID,
+		input:     req.Input,
 		inputJSON: canonicalRequestJSON(req),
 		createdAt: m.now(),
 	}
 	state.reservation = res
 	state.byRequest[req.RequestID] = res
+	m.requests[req.RequestID] = res
 
 	record := &turnRecord{
 		id:        turn.TurnID,
