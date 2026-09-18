@@ -5169,3 +5169,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: output is byte-offset (UTF-8) while the W14 handle layer owns UTF-16 units — the unit contract is W14's; SSH exec channel path needs the real-server matrix; approval-gated confirm execution awaits InteractionRouter; job registry is in-memory (deadlines are process-local)
 - Next safe slice: W13 vault read domain, or attachments/forward/transfer, then W14 handles/context
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L182 - 2026-09-19 - W13 vault read domain with secret redaction
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 vault read domain lands. `cmd/netcatty/vaultReader.go` reads the canonical profile-store vault domain (netcatty_hosts_v1/notes_v1/identities_v1/proxy_profiles_v1/groups_v1/snippets_v1) and applies recursive secret-field redaction at the boundary — field NAMES (password/telnetPassword/passphrase/secret) at any nesting depth (incl. nested proxyConfig), values never inspected, document text untouched. AgentHost registers 12 vault read handlers: host list/get (+notes.get from the same record), note list/get, identity list, proxyProfile list, group list, snippets list/get, scripts list/get (kind=script filter over the snippets store). methodTable promoted to multi-surface dispatch: served method resolves builtin -> global -> public and each surface carries its own dispatcher, so global-surface vault methods (vault/hosts/list, vault/host/get, ...) now dispatch with correct per-surface policy while builtin methods (netcatty/getStatus, sftp.*) are unchanged. main.go injects the real profile store. Vault writes stay fail-closed (no write handlers registered). Tests drive the real loopback stack against a seeded real profile store: host list redaction (password/telnet/proxy-nested secrets absent, hostname/label metadata present), id lookups, notes extraction, identity passphrase absence, snippet/script kind filtering, unknown-id failure, vault write refusal.
+- Go canonical owner: `cmd/netcatty/vaultReader.go`; handlers in `cmd/netcatty/agentHost.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; L164 adjudication respected — reads go over internal/profile/store, no second vault service; secrets redacted before leaving the host; vault writes unreachable
+- Data/schema impact: none (read-only over existing vault domain records)
+- Security impact: recursive name-based redaction is shape-drift tolerant; renderer-authored plaintext passwords in the store can never reach an agent through these handlers
+- Verification: go vet ./cmd/netcatty/; go test -run "TestVault|TestAgentHost|TestAgentService" ./cmd/netcatty/ (ok); go test -race ./cmd/netcatty/ (ok); go build ./...; gofmt clean on touched files
+- Platforms covered: Windows 10 22H2 x64 unit tests over real loopback + real temp profile store
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: scripts.reference (automation syntax doc text) and scripts.runs.list (runs live in the nct runtime, no Go owner yet) remain unregistered -> HANDLER_MISSING; host.notes for network devices etc. covered by the same record; field-name redaction set may need extension if renderer adds new secret field names (audit is W10 close-out)
+- Next safe slice: W13 remaining domains (forward reads over forwarduse, transfer over startStreamTransfer, attachments with chat scope), then the InteractionRouter approval gate for write domains
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

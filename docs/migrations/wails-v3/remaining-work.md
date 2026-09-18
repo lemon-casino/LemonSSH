@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L181`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L182`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -44,7 +44,10 @@ W10 切片 3 已落（L178：SecretService 专用 API（Put/Replace/Delete/Statu
 per-session 串行、jobStart/jobPoll/jobStop 带 owner/digest/deadline/有界
 输出/控制不排队、unknown 不伪造 exit 0；dispatcher 增加 PermissionMode
 （confirm 无门 fail-closed，auto 可达 handler）；cmd 全套+race 绿）；
-生产 AI 下一刀是 vault 读域与活体冒烟，不是伪造 NONAI-COMPLETE。
+W13 vault 读域已落（L182：VaultReader 读 vault 域 + 递归密钥字段脱敏 +
+12 个读 handler + 多 surface 派发（builtin/global/public 各自 policy）；
+scripts.reference 与 runs.list 诚实缺口）；生产 AI 下一刀是 forward/transfer/
+attachments 域与活体冒烟，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
