@@ -5069,3 +5069,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the dedicated host secret service (Put/Replace/Delete/Status over the credential provider), the versioned ProviderConfig reader on the Go provider path, staged promotion wiring with interruption receipts (T36), and the raw-channel bypass audit of ProfileService/CredentialService exports (design §7.3 closing paragraph)
 - Next safe slice: W10 slice 3 dedicated secret service + staged promotion wiring, or W13 host tools
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L178 - 2026-09-18 - W10 secret service and atomic snapshot promotion
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W10 third slice lands the dedicated AI secret service and the staged promotion engine. `SecretService` wraps the credential provider at the dedicated `ai-provider-secrets` purpose over the profile store (sealed envelopes only): Put returns a fresh reference, Replace rotates in place, Delete removes, Status reports existence, and Resolve opens for the HOST provider path inside one request — the bindings layer must never expose it (T38). `PromoteAISnapshot` is the T36 engine: provider/web-search style values are handled by a generic recursive apiKey extractor (any JSON shape; nested objects covered by test), opaque enc:v1 envelopes reseal via the manifest-declared origin blocking on unknown (T37), PlanMigrations re-runs fail-closed, and the receipt (schema marker + keys + plaintext-free secret receipts) lands in the SAME device-domain transaction as the data — an interruption leaves either the old state or the fully promoted one, and a re-run repeats the idempotent write. Sink failures abort before any write (spy-store asserted); plaintext never enters any stored mutation.
+- Go canonical owner: `internal/agent/profiledata/service.go`, `internal/agent/profiledata/migrate.go`
+- Frontend adapter: none (the renderer-facing secret bindings are W13 settings-UI work; Resolve stays Go-only)
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; credential purpose enforcement stays in internal/platform/credentials; receipts never carry plaintext; ephemeral keys stay device-local
+- Data/schema impact: none yet (engine ready; the composition root wiring lands with the settings UI)
+- Security impact: raw apiKey channel closes at extraction; AI purpose separates AI secrets from cloud-sync credentials; Resolve is host-only
+- Verification: go vet ./internal/agent/profiledata/...; go test -count=1 ./internal/agent/profiledata/ (ok: extraction incl. nested web-search object, empty-key channel closure, opaque reseal, unknown-origin block, open-failure abort, raw-secret audit, promotion happy path with one-transaction receipt, sink-failure atomicity, blocked-origin no-write, device-local receipt); go test -race ./internal/agent/profiledata/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests with in-memory sink/codec/spy-store doubles; real keyring round trip pending the facade wiring
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer provider config stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: bindings exposure of the secret service (deliberately deferred to the W13 settings-UI slice with the raw-channel bypass audit of ProfileService/CredentialService exports); React hydration switch and the AI exclusion flip remain post-promotion steps
+- Next safe slice: live WebView smoke of the flagged minimal chain, W13 host tools, or the W10 facade/audit closing slice
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

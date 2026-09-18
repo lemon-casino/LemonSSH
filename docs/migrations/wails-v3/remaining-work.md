@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L177`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L178`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -38,8 +38,11 @@ W12 切片 3 已落（L176：aiGoTurn 运行器 + sendToCattyAgent 按 AgentStat
 dev 旗标时不变）；最小完整链路代码面已通，活体 WebView 冒烟（以
 NETCATTY_AI_DEV_DRIVER=1 启动发一条 Catty 消息）待跑。W10 切片 2 已落（L177：origin-aware reseal、provider secretRef 抽取
 + 原始 apiKey 通道关闭 + ai-provider-secrets 专用 purpose）；
-生产 AI 下一刀是活体冒烟、W10 切片 3（专用 secret 服务 + staged promotion）
-与 W13 host 工具，不是伪造 NONAI-COMPLETE。
+W10 切片 3 已落（L178：SecretService 专用 API（Put/Replace/Delete/Status +
+仅宿主 Resolve）+ PromoteAISnapshot 原子推广引擎（sink 失败不落库、opaque
+信封 origin 阻断 T37、receipt 同事务设备本地 T36/T40））；生产 AI 下一刀是
+活体冒烟、W10 收口（facade 暴露与绕读审计）与 W13 host 工具，
+不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -185,8 +188,9 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - W10 切片 2 已落（L177）：secrets.go —— origin 类型化 + BlockedOrigin
   fail-closed、secretRef 抽取（raw apiKey 通道无条件关闭）、AI 专用 purpose、
   无明文 receipt、raw-secret 审计。
-- 下一刀：NETCATTY_AI_DEV_DRIVER=1 活体 WebView 冒烟（T08 场景）、W10 切片 3
-  （专用 secret 服务 + staged promotion 接线）或 W13 host 工具。
+- W10 切片 3 已落（L178）：SecretService + PromoteAISnapshot 原子推广。
+- 下一刀：NETCATTY_AI_DEV_DRIVER=1 活体 WebView 冒烟（T08 场景）、W10 收口
+  （secret 服务 facade 暴露 + raw 通道绕读审计）或 W13 host 工具。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
