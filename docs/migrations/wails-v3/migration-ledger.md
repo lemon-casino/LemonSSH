@@ -5144,3 +5144,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: remaining domains (terminal job queue, vault reads, attachments, forward, transfer) land one slice each; the approval gate itself is the InteractionRouter slice; live netcatty-tool/netcatty-mcp runs against the exe pending
 - Next safe slice: W13 slice 3 — terminal job queue over terminaluse (exec/jobStart/jobPoll/jobStop) or vault read domain, each with positive + deny cases
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L181 - 2026-09-19 - W13 terminal job queue over terminaluse
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 terminal domain lands the agent job queue over terminaluse (design §6.2). `JobQueue`: exec runs synchronously under a per-session execution lock (cross-chat serialization per terminal, design-mandated); jobStart launches async jobs recording owner (chat session id), command DIGEST (command itself not retained), startedAt/deadline; jobPoll serves bounded output by byte offset with owner scoping; jobStop is the control path — it never queues behind session execution, cancels the per-job context and waits bounded (10s) for convergence. Outcome honesty (T32): deadline expiry and transport loss surface as failed/unknown with ExitUnknown (-1), never a fabricated zero; SSH sessions run on dedicated exec channels reading the real exit status; local sessions use a fresh noninteractive shell (cmd /C on Windows, /bin/sh -c elsewhere) so agent commands and the visible PTY stay independent; other transports fail typed. Output bounded at 4 MiB per job. Dispatcher gained PermissionMode so the host permission mode flows through policy: confirm mode without a gate fails APPROVAL_GATE_UNAVAILABLE, auto mode reaches the handlers. AgentHost registers the four handlers only when a job queue is wired; without one, terminal.execute keeps the fail-closed stub. Handler tests drive the full loopback stack: exec in auto mode (real local process, exit code 0), jobStart/poll-to-completion/stop, confirm-mode refusal.
+- Go canonical owner: `internal/app/terminaluse/jobs.go`, `cmd/netcatty/agentHost.go` (terminal handlers)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; one sequence of side-effect ops per terminal; stop/control never queues behind execution; unknown outcomes never fake exit 0; command text not retained (digest only)
+- Data/schema impact: none
+- Security impact: owner-scoped poll/stop; per-session serialization prevents cross-chat interference; blocklist/permission policy rides the dispatcher
+- Verification: go vet ./internal/app/terminaluse/ ./cmd/netcatty/; go test -count=1 ./internal/app/terminaluse/ (ok: exec outcome, same-session serialization, offset polls, owner scoping, stop convergence, deadline-unknown, output bound); go test -race -count=3 ./internal/app/terminaluse/ (ok); go test ./cmd/netcatty/ full suite + race (ok: auto-mode exec/jobStart/jobPoll/stop over real local process, confirm-mode fail-closed); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests (local cmd /C runner exercised live); SSH exec channel path unit-tested via interface, real-server matrix pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: output is byte-offset (UTF-8) while the W14 handle layer owns UTF-16 units — the unit contract is W14's; SSH exec channel path needs the real-server matrix; approval-gated confirm execution awaits InteractionRouter; job registry is in-memory (deadlines are process-local)
+- Next safe slice: W13 vault read domain, or attachments/forward/transfer, then W14 handles/context
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

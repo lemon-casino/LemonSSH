@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L180`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L181`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -40,11 +40,11 @@ NETCATTY_AI_DEV_DRIVER=1 启动发一条 Catty 消息）待跑。W10 切片 2 �
 + 原始 apiKey 通道关闭 + ai-provider-secrets 专用 purpose）；
 W10 切片 3 已落（L178：SecretService 专用 API（Put/Replace/Delete/Status +
 仅宿主 Resolve）+ PromoteAISnapshot 原子推广引擎（sink 失败不落库、opaque
-信封 origin 阻断 T37、receipt 同事务设备本地 T36/T40））；W13 切片 2 已落（L180：AgentHost 升级为经 W05 dispatcher 派发（方法表从
-catalog 推导，policy/审批/fail-closed 全部生效）+ SFTP 读域（list/read/stat/
-home + 会话 scope 守卫）+ 错误码跨层映射 + terminal execute 无审批门
-fail-closed）；生产 AI 下一刀是 terminal 作业队列（exec/jobStart/jobPoll/
-jobStop）或 vault 读域与活体冒烟，不是伪造 NONAI-COMPLETE。
+信封 origin 阻断 T37、receipt 同事务设备本地 T36/T40））；W13 切片 3 已落（L181：terminal 作业队列 over terminaluse —— exec 同步
+per-session 串行、jobStart/jobPoll/jobStop 带 owner/digest/deadline/有界
+输出/控制不排队、unknown 不伪造 exit 0；dispatcher 增加 PermissionMode
+（confirm 无门 fail-closed，auto 可达 handler）；cmd 全套+race 绿）；
+生产 AI 下一刀是 vault 读域与活体冒烟，不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -193,9 +193,9 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - W10 切片 3 已落（L178）：SecretService + PromoteAISnapshot 原子推广。
 - W13 切片 2 已落（L180）：SFTP 读域经 dispatcher + 错误码映射 + 写域
   fail-closed。
-- 下一刀：W13 切片 3（terminal 作业队列 exec/jobStart/jobPoll/jobStop over
-  terminaluse）或 vault 读域；活体冒烟（T08 + netcatty-tool 实测）；W10
-  收口审计（随 settings UI）。
+- W13 切片 3 已落（L181）：terminal 作业队列四方法 + PermissionMode 贯通。
+- 下一刀：W13 vault 读域与剩余域；活体冒烟（T08 + netcatty-tool 实测）；
+  W10 收口审计（随 settings UI）。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
