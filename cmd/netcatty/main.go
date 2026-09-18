@@ -12,13 +12,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/binaricat/netcatty/internal/agent/drivers/fixture"
-	"github.com/binaricat/netcatty/internal/agent/runtime"
+	agentruntime "github.com/binaricat/netcatty/internal/agent/runtime"
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/applog"
@@ -223,11 +224,29 @@ func main() {
 	// Agent turn runtime (W12). The fixture driver is wired only behind
 	// the dev flag; release builds run driver-less so AI calls fail with
 	// UNAVAILABLE instead of fixture output.
-	turnManager := runtime.NewTurnManager()
-	if os.Getenv("NETCATTY_AI_DEV_DRIVER") == "1" {
+	turnManager := agentruntime.NewTurnManager()
+	devDriver := os.Getenv("NETCATTY_AI_DEV_DRIVER") == "1"
+	if devDriver {
 		turnManager.SetDriver(fixture.New())
 	}
-	agentService := newAgentService(turnManager)
+	agentService := newAgentService(turnManager, devDriver)
+
+	// Agent host (W13): the authenticated loopback RPC surface the native
+	// CLI/MCP binaries connect to via the discovery file.
+	agentHost := newAgentHost(AgentHostConfig{
+		Version: appVersion{
+			Name:    "LemonSSH",
+			Version: version,
+			GOOS:    runtime.GOOS,
+			GOARCH:  runtime.GOARCH,
+		},
+	})
+	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
+	if err := agentHost.Start(agentDiscoveryPath); err != nil {
+		log.Printf("agent host start failed: %v", err)
+	} else {
+		defer agentHost.Stop() // also removes the discovery file
+	}
 
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
