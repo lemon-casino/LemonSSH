@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L184`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L185`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -49,8 +49,9 @@ W13 vault 读域已落（L182：VaultReader 读 vault 域 + 递归密钥字段�
 scripts.reference 与 runs.list 诚实缺口）；W13 attachments 域已落（L183：chat-scoped 注册表 + list/read handler +
 文本探测 + 跨 chat scope 隔离 + 渲染层推送 facade）；W13 forward 域已落（L184：rules.list/tunnels.list 读 + stop 经
 forwarduse；start 与规则写域保持 HANDLER_MISSING —— canonical connect
-命令未迁移，规则存储为渲染层 owner）；生产 AI 下一刀是 transfer、
-scripts.reference 文档移植与 InteractionRouter 审批门，
+命令未迁移，规则存储为渲染层 owner）；W13 transfer 域已落（L185：sftp.download/upload 经共享 SFTPReader/
+sftpuse 路径 + 会话 scope + confirm fail-closed + 10 分钟 MaxDeadline）；
+生产 AI 下一刀是 scripts.reference 文档移植与 InteractionRouter 审批门，
 不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。

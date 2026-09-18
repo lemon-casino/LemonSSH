@@ -4,7 +4,7 @@
 
 ## 1. 执行顺序与本轮允许范围
 
-**WV3-025 已开生产门。** 先读 matrix/ledger/decisions。不要伪造 `NONAI-COMPLETE`。W01 基线已在；W02 是非 AI 资格，不能计成 AI 完成。W03 契约已落（WV3-L160，AI-01 probe），W04 共享 use case 已收口（L161-L164），W05 catalog/policy/dispatch 已落（L165）。下一刀 W13 transfer 与 scripts.reference / InteractionRouter / 活体冒烟。仍禁止永久 Node sidecar，仍禁止把 `not-started` 写成 `verified`。
+**WV3-025 已开生产门。** 先读 matrix/ledger/decisions。不要伪造 `NONAI-COMPLETE`。W01 基线已在；W02 是非 AI 资格，不能计成 AI 完成。W03 契约已落（WV3-L160，AI-01 probe），W04 共享 use case 已收口（L161-L164），W05 catalog/policy/dispatch 已落（L165）。下一刀 scripts.reference 文档移植 + InteractionRouter 审批门 / 活体冒烟。仍禁止永久 Node sidecar，仍禁止把 `not-started` 写成 `verified`。
 
 开工后的推荐顺序：
 

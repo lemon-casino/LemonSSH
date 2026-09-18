@@ -5244,3 +5244,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: forward start needs the canonical host connect command (renderer path migration); rules writes need the canonical rules owner; real tunnel start/stop live evidence pending
 - Next safe slice: W13 transfer domain (SFTP download/upload over startStreamTransfer) and scripts.reference doc port, then the InteractionRouter approval gate for write domains
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L185 - 2026-09-19 - W13 SFTP transfer domain
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 transfer domain lands. sftp.download and sftp.upload register over the shared sftpuse facade path (the same SFTPReader interface, no second stack): params sessionId/remotePath/localPath, session scope checked first, missing params fail before the reader is invoked, and bytes-moved results return with the resolved local/remote path. Both are writes and long-running: confirm mode without a gate fails APPROVAL_GATE_UNAVAILABLE (fail-closed), auto mode executes through the shared path. Host server options raise MaxDeadline to 10 minutes so explicit client deadlines cover long transfers (catalog: longRunning). Tests: download round trip over loopback (file materializes with simulated remote content), upload round trip (bytes observed by the fake reader), missing-param no-reader-invocation assertion, confirm-mode fail-closed.
+- Go canonical owner: `cmd/netcatty/agentHost.go` (transfer handlers)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; no second SFTP stack; chat-session policy requirement enforced on every transfer; reader untouched on failed calls
+- Data/schema impact: none
+- Security impact: transfers are writes — policy and (later) approval gate apply; session scope checked before any byte moves
+- Verification: go vet ./cmd/netcatty/; go test ./cmd/netcatty/ full suite (ok: download/upload round trips, param validation, confirm fail-closed); go test -race ./cmd/netcatty/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests with simulated transfers; real remote matrix pending
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: no per-transfer size cap at this layer (W14 owns budgets); progress events not streamed (poll/offset is W14 tool-output territory); real remote transfer matrix pending
+- Next safe slice: W13 scripts.reference doc port, then the InteractionRouter approval gate for write domains
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
