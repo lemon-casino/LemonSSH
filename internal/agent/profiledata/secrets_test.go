@@ -3,6 +3,7 @@ package profiledata
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -18,9 +19,11 @@ type memSink struct {
 
 func newMemSink() *memSink { return &memSink{values: map[string]string{}} }
 
-func (s *memSink) Store(reference string, plaintext []byte) error {
+func (s *memSink) Store(_ string, plaintext []byte) (string, error) {
+	// The service generates its own reference, ignoring the placeholder.
+	reference := fmt.Sprintf("secret_%04d", len(s.values)+1)
 	s.values[reference] = string(plaintext)
-	return nil
+	return reference, nil
 }
 
 // codec opens only the origin it knows and seals under the AI purpose.
@@ -40,7 +43,7 @@ func (c fakeCodec) Seal(plaintext []byte) ([]byte, error) {
 	return append([]byte("sealed:"), plaintext...), nil
 }
 
-func TestExtractProviderSecrets(t *testing.T) {
+func TestExtractJSONSecrets(t *testing.T) {
 	sink := newMemSink()
 	providers := []byte(`[
 		{"id":"p1","name":"OpenAI","apiKey":"sk-live-123"},
@@ -48,7 +51,7 @@ func TestExtractProviderSecrets(t *testing.T) {
 		{"id":"p3","name":"Anthropic"}
 	]`)
 
-	out, receipts, err := ExtractProviderSecrets("netcatty_ai_providers_v1", providers, sink, testNow)
+	out, receipts, err := ExtractJSONSecrets("netcatty_ai_providers_v1", providers, sink, testNow)
 	if err != nil {
 		t.Fatalf("extract: %v", err)
 	}
@@ -93,10 +96,31 @@ func TestExtractProviderSecrets(t *testing.T) {
 	}
 }
 
-func TestExtractProviderSecretsRejectsNonArray(t *testing.T) {
-	_, _, err := ExtractProviderSecrets("netcatty_ai_providers_v1", []byte(`{"not":"array"}`), newMemSink(), testNow)
-	if err == nil || !strings.Contains(err.Error(), "not a provider config array") {
-		t.Fatalf("non-array must fail typed, got %v", err)
+func TestExtractJSONSecretsRejectsMalformed(t *testing.T) {
+	_, _, err := ExtractJSONSecrets("netcatty_ai_providers_v1", []byte(`{truncated`), newMemSink(), testNow)
+	if err == nil || !strings.Contains(err.Error(), "is not valid JSON") {
+		t.Fatalf("malformed JSON must fail typed, got %v", err)
+	}
+}
+
+func TestExtractJSONSecretsNestedObject(t *testing.T) {
+	sink := newMemSink()
+	value := []byte(`{"provider":"tavily","apiHost":"https://api.tavily.com","apiKey":"tvly-9"}`)
+	out, receipts, err := ExtractJSONSecrets("netcatty_ai_web_search_v1", value, sink, testNow)
+	if err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+	if len(receipts) != 1 || receipts[0].Reference == "" {
+		t.Fatalf("receipts = %+v", receipts)
+	}
+	if err := VerifyNoRawSecrets(out); err != nil {
+		t.Fatalf("nested apiKey must be removed: %v", err)
+	}
+	if !strings.Contains(string(out), "secret_0001") {
+		t.Errorf("rewritten value must carry the reference: %s", out)
+	}
+	if sink.values["secret_0001"] != "tvly-9" {
+		t.Errorf("sink = %v", sink.values)
 	}
 }
 

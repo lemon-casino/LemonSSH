@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -49,10 +50,11 @@ type SecretCodec interface {
 	Seal(plaintext []byte) ([]byte, error)
 }
 
-// SecretSink durably stores one plaintext under a fresh reference. The
-// reference (never the plaintext) travels into the migrated config.
+// SecretSink durably stores one plaintext and returns the reference
+// actually used (implementations may generate their own). The reference —
+// never the plaintext — travels into the migrated config and receipts.
 type SecretSink interface {
-	Store(reference string, plaintext []byte) error
+	Store(reference string, plaintext []byte) (string, error)
 }
 
 // SecretReceipt records one completed extraction or reseal. It never
@@ -79,90 +81,84 @@ func newSecretRef() string {
 	return "secret_" + hex.EncodeToString(raw[:])
 }
 
-// ExtractProviderSecrets walks a netcatty_ai_providers_v1 value, moves every
-// non-empty apiKey into the sink, and rewrites the config with a secretRef
-// plus a version marker (design §7.3: new AI config stores only secretRef;
-// the versioned reader replaces the raw apiKey channel). Errors abort with
-// the value untouched; the sink may hold earlier entries, whose references
-// are in the returned receipts for re-entrancy.
-func ExtractProviderSecrets(storageKey string, providersValue []byte, sink SecretSink, now time.Time) ([]byte, []SecretReceipt, error) {
-	var configs []map[string]json.RawMessage
-	if err := json.Unmarshal(providersValue, &configs); err != nil {
-		return nil, nil, fmt.Errorf("profiledata: %s is not a provider config array: %w", storageKey, err)
+// ExtractJSONSecrets walks one AI storage value (any JSON shape) and moves
+// every non-empty "apiKey" string field into the sink, rewriting the
+// containing object with a secretRef plus a version marker (design §7.3:
+// new AI config stores only secretRef; the versioned reader replaces the
+// raw apiKey channel). The raw field closes unconditionally — empty keys
+// are dropped without touching the sink. Errors abort with earlier sink
+// entries recoverable from the returned receipts.
+func ExtractJSONSecrets(storageKey string, value []byte, sink SecretSink, now time.Time) ([]byte, []SecretReceipt, error) {
+	var tree any
+	if err := json.Unmarshal(value, &tree); err != nil {
+		return nil, nil, fmt.Errorf("profiledata: %s is not valid JSON: %w", storageKey, err)
 	}
-
-	receipts := []SecretReceipt{}
-	for i, config := range configs {
-		rawKey, present := config["apiKey"]
-		if !present {
-			continue // already migrated or never had a key
-		}
-		var apiKey string
-		_ = json.Unmarshal(rawKey, &apiKey)
-
-		// The raw channel closes unconditionally: empty keys are dropped
-		// without touching the sink, non-empty ones move into it.
-		reference := ""
-		if apiKey != "" {
-			var configID string
-			_ = json.Unmarshal(config["id"], &configID)
-			reference = newSecretRef()
-			if err := sink.Store(reference, []byte(apiKey)); err != nil {
-				return nil, nil, fmt.Errorf("profiledata: sink store for %s[%d] failed: %w", storageKey, i, err)
-			}
-			receipts = append(receipts, SecretReceipt{
-				StorageKey:        fmt.Sprintf("%s#%d(%s)", storageKey, i, configID),
-				Reference:         reference,
-				SourceFingerprint: fingerprint([]byte(apiKey)),
-				ResealedAtMS:      now.UnixMilli(),
-			})
-		}
-
-		rewritten, err := rewriteConfig(config, reference)
-		if err != nil {
-			return nil, nil, err
-		}
-		configs[i] = rewritten
+	state := &extraction{storageKey: storageKey, sink: sink, now: now}
+	cleaned := state.walk(tree, "")
+	if len(state.errs) > 0 {
+		return nil, nil, state.errs[0]
 	}
-
-	out, err := json.Marshal(configs)
+	out, err := json.Marshal(cleaned)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(receipts) == 0 {
-		return out, nil, nil
-	}
-	return out, receipts, nil
+	return out, state.receipts, nil
 }
 
-func rewriteConfig(config map[string]json.RawMessage, reference string) (map[string]json.RawMessage, error) {
-	rewritten := make(map[string]json.RawMessage, len(config)+1)
-	for field, value := range config {
-		if field == "apiKey" {
-			continue // the raw key channel closes (T38)
-		}
-		rewritten[field] = value
-	}
-	if reference != "" {
-		rewritten["secretRef"] = json.RawMessage(fmt.Sprintf("%q", reference))
-	}
-	rewritten["configVersion"] = json.RawMessage("2")
-	return rewritten, nil
+type extraction struct {
+	storageKey string
+	sink       SecretSink
+	now        time.Time
+	receipts   []SecretReceipt
+	errs       []error
 }
 
-// VerifyNoRawSecrets is the post-mutation audit (T38): a promoted
-// providers value must not carry any raw apiKey field.
-func VerifyNoRawSecrets(providersValue []byte) error {
-	var configs []map[string]json.RawMessage
-	if err := json.Unmarshal(providersValue, &configs); err != nil {
-		return fmt.Errorf("profiledata: verify input is not a provider config array: %w", err)
-	}
-	for i, config := range configs {
-		if _, present := config["apiKey"]; present {
-			return fmt.Errorf("profiledata: provider config %d still carries a raw apiKey", i)
+func (e *extraction) walk(node any, path string) any {
+	switch typed := node.(type) {
+	case map[string]any:
+		cleaned := make(map[string]any, len(typed))
+		hadKey := false
+		for field, child := range typed {
+			if field == "apiKey" {
+				hadKey = true
+				if text, ok := child.(string); ok && text != "" {
+					reference, err := e.sink.Store("", []byte(text))
+					if err != nil {
+						e.errs = append(e.errs, fmt.Errorf("profiledata: sink store for %s at %s failed: %w", e.storageKey, e.path(path, field), err))
+						return nil
+					}
+					cleaned["secretRef"] = reference
+					e.receipts = append(e.receipts, SecretReceipt{
+						StorageKey:        fmt.Sprintf("%s#%s", e.storageKey, e.path(path, field)),
+						Reference:         reference,
+						SourceFingerprint: fingerprint([]byte(text)),
+						ResealedAtMS:      e.now.UnixMilli(),
+					})
+				}
+				continue
+			}
+			cleaned[field] = e.walk(child, e.path(path, field))
 		}
+		if hadKey {
+			cleaned["configVersion"] = 2
+		}
+		return cleaned
+	case []any:
+		cleaned := make([]any, len(typed))
+		for i, child := range typed {
+			cleaned[i] = e.walk(child, fmt.Sprintf("%s#%d", path, i))
+		}
+		return cleaned
+	default:
+		return node
 	}
-	return nil
+}
+
+func (e *extraction) path(parent, field string) string {
+	if parent == "" {
+		return field
+	}
+	return parent + "." + field
 }
 
 // ResealOpaqueSecret re-encrypts one opaque enc:v1 envelope under the AI
@@ -193,6 +189,38 @@ func ResealOpaqueSecret(storageKey string, envelope []byte, origin SecretOrigin,
 		ResealedAtMS:      now.UnixMilli(),
 	}
 	return sealed, receipt, nil
+}
+
+// VerifyNoRawSecrets is the post-mutation audit (T38): a promoted value
+// must not carry any raw apiKey field.
+func VerifyNoRawSecrets(value []byte) error {
+	var tree any
+	if err := json.Unmarshal(value, &tree); err != nil {
+		return fmt.Errorf("profiledata: verify input is not valid JSON: %w", err)
+	}
+	var rawKeys []string
+	varAudit(tree, "", &rawKeys)
+	if len(rawKeys) > 0 {
+		return fmt.Errorf("profiledata: value still carries raw apiKey fields at %s", strings.Join(rawKeys, ", "))
+	}
+	return nil
+}
+
+func varAudit(node any, path string, rawKeys *[]string) {
+	switch typed := node.(type) {
+	case map[string]any:
+		for field, child := range typed {
+			if field == "apiKey" {
+				*rawKeys = append(*rawKeys, path)
+				continue
+			}
+			varAudit(child, path+"."+field, rawKeys)
+		}
+	case []any:
+		for i, child := range typed {
+			varAudit(child, fmt.Sprintf("%s#%d", path, i), rawKeys)
+		}
+	}
 }
 
 func zero(data []byte) {
