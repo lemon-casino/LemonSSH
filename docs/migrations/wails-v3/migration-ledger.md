@@ -5219,3 +5219,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: binary attachments have no size cap at this layer (the 4 MiB class budget applies to tool outputs in W14); renderer push wiring needs the next bindings regen; scripts.reference/runs.list and forward/transfer domains remain
 - Next safe slice: W13 forward read domain over forwarduse, or the InteractionRouter approval gate for write domains
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L184 - 2026-09-19 - W13 forward read domain and stop
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 forward domain lands. Reads: portforward.rules.list serves the persisted rule list from the vault domain (netcatty_port_forwarding_v1, redaction pass included); portforward.tunnels.list serves live tunnels from the shared forwarduse Service. Stop: portforward.stop goes through forwarduse StopByRuleId (the control path of the W04 domain — same shared instance the UI uses). NOT registered, as explicit fail-closed gaps: portforward.start (requires resolving a rule's host into an SSH connect request — the canonical host connect command is a renderer path that has not migrated; §6.1 forbids Agent writes to renderer-owned stores until they become canonical host commands) and portforward.rules.create/update/duplicate/delete (renderer-owned rules store). main.go injects the ForwardService. Tests: rules list over a seeded real store, live tunnels list, auto-mode stop, confirm-mode stop failing APPROVAL_GATE_UNAVAILABLE.
+- Go canonical owner: `cmd/netcatty/agentHost.go` (forward handlers); reads via cmd/netcatty/vaultReader.go
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; one forwarduse instance (no second pool); renderer-owned rule writes stay unreachable; stop is not approval-gated (catalog: bypassesApproval)
+- Data/schema impact: none
+- Security impact: reads are redacted; stop requires owner auth; start stays HANDLER_MISSING until the canonical connect command migrates
+- Verification: go vet ./cmd/netcatty/; go test -run "TestForward" ./cmd/netcatty/ (ok); go test ./cmd/netcatty/ full suite + race (ok); go build ./...; gofmt clean on touched files
+- Platforms covered: Windows 10 22H2 x64 unit tests over the real loopback stack
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: forward start needs the canonical host connect command (renderer path migration); rules writes need the canonical rules owner; real tunnel start/stop live evidence pending
+- Next safe slice: W13 transfer domain (SFTP download/upload over startStreamTransfer) and scripts.reference doc port, then the InteractionRouter approval gate for write domains
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
