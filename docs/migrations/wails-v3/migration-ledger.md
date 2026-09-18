@@ -5044,3 +5044,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: T08 StrictMode double-mount/multi-window cases need the live WebView pass; steer and compaction are not on the Go path yet (W14); usage accounting display pending W14 usage ledger
 - Next safe slice: live WebView smoke of the flagged minimal chain, then W10 slice 2 reseal/secret API or W13 host tools
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L177 - 2026-09-18 - W10 origin-aware secret reseal and secretRef extraction
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W10 second slice lands the secret-handling core of the AI migration in `internal/agent/profiledata/secrets.go` (design §7.3). Origin typing: Electron-broker (FND-03 receipts) vs Go-credential-provider origins are explicit; an unknown origin returns BlockedOriginError and promotion aborts — never a speculative open, never a silently emptied key. ExtractProviderSecrets walks netcatty_ai_providers_v1, moves every non-empty apiKey into an injected SecretSink under a fresh randomly generated secret_ reference, rewrites the config with secretRef + configVersion:2 and DELETES the raw apiKey field unconditionally (the raw channel closes even for empty keys). ResealOpaqueSecret opens via the manifest-declared origin, re-seals under the dedicated ai-provider-secrets purpose (the credential provider rejects purpose mismatch — the T38 backstop), and returns a plaintext-free receipt (source/sealed fingerprints only). VerifyNoRawSecrets is the post-mutation audit: a promoted providers value carrying any raw apiKey fails. The shared AIPurpose constant is the seam the dedicated Put/Replace/Delete/Status service wraps next.
+- Go canonical owner: `internal/agent/profiledata/secrets.go`
+- Frontend adapter: none (renderer keeps entering plaintext once; the host responds with references only)
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; receipts never carry plaintext; purposes stay enforced by internal/platform/credentials (no parallel crypto); promotion aborts on blocked/failed opens
+- Data/schema impact: none yet (extraction runs on snapshots; store wiring is the next slice)
+- Security impact: raw apiKey channel closes at extraction; AI purpose separates AI secrets from cloud-sync credentials
+- Verification: go vet ./internal/agent/profiledata/...; go test -count=1 ./internal/agent/profiledata/ (ok: extraction incl. empty-key channel closure, receipts plaintext-free, non-array rejection, origin-aware reseal, unknown-origin block, open-failure abort, raw-secret audit); go test -race ./internal/agent/profiledata/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests with in-memory sink/codecs; real keyring round trip pending the service slice
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer provider config stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: the dedicated host secret service (Put/Replace/Delete/Status over the credential provider), the versioned ProviderConfig reader on the Go provider path, staged promotion wiring with interruption receipts (T36), and the raw-channel bypass audit of ProfileService/CredentialService exports (design §7.3 closing paragraph)
+- Next safe slice: W10 slice 3 dedicated secret service + staged promotion wiring, or W13 host tools
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
