@@ -17,6 +17,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
+	"github.com/binaricat/netcatty/internal/agent/drivers/fixture"
+	"github.com/binaricat/netcatty/internal/agent/runtime"
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/applog"
@@ -218,6 +220,15 @@ func main() {
 		sessionLogManager.Append(sessionID, data)
 	})
 
+	// Agent turn runtime (W12). The fixture driver is wired only behind
+	// the dev flag; release builds run driver-less so AI calls fail with
+	// UNAVAILABLE instead of fixture output.
+	turnManager := runtime.NewTurnManager()
+	if os.Getenv("NETCATTY_AI_DEV_DRIVER") == "1" {
+		turnManager.SetDriver(fixture.New())
+	}
+	agentService := newAgentService(turnManager)
+
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
 	wailsApp.RegisterService(application.NewService(credentialService))
@@ -233,6 +244,7 @@ func main() {
 	wailsApp.RegisterService(application.NewService(filesystemService))
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(scriptService))
+	wailsApp.RegisterService(application.NewService(agentService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))
 	wailsApp.RegisterService(application.NewService(diagnosticLogService))
