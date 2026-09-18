@@ -241,7 +241,8 @@ func main() {
 			GOOS:    runtime.GOOS,
 			GOARCH:  runtime.GOARCH,
 		},
-		Jobs: terminaluse.NewJobQueue(terminalSvc.RunnerFor),
+		Jobs:  terminaluse.NewJobQueue(terminalSvc.RunnerFor),
+		Vault: newVaultReader(profileStore),
 	})
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {

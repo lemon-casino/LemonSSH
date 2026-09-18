@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"time"
@@ -46,6 +47,7 @@ type AgentHost struct {
 	version        appVersion
 	sessions       func() []SessionEntry
 	sftp           SFTPReader
+	vault          *VaultReader
 }
 
 type appVersion struct {
@@ -61,6 +63,7 @@ type AgentHostConfig struct {
 	Sessions       func() []SessionEntry
 	SFTP           SFTPReader
 	Jobs           *terminaluse.JobQueue
+	Vault          *VaultReader
 	PermissionMode string
 }
 
@@ -77,6 +80,7 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		sessions:       config.Sessions,
 		sftp:           config.SFTP,
 		jobs:           config.Jobs,
+		vault:          config.Vault,
 	}
 }
 
@@ -124,7 +128,103 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 			return nil, errors.New("terminal.execute reached its handler without an approval gate")
 		}
 	}
+	if h.vault != nil {
+		// Vault reads serve metadata only: secret fields are redacted at
+		// the reader boundary (capability contract).
+		handlers["vault.host.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			hosts, err := h.vault.readList(vaultStorageKeys["hosts"])
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "hosts": hosts}, nil
+		}
+		handlers["vault.host.get"] = h.vaultGetHandler("hosts", "hostId", "host")
+		handlers["vault.host.notes.get"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			hostID, _ := params["hostId"].(string)
+			host, err := h.vault.findByID(vaultStorageKeys["hosts"], hostID)
+			if err != nil {
+				return nil, err
+			}
+			if host == nil {
+				return nil, fmt.Errorf("host %q not found", hostID)
+			}
+			notes, _ := host.(map[string]any)["notes"]
+			return map[string]any{"ok": true, "notes": notes}, nil
+		}
+		handlers["vault.note.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			notes, err := h.vault.readList(vaultStorageKeys["notes"])
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "notes": notes}, nil
+		}
+		handlers["vault.note.get"] = h.vaultGetHandler("notes", "noteId", "note")
+		handlers["vault.identity.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			identities, err := h.vault.readList(vaultStorageKeys["identities"])
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "identities": identities}, nil
+		}
+		handlers["vault.proxyProfile.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			profiles, err := h.vault.readList(vaultStorageKeys["proxyProfiles"])
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "proxyProfiles": profiles}, nil
+		}
+		handlers["vault.group.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			groups, err := h.vault.readList(vaultStorageKeys["groups"])
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "groups": groups}, nil
+		}
+		handlers["vault.snippets.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			all, err := h.vault.readList(vaultStorageKeys["snippets"])
+			if err != nil {
+				return nil, err
+			}
+			plain := make([]any, 0, len(all))
+			for _, item := range all {
+				if obj, ok := item.(map[string]any); ok && !scriptIs(obj, true) {
+					plain = append(plain, obj)
+				}
+			}
+			return map[string]any{"ok": true, "snippets": plain}, nil
+		}
+		handlers["vault.snippets.get"] = h.vaultGetHandler("snippets", "snippetId", "snippet")
+		handlers["vault.scripts.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			all, err := h.vault.readList(vaultStorageKeys["snippets"])
+			if err != nil {
+				return nil, err
+			}
+			scripts := make([]any, 0, len(all))
+			for _, item := range all {
+				if obj, ok := item.(map[string]any); ok && scriptIs(obj, true) {
+					scripts = append(scripts, obj)
+				}
+			}
+			return map[string]any{"ok": true, "scripts": scripts}, nil
+		}
+		handlers["vault.scripts.get"] = h.vaultGetHandler("snippets", "scriptId", "script")
+	}
 	return handlers
+}
+
+// vaultGetHandler builds an id-lookup handler over one vault key.
+func (h *AgentHost) vaultGetHandler(vaultKey, paramField, resultField string) capability.Handler {
+	return func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+		id, _ := params[paramField].(string)
+		item, err := h.vault.findByID(vaultStorageKeys[vaultKey], id)
+		if err != nil {
+			return nil, err
+		}
+		if item == nil {
+			return nil, fmt.Errorf("%s %q not found", vaultKey, id)
+		}
+		return map[string]any{"ok": true, resultField: item}, nil
+	}
 }
 
 func (h *AgentHost) terminalExecHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -334,27 +434,36 @@ func (h *AgentHost) Start(discoveryPath string) error {
 }
 
 // methodTable adapts capability handlers into RPC method handlers: every
-// implemented capability with a builtin method AND a registered host
-// handler is served through the W05 dispatcher (policy + approval +
-// fail-closed), everything else stays UNKNOWN_METHOD.
+// implemented capability with a served method (builtin, then global, then
+// public) AND a registered host handler is dispatched on that surface's
+// policy — builtin/global/public each carry their own binding semantics —
+// everything else stays UNKNOWN_METHOD.
 func (h *AgentHost) methodTable() map[string]rpc.Handler {
-	dispatcher := &capability.Dispatcher{
-		Registry:       capability.Default(),
-		Surface:        capability.SurfaceBuiltin,
-		PermissionMode: permissionModeOf(h.permissionMode),
-		Handlers:       h.capabilityHandlers(),
-	}
 	registered := h.capabilityHandlers()
+	newDispatcher := func(surface capability.Surface) *capability.Dispatcher {
+		return &capability.Dispatcher{
+			Registry:       capability.Default(),
+			Surface:        surface,
+			PermissionMode: permissionModeOf(h.permissionMode),
+			Handlers:       registered,
+		}
+	}
+	surfaces := map[capability.Surface]*capability.Dispatcher{
+		capability.SurfaceBuiltin: newDispatcher(capability.SurfaceBuiltin),
+		capability.SurfaceGlobal:  newDispatcher(capability.SurfaceGlobal),
+		capability.SurfacePublic:  newDispatcher(capability.SurfacePublic),
+	}
+
 	table := make(map[string]rpc.Handler)
 	for _, def := range capability.Default().List(capability.ListOptions{Status: capability.StatusImplemented}) {
 		if _, handled := registered[def.ID]; !handled {
 			continue
 		}
-		binding, ok := def.Surfaces[capability.SurfaceBuiltin]
-		if !ok || binding.RPCMethod == "" {
+		surface, method := servedMethod(def)
+		if method == "" {
 			continue
 		}
-		method := binding.RPCMethod
+		dispatcher := surfaces[surface]
 		table[method] = func(ctx context.Context, principal *rpc.Principal, rawParams json.RawMessage) (any, error) {
 			var params map[string]any
 			if len(rawParams) > 0 {
@@ -366,6 +475,17 @@ func (h *AgentHost) methodTable() map[string]rpc.Handler {
 		}
 	}
 	return table
+}
+
+// servedMethod resolves the method an agent calls for one capability and
+// the surface that method belongs to (builtin, then global, then public).
+func servedMethod(def *capability.Definition) (capability.Surface, string) {
+	for _, surface := range []capability.Surface{capability.SurfaceBuiltin, capability.SurfaceGlobal, capability.SurfacePublic} {
+		if binding, ok := def.Surfaces[surface]; ok && binding.RPCMethod != "" {
+			return surface, binding.RPCMethod
+		}
+	}
+	return "", ""
 }
 
 // Stop revokes every token, removes the discovery file and closes the
