@@ -48,6 +48,7 @@ type AgentHost struct {
 	sessions       func() []SessionEntry
 	sftp           SFTPReader
 	vault          *VaultReader
+	attachments    *AttachmentRegistry
 }
 
 type appVersion struct {
@@ -64,6 +65,7 @@ type AgentHostConfig struct {
 	SFTP           SFTPReader
 	Jobs           *terminaluse.JobQueue
 	Vault          *VaultReader
+	Attachments    *AttachmentRegistry
 	PermissionMode string
 }
 
@@ -81,6 +83,7 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		sftp:           config.SFTP,
 		jobs:           config.Jobs,
 		vault:          config.Vault,
+		attachments:    config.Attachments,
 	}
 }
 
@@ -127,6 +130,10 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		handlers["terminal.execute"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
 			return nil, errors.New("terminal.execute reached its handler without an approval gate")
 		}
+	}
+	if h.attachments != nil {
+		handlers["attachment.list"] = h.attachmentListHandler
+		handlers["attachment.read"] = h.attachmentReadHandler
 	}
 	if h.vault != nil {
 		// Vault reads serve metadata only: secret fields are redacted at

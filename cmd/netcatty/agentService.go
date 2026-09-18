@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/binaricat/netcatty/internal/agent/runtime"
 	"github.com/binaricat/netcatty/internal/app/contracts"
 )
@@ -10,11 +11,30 @@ import (
 // the React client owns no second authoritative state. The five methods
 // mirror the W03 wire DTOs one to one.
 type AgentService struct {
-	manager *runtime.TurnManager
+	manager     *runtime.TurnManager
+	attachments *AttachmentRegistry
+	// devDriver reports that the composition root wired the fixture
+	// driver (NETCATTY_AI_DEV_DRIVER=1). The renderer routes the Catty
+	// path to the Go runtime only when this is true, so a release build
+	// keeps exactly one authoritative runtime.
+	devDriver bool
 }
 
-func newAgentService(manager *runtime.TurnManager) *AgentService {
-	return &AgentService{manager: manager}
+// AgentStatus tells the renderer which Catty path is authoritative.
+type AgentStatus struct {
+	GoRuntimeReady bool `json:"goRuntimeReady"`
+	FixtureDriver  bool `json:"fixtureDriver"`
+}
+
+// AgentStatus reports runtime readiness. Without the dev flag the Go
+// runtime has no provider behind it, so the renderer must keep using its
+// own chain until the live provider wiring lands (W13+).
+func (s *AgentService) AgentStatus() AgentStatus {
+	return AgentStatus{GoRuntimeReady: s.devDriver, FixtureDriver: s.devDriver}
+}
+
+func newAgentService(manager *runtime.TurnManager, devDriver bool, attachments *AttachmentRegistry) *AgentService {
+	return &AgentService{manager: manager, devDriver: devDriver, attachments: attachments}
 }
 
 // AgentPrepare reserves one turn slot. Idempotent per request ID.
@@ -36,6 +56,16 @@ func (s *AgentService) AgentStop(turnID, reason string) (contracts.TurnSnapshot,
 // AgentReadEvents pages turn events after a decimal-string cursor.
 func (s *AgentService) AgentReadEvents(turnID, afterSequence string, limit int) (contracts.EventPage, error) {
 	return s.manager.ReadEvents(contracts.TurnID(turnID), afterSequence, limit)
+}
+
+// AgentRegisterChatAttachments lets the renderer push the current chat's
+// attachments into the host registry so agents can list/read them.
+func (s *AgentService) AgentRegisterChatAttachments(chatSessionID string, attachments []Attachment) error {
+	if chatSessionID == "" {
+		return errors.New("chatSessionId is required")
+	}
+	s.attachments.Register(chatSessionID, attachments)
+	return nil
 }
 
 // AgentSnapshot returns the authoritative turn projection.

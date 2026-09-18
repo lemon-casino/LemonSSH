@@ -230,7 +230,8 @@ func main() {
 	if devDriver {
 		turnManager.SetDriver(fixture.New())
 	}
-	agentService := newAgentService(turnManager, devDriver)
+	attachmentRegistry := newAttachmentRegistry()
+	agentService := newAgentService(turnManager, devDriver, attachmentRegistry)
 
 	// Agent host (W13): the authenticated loopback RPC surface the native
 	// CLI/MCP binaries connect to via the discovery file.
@@ -241,8 +242,9 @@ func main() {
 			GOOS:    runtime.GOOS,
 			GOARCH:  runtime.GOARCH,
 		},
-		Jobs:  terminaluse.NewJobQueue(terminalSvc.RunnerFor),
-		Vault: newVaultReader(profileStore),
+		Jobs:        terminaluse.NewJobQueue(terminalSvc.RunnerFor),
+		Vault:       newVaultReader(profileStore),
+		Attachments: attachmentRegistry,
 	})
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {
