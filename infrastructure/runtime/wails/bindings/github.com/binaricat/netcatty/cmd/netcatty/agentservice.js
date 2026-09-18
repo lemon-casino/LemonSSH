@@ -18,6 +18,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as contracts$0 from "../../internal/app/contracts/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * AgentPrepare reserves one turn slot. Idempotent per request ID.
  * @param {contracts$0.PrepareTurnRequest} request
@@ -64,6 +68,18 @@ export function AgentStart(command) {
 }
 
 /**
+ * AgentStatus reports runtime readiness. Without the dev flag the Go
+ * runtime has no provider behind it, so the renderer must keep using its
+ * own chain until the live provider wiring lands (W13+).
+ * @returns {$CancellablePromise<$models.AgentStatus>}
+ */
+export function AgentStatus() {
+    return $Call.ByID(2395112271).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
  * AgentStop converges one turn and returns its terminal snapshot.
  * @param {string} turnID
  * @param {string} reason
@@ -79,3 +95,4 @@ export function AgentStop(turnID, reason) {
 const $$createType0 = contracts$0.PreparedTurn.createFrom;
 const $$createType1 = contracts$0.EventPage.createFrom;
 const $$createType2 = contracts$0.TurnSnapshot.createFrom;
+const $$createType3 = $models.AgentStatus.createFrom;

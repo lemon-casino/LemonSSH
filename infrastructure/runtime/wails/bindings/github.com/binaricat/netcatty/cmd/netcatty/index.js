@@ -50,6 +50,7 @@ export {
 };
 
 export {
+    AgentStatus,
     AppLockRuntimeState,
     AutocompleteDirectoryResult,
     BiometricSettings,

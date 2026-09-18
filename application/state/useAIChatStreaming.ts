@@ -18,6 +18,9 @@ import type {
 } from '../../infrastructure/ai/types';
 import type { ExecutorContext } from '../../infrastructure/ai/cattyAgent/executor';
 import { getAgentRuntime } from '../../infrastructure/ai/harness/globalAgentRuntime';
+import { getActiveRuntimeClient } from '../../infrastructure/runtime/runtimeClient';
+import type { AgentRuntimePort } from '../../infrastructure/runtime/wails/wailsRuntimeClient';
+import { runGoTurn } from './aiGoTurn';
 import type {
   TurnSteerInput,
   TurnSteerResult,
@@ -35,6 +38,15 @@ import { useAgentCompactionUi } from './useAgentCompactionUi';
 export { getNetcattyBridge } from '../../infrastructure/ai/aiChatStreamingSupport';
 export type { ActiveCompactionUi } from './useAgentCompactionUi';
 export type { DefaultTargetSessionHint } from '../../infrastructure/ai/aiChatStreamingSupport';
+
+function resolveGoTurnPort(): AgentRuntimePort | null {
+  const client = getActiveRuntimeClient() as (RuntimeClientLike & { agentRuntime?: AgentRuntimePort }) | undefined;
+  return client?.agentRuntime ?? null;
+}
+
+interface RuntimeClientLike {
+  // Structural view: the Wails install wires agentRuntime; other shells do not.
+}
 
 const sharedStreamingSessionIds = new Set<string>();
 const sharedAbortControllers = new Map<string, AbortController>();
@@ -235,6 +247,33 @@ export function useAIChatStreaming({
     context: SendToCattyContext,
     attachments?: ChatMessageAttachment[],
   ) => {
+    // W12 minimal chain: when the host reports the dev fixture driver, the
+    // Go runtime is authoritative for this turn and the renderer only
+    // relays DTOs. The product path stays on the renderer runtime until
+    // live provider wiring lands (W13+).
+    const goPort = resolveGoTurnPort();
+    if (goPort) {
+      const status = await goPort.agentStatus().catch(() => null);
+      if (status?.goRuntimeReady) {
+        try {
+          await runGoTurn(goPort, {
+            chatSessionId: sessionId,
+            userText: trimmed,
+            signal: abortController.signal,
+          }, {
+            onTextDelta: (text) => updateLastMessage(sessionId, msg => ({
+              ...msg,
+              content: msg.content + text,
+            })),
+            onFinished: () => {},
+          });
+        } finally {
+          abortControllersRef.current.delete(sessionId);
+        }
+        return;
+      }
+    }
+
     const bridge = getNetcattyBridge();
     try {
       await getAgentRuntime().runTurn({

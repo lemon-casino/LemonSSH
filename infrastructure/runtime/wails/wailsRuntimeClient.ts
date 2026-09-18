@@ -347,6 +347,7 @@ export interface WailsBindingDeps {
     AgentStop: (turnID: string, reason: string) => Promise<AgentTurnSnapshot>;
     AgentReadEvents: (turnID: string, afterSequence: string, limit: number) => Promise<AgentEventPage>;
     AgentSnapshot: (turnID: string) => Promise<AgentTurnSnapshot>;
+    AgentStatus: () => Promise<{ goRuntimeReady: boolean; fixtureDriver: boolean }>;
   };
 }
 
@@ -381,12 +382,18 @@ type HelperLifecycleCallback = Parameters<NonNullable<NetcattyBridge["onHelperLi
 
 /** Go turn runtime methods (W12). The Go side is the single authoritative
  *  state owner; this port only relays the W03 wire DTOs. */
+export interface AgentRuntimeStatus {
+  goRuntimeReady: boolean;
+  fixtureDriver: boolean;
+}
+
 export interface AgentRuntimePort {
   agentPrepare(request: AgentPrepareTurnRequest): Promise<AgentPreparedTurn>;
   agentStart(command: AgentTurnCommand): Promise<void>;
   agentStop(turnID: string, reason: string): Promise<AgentTurnSnapshot>;
   agentReadEvents(turnID: string, afterSequence: string, limit: number): Promise<AgentEventPage>;
   agentSnapshot(turnID: string): Promise<AgentTurnSnapshot>;
+  agentStatus(): Promise<AgentRuntimeStatus>;
 }
 
 export type WailsRuntimeClient = RuntimeClient & { agentRuntime: AgentRuntimePort };
@@ -403,6 +410,7 @@ function buildAgentRuntimePort(bindings: WailsBindingDeps): AgentRuntimePort {
       agentStop: unavailable,
       agentReadEvents: unavailable,
       agentSnapshot: unavailable,
+      agentStatus: async () => ({ goRuntimeReady: false, fixtureDriver: false }),
     };
   }
   return {
@@ -411,6 +419,7 @@ function buildAgentRuntimePort(bindings: WailsBindingDeps): AgentRuntimePort {
     agentStop: (turnID, reason) => service.AgentStop(turnID, reason),
     agentReadEvents: (turnID, afterSequence, limit) => service.AgentReadEvents(turnID, afterSequence, limit),
     agentSnapshot: (turnID) => service.AgentSnapshot(turnID),
+    agentStatus: () => service.AgentStatus(),
   };
 }
 

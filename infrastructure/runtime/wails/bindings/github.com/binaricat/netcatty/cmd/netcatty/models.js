@@ -25,6 +25,44 @@ import * as script$0 from "../../internal/script/models.js";
 // @ts-ignore: Unused imports
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
+/**
+ * AgentStatus tells the renderer which Catty path is authoritative.
+ */
+export class AgentStatus {
+    /**
+     * Creates a new AgentStatus instance.
+     * @param {Partial<AgentStatus>} [$$source = {}] - The source object to create the AgentStatus.
+     */
+    constructor($$source = {}) {
+        if (!("goRuntimeReady" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["goRuntimeReady"] = false;
+        }
+        if (!("fixtureDriver" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["fixtureDriver"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AgentStatus}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentStatus(/** @type {Partial<AgentStatus>} */($$parsedSource));
+    }
+}
+
 export class AppLockRuntimeState {
     /**
      * Creates a new AppLockRuntimeState instance.
