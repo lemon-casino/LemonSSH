@@ -5019,3 +5019,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: useAIChatStreaming two-layer rewiring (T08 StrictMode double-mount, multi-window, unmount-no-Stop) is slice 3; the fixture driver still requires NETCATTY_AI_DEV_DRIVER=1 at launch
 - Next safe slice: W12 slice 3 useAIChatStreaming rewiring over agentRuntime, then the React-side T08 cases
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L176 - 2026-09-18 - W12 minimal chain routing (useAIChatStreaming)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W12 slice 3 closes the minimal chain on the renderer side. AgentStatus (Go) reports whether the composition root wired the dev fixture driver; the agentRuntime port gains agentStatus. New `application/state/aiGoTurn.ts` is the pure Go-turn runner: prepare -> start -> poll ReadEvents with 128-event pages, text_delta payloads appended to the assistant message, turn_end terminating; abort is routed to the Go owner via agentStop (renderer never walks away from a running turn); CursorExpired resyncs from the served snapshot cursor (T07); a lost terminal notification falls back to the snapshot read so the UI never spins (T05); the empty-page + snapshot-terminal path is bounded. useAIChatStreaming.sendToCattyAgent routes to runGoTurn ONLY when AgentStatus.goRuntimeReady (the same NETCATTY_AI_DEV_DRIVER=1 flag the Go side uses — one flag, one authoritative runtime per build); otherwise the existing renderer AgentRuntime path runs unchanged, so the product Catty sidebar is not regressed while W13 populates real handlers. Bindings regenerated (22 services / 230 methods) to expose AgentStatus.
+- Go canonical owner: none (TS slice); Go counterpart AgentStatus in cmd/netcatty/agentService.go
+- Frontend adapter: `application/state/aiGoTurn.ts` (new, pure), `useAIChatStreaming.ts` (routing only), `wailsRuntimeClient.ts` (port + status)
+- Electron owner affected: none
+- Preserved invariants: exactly one authoritative runtime per build (flag decided on the Go side, mirrored by AgentStatus); product path unchanged without the flag; abort always reaches the Go owner; generated runtimePorts.ts untouched
+- Data/schema impact: bindings +1 method (AgentStatus, AgentStatus model)
+- Security impact: no new renderer authority — the Go side keeps policy and state
+- Verification: node --test --import tsx application/state/aiGoTurn.test.ts 3/3 (delta streaming, abort->stop routing, lost-terminal snapshot fallback); node --test wailsRuntimeClient.test.ts 45/45; go test -run "TestAgentService|TestAgentStatus" ./cmd/netcatty/ ok; tsc filtered to touched files clean; go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests; live WebView run of the flagged chain pending (launch exe with NETCATTY_AI_DEV_DRIVER=1 and send a Catty message)
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: T08 StrictMode double-mount/multi-window cases need the live WebView pass; steer and compaction are not on the Go path yet (W14); usage accounting display pending W14 usage ledger
+- Next safe slice: live WebView smoke of the flagged minimal chain, then W10 slice 2 reseal/secret API or W13 host tools
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
