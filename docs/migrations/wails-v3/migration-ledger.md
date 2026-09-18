@@ -4944,3 +4944,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: T12-T16 persistence/crash cases need the W10 profile storage seam; InteractionRouter is W13; the sequence counter is in-memory until durable checkpoints land
 - Next safe slice: W10 AI Profile data & secret references, then W12 Wails AgentClient minimal chain
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L173 - 2026-09-18 - W10 AI key inventory and migration planner (first slice)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W10 first slice lands `internal/agent/profiledata`: the frozen inventory of the 22 renderer AI localStorage keys with classification (provider_config / preference / chat_history / grant / ephemeral), target profile domains (chat history -> sessions, ephemeral -> device-local, rest -> settings), syncable flags (ephemeral and secret-bearing stay device-local, T40), and `ai/` profile-key namespace. PlanMigrations turns a renderer localStorage snapshot into profile store mutations reusing the canonical domain conventions: every value must be valid JSON; unknown `netcatty_ai_*` keys fail the plan CLOSED with no mutations (classification drift guard, T36); malformed values fail with a typed error and zero mutations; empty values are recorded and skipped; enc:v1-bearing values are planned but flagged for the origin-aware reseal decision before staging (T37), and their raw values are never served through generic reads once promoted (T38 enforcement lands at the W12 bridge).
+- Go canonical owner: `internal/agent/profiledata/`
+- Frontend adapter: none (renderer snapshot handoff arrives with the W12 bridge)
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; promotion reuses profile store StageProfile/PromoteProfile receipts — no second staging implementation; ephemeral keys can never enter synced domains
+- Data/schema impact: none yet (mutations are planned, not applied)
+- Security impact: unknown-key fail-closed + secret flagging; raw-channel secret protection lands with the W12 bridge
+- Verification: go vet ./internal/agent/profiledata/...; go test -count=1 ./internal/agent/profiledata/ (ok: classification table, secret flagging, unknown-key fail-closed, malformed JSON rejection, empty skip); go test -race ./internal/agent/profiledata/ (ok); gofmt clean on internal/; go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AI state stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: origin-aware reseal execution, dedicated AI secret API, staged promotion wiring with interruption-retry receipts, and React hydration switch are the remaining W10 slices (T36-T38); canonical typed AI records arrive with W12
+- Next safe slice: W12 Wails AgentClient minimal chain (React -> Wails -> Go Prepare/Start -> fixture provider -> events -> restore), or W10 slice 2 reseal when the bridge seam is ready
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

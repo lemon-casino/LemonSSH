@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L172`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L173`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -27,8 +27,10 @@ OpenAI Chat/Anthropic Messages/Google 三族装配器、usage 单次观测、签
 私有记录、单一 retry owner；Responses 族与 model list/probe 仍欠）。
 W11 三刀已落 internal/agent/runtime（L170 Prepare 租约 T01-T03；L171 事件环
 + ReadEvents 对账 T04/T06/T07；L172 driver 生命周期 + 统一 Stop T02/T11，
-单序列权威 + finalize 原子性，race count=10 干净）；生产 AI 下一刀是 W10
-AI Profile 数据与 secret references，不是伪造 NONAI-COMPLETE。
+单序列权威 + finalize 原子性，race count=10 干净）；W10 首刀已落 internal/agent/profiledata（L173：22 个 AI key 清单分类、
+fail-closed 迁移计划、enc:v1 秘密标记、ephemeral 设备本地 T40）；
+生产 AI 下一刀是 W12 Wails AgentClient 最小链路与 W10 后续切片
+（reseal/secret API/staging 推进），不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -163,8 +165,9 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
   ReadEvents 分页与 CursorExpired→快照对账（T04/T07）。
 - W11 切片 3 已落（L172）：TurnDriver seam、幂等 Start、有界 Stop 收敛、
   单终态记录、跨 chat 隔离、driver 失败即 interrupted。
-- 下一刀 W10：AI Profile 数据与 secret references；随后 W12 Wails AgentClient
-  最小链路（React→Wails→Go→fake provider→事件→恢复）。
+- W10 首刀已落（L173）：AI key 清单分类 + fail-closed 迁移计划构建器。
+- 下一刀 W12：Wails AgentClient 最小链路（React→Wails→Go→fake provider→事件→
+  恢复）；W10 后续切片（reseal/secret API/staging 推进）随桥接接缝推进。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。
