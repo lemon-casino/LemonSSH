@@ -13,6 +13,7 @@ import (
 type AgentService struct {
 	manager     *runtime.TurnManager
 	attachments *AttachmentRegistry
+	router      *InteractionRouter
 	// devDriver reports that the composition root wired the fixture
 	// driver (NETCATTY_AI_DEV_DRIVER=1). The renderer routes the Catty
 	// path to the Go runtime only when this is true, so a release build
@@ -33,8 +34,8 @@ func (s *AgentService) AgentStatus() AgentStatus {
 	return AgentStatus{GoRuntimeReady: s.devDriver, FixtureDriver: s.devDriver}
 }
 
-func newAgentService(manager *runtime.TurnManager, devDriver bool, attachments *AttachmentRegistry) *AgentService {
-	return &AgentService{manager: manager, devDriver: devDriver, attachments: attachments}
+func newAgentService(manager *runtime.TurnManager, devDriver bool, attachments *AttachmentRegistry, router *InteractionRouter) *AgentService {
+	return &AgentService{manager: manager, devDriver: devDriver, attachments: attachments, router: router}
 }
 
 // AgentPrepare reserves one turn slot. Idempotent per request ID.
@@ -66,6 +67,23 @@ func (s *AgentService) AgentRegisterChatAttachments(chatSessionID string, attach
 	}
 	s.attachments.Register(chatSessionID, attachments)
 	return nil
+}
+
+// AgentPendingInteractions lists open approval prompts for the settings UI.
+func (s *AgentService) AgentPendingInteractions() []map[string]any {
+	if s.router == nil {
+		return []map[string]any{}
+	}
+	return s.router.Pending()
+}
+
+// AgentRespondInteraction resolves one pending approval. The decision is
+// consumed exactly once; unknown or stale IDs fail typed.
+func (s *AgentService) AgentRespondInteraction(interactionID string, approved bool) error {
+	if s.router == nil {
+		return errors.New("approval routing is not available")
+	}
+	return s.router.Respond(interactionID, approved)
 }
 
 // AgentSnapshot returns the authoritative turn projection.

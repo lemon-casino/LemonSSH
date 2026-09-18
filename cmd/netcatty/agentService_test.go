@@ -16,7 +16,16 @@ func newTestAgentService(withDriver bool) *AgentService {
 	if withDriver {
 		manager.SetDriver(fixture.New())
 	}
-	return newAgentService(manager)
+	return newAgentService(manager, withDriver, newAttachmentRegistry(), nil)
+}
+
+func TestAgentStatusMirrorsDevFlag(t *testing.T) {
+	if status := newTestAgentService(true).AgentStatus(); !status.GoRuntimeReady || !status.FixtureDriver {
+		t.Errorf("dev-flagged service must report ready+fixture, got %+v", status)
+	}
+	if status := newTestAgentService(false).AgentStatus(); status.GoRuntimeReady || status.FixtureDriver {
+		t.Errorf("release service must report not-ready, got %+v", status)
+	}
 }
 
 func prepareVia(t *testing.T, service *AgentService) (contracts.TurnID, contracts.RequestID) {
@@ -87,7 +96,7 @@ func TestAgentServiceMinimalChain(t *testing.T) {
 func TestAgentServiceStopConverges(t *testing.T) {
 	manager := runtime.NewTurnManager()
 	manager.SetDriver(&blockingFixture{})
-	service := newAgentService(manager)
+	service := newAgentService(manager, false, newAttachmentRegistry(), nil)
 	turnID, request := prepareVia(t, service)
 
 	if err := service.AgentStart(contracts.TurnCommand{

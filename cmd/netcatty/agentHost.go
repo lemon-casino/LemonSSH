@@ -54,6 +54,7 @@ type AgentHost struct {
 	vault          *VaultReader
 	attachments    *AttachmentRegistry
 	forwards       *ForwardService
+	approvals      capability.ApprovalGate
 }
 
 type appVersion struct {
@@ -72,6 +73,7 @@ type AgentHostConfig struct {
 	Vault          *VaultReader
 	Attachments    *AttachmentRegistry
 	Forwards       *ForwardService
+	Approvals      capability.ApprovalGate
 	PermissionMode string
 }
 
@@ -91,6 +93,7 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		vault:          config.Vault,
 		attachments:    config.Attachments,
 		forwards:       config.Forwards,
+		approvals:      config.Approvals,
 	}
 }
 
@@ -527,6 +530,7 @@ func (h *AgentHost) methodTable() map[string]rpc.Handler {
 			Surface:        surface,
 			PermissionMode: permissionModeOf(h.permissionMode),
 			Handlers:       registered,
+			Approval:       h.approvals,
 		}
 	}
 	surfaces := map[capability.Surface]*capability.Dispatcher{

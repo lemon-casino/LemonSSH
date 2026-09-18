@@ -231,7 +231,13 @@ func main() {
 		turnManager.SetDriver(fixture.New())
 	}
 	attachmentRegistry := newAttachmentRegistry()
-	agentService := newAgentService(turnManager, devDriver, attachmentRegistry)
+	// Approval gate (W13): confirm-mode writes prompt the renderer via the
+	// agent:interaction event; decisions come back through
+	// AgentRespondInteraction.
+	interactionRouter := newInteractionRouter(func(name string, payload any) {
+		wailsApp.Event.Emit(name, payload)
+	})
+	agentService := newAgentService(turnManager, devDriver, attachmentRegistry, interactionRouter)
 
 	// Agent host (W13): the authenticated loopback RPC surface the native
 	// CLI/MCP binaries connect to via the discovery file.
@@ -246,6 +252,7 @@ func main() {
 		Vault:       newVaultReader(profileStore),
 		Attachments: attachmentRegistry,
 		Forwards:    forwardService,
+		Approvals:   interactionRouter,
 	})
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {
