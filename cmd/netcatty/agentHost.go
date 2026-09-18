@@ -49,6 +49,7 @@ type AgentHost struct {
 	sftp           SFTPReader
 	vault          *VaultReader
 	attachments    *AttachmentRegistry
+	forwards       *ForwardService
 }
 
 type appVersion struct {
@@ -66,6 +67,7 @@ type AgentHostConfig struct {
 	Jobs           *terminaluse.JobQueue
 	Vault          *VaultReader
 	Attachments    *AttachmentRegistry
+	Forwards       *ForwardService
 	PermissionMode string
 }
 
@@ -84,6 +86,7 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		jobs:           config.Jobs,
 		vault:          config.Vault,
 		attachments:    config.Attachments,
+		forwards:       config.Forwards,
 	}
 }
 
@@ -134,6 +137,29 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 	if h.attachments != nil {
 		handlers["attachment.list"] = h.attachmentListHandler
 		handlers["attachment.read"] = h.attachmentReadHandler
+	}
+	if h.forwards != nil {
+		// Reads list persisted rules (from the vault store) and live
+		// tunnels (from the shared forwarduse). Start stays HANDLER_MISSING
+		// until the canonical host connect command exists; stop goes
+		// through forwarduse StopByRuleId (confirm mode demands approval).
+		handlers["portforward.rules.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			rules, err := h.vault.PortForwardingRules()
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"ok": true, "rules": rules}, nil
+		}
+		handlers["portforward.tunnels.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			return map[string]any{"ok": true, "tunnels": h.forwards.List()}, nil
+		}
+		handlers["portforward.stop"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+			ruleID, _ := params["ruleId"].(string)
+			if ruleID == "" {
+				return nil, fmt.Errorf("ruleId is required")
+			}
+			return h.forwards.StopByRuleId(ruleID), nil
+		}
 	}
 	if h.vault != nil {
 		// Vault reads serve metadata only: secret fields are redacted at

@@ -245,6 +245,7 @@ func main() {
 		Jobs:        terminaluse.NewJobQueue(terminalSvc.RunnerFor),
 		Vault:       newVaultReader(profileStore),
 		Attachments: attachmentRegistry,
+		Forwards:    forwardService,
 	})
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {

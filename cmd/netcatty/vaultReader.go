@@ -39,6 +39,13 @@ var secretFieldNames = map[string]bool{
 	"secret":         true,
 }
 
+// PortForwardingRules returns the redacted port-forwarding rule list from
+// the vault domain (netcatty_port_forwarding_v1). Rules carry no secrets
+// (hostId references), but the redaction pass still runs for safety.
+func (v *VaultReader) PortForwardingRules() ([]any, error) {
+	return v.readList("netcatty_port_forwarding_v1")
+}
+
 // readList returns the redacted array stored under one vault key. Missing
 // keys read as empty arrays — an empty vault is a valid vault.
 func (v *VaultReader) readList(vaultKey string) ([]any, error) {
