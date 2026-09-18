@@ -30,6 +30,10 @@ type SFTPReader interface {
 	Stat(sessionID, target string) (sftp.FileInfo, error)
 	Read(sessionID, remotePath string) (string, error)
 	HomeDir(sessionID string) (string, error)
+	// Download copies a remote file to a local path, returning bytes moved.
+	Download(sessionID, remotePath, localPath string) (int64, error)
+	// Upload copies a local file to a remote path, returning bytes moved.
+	Upload(sessionID, localPath, remotePath string) (int64, error)
 }
 
 // AgentHost serves the authenticated local RPC surface the native CLI/MCP
@@ -117,6 +121,11 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		handlers["sftp.read"] = h.sftpReadHandler
 		handlers["sftp.stat"] = h.sftpStatHandler
 		handlers["sftp.home"] = h.sftpHomeHandler
+		// Transfers: write-capable, long-running; confirm mode demands
+		// approval first (fail-closed without a gate), auto mode runs them
+		// through the shared sftpuse path.
+		handlers["sftp.download"] = h.sftpDownloadHandler
+		handlers["sftp.upload"] = h.sftpUploadHandler
 	}
 	if h.jobs != nil {
 		// Terminal write operations route through the job queue. In
@@ -383,6 +392,40 @@ func (h *AgentHost) sftpHomeHandler(ctx context.Context, params map[string]any, 
 	return map[string]any{"ok": true, "home": home}, nil
 }
 
+func (h *AgentHost) sftpDownloadHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	sessionID, _ := params["sessionId"].(string)
+	remotePath, _ := params["remotePath"].(string)
+	localPath, _ := params["localPath"].(string)
+	if err := h.checkSession(sessionID); err != nil {
+		return nil, err
+	}
+	if remotePath == "" || localPath == "" {
+		return nil, fmt.Errorf("remotePath and localPath are required")
+	}
+	bytesMoved, err := h.sftp.Download(sessionID, remotePath, localPath)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "bytes": bytesMoved, "localPath": localPath}, nil
+}
+
+func (h *AgentHost) sftpUploadHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	sessionID, _ := params["sessionId"].(string)
+	remotePath, _ := params["remotePath"].(string)
+	localPath, _ := params["localPath"].(string)
+	if err := h.checkSession(sessionID); err != nil {
+		return nil, err
+	}
+	if localPath == "" || remotePath == "" {
+		return nil, fmt.Errorf("localPath and remotePath are required")
+	}
+	bytesMoved, err := h.sftp.Upload(sessionID, localPath, remotePath)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true, "bytes": bytesMoved, "remotePath": remotePath}, nil
+}
+
 // checkSession validates that the requested session exists in the
 // host-reported list (the host is the scope owner).
 func (h *AgentHost) checkSession(sessionID string) error {
@@ -453,7 +496,12 @@ func (h *AgentHost) Start(discoveryPath string) error {
 	}
 	h.discoveryPath = discoveryPath
 
-	h.server = rpc.NewServer(h.tokens, h.methodTable(), rpc.ServerOptions{})
+	// Long-running transfers and jobs need more than the 30s default;
+	// clients may still request shorter deadlines per call.
+	h.server = rpc.NewServer(h.tokens, h.methodTable(), rpc.ServerOptions{
+		DefaultDeadline: 30 * time.Second,
+		MaxDeadline:     10 * time.Minute,
+	})
 	go func() {
 		for {
 			conn, err := listener.Accept()

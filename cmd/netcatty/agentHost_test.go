@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -101,8 +102,9 @@ func TestAgentHostUnknownMethodTyped(t *testing.T) {
 
 // fakeSFTPReader records calls and returns canned data.
 type fakeSFTPReader struct {
-	listCalls int
-	lastDir   string
+	listCalls  int
+	lastDir    string
+	lastUpload string
 }
 
 func (f *fakeSFTPReader) List(sessionID, dir string) ([]sftp.Entry, error) {
@@ -121,6 +123,24 @@ func (f *fakeSFTPReader) Read(sessionID, remotePath string) (string, error) {
 
 func (f *fakeSFTPReader) HomeDir(sessionID string) (string, error) {
 	return "/home/deploy", nil
+}
+
+func (f *fakeSFTPReader) Download(sessionID, remotePath, localPath string) (int64, error) {
+	// Simulated remote content: deterministic bytes at the "remote" path.
+	content := []byte("remote file body")
+	if err := os.WriteFile(localPath, content, 0o600); err != nil {
+		return 0, err
+	}
+	return int64(len(content)), nil
+}
+
+func (f *fakeSFTPReader) Upload(sessionID, localPath, remotePath string) (int64, error) {
+	content, err := os.ReadFile(localPath)
+	if err != nil {
+		return 0, err
+	}
+	f.lastUpload = string(content)
+	return int64(len(content)), nil
 }
 
 func newSFTPTestHost(t *testing.T) (*AgentHost, *fakeSFTPReader, string) {
