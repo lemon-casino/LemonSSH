@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L173`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L174`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -29,8 +29,10 @@ W11 三刀已落 internal/agent/runtime（L170 Prepare 租约 T01-T03；L171 事
 + ReadEvents 对账 T04/T06/T07；L172 driver 生命周期 + 统一 Stop T02/T11，
 单序列权威 + finalize 原子性，race count=10 干净）；W10 首刀已落 internal/agent/profiledata（L173：22 个 AI key 清单分类、
 fail-closed 迁移计划、enc:v1 秘密标记、ephemeral 设备本地 T40）；
-生产 AI 下一刀是 W12 Wails AgentClient 最小链路与 W10 后续切片
-（reseal/secret API/staging 推进），不是伪造 NONAI-COMPLETE。
+W12 Go 切片已落（L174：cmd/netcatty/agentService 五方法 facade +
+NETCATTY_AI_DEV_DRIVER 门控的 fixture driver，发布包无 driver 时 UNAVAILABLE）；
+生产 AI 下一刀是 W12 切片 2（bindings 生成 + TS client + useAIChatStreaming
+接线）与 W10 后续（reseal/secret API），不是伪造 NONAI-COMPLETE。
 
 处理标记：`已处理` = 本切片已接线或已诚实记录 pending；**不是** `verified`。
 
@@ -166,8 +168,11 @@ C4 已完成 ZIP staging 与同 task ID scheduler 上传，两阶段控制、bac
 - W11 切片 3 已落（L172）：TurnDriver seam、幂等 Start、有界 Stop 收敛、
   单终态记录、跨 chat 隔离、driver 失败即 interrupted。
 - W10 首刀已落（L173）：AI key 清单分类 + fail-closed 迁移计划构建器。
-- 下一刀 W12：Wails AgentClient 最小链路（React→Wails→Go→fake provider→事件→
-  恢复）；W10 后续切片（reseal/secret API/staging 推进）随桥接接缝推进。
+- W12 Go 切片已落（L174）：AgentService facade（五方法直映 runtime）+
+  dev 门控 fixture driver + facade 级最小链路测试。
+- 下一刀 W12 切片 2：bindings 生成（GOTOOLCHAIN 钉住）+ wailsRuntimeClient
+  agent 分支 + useAIChatStreaming 双层接线（T08 reload/StrictMode/多窗口）；
+  W10 后续（reseal/secret API/staging 推进）并行可做。
 - 保留实现：AI-02, AI-03, AI-04.1 Codex, AI-04.2 Claude, AI-04.3 Grok — 仍 `not-started`
 - AI-04.4, AI-04.5, AI-04.6, AI-04.7, AI-04.8 已 `removed` / `retired`（WV3-019 至 WV3-023，L152 至 L156）。
   Phase 7 对这五家只做 fail-closed、设置页原因、历史可读、禁止付费/盲切账户。

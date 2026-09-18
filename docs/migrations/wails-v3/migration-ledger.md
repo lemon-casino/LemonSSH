@@ -4969,3 +4969,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: origin-aware reseal execution, dedicated AI secret API, staged promotion wiring with interruption-retry receipts, and React hydration switch are the remaining W10 slices (T36-T38); canonical typed AI records arrive with W12
 - Next safe slice: W12 Wails AgentClient minimal chain (React -> Wails -> Go Prepare/Start -> fixture provider -> events -> restore), or W10 slice 2 reseal when the bridge seam is ready
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L174 - 2026-09-18 - W12 agent service facade and dev fixture driver (Go slice)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W12 Go slice lands the Wails-facing agent facade. `cmd/netcatty/agentService.go` maps the five W03 wire methods (AgentPrepare/AgentStart/AgentStop/AgentReadEvents/AgentSnapshot) one-to-one onto `internal/agent/runtime` TurnManager — a thin mapping with no second state. `internal/agent/drivers/fixture` provides the deterministic minimal-chain driver; the composition root (main.go) wires it ONLY behind `NETCATTY_AI_DEV_DRIVER=1`, so release builds run driver-less and AI starts fail UNAVAILABLE instead of answering fixture output (W12 invariant: fake only in test/dev DI). Service tests exercise the full loop through the facade: prepare -> start -> fixture events -> ReadEvents reconcile with text+turn_end, stop convergence on a blocking driver, driver-less UNAVAILABLE typing, unknown-turn NOT_FOUND.
+- Go canonical owner: `cmd/netcatty/agentService.go`, `internal/agent/drivers/fixture/`
+- Frontend adapter: pending W12 slice 2 (bindings regen with pinned toolchain, wailsRuntimeClient agent branch, useAIChatStreaming rewiring)
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; React will not start a second authoritative runtime (slice 2); fixture never reachable in release builds; facade holds no policy
+- Data/schema impact: none yet; bindings regen (20->21 services) lands with slice 2
+- Security impact: none; the facade exposes no capability dispatch (W13)
+- Verification: go vet ./cmd/netcatty/ ./internal/agent/drivers/...; go test -count=1 -run TestAgentService ./cmd/netcatty/ (ok); go test -race -run TestAgentService ./cmd/netcatty/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: bindings/TS/React wiring is slice 2 (reload/StrictMode/multi-window cases T08 need the client loop); provider-side fixture remains the only driver until W09 live wiring; capability dispatch stays empty until W13
+- Next safe slice: W12 slice 2 bindings + TS client + useAIChatStreaming rewiring, or W10 slice 2 reseal
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
