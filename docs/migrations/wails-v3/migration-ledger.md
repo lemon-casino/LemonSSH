@@ -5194,3 +5194,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: scripts.reference (automation syntax doc text) and scripts.runs.list (runs live in the nct runtime, no Go owner yet) remain unregistered -> HANDLER_MISSING; host.notes for network devices etc. covered by the same record; field-name redaction set may need extension if renderer adds new secret field names (audit is W10 close-out)
 - Next safe slice: W13 remaining domains (forward reads over forwarduse, transfer over startStreamTransfer, attachments with chat scope), then the InteractionRouter approval gate for write domains
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L183 - 2026-09-19 - W13 attachment domain (list/read + registry)
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 attachment domain lands. `cmd/netcatty/attachmentRegistry.go` is the chat-scoped store (chatSessionID -> key -> {filename, mediaType, filePath, base64Data, sizeBytes}); registration replaces per-key mirroring updateAttachmentMetadata. `attachmentHandlers.go` ports the read contract: list serves identity summaries WITHOUT content; read resolves by filePath (trimmed) or filename within the chat scope, loads bytes from inline base64 or the registered host-readable path, returns sizeBytes/base64Data and adds a text projection when the media type or extension is in the ported text set. AgentHost registers both handlers when a registry is wired (absent -> HANDLER_MISSING); AgentService gains AgentRegisterChatAttachments for the renderer push. Tests over the real loopback stack: registration -> list (no inline content leak) -> read with text projection, cross-chat scope isolation, missing-param messages, path-backed load.
+- Go canonical owner: `cmd/netcatty/attachmentRegistry.go`, `cmd/netcatty/attachmentHandlers.go`
+- Frontend adapter: renderer push goes through the new AgentService method (bindings regen lands with the next renderer slice)
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; chat scope enforced at lookup (cross-chat reads denied); summaries never carry content; ported CJS messages kept byte-identical
+- Data/schema impact: none
+- Security impact: attachments leave the host only to the chat that owns them; the registry is in-memory and chat-scoped (nothing persisted, nothing synced)
+- Verification: go vet ./cmd/netcatty/; go test -run "TestAttachment" ./cmd/netcatty/ (ok: list-no-content, text projection, scope isolation, path-backed load, text detection); go test ./cmd/netcatty/ full suite + race (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests over the real loopback stack
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server attachment flow stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: binary attachments have no size cap at this layer (the 4 MiB class budget applies to tool outputs in W14); renderer push wiring needs the next bindings regen; scripts.reference/runs.list and forward/transfer domains remain
+- Next safe slice: W13 forward read domain over forwarduse, or the InteractionRouter approval gate for write domains
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
