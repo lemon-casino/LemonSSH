@@ -4919,3 +4919,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: ring bounds are event-count-based until W14 adds byte budgets; T05 terminal-notification-loss case completes with slice 3 terminal records; driver sink and Stop convergence are slice 3
 - Next safe slice: W11 slice 3 driver lifecycle and unified Stop (T11-T16), or W10 profiles in parallel
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L172 - 2026-09-18 - W11 driver lifecycle and unified stop
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W11 third slice lands the driver-driven turn lifecycle in `internal/agent/runtime`. `TurnDriver.Stream(ctx, DriverSession)` is the transport-independent seam; the runtime is the single sequence authority (one counter per turn shared by driver events and the terminal record, so no collision or reordering is possible — the two-counter bug was caught by the T04 test before commit). StartTurn consumes the reservation, rejects unknown requests (NOT_FOUND), mismatched turn ids, and driver-less runtimes (UNAVAILABLE); Start retries for the same request never run the driver twice (T02). StopTurn is idempotent with bounded convergence: it cancels the per-turn context, waits on the driver completion channel, and finalizeTurn commits status + turn_end in ONE critical section so a snapshot never becomes visible without its terminal event; exactly one terminal record survives concurrent stop-vs-completion races (T11). Prepared turns stop immediately without a driver run; cross-chat isolation verified deterministically (blocking driver on chat A, instant completion on chat B); driver failures land as interrupted, never fake success; StopChat releases the chat slot (T15 groundwork). Lock order fixed at chatState.mu -> turnRecord.mu; snapshot reads take the record lock (race detector clean at count=10).
+- Go canonical owner: `internal/agent/runtime/` (driver.go)
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; runtime imports only contracts; stop cannot resurrect or double-finalize a turn
+- Data/schema impact: none
+- Security impact: driver errors are surfaced as interrupted, never as silent success
+- Verification: go vet ./internal/agent/runtime/...; go test -count=1 ./internal/agent/runtime/ (ok); go test -race -count=10 -timeout 300s ./internal/agent/runtime/ (ok, 150+ runs incl. stop/completion race); gofmt clean; go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer AgentRuntime stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: T12-T16 persistence/crash cases need the W10 profile storage seam; InteractionRouter is W13; the sequence counter is in-memory until durable checkpoints land
+- Next safe slice: W10 AI Profile data & secret references, then W12 Wails AgentClient minimal chain
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
