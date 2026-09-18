@@ -5094,3 +5094,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: bindings exposure of the secret service (deliberately deferred to the W13 settings-UI slice with the raw-channel bypass audit of ProfileService/CredentialService exports); React hydration switch and the AI exclusion flip remain post-promotion steps
 - Next safe slice: live WebView smoke of the flagged minimal chain, W13 host tools, or the W10 facade/audit closing slice
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L179 - 2026-09-18 - W13 agent host RPC surface and meta domain handlers
+
+- Capability rows: `AI-01`, `AI-02`
+- Plan task: `P7-01`, `P7-02`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W13 first slice wires the composition root to the capability dispatch chain, closing the loop CLI/MCP binary -> discovery -> authenticated RPC -> policy -> handler. `cmd/netcatty/agentHost.go` starts a loopback listener, issues the first-party token, writes the discovery file (ownership: Stop removes it so stale launchers fail typed-unavailable instead of dialing a dead port), and serves the capability handler table. First domain registered: meta (netcatty/getStatus returning app identity + pid + permission mode; netcatty/getContext returning the host-reported session list filtered to the principal scope — empty scope grants the host list, populated scope filters). Session listing is an injected provider so the domain expansion does not depend on terminal internals. main.go registers the host and defers Stop; the W12 agent runtime/fixture flag is untouched.
+- Go canonical owner: `cmd/netcatty/agentHost.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-01/AI-02 stay probe; no parallel authorization (handlers ride the capability policy layer via the W05/W06 stacks); discovery token only in the 0600 file
+- Data/schema impact: none
+- Security impact: auth-required surface from day one; unknown methods typed UNKNOWN_METHOD; discovery removal on stop prevents dead-port dials
+- Verification: go vet ./cmd/netcatty/; go test -run "TestAgentHost|TestAgentService" ./cmd/netcatty/ (ok: status round trip via discovery+dial, scoped context list, unknown-method typing, discovery removal on stop); go test -race ./cmd/netcatty/ (ok); go build ./...; gofmt clean
+- Platforms covered: Windows 10 22H2 x64 unit tests with real loopback listener
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node MCP server and tool CLI stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: handler table covers meta only — terminal/SFTP/vault domains land one per slice; real netcatty-tool/netcatty-mcp against the live exe pending; approval-gated writes unreachable until InteractionRouter (W13 later slices)
+- Next safe slice: W13 slice 2 — terminal read-only domain (jobPoll/getContext session get) and then SFTP reads over the shared use cases; each domain one commit
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
