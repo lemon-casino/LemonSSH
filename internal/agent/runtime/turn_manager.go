@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -44,15 +45,19 @@ type activeTurn struct {
 	stopSeen bool
 }
 
-// TurnManager arbitrates prepare/start/stop across chats. Slices 2-3 add
-// the event ring and driver-driven lifecycle; this slice pins the lease
-// and idempotency invariants (T01-T03).
+// TurnManager arbitrates prepare/start/stop across chats. Slice 2 adds the
+// event ring and ReadEvents reconciliation; slice 3 the driver-driven
+// lifecycle.
 type TurnManager struct {
 	now   func() time.Time
 	lease time.Duration
+	// RingCapacity bounds each turn's event ring; 0 means
+	// DefaultRingCapacity. Test-only in practice until W14 byte budgets.
+	RingCapacity int
 
 	mu    sync.Mutex
 	chats map[contracts.ChatSessionID]*chatState
+	turns map[contracts.TurnID]*turnRecord
 }
 
 func NewTurnManager() *TurnManager {
@@ -60,6 +65,27 @@ func NewTurnManager() *TurnManager {
 		now:   time.Now,
 		lease: LeaseTTL,
 		chats: map[contracts.ChatSessionID]*chatState{},
+		turns: map[contracts.TurnID]*turnRecord{},
+	}
+}
+
+// turnRecord is the durable handle for one turn: identity, lifecycle
+// status and its event ring. Status progresses prepared -> running ->
+// terminal (slice 3); history stays readable after termination.
+type turnRecord struct {
+	id        contracts.TurnID
+	chatID    contracts.ChatSessionID
+	requestID contracts.RequestID
+	status    string
+	revision  uint64
+	ring      *EventRing
+}
+
+func (r *turnRecord) snapshot() contracts.TurnSnapshot {
+	return contracts.TurnSnapshot{
+		Status:          r.status,
+		Revision:        strconv.FormatUint(r.revision, 10),
+		ThroughSequence: r.ring.ThroughSequence(),
 	}
 }
 
@@ -129,7 +155,83 @@ func (m *TurnManager) Prepare(req contracts.PrepareTurnRequest) (contracts.Prepa
 	}
 	state.reservation = res
 	state.byRequest[req.RequestID] = res
+
+	record := &turnRecord{
+		id:        turn.TurnID,
+		chatID:    req.ChatSessionID,
+		requestID: req.RequestID,
+		status:    StatusPrepared,
+		revision:  1,
+		ring:      NewEventRing(m.RingCapacity),
+	}
+	m.mu.Lock()
+	m.turns[turn.TurnID] = record
+	m.mu.Unlock()
 	return turn, nil
+}
+
+// Turn lifecycle statuses carried on TurnSnapshot.Status.
+const (
+	StatusPrepared    = "prepared"
+	StatusRunning     = "running"
+	StatusCompleted   = "completed"
+	StatusStopped     = "stopped"
+	StatusInterrupted = "interrupted"
+)
+
+// Append stores one event on the turn's ring. Callers own the monotonic
+// sequence for now (the driver sink in slice 3 wraps this); redelivery and
+// conflict semantics are the ring's (T06).
+func (m *TurnManager) Append(turnID contracts.TurnID, env contracts.AgentEventEnvelope) error {
+	m.mu.Lock()
+	record := m.turns[turnID]
+	m.mu.Unlock()
+	if record == nil {
+		return contracts.NewError(contracts.CodeNotFound, "unknown turn")
+	}
+	return record.ring.Append(env)
+}
+
+// ReadEvents serves one page of turn events after the cursor. A cursor
+// pointing into an evicted ring region comes back with CursorExpired and
+// an authoritative snapshot so the consumer can resync (T04/T07).
+func (m *TurnManager) ReadEvents(turnID contracts.TurnID, afterSequence string, limit int) (contracts.EventPage, error) {
+	m.mu.Lock()
+	record := m.turns[turnID]
+	m.mu.Unlock()
+	if record == nil {
+		return contracts.EventPage{}, contracts.NewError(contracts.CodeNotFound, "unknown turn")
+	}
+
+	events, expired, err := record.ring.Read(afterSequence, limit)
+	if err != nil {
+		return contracts.EventPage{}, err
+	}
+
+	page := contracts.EventPage{Events: events}
+	if len(events) > 0 {
+		page.NextCursor = events[len(events)-1].Sequence
+		page.HasMore = record.ring.hasMore(events[len(events)-1].Sequence)
+	}
+	if expired {
+		snapshot := record.snapshot()
+		page.CursorExpired = true
+		page.Snapshot = &snapshot
+		page.NextCursor = snapshot.ThroughSequence
+		page.Events = nil
+	}
+	return page, nil
+}
+
+// Snapshot returns the authoritative turn projection.
+func (m *TurnManager) Snapshot(turnID contracts.TurnID) (contracts.TurnSnapshot, error) {
+	m.mu.Lock()
+	record := m.turns[turnID]
+	m.mu.Unlock()
+	if record == nil {
+		return contracts.TurnSnapshot{}, contracts.NewError(contracts.CodeNotFound, "unknown turn")
+	}
+	return record.snapshot(), nil
 }
 
 // expiry is derived from the reservation's own turn payload so the check
