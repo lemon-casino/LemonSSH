@@ -1,6 +1,10 @@
 package capability
 
-import "strings"
+import (
+	"encoding/json"
+	"sort"
+	"strings"
+)
 
 // cattyCapabilityDenylist excludes implemented, CLI-only or meta
 // capabilities from both agent kinds even when they have schemas.
@@ -154,6 +158,32 @@ type AgentToolSpec struct {
 	InputShape     map[string]ToolInputField `json:"inputShape"`
 	Policy         Policy                    `json:"policy"`
 	AgentKind      AgentKind                 `json:"agentKind,omitempty"`
+}
+
+// ToolSchemaFor renders one capability's JSON Schema (2020-12 object with
+// properties from the tool-input inventory; required from non-optional
+// fields).
+func ToolSchemaFor(def *Definition) json.RawMessage {
+	fields, _ := ToolInputFields(def.ID)
+	properties := make(map[string]any, len(fields))
+	var required []string
+	for name, field := range fields {
+		property := map[string]any{"type": field.Type}
+		if field.Description != "" {
+			property["description"] = field.Description
+		}
+		properties[name] = property
+		if !field.Optional {
+			required = append(required, name)
+		}
+	}
+	schema := map[string]any{"type": "object", "properties": properties}
+	if len(required) > 0 {
+		sort.Strings(required)
+		schema["required"] = required
+	}
+	raw, _ := json.Marshal(schema)
+	return raw
 }
 
 // ListAgentToolSpecs projects the catalog into the tool list for one agent
