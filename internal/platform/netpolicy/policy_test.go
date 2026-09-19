@@ -117,3 +117,17 @@ func TestIsAllowedURLCustomEndpointMode(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderLoopbackRegistration(t *testing.T) {
+	policy := New()
+	policy.AddProviderEndpoint("http://127.0.0.1:9876/v1")
+	if !policy.IsAllowedURL("http://127.0.0.1:9876/v1/chat", FetchOptions{}) {
+		t.Errorf("registered loopback endpoint must be allowed")
+	}
+	if !policy.IsAllowedURL("http://localhost:9876/v1/chat", FetchOptions{}) {
+		t.Errorf("localhost alias must also pass")
+	}
+	if policy.IsAllowedURL("http://127.0.0.1:9877/v1", FetchOptions{}) {
+		t.Errorf("unregistered loopback port must stay gated")
+	}
+}

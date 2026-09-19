@@ -27,6 +27,9 @@ type ProviderDriver struct {
 	sessions      func() []SessionEntry
 	portForwards  func() []string
 	dispatcher    *capability.Dispatcher
+	// streamErrorHook observes loop failures (test diagnostics; the
+	// runtime already records the error as an interrupted turn).
+	streamErrorHook func(error)
 }
 
 func NewProviderDriver(
@@ -71,6 +74,9 @@ func (d *ProviderDriver) Stream(ctx context.Context, session *runtime.DriverSess
 	}
 	result, err := loop.Run(ctx)
 	if err != nil {
+		if d.streamErrorHook != nil {
+			d.streamErrorHook(err)
+		}
 		return err
 	}
 	summary := map[string]any{"status": "completed", "finalText": result.FinalText, "iterations": result.Iterations}

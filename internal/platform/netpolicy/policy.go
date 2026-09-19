@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // BuiltinFetchHosts are the provider hosts allowed without configuration,
@@ -55,6 +56,7 @@ type FetchOptions struct {
 
 // Policy holds the dynamic endpoint sets rebuilt from provider configs.
 type Policy struct {
+	mu                sync.Mutex
 	providerHosts     map[string]bool
 	providerHTTPHosts map[string]bool
 	localPorts        map[int]bool
@@ -78,6 +80,8 @@ func (p *Policy) AddProviderEndpoint(rawURL string) {
 	if err != nil {
 		return
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	host := parsed.Hostname()
 	if host == "" {
 		return

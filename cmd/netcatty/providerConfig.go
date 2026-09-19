@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -21,6 +22,17 @@ type ProviderConfig struct {
 	Model         string `json:"model"`
 	SystemBase    string `json:"systemBase,omitempty"`
 	MaxIterations int    `json:"maxIterations,omitempty"`
+}
+
+// isLoopbackEndpoint reports whether the URL targets 127.0.0.1/localhost
+// or ::1 (any port) — the restricted local authorization case of W08.
+func isLoopbackEndpoint(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	host := parsed.Hostname()
+	return host == "127.0.0.1" || host == "localhost" || host == "::1"
 }
 
 // loadProviderConfig reads the explicit provider configuration; ok=false
@@ -47,10 +59,14 @@ func loadProviderConfig() (ProviderConfig, bool, error) {
 }
 
 // buildProviderDriver turns an explicit provider config into a live turn
-// driver behind the netpolicy-enforced HTTP client. The URL must be
-// allowlisted by policy before any dial happens.
+// driver behind the netpolicy-enforced HTTP client. Local inference
+// servers (Ollama/LM Studio on loopback) use the restricted local
+// authorization branch; other endpoints must pass the custom-endpoint
+// guard (private ranges and metadata hosts stay refused).
 func buildProviderDriver(config ProviderConfig, policy *netpolicy.Policy, sessions func() []SessionEntry, portForwards func() []string, dispatcher *capability.Dispatcher) (*ProviderDriver, error) {
-	if !policy.IsAllowedURL(config.Endpoint, netpolicy.FetchOptions{AllowCustomEndpoints: true}) {
+	if isLoopbackEndpoint(config.Endpoint) {
+		policy.AddProviderEndpoint(config.Endpoint)
+	} else if !policy.IsAllowedURL(config.Endpoint, netpolicy.FetchOptions{AllowCustomEndpoints: true}) {
 		return nil, fmt.Errorf("provider endpoint %q is not allowed by network policy", config.Endpoint)
 	}
 	client := policy.NewClient(netpolicy.ClientOptions{

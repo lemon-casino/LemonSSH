@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -114,7 +115,13 @@ type enforcingTransport struct {
 func (e *enforcingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	localAllowed := e.policy.isLocalAllowedTarget(req.URL, e.opts.FetchOptions)
 	if _, allowed := e.policy.classify(req.URL, e.opts.FetchOptions); !allowed {
-		return nil, ErrURLDenied
+		// Provider-configured loopback endpoints (restricted local
+		// authorization, registered at driver build time) pass despite the
+		// custom-endpoint mode's blanket private-host refusal.
+		if !e.policy.isRegisteredLoopback(req.URL) {
+			return nil, ErrURLDenied
+		}
+		localAllowed = true
 	}
 	resp, err := e.base.RoundTrip(req.WithContext(withLocalAllowed(req.Context(), localAllowed)))
 	if err != nil {
@@ -122,6 +129,28 @@ func (e *enforcingTransport) RoundTrip(req *http.Request) (*http.Response, error
 	}
 	resp.Body = &limitedBody{ReadCloser: resp.Body, remaining: e.opts.MaxResponseBodyBytes}
 	return resp, nil
+}
+
+// isRegisteredLoopback reports whether the URL targets a loopback host on
+// a port the policy registered via AddProviderEndpoint.
+func (p *Policy) isRegisteredLoopback(u *url.URL) bool {
+	host := u.Hostname()
+	if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+		return false
+	}
+	port := 80
+	if u.Port() != "" {
+		parsed, err := strconv.Atoi(u.Port())
+		if err != nil {
+			return false
+		}
+		port = parsed
+	} else if u.Scheme == "https" {
+		port = 443
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.localPorts[port]
 }
 
 type limitedBody struct {
