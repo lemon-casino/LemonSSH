@@ -5394,3 +5394,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: Anthropic/Google request builders pending; Gate 11 canonical trace comparison pending; usage ledger integration into the loop pending (ledger exists, loop does not emit yet); skills/selection UI context pending
 - Next safe slice: W15 slice 2 — provider driver over the loop wired into the agent host behind provider config, then context injection
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L191 - 2026-09-19 - W15 provider driver adapter
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W15 slice 2 lands `cmd/netcatty/agentDriver.go` — the ProviderDriver adapter over providers.ToolLoop implementing runtime.TurnDriver. Per turn: system prompt built from the dynamic host context (terminal sessions with labels/kinds, active port forwards, via the providers.SystemPromptBuilder), tool list projected from the implemented sidebar-eligible catalog entries with JSON Schemas from the tool-input inventory, text deltas streamed through the runtime sink, tool calls executed through the shared capability dispatcher (policy + approval inside), final summary emitted as turn_summary. Tool name resolution: model tool name -> catalog -> served method, with dotted-id fallback.
+- Go canonical owner: `cmd/netcatty/agentDriver.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; tool execution rides the capability dispatcher (single path); adapter holds no policy
+- Data/schema impact: none
+- Security impact: model tool calls cannot bypass dispatcher policy; unknown tools fail typed
+- Verification: go vet ./cmd/netcatty/; go test -count=1 ./cmd/netcatty/ (ok); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer Catty driver stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: composition-root wiring (env/provider config -> driver) is the next slice; loop-to-runtime usage ledger integration pending; Gate 11 traces pending
+- Next safe slice: composition-root wiring of the provider driver behind explicit provider config, then the provider list/probe surface
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
