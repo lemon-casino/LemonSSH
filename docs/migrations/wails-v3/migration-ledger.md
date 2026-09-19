@@ -5344,3 +5344,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: estimator remains the chars heuristic (tokenizer upgrade is a measured follow-up per §5.3); the 413 decision is consumed by the W15 turn loop — runtime retry wiring lands there; usage ledger and continuation records are W14 slice 3
 - Next safe slice: W14 slice 3 — usage ledger, continuation records into the runtime, spill production sink, harness.tool_output.read handler over the store
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L189 - 2026-09-19 - W14 usage ledger, continuation records and tool output facade
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W14 third slice. Usage ledger (`internal/agent/runtime/usage.go`) ports the §5.4 semantics: per-turn accumulation keyed by count type — delta adds, cumulative overwrites with max-merge, final seals — with the turn total authoritative only after a final observation; partial stays partial, never zero-filled. Provider-private continuation records: TurnManager.RecordPrivate/PrivateRecords store opaque per-turn records in arrival order (the providers package emits them; the same-family next request consumes them; the runtime never interprets them). Tool output facade (`cmd/netcatty/toolOutputFacade.go`): AgentService.ToolOutputRead/ToolOutputStore expose the W14 store to the renderer harness handler, with chat scope bound at call time and the typed expired/not-found/evicted/scope-denied outcomes surfaced. Production spill sink (`tempSpillSink.go` in main): writes via filesystem.TempService.CreateStagingFile so entries are leased (boot-sweep-protected this session, orphan-cleaned later) — never os.TempDir. main.go creates the store wired to managedTemp.
+- Go canonical owner: `internal/agent/runtime/usage.go`, `cmd/netcatty/toolOutputFacade.go`, `cmd/netcatty/tempSpillSink.go`
+- Frontend adapter: renderer harness handler consumes ToolOutputRead via bindings (next renderer slice)
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; usage never double-summed (delta adds, cumulative max-merges, final seals); unknown usage stays unknown; continuation records opaque and same-family only
+- Data/schema impact: none
+- Security impact: spill goes to the leased temp manager, never os.TempDir; Resolve-style plaintext access unchanged (host-only)
+- Verification: go vet ./cmd/netcatty/ ./internal/agent/...; go test -count=1 ./cmd/netcatty/ (ok incl. new facade paths); go test -race ./cmd/netcatty/ (ok); go build ./...; gofmt clean on touched files
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer usage/continuation stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: usage ledger is in-memory (durable usage ledger is W23/handoff scope per design); private records not yet checkpointed (W11 durable checkpoints slice); the harness handler does not consume the store yet (renderer wiring slice)
+- Next safe slice: scripts.reference renderer-delegation disposition record, then W15 provider live wiring and turn-loop integration
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
