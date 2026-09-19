@@ -5419,3 +5419,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: composition-root wiring (env/provider config -> driver) is the next slice; loop-to-runtime usage ledger integration pending; Gate 11 traces pending
 - Next safe slice: composition-root wiring of the provider driver behind explicit provider config, then the provider list/probe surface
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L192 - 2026-09-19 - W15 provider config wiring (composition root)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W15 composition-root wiring lands. `cmd/netcatty/providerConfig.go` loads an explicit provider configuration from NETCATTY_AI_PROVIDER_JSON (family/endpoint/apiKeyHeader/apiKeyValue/model/systemBase/maxIterations; defaults Authorization + 8 iterations; endpoint/model/apiKeyValue required) and builds a live ProviderDriver behind the netpolicy-enforced HTTP client (custom-endpoint mode; private/metadata hosts refused before any client exists; stdlib auto-redirect disabled so redirects only happen through policy re-check). main.go: the provider dispatcher reuses the agent host handler table (model tool calls ride the same handlers as RPC callers), the live provider takes precedence over the dev fixture and flips the Go runtime authoritative flag; without config the behavior is byte-identical to before (fixture flag path unchanged, driver-less starts fail UNAVAILABLE). API keys only via env-provided config, never hardcoded. Tests: config defaults/validation (malformed JSON, missing key), policy guard (metadata + private-range refusal), builtin-host acceptance.
+- Go canonical owner: `cmd/netcatty/providerConfig.go`; composition in main.go
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; fixture never reachable in release; no hardcoded keys; policy refuses private hosts even in custom mode
+- Data/schema impact: none
+- Security impact: endpoint allowlist guard runs before client creation; redirects policy-rechecked; provider key never logged
+- Verification: go vet ./cmd/netcatty/; go test -count=1 ./cmd/netcatty/ (ok: config defaults/validation, metadata+private refusal, builtin host acceptance, existing suites); go test -race ./cmd/netcatty/ (ok); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests; live provider smoke needs a real key
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: renderer provider stack stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: provider list/probe surface pending; usage ledger not yet fed by the loop; renderer settings UI for provider config pending (W10 close-out); secrets for providers should migrate to the W10 secretRef store (current env path is bootstrap-only)
+- Next safe slice: scripts.reference disposition record + renderer approval prompt UI, then W16 external agent base
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
