@@ -14,10 +14,10 @@ import (
 // fakeDAV is a minimal WebDAV-ish server: strong ETags, If-Match enforcement
 // and 404 before the first PUT — enough to prove the client contract.
 type fakeDAV struct {
-	mu       sync.Mutex
-	body     []byte
-	etag     string
-	lastAuth string
+	mu          sync.Mutex
+	body        []byte
+	etag        string
+	lastAuth    string
 	lastIfMatch string
 }
 

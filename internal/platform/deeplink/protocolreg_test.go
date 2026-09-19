@@ -8,9 +8,9 @@ import (
 )
 
 type fakeStore struct {
-	values map[string]string // "keyPath::valueName" -> value
+	values  map[string]string // "keyPath::valueName" -> value
 	deleted []string
-	failOn string
+	failOn  string
 }
 
 func newFakeStore() *fakeStore {

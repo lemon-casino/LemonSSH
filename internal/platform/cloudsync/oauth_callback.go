@@ -104,7 +104,7 @@ func (c *CallbackServer) Prepare() (CallbackSession, error) {
 			return
 		}
 		a.waiting = false
-			fmt.Fprint(w, "Authorization received. Return to LemonSSH.")
+		fmt.Fprint(w, "Authorization received. Return to LemonSSH.")
 		http.NewResponseController(w).Flush()
 		a.result <- CallbackResult{q.Get("code"), state}
 	})
