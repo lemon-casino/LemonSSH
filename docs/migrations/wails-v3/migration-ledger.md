@@ -5444,3 +5444,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: provider list/probe surface pending; usage ledger not yet fed by the loop; renderer settings UI for provider config pending (W10 close-out); secrets for providers should migrate to the W10 secretRef store (current env path is bootstrap-only)
 - Next safe slice: scripts.reference disposition record + renderer approval prompt UI, then W16 external agent base
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L193 - 2026-09-20 - W15 restricted loopback authorization and full-chain test
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W15 live-chain hardening, driven by the provider full-chain integration test (providerLive_test.go: config -> netpolicy client -> ProviderDriver -> real runtime turn -> tool dispatch through the shared handler table -> text/summary events; Authorization header asserted as Bearer). The test exposed a real gap: local inference servers (Ollama/LM Studio on 127.0.0.1:any-port) were unreachable because custom-endpoint mode refuses ALL private hosts including loopback. Fix per W08's restricted local authorization: buildProviderDriver registers loopback endpoints (127.0.0.1/localhost/::1, any port) via AddProviderEndpoint, and enforcingTransport passes registered-loopback targets despite custom mode (isRegisteredLoopback consults the policy's localPorts under the new Policy mutex — mutators now lock). Private ranges and metadata hosts stay refused in every mode. ProviderDriver gained streamErrorHook for observable loop failures in tests.
+- Go canonical owner: `cmd/netcatty/providerLive_test.go`; netpolicy changes in internal/platform/netpolicy
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; non-loopback private hosts stay refused in all modes; localPorts gate unchanged for non-registered loopback ports
+- Data/schema impact: none
+- Security impact: loopback authorization is registration-gated (explicit user config only), never blanket; policy mutators now mutex-guarded
+- Verification: go vet; go test ./internal/platform/netpolicy/ (ok incl. new loopback-registration cases + race); go test ./cmd/netcatty/ full + race (ok: live chain completes with tool dispatch, Authorization=Bearer, text+summary events); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests over httptest loopback server
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node provider stack stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: real-provider smoke still needs network + key (user-side); anthropic/google request builders remain future slices; usage-loop integration pending
+- Next safe slice: scripts.reference disposition + renderer approval UI, then W16
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
