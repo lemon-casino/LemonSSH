@@ -5369,3 +5369,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: usage ledger is in-memory (durable usage ledger is W23/handoff scope per design); private records not yet checkpointed (W11 durable checkpoints slice); the harness handler does not consume the store yet (renderer wiring slice)
 - Next safe slice: scripts.reference renderer-delegation disposition record, then W15 provider live wiring and turn-loop integration
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L190 - 2026-09-19 - W15 tool loop and OpenAI start-frame arguments
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W15 first slice: the multi-step OpenAI Chat tool loop lands in `internal/agent/providers/openai_toolloop.go`. ToolLoop posts the conversation (system injected first) to the configured endpoint through the netpolicy-enforced client, streams the SSE response in 4KiB chunks, accumulates text via OnTextDelta and tool calls via the accumulator (start registers id+name, deltas append argument fragments), executes each completed call through the injected ExecuteTool, feeds results back as tool-role messages and repeats until a final answer or the iteration cap. Start frames that already carry arguments (OpenAI single-shot shape) surface as an immediate delta so the accumulator sees the complete stream. SystemPromptBuilder renders the dynamic host context sections (terminal sessions, active port forwards, working directory) for §W15 context injection. Tests: two-iteration loop with tool dispatch (args verified at dispatch), text-only turn, HTTP error surfacing.
+- Go canonical owner: `internal/agent/providers/openai_toolloop.go`, `internal/agent/providers/messages.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; the loop is family-neutral — Anthropic/Google request builders are their own slices; ExecuteTool is the only tool path (dispatcher policy applies inside); no fake text on transport errors
+- Data/schema impact: none
+- Security impact: tool calls route through the capability dispatcher, so policy/approval apply inside the loop identically to RPC callers
+- Verification: go vet ./internal/agent/providers/; go test -count=1 ./internal/agent/providers/ (ok: two-iteration loop with dispatch args verified, text-only turn, http error); go test -race ./internal/agent/providers/ (ok); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests with httptest SSE fixtures
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: cattyTurnDriver.ts stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: Anthropic/Google request builders pending; Gate 11 canonical trace comparison pending; usage ledger integration into the loop pending (ledger exists, loop does not emit yet); skills/selection UI context pending
+- Next safe slice: W15 slice 2 — provider driver over the loop wired into the agent host behind provider config, then context injection
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
