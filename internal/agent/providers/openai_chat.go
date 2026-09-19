@@ -14,13 +14,14 @@ const openAIProviderName = "openai"
 // (T18).
 type OpenAIChatStream struct {
 	started   map[int]bool
-	sawUsage  bool
+	idsByIndx map[int]string
 	sawFinish bool
 	sawDone   bool
+	sawUsage  bool
 }
 
 func NewOpenAIChatStream() *OpenAIChatStream {
-	return &OpenAIChatStream{started: map[int]bool{}}
+	return &OpenAIChatStream{started: map[int]bool{}, idsByIndx: map[int]string{}}
 }
 
 type openAIChatChunk struct {
@@ -132,19 +133,33 @@ func (s *OpenAIChatStream) toolCallEvents(fragment struct {
 	var events []Event
 	if !s.started[fragment.Index] {
 		s.started[fragment.Index] = true
+		s.idsByIndx[fragment.Index] = fragment.ID
 		events = append(events, Event{
 			Kind:      EventToolCallStart,
 			ToolIndex: fragment.Index,
 			ToolID:    fragment.ID,
 			ToolName:  fragment.Function.Name,
 		})
+		// A start frame may already carry arguments (OpenAI single-shot
+		// shape): surface them as the first delta so the accumulator sees
+		// the complete stream.
+		if fragment.Function.Arguments != "" {
+			events = append(events, Event{
+				Kind:           EventToolCallDelta,
+				ToolIndex:      fragment.Index,
+				ToolID:         fragment.ID,
+				ArgumentsDelta: fragment.Function.Arguments,
+			})
+		}
 		return events
 	}
 	if fragment.Function.Arguments != "" || fragment.ID != "" || fragment.Function.Name != "" {
+		// Deltas carry only the index; the id recorded at start is filled
+		// in so downstream consumers can correlate every event.
 		events = append(events, Event{
 			Kind:           EventToolCallDelta,
 			ToolIndex:      fragment.Index,
-			ToolID:         fragment.ID,
+			ToolID:         s.idsByIndx[fragment.Index],
 			ToolName:       fragment.Function.Name,
 			ArgumentsDelta: fragment.Function.Arguments,
 		})
