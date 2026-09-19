@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+
 	"github.com/binaricat/netcatty/internal/agent/runtime"
+	"github.com/binaricat/netcatty/internal/agent/tools"
 	"github.com/binaricat/netcatty/internal/app/contracts"
 )
 
@@ -13,6 +15,7 @@ import (
 type AgentService struct {
 	manager     *runtime.TurnManager
 	attachments *AttachmentRegistry
+	outputStore *tools.OutputStore
 	router      *InteractionRouter
 	// devDriver reports that the composition root wired the fixture
 	// driver (NETCATTY_AI_DEV_DRIVER=1). The renderer routes the Catty
@@ -34,8 +37,8 @@ func (s *AgentService) AgentStatus() AgentStatus {
 	return AgentStatus{GoRuntimeReady: s.devDriver, FixtureDriver: s.devDriver}
 }
 
-func newAgentService(manager *runtime.TurnManager, devDriver bool, attachments *AttachmentRegistry, router *InteractionRouter) *AgentService {
-	return &AgentService{manager: manager, devDriver: devDriver, attachments: attachments, router: router}
+func newAgentService(manager *runtime.TurnManager, devDriver bool, attachments *AttachmentRegistry, outputStore *tools.OutputStore, router *InteractionRouter) *AgentService {
+	return &AgentService{manager: manager, devDriver: devDriver, attachments: attachments, outputStore: outputStore, router: router}
 }
 
 // AgentPrepare reserves one turn slot. Idempotent per request ID.

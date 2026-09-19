@@ -20,6 +20,7 @@ import (
 
 	"github.com/binaricat/netcatty/internal/agent/drivers/fixture"
 	agentruntime "github.com/binaricat/netcatty/internal/agent/runtime"
+	"github.com/binaricat/netcatty/internal/agent/tools"
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/app/terminaluse"
 	"github.com/binaricat/netcatty/internal/platform/applock"
@@ -231,13 +232,17 @@ func main() {
 		turnManager.SetDriver(fixture.New())
 	}
 	attachmentRegistry := newAttachmentRegistry()
+	// Tool output store (W14): spill goes to the dedicated temp manager.
+	outputStore := tools.NewOutputStore(tools.StoreOptions{
+		Spill: tempSpillSink{temp: managedTemp},
+	})
 	// Approval gate (W13): confirm-mode writes prompt the renderer via the
 	// agent:interaction event; decisions come back through
 	// AgentRespondInteraction.
 	interactionRouter := newInteractionRouter(func(name string, payload any) {
 		wailsApp.Event.Emit(name, payload)
 	})
-	agentService := newAgentService(turnManager, devDriver, attachmentRegistry, interactionRouter)
+	agentService := newAgentService(turnManager, devDriver, attachmentRegistry, outputStore, interactionRouter)
 
 	// Agent host (W13): the authenticated loopback RPC surface the native
 	// CLI/MCP binaries connect to via the discovery file.

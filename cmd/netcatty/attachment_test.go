@@ -38,7 +38,7 @@ func TestAttachmentDomainThroughDispatch(t *testing.T) {
 
 	// The renderer registers one inline text attachment and one
 	// path-backed binary attachment for chat-1.
-	service := newAgentService(nil, false, registry, nil)
+	service := newAgentService(nil, false, registry, nil, nil)
 	if err := service.AgentRegisterChatAttachments("chat-1", []Attachment{
 		{Filename: "hosts.csv", MediaType: "text/csv", Base64: base64Of("hostname,port\nh1,22")},
 		{Filename: "capture.bin", MediaType: "application/octet-stream", Base64: base64Of("\x00\x01")},

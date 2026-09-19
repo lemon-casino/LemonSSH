@@ -88,13 +88,14 @@ type turnRecord struct {
 	ring      *EventRing
 
 	// Lifecycle state guarded by mu (slice 3).
-	mu         sync.Mutex
-	nextSeq    uint64
-	cancel     context.CancelFunc
-	done       chan struct{}
-	stopSeen   bool
-	stopReason string
-	finalized  bool
+	mu             sync.Mutex
+	nextSeq        uint64
+	cancel         context.CancelFunc
+	done           chan struct{}
+	stopSeen       bool
+	stopReason     string
+	finalized      bool
+	privateRecords []string // provider-private continuation records (W14)
 }
 
 func (r *turnRecord) snapshot() contracts.TurnSnapshot {
@@ -242,6 +243,38 @@ func (m *TurnManager) ReadEvents(turnID contracts.TurnID, afterSequence string, 
 		page.Events = nil
 	}
 	return page, nil
+}
+
+// RecordPrivate appends one provider-private continuation record for the
+// turn (same-family next request consumes these; §5.2). Records are
+// opaque strings — the runtime never interprets them.
+func (m *TurnManager) RecordPrivate(turnID contracts.TurnID, record string) error {
+	m.mu.Lock()
+	recordState := m.turns[turnID]
+	m.mu.Unlock()
+	if recordState == nil {
+		return contracts.NewError(contracts.CodeNotFound, "unknown turn")
+	}
+	recordState.mu.Lock()
+	defer recordState.mu.Unlock()
+	recordState.privateRecords = append(recordState.privateRecords, record)
+	return nil
+}
+
+// PrivateRecords returns the turn's provider-private continuation records
+// in arrival order.
+func (m *TurnManager) PrivateRecords(turnID contracts.TurnID) ([]string, error) {
+	m.mu.Lock()
+	recordState := m.turns[turnID]
+	m.mu.Unlock()
+	if recordState == nil {
+		return nil, contracts.NewError(contracts.CodeNotFound, "unknown turn")
+	}
+	recordState.mu.Lock()
+	defer recordState.mu.Unlock()
+	out := make([]string, len(recordState.privateRecords))
+	copy(out, recordState.privateRecords)
+	return out, nil
 }
 
 // Snapshot returns the authoritative turn projection.

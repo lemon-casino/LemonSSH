@@ -8,6 +8,7 @@ import (
 
 	"github.com/binaricat/netcatty/internal/agent/drivers/fixture"
 	"github.com/binaricat/netcatty/internal/agent/runtime"
+	"github.com/binaricat/netcatty/internal/agent/tools"
 	"github.com/binaricat/netcatty/internal/app/contracts"
 )
 
@@ -16,7 +17,7 @@ func newTestAgentService(withDriver bool) *AgentService {
 	if withDriver {
 		manager.SetDriver(fixture.New())
 	}
-	return newAgentService(manager, withDriver, newAttachmentRegistry(), nil)
+	return newAgentService(manager, withDriver, newAttachmentRegistry(), tools.NewOutputStore(tools.StoreOptions{}), nil)
 }
 
 func TestAgentStatusMirrorsDevFlag(t *testing.T) {
@@ -96,7 +97,7 @@ func TestAgentServiceMinimalChain(t *testing.T) {
 func TestAgentServiceStopConverges(t *testing.T) {
 	manager := runtime.NewTurnManager()
 	manager.SetDriver(&blockingFixture{})
-	service := newAgentService(manager, false, newAttachmentRegistry(), nil)
+	service := newAgentService(manager, false, newAttachmentRegistry(), tools.NewOutputStore(tools.StoreOptions{}), nil)
 	turnID, request := prepareVia(t, service)
 
 	if err := service.AgentStart(contracts.TurnCommand{

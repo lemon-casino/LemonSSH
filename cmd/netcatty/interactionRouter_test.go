@@ -228,7 +228,7 @@ func TestApprovalGateTimeoutDenies(t *testing.T) {
 // AgentService facade while a prompt is open.
 func TestPendingInteractionsFacade(t *testing.T) {
 	router := newInteractionRouter(func(name string, payload any) {})
-	service := newAgentService(nil, false, nil, router)
+	service := newAgentService(nil, false, nil, nil, router)
 	if got := service.AgentPendingInteractions(); len(got) != 0 {
 		t.Fatalf("idle pending = %v", got)
 	}
@@ -256,7 +256,7 @@ func TestPendingInteractionsFacade(t *testing.T) {
 	}
 
 	// Router-less service fails typed.
-	bare := newAgentService(nil, false, nil, nil)
+	bare := newAgentService(nil, false, nil, nil, nil)
 	if err := bare.AgentRespondInteraction("ia_x", true); err == nil {
 		t.Errorf("respond without router must fail")
 	}
