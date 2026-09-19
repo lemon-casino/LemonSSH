@@ -5294,3 +5294,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the renderer prompt UI (subscribe agent:interaction, list + respond buttons) is the W13/W10 settings-UI slice; grant persistence across restarts is W10 grants territory; live WebView approval flow pending
 - Next safe slice: scripts.reference doc port (small), then W14 handles/context or the renderer approval UI slice
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L187 - 2026-09-19 - W14 tool output handle store
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W14 first slice lands `internal/agent/tools` — the bounded tool-output handle store backing harness.tool_output.read. The frozen baseline budgets ported verbatim in UTF-16 code units (12k read cap, 4M per handle, 64 handles/8M units per chat, 256 handles/32M units global, TTL 30min accessedAt-driven, preview 240): the design forbids silently switching units (§6.3), so UTF16Len/TruncateUTF16/UTF16Slice count and cut on code-unit boundaries without splitting surrogate pairs (CJK/emoji golden-tested). Store: unpredictable handle IDs, preview + sourceTruncated + total/stored units; per-session and global LRU eviction by accessedAt; lifecycle deny filter (deleted chats + bounded closed-terminal set, 1024) stores evicted tombstones. Read: head/tail/range/full/search modes, offset in units, search capped at 20 matches with context windows, cross-chat reads SCOPE_DENIED (distinct from not-found), evicted handles report evicted status. Spill: threshold 0 per frozen baseline — every stored handle attempts spill when a SpillSink is configured, failures keep the bounded in-memory copy; production sink is the Netcatty temp manager (never os.TempDir).
+- Go canonical owner: `internal/agent/tools/outputstore.go`
+- Frontend adapter: none (the harness handler consumes this in a later slice)
+- Electron owner affected: none (toolOutputStore.ts stays until W22)
+- Preserved invariants: AI-03 stays probe; units are UTF-16 code units end to end; expired/not-found/evicted/scope-denied are distinct outcomes; redaction of content is upstream (store treats content opaquely)
+- Data/schema impact: none (in-memory; spill sink wiring to the temp manager is the next slice)
+- Security impact: cross-chat reads SCOPE_DENIED; spill targets restricted to the injected sink
+- Verification: go vet ./internal/agent/tools/; go test -count=1 ./internal/agent/tools/ (ok: unit math incl. surrogate-pair cuts, round trip with offsets, read cap, handle budget truncation, preview, per-session LRU eviction, chat-scope denial, TTL expiry vs not-found, search cap, lifecycle deny, spill); go test -race ./internal/agent/tools/ (ok); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: toolOutputStore.ts stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: spill sink production wiring (temp manager) pending; dedup (ToolResultDedup per turn) and contextBudget/compaction are the next W14 slices; old handle-ID adaptation for pre-migration sessions is the W10 hydration concern
+- Next safe slice: W14 slice 2 — ToolResultDedup and context budget, or the harness.tool_output.read handler over this store
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
