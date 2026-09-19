@@ -23,10 +23,12 @@ import (
 	"github.com/binaricat/netcatty/internal/agent/tools"
 	"github.com/binaricat/netcatty/internal/app"
 	"github.com/binaricat/netcatty/internal/app/terminaluse"
+	"github.com/binaricat/netcatty/internal/capability"
 	"github.com/binaricat/netcatty/internal/platform/applock"
 	"github.com/binaricat/netcatty/internal/platform/applog"
 	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/platform/filesystem"
+	"github.com/binaricat/netcatty/internal/platform/netpolicy"
 	"github.com/binaricat/netcatty/internal/terminal/dataplane"
 	"github.com/binaricat/netcatty/internal/terminal/sessionlog"
 	"github.com/binaricat/netcatty/internal/terminal/ssh"
@@ -259,6 +261,35 @@ func main() {
 		Forwards:    forwardService,
 		Approvals:   interactionRouter,
 	})
+
+	// Live provider (W15): an explicit provider config takes precedence
+	// over the dev fixture; without either, starts fail UNAVAILABLE. The
+	// provider dispatcher reuses this host's handler table so model tool
+	// calls ride the same handlers as RPC callers.
+	providerNetPolicy := netpolicy.New()
+	if endpoint := os.Getenv("NETCATTY_AI_ENDPOINT"); endpoint != "" {
+		providerNetPolicy.AddProviderEndpoint(endpoint)
+	}
+	providerDispatcher := &capability.Dispatcher{
+		Registry:       capability.Default(),
+		Surface:        capability.SurfaceBuiltin,
+		PermissionMode: capability.ModeAuto,
+		Handlers:       agentHost.capabilityHandlers(),
+		Approval:       interactionRouter,
+	}
+	if providerConfig, hasProvider, configErr := loadProviderConfig(); configErr != nil {
+		log.Printf("provider config rejected: %v", configErr)
+	} else if hasProvider {
+		driver, driverErr := buildProviderDriver(providerConfig, providerNetPolicy,
+			agentHost.sessions, func() []string { return nil }, providerDispatcher)
+		if driverErr != nil {
+			log.Printf("provider driver unavailable: %v", driverErr)
+		} else {
+			turnManager.SetDriver(driver)
+			devDriver = true // a live provider makes the Go runtime authoritative
+			log.Printf("live provider driver wired: model=%s", providerConfig.Model)
+		}
+	}
 	agentDiscoveryPath := filepath.Join(baseProfileDir(), "agent-rpc-discovery.json")
 	if err := agentHost.Start(agentDiscoveryPath); err != nil {
 		log.Printf("agent host start failed: %v", err)
