@@ -5319,3 +5319,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: spill sink production wiring (temp manager) pending; dedup (ToolResultDedup per turn) and contextBudget/compaction are the next W14 slices; old handle-ID adaptation for pre-migration sessions is the W10 hydration concern
 - Next safe slice: W14 slice 2 — ToolResultDedup and context budget, or the harness.tool_output.read handler over this store
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L188 - 2026-09-19 - W14 tool result dedup and context budget
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: W14 second slice lands the per-turn dedup ledger and the frozen context-budget formulas. `internal/agent/tools/dedup.go` ports toolResultDedup.ts: BeginTurn advances the turn and clears per-turn ledgers (results never deduplicate across turns), remember/check with 160-char previews, buildCachedNotice wording, TakeBudget cumulative grants, terminal-job session bindings, and the write-replay ledger (EnableWriteReplay snapshots confirmed writes; replay consumes entries; design rule — replay reuses results of confirmed executions, it is never re-execution authorization). `internal/agent/context/budget.go` ports the §5.3 formulas verbatim: ResolveEffectiveMaxOutputTokens with the window<=0 passthrough branch (separate fixture from the positive branch), ComputeCompactionBuffer (ratio 0.8, floor at output, cap 15000), ComputeCompactionThreshold floored at 1, the chars-per-token estimator heuristic family (default /4, openai 3.5, anthropic 3.2, google 3.8, lengths in UTF-16 units), and ShouldCompactByBudget. Decide413 models the payload-too-large remediation decision as a pure function: first failure clears the assistant draft when no tool progress exists, rebuilds from latest history when tool progress exists, and the second 413 in a turn gives up (§5.3 table). Text lengths counted in UTF-16 units to match the JS String.length baseline.
+- Go canonical owner: `internal/agent/tools/dedup.go`, `internal/agent/context/budget.go`
+- Frontend adapter: none
+- Electron owner affected: none
+- Preserved invariants: AI-03 stays probe; dedup never crosses turns; estimator stays an approximation (no fake precision); 413 never retries twice in one turn
+- Data/schema impact: none
+- Security impact: none directly; cached-notice wording preserved for audit readability
+- Verification: go vet both packages; go test -count=1 (ok: budget formula table incl. window<=0 passthrough, buffer floor/cap, threshold floor-at-1, estimator kind mapping and golden counts, dedup turn reset, owner scoping, take-budget cumulative caps, terminal job bindings, 413 decision table); go test -race (ok); go build ./...
+- Platforms covered: Windows 10 22H2 x64 unit tests
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: contextBudget.ts / toolResultDedup.ts stay until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: estimator remains the chars heuristic (tokenizer upgrade is a measured follow-up per §5.3); the 413 decision is consumed by the W15 turn loop — runtime retry wiring lands there; usage ledger and continuation records are W14 slice 3
+- Next safe slice: W14 slice 3 — usage ledger, continuation records into the runtime, spill production sink, harness.tool_output.read handler over the store
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
