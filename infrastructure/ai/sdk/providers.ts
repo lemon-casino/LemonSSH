@@ -45,7 +45,7 @@ interface BridgeAPI {
     providerId?: string,
     idleTimeoutMs?: number,
   ): Promise<{ ok: boolean; statusCode?: number; statusText?: string; error?: string; aborted?: boolean }>;
-  onAiStreamData(requestId: string, cb: (data: string) => void): () => void;
+  onAiStreamData(requestId: string, cb: (data: string, event?: string) => void): () => void;
   onAiStreamEnd(requestId: string, cb: () => void): () => void;
   onAiStreamError(requestId: string, cb: (error: string) => void): () => void;
   aiChatCancel(requestId: string): Promise<boolean>;
@@ -60,7 +60,9 @@ function getBridge(): BridgeAPI | null {
  * Detect whether a request is likely a streaming request.
  * AI SDK streaming requests use POST with `"stream": true` in the body.
  */
-function isStreamingRequest(init?: RequestInit): boolean {
+function isStreamingRequest(init?: RequestInit, url = ''): boolean {
+  if (/:streamGenerateContent(?:\?|$)/.test(url) || /[?&]alt=sse(?:&|$)/.test(url)) return true;
+  if (new Headers(init?.headers).get('accept')?.includes('text/event-stream')) return true;
   if (!init?.body) return false;
   try {
     const bodyStr = typeof init.body === 'string' ? init.body : null;
@@ -392,7 +394,7 @@ function extractHeaders(headers?: HeadersInit): Record<string, string> {
 
 /**
  * Create a fetch function compatible with the Vercel AI SDK that routes
- * requests through the Electron IPC bridge to avoid CORS.
+ * requests through the native bridge to avoid WebView CORS restrictions.
  *
  * - Non-streaming requests: uses `window.netcatty.aiFetch()` and returns a `Response`.
  * - Streaming requests: uses `window.netcatty.aiChatStream()` and returns a
@@ -435,14 +437,13 @@ export function createBridgeFetchForSDK(
 
     if (input instanceof Request) {
       url = input.url;
-      // Merge Request properties with init overrides
-      if (!resolvedInit) {
-        resolvedInit = {
+      resolvedInit = {
           method: input.method,
           headers: extractHeaders(input.headers),
-          body: input.body ? await new Response(input.body).text() : undefined,
+          signal: input.signal,
+          body: init?.body ?? (input.body ? await input.clone().text() : undefined),
+          ...init,
         };
-      }
     } else {
       url = input instanceof URL ? input.toString() : input;
     }
@@ -458,21 +459,20 @@ export function createBridgeFetchForSDK(
         ))
       : undefined;
 
-    // Streaming path
-    // The bridge object is partial in shells that only implement part of the
-    // Electron IPC surface (the Wails transition bridge has aiFetch but no
-    // streaming channel), so each surface is checked, not just bridge truth.
-    // A missing surface falls back to direct fetch exactly like a missing
-    // bridge does.
-    const streaming = isStreamingRequest(resolvedInit);
+    // Desktop requests must stay on the native transport. Browser previews
+    // may use ordinary fetch when no native surface is present.
+    const streaming = isStreamingRequest(resolvedInit, url);
     const streamingSurfaceReady = typeof bridge.aiChatStream === 'function'
       && typeof bridge.aiChatCancel === 'function'
       && typeof bridge.onAiStreamData === 'function'
       && typeof bridge.onAiStreamEnd === 'function'
       && typeof bridge.onAiStreamError === 'function';
     if (streaming ? !streamingSurfaceReady : typeof bridge.aiFetch !== 'function') {
+      if ('_wails' in window) throw new Error('Native AI transport is unavailable. Restart the desktop app.');
       return globalThis.fetch(input, init);
     }
+
+    if (resolvedInit?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
     if (streaming) {
       const requestId = `sdk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -487,8 +487,10 @@ export function createBridgeFetchForSDK(
       let pendingClose = false;
       let pendingError: Error | null = null;
       let cleanedUp = false;
+      let abortHandler: (() => void) | undefined;
 
       const enqueueChunk = (chunk: Uint8Array) => {
+        if (pendingClose || pendingError || cleanedUp) return;
         if (streamController) {
           streamController.enqueue(chunk);
           return;
@@ -496,6 +498,7 @@ export function createBridgeFetchForSDK(
         pendingChunks.push(chunk);
       };
       const closeStream = () => {
+        pendingClose = true;
         if (streamController) {
           try { streamController.close(); } catch { /* already closed */ }
           return;
@@ -503,6 +506,7 @@ export function createBridgeFetchForSDK(
         pendingClose = true;
       };
       const errorStream = (error: Error) => {
+        pendingError = error;
         if (streamController) {
           try { streamController.error(error); } catch { /* already errored */ }
           return;
@@ -522,11 +526,12 @@ export function createBridgeFetchForSDK(
         }
       };
 
-      const unsubData = bridge.onAiStreamData(requestId, (data: string) => {
+      const unsubData = bridge.onAiStreamData(requestId, (data: string, event?: string) => {
         const normalizedData = normalizeOpenAIChatToolCalls(data);
         captureOpenAIChatFields(normalizedData);
         // Re-wrap as SSE so the SDK can parse it
-        enqueueChunk(encoder.encode(`data: ${normalizedData}\n\n`));
+        const eventLine = event ? `event: ${event.replace(/[\r\n]/g, '')}\n` : '';
+        enqueueChunk(encoder.encode(`${eventLine}${normalizedData.split('\n').map(line => `data: ${line}`).join('\n')}\n\n`));
       });
       const unsubEnd = bridge.onAiStreamEnd(requestId, () => {
         closeStream();
@@ -546,31 +551,36 @@ export function createBridgeFetchForSDK(
         unsubData();
         unsubEnd();
         unsubError();
+        if (abortHandler) resolvedInit?.signal?.removeEventListener('abort', abortHandler);
       };
 
       // Handle abort
       if (resolvedInit?.signal) {
-        resolvedInit.signal.addEventListener(
-          'abort',
-          () => {
+        abortHandler = () => {
             bridge.aiChatCancel(requestId).catch(() => {});
             errorStream(new DOMException('Aborted', 'AbortError'));
             cleanup();
-          },
-          { once: true },
-        );
+          };
+        resolvedInit.signal.addEventListener('abort', abortHandler, { once: true });
       }
 
       // Start the stream — resolves once HTTP response headers arrive,
       // returning the real status code.
-      const result = await bridge.aiChatStream(
+      let result: Awaited<ReturnType<BridgeAPI['aiChatStream']>>;
+      try { result = await bridge.aiChatStream(
         requestId,
         url,
         headers,
         requestBody || '',
         providerId,
         requestContext?.streamIdleTimeoutMs,
-      );
+      ); } catch (error) {
+        cleanup();
+        if (resolvedInit?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        throw error;
+      }
+
+      if (resolvedInit?.signal?.aborted) { cleanup(); throw new DOMException('Aborted', 'AbortError'); }
 
       if (!result.ok) {
         cleanup();
@@ -609,6 +619,10 @@ export function createBridgeFetchForSDK(
           streamController = controller;
           flushPendingStreamEvents(controller);
         },
+        cancel() {
+          cleanup();
+          return bridge.aiChatCancel(requestId).then(() => undefined);
+        },
       });
 
       return new Response(stream, {
@@ -622,7 +636,7 @@ export function createBridgeFetchForSDK(
     const result = await bridge.aiFetch(url, method, headers, requestBody, providerId);
 
     return new Response(result.data, {
-      status: result.status,
+      status: result.status || 502,
       statusText: result.ok ? 'OK' : 'Error',
       headers: { 'content-type': 'application/json' },
     });

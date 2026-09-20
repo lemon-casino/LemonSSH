@@ -138,6 +138,10 @@ export function classifyError(error: unknown): ErrorInfo {
 
   const sanitizedRaw = sanitizeErrorMessage(rawMessage);
 
+  if (statusCode === 401 || statusCode === 403) {
+    return { type: 'auth', message: sanitizedRaw, retryable: false };
+  }
+
   if (isRequestTooLargeError(error)) {
     return {
       type: 'network',

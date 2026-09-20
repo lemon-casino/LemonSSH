@@ -219,6 +219,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
   let activeMsgId = currentAssistantMsgId;
   let lastAddedRole: 'assistant' | 'tool' = 'assistant';
   let hadToolProgress = false;
+  let reportedStreamError = false;
   const reader = result.stream.getReader();
 
   let pendingText = '';
@@ -495,6 +496,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
           }
           cancelPendingFlush();
           flushText();
+          reportedStreamError = true;
           ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
             ...msg,
             statusText: '',
@@ -517,6 +519,13 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     cancelPendingFlush();
     flushText();
     reader.releaseLock();
+  }
+
+  if (reportedStreamError) {
+    // The concrete provider error is already visible. SDK result promises
+    // reject with NoOutputGenerated when a request produced no completed step.
+    await Promise.allSettled([result.usage, result.finalStep]);
+    return {};
   }
 
   const usage = await result.usage;

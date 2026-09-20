@@ -267,7 +267,7 @@ declare global {
     onAiSdkAgentEvent?(requestId: string, cb: (event: Record<string, unknown>) => void): () => void;
     onAiSdkAgentDone?(requestId: string, cb: () => void): () => void;
     onAiSdkAgentError?(requestId: string, cb: (error: string) => void): () => void;
-    onAiStreamData?(requestId: string, cb: (data: string) => void): () => void;
+    onAiStreamData?(requestId: string, cb: (data: string, event?: string) => void): () => void;
     onAiStreamEnd?(requestId: string, cb: () => void): () => void;
     onAiStreamError?(requestId: string, cb: (error: string) => void): () => void;
     onAiAgentStdout?(agentId: string, cb: (data: string) => void): () => void;

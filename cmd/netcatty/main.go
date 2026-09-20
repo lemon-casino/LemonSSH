@@ -275,6 +275,9 @@ func main() {
 	// shares this policy: the same allowlist authority decides the live
 	// provider driver and the renderer-initiated fetches.
 	providerFetchService := newProviderFetchService(providerNetPolicy)
+	providerFetchService.credentials = credentialProvider
+	providerFetchService.emit = func(name string, payload any) { wailsApp.Event.Emit(name, payload) }
+	defer providerFetchService.closeStreams()
 	providerDispatcher := &capability.Dispatcher{
 		Registry:       capability.Default(),
 		Surface:        capability.SurfaceBuiltin,

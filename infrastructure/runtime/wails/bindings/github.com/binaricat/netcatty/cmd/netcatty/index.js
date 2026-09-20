@@ -83,6 +83,7 @@ export {
     ProviderEndpointConfig,
     ProviderFetchRequest,
     ProviderFetchResult,
+    ProviderStreamResult,
     ProxyProbeRequest,
     ProxyProbeResult,
     SFTPOpenRequest,

@@ -34,19 +34,41 @@ export function AllowlistAddHost(baseURL) {
 }
 
 /**
+ * @param {string} id
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function ChatCancel(id) {
+    return $Call.ByID(1491973310, id);
+}
+
+/**
+ * ChatStream returns when response headers arrive; the response body continues
+ * on its own cancellable context because a Wails call ends after this return.
+ * @param {string} id
+ * @param {$models.ProviderFetchRequest} request
+ * @param {number} idleTimeoutMs
+ * @returns {$CancellablePromise<$models.ProviderStreamResult>}
+ */
+export function ChatStream(id, request, idleTimeoutMs) {
+    return $Call.ByID(368282980, id, request, idleTimeoutMs).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * Fetch performs one policy-enforced provider request.
  * @param {$models.ProviderFetchRequest} request
  * @returns {$CancellablePromise<$models.ProviderFetchResult>}
  */
 export function Fetch(request) {
     return $Call.ByID(158900326, request).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType2($result);
     }));
 }
 
 /**
- * SyncProviders rebuilds the allowlist from the renderer's provider configs,
- * matching netcatty:ai:sync-providers (keys never cross this boundary).
+ * SyncProviders retains configured encrypted keys in host memory and registers
+ * their endpoints. Plaintext keys are resolved only when sending a request.
  * @param {$models.ProviderEndpointConfig[]} providers
  * @returns {$CancellablePromise<$models.ProviderAllowlistResult>}
  */
@@ -58,4 +80,5 @@ export function SyncProviders(providers) {
 
 // Private type creation functions
 const $$createType0 = $models.ProviderAllowlistResult.createFrom;
-const $$createType1 = $models.ProviderFetchResult.createFrom;
+const $$createType1 = $models.ProviderStreamResult.createFrom;
+const $$createType2 = $models.ProviderFetchResult.createFrom;

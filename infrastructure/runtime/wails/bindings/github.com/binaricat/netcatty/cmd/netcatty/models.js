@@ -1242,6 +1242,27 @@ export class ProviderEndpointConfig {
              */
             this["Enabled"] = false;
         }
+        if (!("APIKey" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["APIKey"] = "";
+        }
+        if (!("SkipTLSVerify" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["SkipTLSVerify"] = false;
+        }
+        if (!("CustomHeaders" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string }}
+             */
+            this["CustomHeaders"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -1252,7 +1273,11 @@ export class ProviderEndpointConfig {
      * @returns {ProviderEndpointConfig}
      */
     static createFrom($$source = {}) {
+        const $$createField6_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("CustomHeaders" in $$parsedSource) {
+            $$parsedSource["CustomHeaders"] = $$createField6_0($$parsedSource["CustomHeaders"]);
+        }
         return new ProviderEndpointConfig(/** @type {Partial<ProviderEndpointConfig>} */($$parsedSource));
     }
 }
@@ -1390,6 +1415,62 @@ export class ProviderFetchResult {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProviderFetchResult(/** @type {Partial<ProviderFetchResult>} */($$parsedSource));
+    }
+}
+
+export class ProviderStreamResult {
+    /**
+     * Creates a new ProviderStreamResult instance.
+     * @param {Partial<ProviderStreamResult>} [$$source = {}] - The source object to create the ProviderStreamResult.
+     */
+    constructor($$source = {}) {
+        if (!("OK" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["OK"] = false;
+        }
+        if (!("StatusCode" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["StatusCode"] = 0;
+        }
+        if (!("StatusText" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["StatusText"] = "";
+        }
+        if (!("Error" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Error"] = "";
+        }
+        if (!("Aborted" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["Aborted"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProviderStreamResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProviderStreamResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProviderStreamResult(/** @type {Partial<ProviderStreamResult>} */($$parsedSource));
     }
 }
 

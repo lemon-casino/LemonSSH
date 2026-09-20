@@ -3,6 +3,13 @@ import test from "node:test";
 
 import { classifyError, isRequestTooLargeError, sanitizeErrorMessage } from "./errorClassifier.ts";
 
+test("classifyError preserves provider authentication failures", () => {
+  for (const statusCode of [401, 403]) {
+    const info = classifyError(Object.assign(new Error("provider key rejected"), { statusCode }));
+    assert.deepEqual(info, { type: "auth", message: "provider key rejected", retryable: false });
+  }
+});
+
 // -------------------------------------------------------------------
 // sanitizeErrorMessage — regression guard for pre-existing behavior
 // -------------------------------------------------------------------

@@ -59,6 +59,7 @@ import { createZmodemBridge } from './zmodemBridge';
 import { subscribePopupConfig } from './popupConfigSubscription';
 import { configureProfileBindings } from "../profile/profileClient";
 import { createAgentToolBridge, type NativeAgentToolBindings } from './agentToolBridge';
+import { createProviderBridge, type NativeProviderBindings } from './providerBridge';
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -102,6 +103,7 @@ function normalizePortForwardResult(tunnelId: string, result: unknown): PortForw
 }
 
 export interface WailsBindingDeps {
+  provider?: NativeProviderBindings;
   terminal: NativeLocalShellBindings & MonitoringBindings & {
     ListAutocompleteDirectory?: (sessionID: string, directory: string, foldersOnly: boolean, prefix: string, limit: number) => Promise<{ success: boolean; entries: Array<{ name: string; type: 'file' | 'directory' | 'symlink' }>; error?: string }>;
     GetSessionPwd?: (sessionID: string, options: { allowHomeFallback: boolean; allowLoginShellFallback: boolean; timeoutMs: number }) => Promise<{ success: boolean; cwd?: string; error?: string }>;
@@ -360,6 +362,7 @@ export interface WailsBindingDeps {
 }
 
   const defaultBindings: WailsBindingDeps = {
+    provider: providerFetchService as unknown as NativeProviderBindings,
     clipboard: Clipboard,
     terminal: terminalService as unknown as WailsBindingDeps["terminal"],
     sftp: sftpService as unknown as WailsBindingDeps["sftp"],
@@ -1268,37 +1271,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     ...createAgentToolBridge(bindings.agentservice, bindings.events?.On ?? Events.On, nativeSessionId),
     ...monitoring,
     ...cloudOAuth,
-    // Provider discovery / connection probe (aiFetch parity slice): model
-    // listing, the settings "Test" button and web search all ride the Go
-    // netpolicy-enforced fetch. Secret values never cross this call: the
-    // renderer sends the Authorization header it already holds; Go only
-    // transports it to the allowlisted endpoint.
-    aiAllowlistAddHost: (async (baseURL: string) => {
-      const result = await providerFetchService.AllowlistAddHost(baseURL);
-      return result.Error ? { ok: false, error: result.Error } : { ok: result.OK };
-    }) as NonNullable<NetcattyBridge["aiAllowlistAddHost"]>,
-    aiFetch: (async (url, method, headers, body, providerId, skipHostCheck, followRedirects, skipTLSVerify) => {
-      const result = await providerFetchService.Fetch({
-        URL: url,
-        Method: method ?? "",
-        Headers: headers ?? {},
-        Body: body ?? "",
-        ProviderID: providerId ?? "",
-        SkipHostCheck: skipHostCheck ?? false,
-        FollowRedirects: followRedirects ?? false,
-        SkipTLSVerify: skipTLSVerify ?? false,
-      });
-      return { ok: result.OK, status: result.Status || undefined, data: result.Data ?? "", error: result.Error || undefined };
-    }) as NonNullable<NetcattyBridge["aiFetch"]>,
-    aiSyncProviders: (async (providers) => {
-      const result = await providerFetchService.SyncProviders((providers ?? []).map((provider) => ({
-        ID: provider.id,
-        ProviderID: provider.providerId,
-        BaseURL: provider.baseURL ?? "",
-        Enabled: provider.enabled,
-      })));
-      return { ok: result.OK };
-    }) as NonNullable<NetcattyBridge["aiSyncProviders"]>,
+    ...createProviderBridge(bindings.provider ?? providerFetchService as unknown as NativeProviderBindings, bindings.events?.On ?? Events.On),
     onAgentInteraction,
     agentPendingInteractions,
     agentRespondInteraction,

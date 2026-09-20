@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/binaricat/netcatty/internal/platform/credentials"
 	"github.com/binaricat/netcatty/internal/platform/netpolicy"
 )
 
@@ -19,23 +22,30 @@ import (
 // (aiSyncProviders). Every request runs through the netpolicy authority, so
 // URL, dial, redirect and body limits match providerHandlers.cjs.
 type ProviderFetchService struct {
-	policy *netpolicy.Policy
+	policy      *netpolicy.Policy
+	mu          sync.Mutex
+	providers   map[string]ProviderEndpointConfig
+	credentials credentials.Provider
+	streams     map[string]*providerStream
+	cancelled   map[string]time.Time
+	emit        func(string, any)
 }
 
 func newProviderFetchService(policy *netpolicy.Policy) *ProviderFetchService {
-	return &ProviderFetchService{policy: policy}
+	return &ProviderFetchService{policy: policy, providers: map[string]ProviderEndpointConfig{}, streams: map[string]*providerStream{}, cancelled: map[string]time.Time{}}
 }
 
 // ProviderFetchRequest mirrors the aiFetch IPC payload.
 type ProviderFetchRequest struct {
-	URL             string
-	Method          string
-	Headers         map[string]string
-	Body            string
-	ProviderID      string
-	SkipHostCheck   bool
-	FollowRedirects bool
-	SkipTLSVerify   bool
+	URL              string
+	Method           string
+	Headers          map[string]string
+	Body             string
+	ProviderID       string
+	SkipHostCheck    bool
+	FollowRedirects  bool
+	SkipTLSVerify    bool
+	credentialOrigin string
 }
 
 // ProviderFetchResult mirrors the aiFetch IPC response shape.
@@ -55,10 +65,13 @@ type ProviderAllowlistResult struct {
 // ProviderEndpointConfig is the allowlist-relevant part of one provider
 // config synced from the renderer.
 type ProviderEndpointConfig struct {
-	ID         string
-	ProviderID string
-	BaseURL    string
-	Enabled    bool
+	ID            string
+	ProviderID    string
+	BaseURL       string
+	Enabled       bool
+	APIKey        string
+	SkipTLSVerify bool
+	CustomHeaders map[string]string
 }
 
 // providerFetchTimeout matches the 30s request timeout of the Electron path.
@@ -76,12 +89,25 @@ func (s *ProviderFetchService) client(request ProviderFetchRequest) *http.Client
 		client.CheckRedirect = func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
+	} else if request.credentialOrigin != "" {
+		check := client.CheckRedirect
+		client.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+			if strings.ToLower(next.URL.Scheme+"://"+next.URL.Host) != request.credentialOrigin {
+				return netpolicy.ErrRedirectDenied
+			}
+			return check(next, via)
+		}
 	}
 	return client
 }
 
 // Fetch performs one policy-enforced provider request.
 func (s *ProviderFetchService) Fetch(request ProviderFetchRequest) ProviderFetchResult {
+	var authErr error
+	request, authErr = s.authorizeProviderRequest(request)
+	if authErr != nil {
+		return ProviderFetchResult{Error: authErr.Error()}
+	}
 	url := strings.TrimSpace(request.URL)
 	if url == "" {
 		return ProviderFetchResult{Error: "Invalid URL"}
@@ -134,10 +160,17 @@ func (s *ProviderFetchService) AllowlistAddHost(baseURL string) ProviderAllowlis
 	return ProviderAllowlistResult{OK: true}
 }
 
-// SyncProviders rebuilds the allowlist from the renderer's provider configs,
-// matching netcatty:ai:sync-providers (keys never cross this boundary).
+// SyncProviders retains configured encrypted keys in host memory and registers
+// their endpoints. Plaintext keys are resolved only when sending a request.
 func (s *ProviderFetchService) SyncProviders(providers []ProviderEndpointConfig) ProviderAllowlistResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.providers = map[string]ProviderEndpointConfig{}
 	for _, provider := range providers {
+		if !provider.Enabled {
+			continue
+		}
+		s.providers[provider.ID] = provider
 		if strings.TrimSpace(provider.BaseURL) == "" {
 			continue
 		}
@@ -149,6 +182,10 @@ func (s *ProviderFetchService) SyncProviders(providers []ProviderEndpointConfig)
 // providerFetchError maps the policy and transport sentinels onto the message
 // vocabulary the renderer already shows for Electron failures.
 func providerFetchError(err error) string {
+	var requestError *url.Error
+	if errors.As(err, &requestError) {
+		return providerFetchError(requestError.Err)
+	}
 	switch {
 	case errors.Is(err, netpolicy.ErrURLDenied):
 		return "URL host is not in the allowed list"
