@@ -220,6 +220,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
   let lastAddedRole: 'assistant' | 'tool' = 'assistant';
   let hadToolProgress = false;
   let reportedStreamError = false;
+  const successfulToolOutputs = new Map<string, string>();
   const reader = result.stream.getReader();
 
   let pendingText = '';
@@ -323,6 +324,11 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
       timestamp: Date.now(),
       executionStatus: 'completed',
     });
+    if (isError) {
+      successfulToolOutputs.delete(toolCallId);
+    } else if (content.trim()) {
+      successfulToolOutputs.set(toolCallId, content);
+    }
     lastAddedRole = 'tool';
   };
 
@@ -497,18 +503,33 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
           cancelPendingFlush();
           flushText();
           reportedStreamError = true;
-          ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
-            ...msg,
-            statusText: '',
-            executionStatus: msg.executionStatus === 'running' ? 'failed' : msg.executionStatus,
-          }));
-          ui.addMessageToSession(streamSessionId, {
-            id: generateId(),
-            role: 'assistant',
-            content: '',
-            errorInfo: classifyError(typedChunk.error),
-            timestamp: Date.now(),
-          });
+          const errorInfo = classifyError(typedChunk.error);
+          const collectedOutput = lastAddedRole === 'tool'
+            ? [...successfulToolOutputs.values()].join('\n\n')
+            : '';
+          if (collectedOutput) {
+            const messageId = ensureAssistantMessage();
+            ui.updateMessageById(streamSessionId, messageId, msg => ({
+              ...msg,
+              content: collectedOutput,
+              statusText: '',
+              executionStatus: 'failed',
+              errorInfo,
+            }));
+          } else {
+            ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
+              ...msg,
+              statusText: '',
+              executionStatus: msg.executionStatus === 'running' ? 'failed' : msg.executionStatus,
+            }));
+            ui.addMessageToSession(streamSessionId, {
+              id: generateId(),
+              role: 'assistant',
+              content: '',
+              errorInfo,
+              timestamp: Date.now(),
+            });
+          }
           break;
         }
         default:
