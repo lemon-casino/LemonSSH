@@ -84,6 +84,7 @@ import {
   profileAIPanelCalculation,
 } from './ai/aiPanelDiagnostics';
 import { scheduleWhenAiComposerIdle, warmAiMarkdownRenderer } from './ai/aiMarkdownWarmup';
+import { resolveWebSearchApiHost } from '../infrastructure/ai/shared/webSearchProviders';
 
 type UserSkillsStatusResult = { ok: boolean; skills?: Array<{
   id: string;
@@ -684,8 +685,18 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     if (!isVisible) return;
     const bridge = getNetcattyBridge();
     if (!bridge?.aiSyncWebSearch) return;
-    void bridge.aiSyncWebSearch(webSearchConfig?.apiHost || null, webSearchConfig?.apiKey || null);
-  }, [isVisible, webSearchConfig?.apiHost, webSearchConfig?.apiKey, webSearchConfig?.enabled]);
+    const enabledConfig = webSearchConfig?.enabled ? webSearchConfig : null;
+    void bridge.aiSyncWebSearch(
+      enabledConfig ? resolveWebSearchApiHost(enabledConfig) || null : null,
+      enabledConfig?.apiKey || null,
+    ).then((result) => {
+      if (!result.ok) {
+        console.warn('[AIChatSidePanel] Failed to sync web search configuration:', result.error);
+      }
+    }).catch((error) => {
+      console.warn('[AIChatSidePanel] Failed to sync web search configuration:', error);
+    });
+  }, [isVisible, webSearchConfig]);
 
   const {
     discoveredAgents,
@@ -1183,7 +1194,14 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
         await sendBridge.aiSyncProviders(providers);
       }
       if (sendBridge?.aiSyncWebSearch) {
-        await sendBridge.aiSyncWebSearch(webSearchConfig?.apiHost || null, webSearchConfig?.apiKey || null);
+        const enabledConfig = webSearchConfig?.enabled ? webSearchConfig : null;
+        const synced = await sendBridge.aiSyncWebSearch(
+          enabledConfig ? resolveWebSearchApiHost(enabledConfig) || null : null,
+          enabledConfig?.apiKey || null,
+        );
+        if (!synced.ok) {
+          console.warn('[AIChatSidePanel] Failed to sync web search configuration:', synced.error);
+        }
       }
       let sendSelectedAgentModel = selectedAgentModel;
       if (currentAgentConfig && shouldLoadSdkRuntimeModels(currentAgentConfig)) {

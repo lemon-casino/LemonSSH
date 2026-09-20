@@ -13,6 +13,7 @@ export interface NativeProviderBindings {
   ChatStream: (id: string, request: FetchRequest, idleTimeoutMs: number) => Promise<StreamResult>;
   ChatCancel: (id: string) => Promise<boolean>;
   SyncProviders: (providers: Array<{ ID: string; ProviderID: string; BaseURL: string; Enabled: boolean; APIKey: string; SkipTLSVerify: boolean; CustomHeaders: Record<string, string> }>) => Promise<{ OK: boolean; Error: string }>;
+  SyncWebSearch: (apiHost: string, apiKey: string) => Promise<{ OK: boolean; Error: string }>;
 }
 
 type StreamEvent = { requestId: string; data?: string; event?: string; error?: string };
@@ -55,6 +56,10 @@ export function createProviderBridge(
         };
       }));
       return { ok: result.OK };
+    },
+    aiSyncWebSearch: async (apiHost, apiKey) => {
+      const result = await native.SyncWebSearch(apiHost ?? '', apiKey ?? '');
+      return { ok: result.OK, error: result.Error || undefined };
     },
   };
 }

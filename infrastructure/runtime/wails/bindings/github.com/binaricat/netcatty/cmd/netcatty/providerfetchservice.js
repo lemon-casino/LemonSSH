@@ -78,6 +78,20 @@ export function SyncProviders(providers) {
     }));
 }
 
+/**
+ * SyncWebSearch retains the encrypted search key in the native host and
+ * registers the selected endpoint with the network policy. Passing an empty
+ * host clears the credential when web search is disabled.
+ * @param {string} apiHost
+ * @param {string} apiKey
+ * @returns {$CancellablePromise<$models.ProviderAllowlistResult>}
+ */
+export function SyncWebSearch(apiHost, apiKey) {
+    return $Call.ByID(4027803969, apiHost, apiKey).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = $models.ProviderAllowlistResult.createFrom;
 const $$createType1 = $models.ProviderStreamResult.createFrom;

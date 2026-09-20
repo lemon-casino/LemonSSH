@@ -35,6 +35,7 @@ import {
   normalizeResponseIdleTimeoutSeconds,
 } from '../../infrastructure/ai/types';
 import { removeProviderReferences } from './aiProviderCleanup';
+import { resolveWebSearchApiHost } from '../../infrastructure/ai/shared/webSearchProviders';
 import { AI_STATE_CHANGED_EVENT, emitAIStateChanged } from './aiStateEvents';
 import { getAIBridge } from './aiStateSnapshots';
 import { useStoredBoolean } from './useStoredBoolean';
@@ -49,6 +50,22 @@ function readToolIntegrationMode(): AIToolIntegrationMode {
   return localStorageAdapter.readString(STORAGE_KEY_AI_TOOL_INTEGRATION_MODE) === 'skills'
     ? 'skills'
     : 'mcp';
+}
+
+function syncNativeWebSearch(config: WebSearchConfig | null): void {
+  const enabledConfig = config?.enabled ? config : null;
+  const syncWebSearch = getAIBridge()?.aiSyncWebSearch;
+  if (!syncWebSearch) return;
+  void syncWebSearch(
+    enabledConfig ? resolveWebSearchApiHost(enabledConfig) || null : null,
+    enabledConfig?.apiKey || null,
+  ).then((result) => {
+    if (!result.ok) {
+      console.warn('[useAISettingsState] Failed to sync web search settings', result.error);
+    }
+  }).catch((error) => {
+    console.warn('[useAISettingsState] Failed to sync web search settings', error);
+  });
 }
 
 export function useAISettingsState() {
@@ -203,6 +220,8 @@ export function useAISettingsState() {
     } else {
       localStorageAdapter.remove(STORAGE_KEY_AI_WEB_SEARCH);
     }
+    emitAIStateChanged(STORAGE_KEY_AI_WEB_SEARCH);
+    syncNativeWebSearch(config);
   }, []);
 
   const setQuickMessages = useCallback((value: AIQuickMessage[] | ((prev: AIQuickMessage[]) => AIQuickMessage[])) => {
@@ -278,9 +297,12 @@ export function useAISettingsState() {
             getAIBridge()?.aiMcpSetMaxIterations?.(iters);
             break;
           }
-          case STORAGE_KEY_AI_WEB_SEARCH:
-            setWebSearchConfigRaw(localStorageAdapter.read<WebSearchConfig>(STORAGE_KEY_AI_WEB_SEARCH) ?? null);
+          case STORAGE_KEY_AI_WEB_SEARCH: {
+            const config = localStorageAdapter.read<WebSearchConfig>(STORAGE_KEY_AI_WEB_SEARCH) ?? null;
+            setWebSearchConfigRaw(config);
+            syncNativeWebSearch(config);
             break;
+          }
           case STORAGE_KEY_AI_QUICK_MESSAGES:
             setQuickMessagesRaw(sanitizeQuickMessages(localStorageAdapter.read<unknown>(STORAGE_KEY_AI_QUICK_MESSAGES)));
             break;
@@ -310,7 +332,8 @@ export function useAISettingsState() {
     bridge?.aiMcpSetMaxIterations?.(maxIterations);
     bridge?.aiMcpSetPermissionMode?.(globalPermissionMode);
     bridge?.aiMcpSetToolIntegrationMode?.(toolIntegrationMode);
-  }, [commandBlocklist, commandTimeout, globalPermissionMode, maxIterations, toolIntegrationMode]);
+    syncNativeWebSearch(webSearchConfig);
+  }, [commandBlocklist, commandTimeout, globalPermissionMode, maxIterations, toolIntegrationMode, webSearchConfig]);
 
   const activeProvider = providers.find((provider) => provider.id === activeProviderId) ?? null;
 

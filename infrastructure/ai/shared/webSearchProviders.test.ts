@@ -15,15 +15,18 @@ interface FetchCall {
 
 interface FakeBridgeOptions {
   allowlistError?: Error;
+  nativeSync?: boolean;
 }
 
 function createFakeBridge(options: FakeBridgeOptions = {}): {
   bridge: NetcattyBridge;
   fetchCalls: FetchCall[];
   allowlistCalls: string[];
+  syncCalls: Array<{ apiHost: string | null; apiKey: string | null }>;
 } {
   const fetchCalls: FetchCall[] = [];
   const allowlistCalls: string[] = [];
+  const syncCalls: Array<{ apiHost: string | null; apiKey: string | null }> = [];
   const bridge = {
     aiExec: async () => ({ ok: true, stdout: "", stderr: "" }),
     aiFetch: async (
@@ -46,8 +49,14 @@ function createFakeBridge(options: FakeBridgeOptions = {}): {
       allowlistCalls.push(baseURL);
       return { ok: true };
     },
+    ...(options.nativeSync ? {
+      aiSyncWebSearch: async (apiHost: string | null, apiKey: string | null) => {
+        syncCalls.push({ apiHost, apiKey });
+        return { ok: true };
+      },
+    } : {}),
   };
-  return { bridge, fetchCalls, allowlistCalls };
+  return { bridge, fetchCalls, allowlistCalls, syncCalls };
 }
 
 function buildConfig(overrides: Partial<WebSearchConfig> = {}): WebSearchConfig {
@@ -84,6 +93,28 @@ test("decrypt success sends the real key header and seeds the allowlist once", a
   assert.deepEqual(allowlistCalls, ["https://search.example.com"]);
   assert.equal(results.length, 1);
   assert.equal(results[0]?.title, "t");
+});
+
+test("native sync keeps the encrypted key out of renderer request headers", async () => {
+  const { bridge, fetchCalls, allowlistCalls, syncCalls } = createFakeBridge({ nativeSync: true });
+  const decrypt: WebSearchKeyDecrypt = async () => {
+    throw new Error("renderer decryption must not run when native sync is available");
+  };
+
+  await executeWebSearchProvider(
+    bridge,
+    buildConfig({ apiHost: undefined }),
+    "netcatty test",
+    5,
+    decrypt,
+  );
+
+  assert.deepEqual(syncCalls, [{
+    apiHost: "https://api.tavily.com",
+    apiKey: "enc:v1:sealed-key",
+  }]);
+  assert.equal(fetchCalls[0]?.headers.Authorization, `Bearer ${PLACEHOLDER}`);
+  assert.deepEqual(allowlistCalls, ["https://api.tavily.com"]);
 });
 
 test("decrypt failure keeps the placeholder and still sends the request", async () => {
@@ -185,7 +216,7 @@ test("allowlist call throwing does not affect the fetch", async () => {
   assert.equal(results.length, 1);
 });
 
-test("no apiHost skips the allowlist call entirely", async () => {
+test("a preset default host is also registered with the allowlist", async () => {
   const { bridge, fetchCalls, allowlistCalls } = createFakeBridge();
   const decrypt: WebSearchKeyDecrypt = async (value) => value;
 
@@ -197,7 +228,7 @@ test("no apiHost skips the allowlist call entirely", async () => {
     decrypt,
   );
 
-  assert.deepEqual(allowlistCalls, []);
+  assert.deepEqual(allowlistCalls, ["https://api.tavily.com"]);
   assert.equal(fetchCalls.length, 1);
   // Preset default host is used for the URL even without a custom apiHost.
   assert.equal(fetchCalls[0]?.url, "https://api.tavily.com/search");

@@ -25,6 +25,7 @@ type ProviderFetchService struct {
 	policy      *netpolicy.Policy
 	mu          sync.Mutex
 	providers   map[string]ProviderEndpointConfig
+	webSearch   WebSearchEndpointConfig
 	credentials credentials.Provider
 	streams     map[string]*providerStream
 	cancelled   map[string]time.Time
@@ -72,6 +73,14 @@ type ProviderEndpointConfig struct {
 	APIKey        string
 	SkipTLSVerify bool
 	CustomHeaders map[string]string
+}
+
+// WebSearchEndpointConfig is kept separately from model providers because
+// search requests do not carry a provider ID. The encrypted key stays in the
+// host and is injected only for the configured search origin.
+type WebSearchEndpointConfig struct {
+	BaseURL string
+	APIKey  string
 }
 
 // providerFetchTimeout matches the 30s request timeout of the Electron path.
@@ -176,6 +185,29 @@ func (s *ProviderFetchService) SyncProviders(providers []ProviderEndpointConfig)
 		}
 		s.policy.AddProviderEndpoint(provider.BaseURL)
 	}
+	return ProviderAllowlistResult{OK: true}
+}
+
+// SyncWebSearch retains the encrypted search key in the native host and
+// registers the selected endpoint with the network policy. Passing an empty
+// host clears the credential when web search is disabled.
+func (s *ProviderFetchService) SyncWebSearch(apiHost, apiKey string) ProviderAllowlistResult {
+	apiHost = strings.TrimSpace(apiHost)
+	if apiHost == "" {
+		s.mu.Lock()
+		s.webSearch = WebSearchEndpointConfig{}
+		s.mu.Unlock()
+		return ProviderAllowlistResult{OK: true}
+	}
+	parsed, err := url.Parse(apiHost)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+		return ProviderAllowlistResult{Error: "Invalid web search API host"}
+	}
+	s.policy.AddProviderEndpoint(apiHost)
+	s.policy.SetWebSearchHost(apiHost)
+	s.mu.Lock()
+	s.webSearch = WebSearchEndpointConfig{BaseURL: apiHost, APIKey: apiKey}
+	s.mu.Unlock()
 	return ProviderAllowlistResult{OK: true}
 }
 

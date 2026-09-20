@@ -32,6 +32,7 @@ export interface AIBridge {
   aiMcpSetCommandBlocklist?: (blocklist: string[]) => Promise<unknown> | unknown;
   aiMcpSetCommandTimeout?: (timeout: number) => Promise<unknown> | unknown;
   aiMcpSetMaxIterations?: (maxIterations: number) => Promise<unknown> | unknown;
+  aiSyncWebSearch?: (apiHost: string | null, apiKey: string | null) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function getAIBridge() {

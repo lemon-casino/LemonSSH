@@ -147,7 +147,7 @@ export type StreamChunk =
 export interface PanelBridge extends NetcattyBridge {
   credentialsDecrypt?: (value: string) => Promise<string>;
   aiSyncProviders?: (providers: Array<{ id: string; providerId: string; apiKey?: string; baseURL?: string; enabled: boolean }>) => Promise<{ ok: boolean }>;
-  aiSyncWebSearch?: (apiHost: string | null, apiKey: string | null) => Promise<{ ok: boolean }>;
+  aiSyncWebSearch?: (apiHost: string | null, apiKey: string | null) => Promise<{ ok: boolean; error?: string }>;
   aiMcpUpdateSessions?: (sessions: TerminalSessionInfo[], chatSessionId?: string) => Promise<unknown>;
   aiMcpUpdateAttachments?: (
     attachments: Array<{ base64Data?: string; mediaType?: string; filename?: string; filePath?: string }>,

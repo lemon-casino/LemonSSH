@@ -31,7 +31,7 @@ interface BridgeFetchResponse {
 // Helper
 // ---------------------------------------------------------------------------
 
-function resolveApiHost(config: WebSearchConfig): string {
+export function resolveWebSearchApiHost(config: WebSearchConfig): string {
   return config.apiHost || WEB_SEARCH_PROVIDER_PRESETS[config.providerId].defaultApiHost;
 }
 
@@ -60,7 +60,7 @@ async function searchTavily(
   query: string,
   maxResults: number,
 ): Promise<WebSearchResult[]> {
-  const host = resolveApiHost(config);
+  const host = resolveWebSearchApiHost(config);
   const data = await fetchJson(bridge, `${host}/search`, 'POST', {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
@@ -87,7 +87,7 @@ async function searchExa(
   query: string,
   maxResults: number,
 ): Promise<WebSearchResult[]> {
-  const host = resolveApiHost(config);
+  const host = resolveWebSearchApiHost(config);
   const data = await fetchJson(bridge, `${host}/search`, 'POST', {
     'Content-Type': 'application/json',
     'x-api-key': config.apiKey || '',
@@ -114,7 +114,7 @@ async function searchBocha(
   query: string,
   maxResults: number,
 ): Promise<WebSearchResult[]> {
-  const host = resolveApiHost(config);
+  const host = resolveWebSearchApiHost(config);
   const data = await fetchJson(bridge, `${host}/v1/web-search`, 'POST', {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
@@ -141,7 +141,7 @@ async function searchZhipu(
   query: string,
   _maxResults: number,
 ): Promise<WebSearchResult[]> {
-  const host = resolveApiHost(config);
+  const host = resolveWebSearchApiHost(config);
   const data = await fetchJson(bridge, `${host}/web_search`, 'POST', {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
@@ -167,7 +167,7 @@ async function searchSearxng(
   query: string,
   _maxResults: number,
 ): Promise<WebSearchResult[]> {
-  const host = resolveApiHost(config);
+  const host = resolveWebSearchApiHost(config);
   if (!host) throw new Error('SearXNG requires an API Host to be configured');
   const url = `${host}/search?q=${encodeURIComponent(query)}&format=json`;
   const data = await fetchJson(bridge, url, 'GET', {}) as {
@@ -223,35 +223,47 @@ export async function executeWebSearchProvider(
   const fn = PROVIDER_SEARCH_FNS[config.providerId];
   if (!fn) throw new Error(`Unsupported web search provider: ${config.providerId}`);
 
-  // Resolve the real key renderer-side for shells without main-process
-  // injection (Wails). A result equal to the stored value is a passthrough
-  // (shell without a credentialsDecrypt bridge), never a decryption, so it
-  // keeps the placeholder — ciphertext must not go out as the API key. On
-  // decrypt failure or an empty result the placeholder is kept too, so the
-  // Electron main process injection path still works.
+  const apiHost = resolveWebSearchApiHost(config);
+  const nativeSync = (bridge as NetcattyBridge & {
+    aiSyncWebSearch?: (
+      apiHost: string | null,
+      apiKey: string | null,
+    ) => Promise<{ ok: boolean; error?: string }>;
+  }).aiSyncWebSearch;
+
+  // The Wails host retains the encrypted key and replaces the placeholder
+  // only after binding the request to the configured origin. Older shells
+  // without this bridge retain the renderer decrypt fallback.
   let apiKey = WEB_SEARCH_KEY_PLACEHOLDER;
-  try {
-    const realKey = await decrypt(config.apiKey);
-    if (typeof realKey === 'string' && realKey.length > 0 && realKey !== config.apiKey) {
-      apiKey = realKey;
+  if (nativeSync) {
+    const synced = await nativeSync(apiHost || null, config.apiKey ?? null);
+    if (!synced.ok) {
+      throw new Error(synced.error || 'Failed to sync the web search configuration');
     }
-  } catch {
-    // Decrypt failed - keep the placeholder.
+  } else {
+    try {
+      const realKey = await decrypt(config.apiKey);
+      if (typeof realKey === 'string' && realKey.length > 0 && realKey !== config.apiKey) {
+        apiKey = realKey;
+      }
+    } catch {
+      // Decrypt failed - keep the placeholder for a legacy host injector.
+    }
   }
 
   // Best-effort allowlist self-service for user-configured API hosts before
   // the fetch (process-lifetime entries). netpolicy still adjudicates every
   // request fail-closed, so this call is advisory: ignore result and errors.
-  if (typeof config.apiHost === 'string' && config.apiHost.length > 0) {
+  if (apiHost) {
     const allowlistBridge = bridge as NetcattyBridge & {
       aiAllowlistAddHost?: (baseURL: string) => Promise<unknown>;
     };
     try {
-      await allowlistBridge.aiAllowlistAddHost?.(config.apiHost);
+      await allowlistBridge.aiAllowlistAddHost?.(apiHost);
     } catch {
       // Advisory only - never block the search on allowlist seeding.
     }
   }
 
-  return fn(bridge, { ...config, apiKey }, query, maxResults);
+  return fn(bridge, { ...config, apiHost, apiKey }, query, maxResults);
 }

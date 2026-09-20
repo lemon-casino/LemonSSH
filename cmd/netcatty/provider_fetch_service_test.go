@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -80,6 +81,38 @@ func TestProviderFetchSyncProvidersRegistersConfiguredHosts(t *testing.T) {
 	}
 	if allowed := service.Fetch(ProviderFetchRequest{URL: server.URL}); !allowed.OK {
 		t.Fatalf("synced provider host must be allowed, got %+v", allowed)
+	}
+}
+
+func TestProviderFetchSyncWebSearchInjectsCredentialForConfiguredOrigin(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer fixture-key" {
+			t.Fatalf("web search credential was not injected: %q", request.Header.Get("Authorization"))
+		}
+		_, _ = w.Write([]byte(`{"results":[]}`))
+	}))
+	defer server.Close()
+
+	service := newTestProviderFetchService()
+	service.credentials = streamCredentialFixture{}
+	sealed := "enc:v1:" + base64.StdEncoding.EncodeToString([]byte("encrypted-fixture"))
+	if result := service.SyncWebSearch(server.URL, sealed); !result.OK {
+		t.Fatalf("web search sync failed: %+v", result)
+	}
+	result := service.Fetch(ProviderFetchRequest{
+		URL:     server.URL + "/search",
+		Method:  http.MethodPost,
+		Headers: map[string]string{"Authorization": "Bearer " + webSearchKeyPlaceholder},
+	})
+	if !result.OK {
+		t.Fatalf("web search fetch failed: %+v", result)
+	}
+
+	if _, err := service.authorizeProviderRequest(ProviderFetchRequest{
+		URL:     "https://api.tavily.com/search",
+		Headers: map[string]string{"Authorization": "Bearer " + webSearchKeyPlaceholder},
+	}); err == nil || !strings.Contains(err.Error(), "configured endpoint") {
+		t.Fatalf("web search credential must stay bound to its configured origin, got %v", err)
 	}
 }
 

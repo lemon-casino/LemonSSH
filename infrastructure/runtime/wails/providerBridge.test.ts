@@ -18,6 +18,7 @@ function fixture(t: TestContext) {
     Fetch: async () => ({ OK: true, Status: 200, Data: '{}', Error: '' }),
     ChatCancel: async () => true,
     ChatStream: async () => ({ OK: true, StatusCode: 200, StatusText: 'OK', Error: '', Aborted: false }),
+    SyncWebSearch: async () => ({ OK: true, Error: '' }),
   };
   const bridge = createProviderBridge(native, on);
   const host = globalThis as unknown as { window?: unknown };
@@ -38,6 +39,19 @@ test('provider sync retains encrypted key and endpoint settings', async t => {
     return { OK: true, Error: '' };
   };
   await bridge.aiSyncProviders!([{ id: 'p', providerId: 'anthropic', apiKey: 'enc:v1:encrypted', enabled: true }]);
+});
+
+test('web search sync keeps the encrypted key in the native provider service', async t => {
+  const { native, bridge } = fixture(t);
+  native.SyncWebSearch = async (apiHost, apiKey) => {
+    assert.equal(apiHost, 'https://api.tavily.com');
+    assert.equal(apiKey, 'enc:v1:encrypted-search-key');
+    return { OK: true, Error: '' };
+  };
+  assert.deepEqual(
+    await bridge.aiSyncWebSearch!('https://api.tavily.com', 'enc:v1:encrypted-search-key'),
+    { ok: true, error: undefined },
+  );
 });
 
 test('native stream preserves named multiline SSE and ignores other request IDs', async t => {

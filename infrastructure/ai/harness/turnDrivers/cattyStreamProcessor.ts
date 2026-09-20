@@ -369,9 +369,9 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
       ui.updateMessageById(streamSessionId, messageId, msg => ({
         ...msg,
         content: collectedOutput,
-        statusText: '',
-        executionStatus: 'failed',
-        errorInfo,
+        statusText: undefined,
+        executionStatus: 'completed',
+        errorInfo: undefined,
       }));
       return;
     }
