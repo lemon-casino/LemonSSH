@@ -92,6 +92,20 @@ export function shouldEmitAgentEventsForStreamChunk(chunk: StreamChunk): boolean
   return !isSdkStreamStateError((chunk as ErrorChunk).error);
 }
 
+function collectedToolOutput(content: string): string {
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown> | null;
+    if (parsed && typeof parsed === 'object' && typeof parsed.stdout === 'string') {
+      const output = parsed.stdout.trimEnd();
+      const stderr = typeof parsed.stderr === 'string' ? parsed.stderr.trimEnd() : '';
+      return [output, stderr].filter(Boolean).join('\n');
+    }
+  } catch {
+    // Plain text tool results are already suitable for the fallback reply.
+  }
+  return content;
+}
+
 export async function processCattyStream(input: ProcessCattyStreamInput): Promise<ProcessCattyStreamResult> {
   const {
     streamSessionId,
@@ -327,7 +341,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     if (isError) {
       successfulToolOutputs.delete(toolCallId);
     } else if (content.trim()) {
-      successfulToolOutputs.set(toolCallId, content);
+      successfulToolOutputs.set(toolCallId, collectedToolOutput(content));
     }
     lastAddedRole = 'tool';
   };
@@ -343,6 +357,38 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     );
   };
 
+  const reportStreamFailure = (error: unknown) => {
+    if (reportedStreamError) return;
+    reportedStreamError = true;
+    const errorInfo = classifyError(error);
+    const collectedOutput = lastAddedRole === 'tool'
+      ? [...successfulToolOutputs.values()].filter(Boolean).join('\n\n')
+      : '';
+    if (collectedOutput) {
+      const messageId = ensureAssistantMessage();
+      ui.updateMessageById(streamSessionId, messageId, msg => ({
+        ...msg,
+        content: collectedOutput,
+        statusText: '',
+        executionStatus: 'failed',
+        errorInfo,
+      }));
+      return;
+    }
+    ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
+      ...msg,
+      statusText: '',
+      executionStatus: msg.executionStatus === 'running' ? 'failed' : msg.executionStatus,
+    }));
+    ui.addMessageToSession(streamSessionId, {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      errorInfo,
+      timestamp: Date.now(),
+    });
+  };
+
   try {
     while (true) {
       let readResult: ReadableStreamReadResult<unknown>;
@@ -352,7 +398,8 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
         if (isRequestTooLargeError(readErr)) {
           throw createCattyRequestTooLargeRetryError(readErr, hadToolProgress);
         }
-        throw readErr;
+        reportStreamFailure(readErr);
+        break;
       }
       const { done, value } = readResult;
       if (done) break;
@@ -502,34 +549,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
           }
           cancelPendingFlush();
           flushText();
-          reportedStreamError = true;
-          const errorInfo = classifyError(typedChunk.error);
-          const collectedOutput = lastAddedRole === 'tool'
-            ? [...successfulToolOutputs.values()].join('\n\n')
-            : '';
-          if (collectedOutput) {
-            const messageId = ensureAssistantMessage();
-            ui.updateMessageById(streamSessionId, messageId, msg => ({
-              ...msg,
-              content: collectedOutput,
-              statusText: '',
-              executionStatus: 'failed',
-              errorInfo,
-            }));
-          } else {
-            ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
-              ...msg,
-              statusText: '',
-              executionStatus: msg.executionStatus === 'running' ? 'failed' : msg.executionStatus,
-            }));
-            ui.addMessageToSession(streamSessionId, {
-              id: generateId(),
-              role: 'assistant',
-              content: '',
-              errorInfo,
-              timestamp: Date.now(),
-            });
-          }
+          reportStreamFailure(typedChunk.error);
           break;
         }
         default:
@@ -549,8 +569,23 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     return {};
   }
 
-  const usage = await result.usage;
-  const finalStep = await result.finalStep;
+  const [usageResult, finalStepResult] = await Promise.allSettled([result.usage, result.finalStep]);
+  if (usageResult.status === 'rejected') {
+    if (isRequestTooLargeError(usageResult.reason)) {
+      throw createCattyRequestTooLargeRetryError(usageResult.reason, hadToolProgress);
+    }
+    reportStreamFailure(usageResult.reason);
+    return {};
+  }
+  if (finalStepResult.status === 'rejected') {
+    if (isRequestTooLargeError(finalStepResult.reason)) {
+      throw createCattyRequestTooLargeRetryError(finalStepResult.reason, hadToolProgress);
+    }
+    reportStreamFailure(finalStepResult.reason);
+    return {};
+  }
+  const usage = usageResult.value;
+  const finalStep = finalStepResult.value;
   const performance = finalStep?.performance;
 
   if (performance) {

@@ -102,9 +102,14 @@ test('a provider failure after a successful tool call returns the collected outp
       tools: {
         terminal_exec: tool({
           inputSchema: z.object({}),
-          execute: async () => collectedOutput,
+          execute: async () => ({
+            stdout: `${collectedOutput}\n`,
+            stderr: '',
+            exitCode: 0,
+            command: 'inspect-system',
+          }),
         }),
-      },
+      } as never,
       toolsContext: {},
     },
     signal: new AbortController().signal, maxIterations: 2,
