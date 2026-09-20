@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import { buildCattyToolApproval } from './cattyToolApproval';
 
 describe('buildCattyToolApproval', () => {
+  it('delegates Wails confirmation to the host without showing a duplicate prompt', async () => {
+    const approval = buildCattyToolApproval({ permissionMode: 'confirm', hostApproval: true, requestApproval: async () => { throw new Error('duplicate prompt'); } });
+    const result = await approval({ toolCall: { toolCallId: 'call', toolName: 'sftp_write_file', input: { path: '/x', content: 'a' } } } as Parameters<typeof approval>[0]);
+    assert.equal(result, undefined);
+  });
   it('auto-approves read-only tools', async () => {
     const approval = buildCattyToolApproval({ permissionMode: 'confirm', chatSessionId: 'chat-1' });
     const result = await approval({

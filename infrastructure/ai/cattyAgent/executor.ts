@@ -18,6 +18,7 @@ import { fitTerminalExecuteResultForModel } from '../harness/terminalCompression
  * This mirrors the AI-related subset of window.netcatty from electron/preload.cjs.
  */
 export interface NetcattyBridge {
+  aiToolApprovalOwner?: 'host';
   aiExec(
     sessionId: string,
     command: string,

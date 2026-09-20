@@ -13,6 +13,7 @@ import (
 // the React client owns no second authoritative state. The five methods
 // mirror the W03 wire DTOs one to one.
 type AgentService struct {
+	host        *AgentHost
 	manager     *runtime.TurnManager
 	attachments *AttachmentRegistry
 	outputStore *tools.OutputStore

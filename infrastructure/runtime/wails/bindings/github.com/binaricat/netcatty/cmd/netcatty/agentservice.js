@@ -20,10 +20,52 @@ import * as tools$0 from "../../internal/agent/tools/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as contracts$0 from "../../internal/app/contracts/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as capability$0 from "../../internal/capability/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * @param {string} method
+ * @param {{ [_ in string]?: any }} params
+ * @param {string} chat
+ * @returns {$CancellablePromise<any>}
+ */
+export function AgentCapability(method, params, chat) {
+    return $Call.ByID(2322937991, method, params, chat);
+}
+
+/**
+ * @param {$models.ExternalAgentConfig} config
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function AgentExternalSetConfig(config) {
+    return $Call.ByID(2559071972, config).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function AgentExternalSetEnabled(enabled) {
+    return $Call.ByID(2854067751, enabled).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function AgentExternalStatus() {
+    return $Call.ByID(374928340).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
 
 /**
  * AgentPendingInteractions lists open approval prompts for the settings UI.
@@ -82,6 +124,41 @@ export function AgentRespondInteraction(interactionID, approved) {
 }
 
 /**
+ * @param {string} id
+ * @param {{ [_ in string]?: any }} result
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentRespondVault(id, result) {
+    return $Call.ByID(3573848570, id, result);
+}
+
+/**
+ * @param {string} chat
+ * @param {boolean} cancelled
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentSetCancelled(chat, cancelled) {
+    return $Call.ByID(3539291530, chat, cancelled);
+}
+
+/**
+ * @param {string[]} blocklist
+ * @param {number} timeoutSeconds
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentSetCommandPolicy(blocklist, timeoutSeconds) {
+    return $Call.ByID(3139567802, blocklist, timeoutSeconds);
+}
+
+/**
+ * @param {string} mode
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentSetPermissionMode(mode) {
+    return $Call.ByID(108829383, mode);
+}
+
+/**
  * AgentSnapshot returns the authoritative turn projection.
  * @param {string} turnID
  * @returns {$CancellablePromise<contracts$0.TurnSnapshot>}
@@ -124,6 +201,32 @@ export function AgentStop(turnID, reason) {
     return $Call.ByID(3522632773, turnID, reason).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType4($result);
     }));
+}
+
+/**
+ * @param {capability$0.Grant[]} grants
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentSyncPermissionGrants(grants) {
+    return $Call.ByID(7965410, grants);
+}
+
+/**
+ * @param {string} chat
+ * @param {$models.AgentSession[]} sessions
+ * @param {boolean} merge
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentUpdateSessions(chat, sessions, merge) {
+    return $Call.ByID(2532968473, chat, sessions, merge);
+}
+
+/**
+ * @param {string} id
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function AgentVaultRequestPending(id) {
+    return $Call.ByID(3036928571, id);
 }
 
 /**

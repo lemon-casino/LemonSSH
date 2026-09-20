@@ -27,6 +27,7 @@ type ProviderDriver struct {
 	sessions      func() []SessionEntry
 	portForwards  func() []string
 	dispatcher    *capability.Dispatcher
+	dispatchTool  func(context.Context, string, map[string]any, string) (any, error)
 	// streamErrorHook observes loop failures (test diagnostics; the
 	// runtime already records the error as an interrupted turn).
 	streamErrorHook func(error)
@@ -139,11 +140,27 @@ func (d *ProviderDriver) executeTool(ctx context.Context, chatSessionID, toolNam
 	if method == "" {
 		return nil, &capability.DispatchError{Code: "UNKNOWN_TOOL", Message: "capability has no served method"}
 	}
-	params := map[string]any{"chatSessionId": chatSessionID}
+	params := map[string]any{}
 	if len(args) > 0 {
-		_ = json.Unmarshal(args, &params)
+		if err := json.Unmarshal(args, &params); err != nil || params == nil {
+			return nil, &capability.DispatchError{Code: "INVALID_ARGUMENT", Message: "tool arguments must be a JSON object"}
+		}
 	}
-	raw, err := d.dispatcher.Dispatch(ctx, method, params)
+	params["chatSessionId"] = chatSessionID
+	var raw any
+	var err error
+	if d.dispatchTool != nil {
+		raw, err = d.dispatchTool(ctx, method, params, chatSessionID)
+	} else {
+		dispatcher := *d.dispatcher
+		for _, surface := range []capability.Surface{capability.SurfaceBuiltin, capability.SurfaceGlobal, capability.SurfacePublic} {
+			if capability.Default().GetByRPCMethod(method, surface) != nil {
+				dispatcher.Surface = surface
+				break
+			}
+		}
+		raw, err = dispatcher.Dispatch(ctx, method, params)
+	}
 	if err != nil {
 		return nil, err
 	}

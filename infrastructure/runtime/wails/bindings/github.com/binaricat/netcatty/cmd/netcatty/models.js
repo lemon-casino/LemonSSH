@@ -26,6 +26,130 @@ import * as script$0 from "../../internal/script/models.js";
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
 /**
+ * AgentSession is renderer-owned metadata. NativeID is used only to resolve
+ * the terminal transport; tools continue to see the UI session identity.
+ */
+export class AgentSession {
+    /**
+     * Creates a new AgentSession instance.
+     * @param {Partial<AgentSession>} [$$source = {}] - The source object to create the AgentSession.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["nativeSessionId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["hostId"] = undefined;
+        }
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("label" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["label"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["os"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["username"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["protocol"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["shellType"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["deviceType"] = undefined;
+        }
+        if (!("connected" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["connected"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: any }[] | undefined}
+             */
+            this["hostChain"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: any }[] | undefined}
+             */
+            this["activePortForwards"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentSession instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AgentSession}
+     */
+    static createFrom($$source = {}) {
+        const $$createField11_0 = $$createType1;
+        const $$createField12_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("hostChain" in $$parsedSource) {
+            $$parsedSource["hostChain"] = $$createField11_0($$parsedSource["hostChain"]);
+        }
+        if ("activePortForwards" in $$parsedSource) {
+            $$parsedSource["activePortForwards"] = $$createField12_0($$parsedSource["activePortForwards"]);
+        }
+        return new AgentSession(/** @type {Partial<AgentSession>} */($$parsedSource));
+    }
+}
+
+/**
  * AgentStatus tells the renderer which Catty path is authoritative.
  */
 export class AgentStatus {
@@ -163,6 +287,13 @@ export class Attachment {
              * @type {string | undefined}
              */
             this["filePath"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["base64Data"] = undefined;
         }
         if (/** @type {any} */(false)) {
             /**
@@ -431,7 +562,7 @@ export class CloudSyncDownloadResult {
      * @returns {CloudSyncDownloadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType1;
+        const $$createField0_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("syncedFile" in $$parsedSource) {
             $$parsedSource["syncedFile"] = $$createField0_0($$parsedSource["syncedFile"]);
@@ -605,6 +736,48 @@ export const DockerStatsOptions = terminaluse$0.DockerStatsOptions;
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.DockerStatsOptions} DockerStatsOptions
  */
+
+export class ExternalAgentConfig {
+    /**
+     * Creates a new ExternalAgentConfig instance.
+     * @param {Partial<ExternalAgentConfig>} [$$source = {}] - The source object to create the ExternalAgentConfig.
+     */
+    constructor($$source = {}) {
+        if (!("mode" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mode"] = "";
+        }
+        if (!("idleTimeoutMinutes" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["idleTimeoutMinutes"] = 0;
+        }
+        if (!("sessionIdleTimeoutMinutes" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["sessionIdleTimeoutMinutes"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentConfig instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentConfig}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentConfig(/** @type {Partial<ExternalAgentConfig>} */($$parsedSource));
+    }
+}
 
 /**
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
@@ -844,8 +1017,8 @@ export class NativeStartRequest {
      * @returns {NativeStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType2;
-        const $$createField5_0 = $$createType3;
+        const $$createField3_0 = $$createType4;
+        const $$createField5_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("args" in $$parsedSource) {
             $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
@@ -1159,7 +1332,7 @@ export class ProviderFetchRequest {
      * @returns {ProviderFetchRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField2_0 = $$createType3;
+        const $$createField2_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("Headers" in $$parsedSource) {
             $$parsedSource["Headers"] = $$createField2_0($$parsedSource["Headers"]);
@@ -1363,7 +1536,7 @@ export class ScriptRecordingStopResult {
      * @returns {ScriptRecordingStopResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType5;
+        const $$createField0_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("steps" in $$parsedSource) {
             $$parsedSource["steps"] = $$createField0_0($$parsedSource["steps"]);
@@ -1479,8 +1652,8 @@ export class ScriptRunResult {
      * @returns {ScriptRunResult}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType2;
-        const $$createField4_0 = $$createType7;
+        const $$createField3_0 = $$createType4;
+        const $$createField4_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("runIds" in $$parsedSource) {
             $$parsedSource["runIds"] = $$createField3_0($$parsedSource["runIds"]);
@@ -2104,7 +2277,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType9;
+        const $$createField1_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -2136,7 +2309,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType10;
+        const $$createField0_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -2301,7 +2474,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType8;
+        const $$createField0_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -2382,7 +2555,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType11;
+        const $$createField7_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -2455,15 +2628,17 @@ export class VaultBackupTrimResult {
 }
 
 // Private type creation functions
-const $$createType0 = CloudSyncSyncedFile.createFrom;
-const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $Create.Array($Create.Any);
-const $$createType3 = $Create.Map($Create.Any, $Create.Any);
-const $$createType4 = script$0.Step.createFrom;
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = script$0.Run.createFrom;
-const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = VaultBackupSummary.createFrom;
+const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = CloudSyncSyncedFile.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);
+const $$createType6 = script$0.Step.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = script$0.Run.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = $Create.Array($$createType8);
-const $$createType11 = VaultBackupPreview.createFrom;
+const $$createType10 = VaultBackupSummary.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = $Create.Array($$createType10);
+const $$createType13 = VaultBackupPreview.createFrom;

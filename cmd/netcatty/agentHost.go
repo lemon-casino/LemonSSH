@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/binaricat/netcatty/internal/app/terminaluse"
@@ -55,6 +56,9 @@ type AgentHost struct {
 	attachments    *AttachmentRegistry
 	forwards       *ForwardService
 	approvals      capability.ApprovalGate
+	state          *agentToolState
+	vaultRouter    *AgentVaultRouter
+	external       externalAgentAccess
 }
 
 type appVersion struct {
@@ -75,6 +79,7 @@ type AgentHostConfig struct {
 	Forwards       *ForwardService
 	Approvals      capability.ApprovalGate
 	PermissionMode string
+	VaultRouter    *AgentVaultRouter
 }
 
 func newAgentHost(config AgentHostConfig) *AgentHost {
@@ -94,12 +99,15 @@ func newAgentHost(config AgentHostConfig) *AgentHost {
 		attachments:    config.Attachments,
 		forwards:       config.Forwards,
 		approvals:      config.Approvals,
+		state:          newAgentToolState(config.PermissionMode),
+		vaultRouter:    config.VaultRouter,
+		external:       externalAgentAccess{config: ExternalAgentConfig{Mode: "temporary", IdleTimeoutMinutes: 10, SessionIdleTimeoutMinutes: 30}, sessions: map[string]time.Time{}},
 	}
 }
 
-// capabilityHandlers registers host handlers by capability ID. This map is
-// the W13 domain-by-domain expansion point: an unregistered capability
-// fails closed with HANDLER_MISSING at dispatch.
+// capabilityHandlers binds the catalog to the canonical native services and
+// application-owned vault operations. Coverage tests require every served
+// capability to have a handler on each declared RPC surface.
 func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 	handlers := map[string]capability.Handler{
 		"meta.status": func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -110,7 +118,7 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 				"goos":           h.version.GOOS,
 				"goarch":         h.version.GOARCH,
 				"pid":            os.Getpid(),
-				"permissionMode": h.permissionMode,
+				"permissionMode": h.state.permissionMode(),
 			}, nil
 		},
 		// session.environment and session.get share netcatty/getContext;
@@ -129,6 +137,11 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		// through the shared sftpuse path.
 		handlers["sftp.download"] = h.sftpDownloadHandler
 		handlers["sftp.upload"] = h.sftpUploadHandler
+		if writer, ok := h.sftp.(SFTPWriter); ok {
+			for _, id := range []string{"sftp.write", "sftp.mkdir", "sftp.delete", "sftp.rename", "sftp.chmod"} {
+				handlers[id] = h.sftpMutationHandler(writer)
+			}
+		}
 	}
 	if h.jobs != nil {
 		// Terminal write operations route through the job queue. In
@@ -151,10 +164,8 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		handlers["attachment.read"] = h.attachmentReadHandler
 	}
 	if h.forwards != nil {
-		// Reads list persisted rules (from the vault store) and live
-		// tunnels (from the shared forwarduse). Start stays HANDLER_MISSING
-		// until the canonical host connect command exists; stop goes
-		// through forwarduse StopByRuleId (confirm mode demands approval).
+		// Headless reads and stop use native services. The desktop vault
+		// router below supplies the canonical rule mutation/start operations.
 		handlers["portforward.rules.list"] = func(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
 			rules, err := h.vault.PortForwardingRules()
 			if err != nil {
@@ -254,7 +265,72 @@ func (h *AgentHost) capabilityHandlers() map[string]capability.Handler {
 		}
 		handlers["vault.scripts.get"] = h.vaultGetHandler("snippets", "scriptId", "script")
 	}
+	handlers["session.cancel"] = h.cancelHandler
+	handlers["session.resume"] = h.cancelHandler
+	if h.vaultRouter != nil {
+		for _, def := range capability.Catalog {
+			if def.Domain == "vault" || (def.Domain == "portforward" && def.ID != "portforward.tunnels.list") || def.ID == "session.close" {
+				handlers[def.ID] = h.vaultRelayHandler
+			}
+		}
+	}
 	return handlers
+}
+
+func (h *AgentHost) cancelHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	chat, _ := params["chatSessionId"].(string)
+	if chat == "" {
+		return nil, fmt.Errorf("chatSessionId is required")
+	}
+	cancelled := true
+	if value, ok := params["cancelled"].(bool); ok {
+		cancelled = value
+	}
+	h.setChatCancelled(chat, cancelled)
+	return map[string]any{"ok": true, "cancelled": cancelled}, nil
+}
+
+func (h *AgentHost) vaultRelayHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
+	chat, _ := params["chatSessionId"].(string)
+	id, _ := params["sessionId"].(string)
+	if def.ID == "session.close" {
+		h.state.mu.Lock()
+		owned := h.state.owned[chat][id]
+		h.state.mu.Unlock()
+		if !owned {
+			return nil, &rpc.ScopeError{Code: rpc.CodeScopeDenied, Message: "only sessions opened by this chat can be closed"}
+		}
+	}
+	op := strings.TrimPrefix(def.ID, "vault.")
+	result, err := h.vaultRouter.Call(ctx, op, params)
+	if err != nil {
+		return nil, err
+	}
+	if result["ok"] == true {
+		if def.ID == "vault.host.open" {
+			opened, _ := result["sessionId"].(string)
+			h.state.mu.Lock()
+			if h.state.owned[chat] == nil {
+				h.state.owned[chat] = map[string]bool{}
+			}
+			h.state.owned[chat][opened] = true
+			h.state.mu.Unlock()
+			if chat == externalAgentChat {
+				h.touchExternalSession(opened, true)
+			}
+		} else if def.ID == "session.close" {
+			h.state.mu.Lock()
+			delete(h.state.owned[chat], id)
+			h.state.mu.Unlock()
+			if chat == externalAgentChat {
+				h.external.mu.Lock()
+				delete(h.external.sessions, id)
+				h.armExternalTimerLocked()
+				h.external.mu.Unlock()
+			}
+		}
+	}
+	return result, nil
 }
 
 // vaultGetHandler builds an id-lookup handler over one vault key.
@@ -276,16 +352,21 @@ func (h *AgentHost) terminalExecHandler(ctx context.Context, params map[string]a
 	sessionID, _ := params["sessionId"].(string)
 	chatSessionID, _ := params["chatSessionId"].(string)
 	command, _ := params["command"].(string)
-	timeout := time.Duration(0)
+	if err := h.requireScopedSession(chatSessionID, sessionID); err != nil {
+		return nil, err
+	}
+	h.state.mu.Lock()
+	timeout := h.state.timeout
+	h.state.mu.Unlock()
 	if ms, ok := params["timeoutMs"].(float64); ok {
 		timeout = time.Duration(ms) * time.Millisecond
 	}
-	output, exitCode, known, err := h.jobs.Exec(ctx, sessionID, chatSessionID, command, timeout)
+	output, exitCode, known, err := h.jobs.Exec(ctx, h.state.nativeID(sessionID), chatSessionID, command, timeout)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]any{
-		"ok": true, "output": string(output),
+		"ok": true, "output": string(output), "stdout": string(output), "stderr": "",
 		"exitCode": exitCode, "exitCodeKnown": known,
 	}, nil
 }
@@ -294,11 +375,18 @@ func (h *AgentHost) terminalStartHandler(ctx context.Context, params map[string]
 	sessionID, _ := params["sessionId"].(string)
 	chatSessionID, _ := params["chatSessionId"].(string)
 	command, _ := params["command"].(string)
-	jobID, err := h.jobs.Start(sessionID, chatSessionID, command, 0)
+	if err := h.requireScopedSession(chatSessionID, sessionID); err != nil {
+		return nil, err
+	}
+	jobID, err := h.jobs.Start(h.state.nativeID(sessionID), chatSessionID, command, 0)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"ok": true, "jobId": jobID, "status": string(terminaluse.JobRunning)}, nil
+	if ctx.Err() != nil || h.state.isCancelled(chatSessionID) {
+		_, _ = h.jobs.Stop(jobID, chatSessionID)
+		return nil, context.Canceled
+	}
+	return map[string]any{"ok": true, "jobId": jobID, "sessionId": sessionID, "status": string(terminaluse.JobRunning)}, nil
 }
 
 func (h *AgentHost) terminalPollHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -308,19 +396,7 @@ func (h *AgentHost) terminalPollHandler(ctx context.Context, params map[string]a
 	if v, ok := params["offset"].(float64); ok {
 		offset = int(v)
 	}
-	output, status, exitCode, known, err := h.jobs.Poll(jobID, chatSessionID, offset)
-	if err != nil {
-		return nil, err
-	}
-	payload := map[string]any{
-		"ok": true, "jobId": jobID, "status": string(status),
-		"output":        string(output),
-		"exitCodeKnown": known,
-	}
-	if known {
-		payload["exitCode"] = exitCode
-	}
-	return payload, nil
+	return h.jobs.PollText(jobID, chatSessionID, offset)
 }
 
 func (h *AgentHost) terminalStopHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -335,16 +411,26 @@ func (h *AgentHost) terminalStopHandler(ctx context.Context, params map[string]a
 
 func (h *AgentHost) sessionContextHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
 	sessionID, _ := params["sessionId"].(string)
-	all := h.sessions()
+	chat, _ := params["chatSessionId"].(string)
+	all := h.state.visible(chat, h.sessions())
+	if principal, _ := ctx.Value(agentPrincipalContextKey{}).(*rpc.Principal); principal != nil && len(principal.Scope) > 0 {
+		filtered := []AgentSession{}
+		for _, session := range all {
+			if principal.AllowsSession(session.SessionID) {
+				filtered = append(filtered, session)
+			}
+		}
+		all = filtered
+	}
 	if sessionID != "" {
 		for _, session := range all {
-			if session.ID == sessionID {
+			if session.SessionID == sessionID {
 				return map[string]any{"ok": true, "session": session}, nil
 			}
 		}
 		return nil, rpc.RequireSession(newHostPrincipal(), sessionID)
 	}
-	return map[string]any{"ok": true, "sessions": all}, nil
+	return map[string]any{"ok": true, "sessions": all, "hosts": all}, nil
 }
 
 func (h *AgentHost) sftpListHandler(ctx context.Context, params map[string]any, def *capability.Definition) (any, error) {
@@ -352,7 +438,7 @@ func (h *AgentHost) sftpListHandler(ctx context.Context, params map[string]any, 
 	if err := h.checkSession(sessionID); err != nil {
 		return nil, err
 	}
-	entries, err := h.sftp.List(sessionID, path)
+	entries, err := h.sftpForContext(ctx).List(h.state.nativeID(sessionID), path)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +450,7 @@ func (h *AgentHost) sftpReadHandler(ctx context.Context, params map[string]any, 
 	if err := h.checkSession(sessionID); err != nil {
 		return nil, err
 	}
-	content, err := h.sftp.Read(sessionID, path)
+	content, err := h.sftpForContext(ctx).Read(h.state.nativeID(sessionID), path)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +462,7 @@ func (h *AgentHost) sftpStatHandler(ctx context.Context, params map[string]any, 
 	if err := h.checkSession(sessionID); err != nil {
 		return nil, err
 	}
-	info, err := h.sftp.Stat(sessionID, path)
+	info, err := h.sftpForContext(ctx).Stat(h.state.nativeID(sessionID), path)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +474,7 @@ func (h *AgentHost) sftpHomeHandler(ctx context.Context, params map[string]any, 
 	if err := h.checkSession(sessionID); err != nil {
 		return nil, err
 	}
-	home, err := h.sftp.HomeDir(sessionID)
+	home, err := h.sftpForContext(ctx).HomeDir(h.state.nativeID(sessionID))
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +491,7 @@ func (h *AgentHost) sftpDownloadHandler(ctx context.Context, params map[string]a
 	if remotePath == "" || localPath == "" {
 		return nil, fmt.Errorf("remotePath and localPath are required")
 	}
-	bytesMoved, err := h.sftp.Download(sessionID, remotePath, localPath)
+	bytesMoved, err := h.sftpForContext(ctx).Download(h.state.nativeID(sessionID), remotePath, localPath)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +508,7 @@ func (h *AgentHost) sftpUploadHandler(ctx context.Context, params map[string]any
 	if localPath == "" || remotePath == "" {
 		return nil, fmt.Errorf("localPath and remotePath are required")
 	}
-	bytesMoved, err := h.sftp.Upload(sessionID, localPath, remotePath)
+	bytesMoved, err := h.sftpForContext(ctx).Upload(h.state.nativeID(sessionID), localPath, remotePath)
 	if err != nil {
 		return nil, err
 	}
@@ -438,6 +524,18 @@ func (h *AgentHost) checkSession(sessionID string) error {
 	for _, session := range h.sessions() {
 		if session.ID == sessionID {
 			return nil
+		}
+	}
+	h.state.mu.Lock()
+	defer h.state.mu.Unlock()
+	if _, ok := h.state.live[sessionID]; ok {
+		return nil
+	}
+	for _, sessions := range h.state.scopes {
+		for _, session := range sessions {
+			if session.SessionID == sessionID {
+				return nil
+			}
 		}
 	}
 	return rpc.RequireSession(newHostPrincipal(), sessionID)
@@ -511,52 +609,41 @@ func (h *AgentHost) Start(discoveryPath string) error {
 			if err != nil {
 				return
 			}
-			go h.server.ServeConn(context.Background(), conn.RemoteAddr().String(), conn, conn)
+			go func() {
+				defer conn.Close()
+				h.server.ServeConn(context.Background(), conn.RemoteAddr().String(), conn, conn)
+			}()
 		}
 	}()
 	return nil
 }
 
-// methodTable adapts capability handlers into RPC method handlers: every
-// implemented capability with a served method (builtin, then global, then
-// public) AND a registered host handler is dispatched on that surface's
-// policy — builtin/global/public each carry their own binding semantics —
-// everything else stays UNKNOWN_METHOD.
+// methodTable serves every declared alias with its own surface policy.
 func (h *AgentHost) methodTable() map[string]rpc.Handler {
 	registered := h.capabilityHandlers()
-	newDispatcher := func(surface capability.Surface) *capability.Dispatcher {
-		return &capability.Dispatcher{
-			Registry:       capability.Default(),
-			Surface:        surface,
-			PermissionMode: permissionModeOf(h.permissionMode),
-			Handlers:       registered,
-			Approval:       h.approvals,
-		}
-	}
-	surfaces := map[capability.Surface]*capability.Dispatcher{
-		capability.SurfaceBuiltin: newDispatcher(capability.SurfaceBuiltin),
-		capability.SurfaceGlobal:  newDispatcher(capability.SurfaceGlobal),
-		capability.SurfacePublic:  newDispatcher(capability.SurfacePublic),
-	}
-
 	table := make(map[string]rpc.Handler)
 	for _, def := range capability.Default().List(capability.ListOptions{Status: capability.StatusImplemented}) {
-		if _, handled := registered[def.ID]; !handled {
+		if registered[def.ID] == nil {
 			continue
 		}
-		surface, method := servedMethod(def)
-		if method == "" {
-			continue
-		}
-		dispatcher := surfaces[surface]
-		table[method] = func(ctx context.Context, principal *rpc.Principal, rawParams json.RawMessage) (any, error) {
-			var params map[string]any
-			if len(rawParams) > 0 {
-				if err := json.Unmarshal(rawParams, &params); err != nil {
-					params = nil
-				}
+		for _, surface := range []capability.Surface{capability.SurfaceBuiltin, capability.SurfaceGlobal, capability.SurfacePublic} {
+			method := def.Surfaces[surface].RPCMethod
+			if method == "" {
+				continue
 			}
-			return dispatcher.Dispatch(ctx, method, params)
+			table[method] = func(ctx context.Context, principal *rpc.Principal, rawParams json.RawMessage) (any, error) {
+				params := map[string]any{}
+				if len(rawParams) > 0 {
+					if err := json.Unmarshal(rawParams, &params); err != nil || params == nil {
+						return nil, &rpc.ScopeError{Code: rpc.CodeBadRequest, Message: "tool arguments must be a JSON object"}
+					}
+				}
+				chat, _ := params["chatSessionId"].(string)
+				if principal.Kind == rpc.PrincipalExternal || chat == "" {
+					chat = "__external_mcp__"
+				}
+				return h.dispatch(ctx, method, params, chat, principal)
+			}
 		}
 	}
 	return table
@@ -578,6 +665,22 @@ func servedMethod(def *capability.Definition) (capability.Surface, string) {
 // their next frame. Stale launchers then fail with the typed unavailable
 // message instead of dialing a dead port.
 func (h *AgentHost) Stop() {
+	_, _ = h.setExternalEnabled(false)
+	h.external.mu.Lock()
+	if h.external.timer != nil {
+		h.external.timer.Stop()
+	}
+	h.external.generation++
+	h.external.sessions = map[string]time.Time{}
+	h.external.mu.Unlock()
+	h.state.mu.Lock()
+	for _, call := range h.state.active {
+		call.cancel()
+	}
+	h.state.mu.Unlock()
+	if h.jobs != nil {
+		h.jobs.CancelAll()
+	}
 	if h.discoveryPath != "" {
 		_ = rpc.RemoveDiscovery(h.discoveryPath)
 		h.discoveryPath = ""

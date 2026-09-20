@@ -31,6 +31,7 @@ function needsUserApproval(
 export function buildCattyToolApproval(input: {
   permissionMode: AIPermissionMode;
   chatSessionId?: string;
+  hostApproval?: boolean;
   requestApproval?: typeof defaultRequestApproval;
 }): ToolApprovalConfiguration<Record<string, never>, import('./cattyRuntimeContext').CattyRuntimeContext> {
   const { permissionMode, chatSessionId, requestApproval = defaultRequestApproval } = input;
@@ -48,6 +49,9 @@ export function buildCattyToolApproval(input: {
     if (!needsUserApproval(toolCall.toolName, permissionMode)) {
       return undefined;
     }
+
+    // Wails dispatch owns the approval barrier for all native tools.
+    if (input.hostApproval) return undefined;
 
     const args = (toolCall.input ?? {}) as Record<string, unknown>;
     const approved = await requestApproval(

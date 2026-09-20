@@ -57,6 +57,7 @@ func (r *InteractionRouter) RequestApproval(ctx context.Context, req capability.
 		capabilityID: def.ID,
 		deadline:     r.now().Add(r.timeout),
 		respond:      make(chan bool, 1),
+		summary:      approvalSummary(req),
 	}
 
 	r.mu.Lock()
@@ -66,6 +67,9 @@ func (r *InteractionRouter) RequestApproval(ctx context.Context, req capability.
 		r.mu.Lock()
 		delete(r.pending, interactionID)
 		r.mu.Unlock()
+		if r.emit != nil {
+			r.emit("agent:interaction-cleared", map[string]any{"interactionId": interactionID})
+		}
 	}()
 
 	if r.emit != nil {

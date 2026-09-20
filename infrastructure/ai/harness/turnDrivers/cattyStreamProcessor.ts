@@ -127,6 +127,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     toolApproval: buildCattyToolApproval({
       permissionMode: runtimeContext.permissionMode,
       chatSessionId: runtimeContext.chatSessionId,
+      hostApproval: Object.values(toolsContext).some(context => context.bridge.aiToolApprovalOwner === 'host'),
     }),
     stopWhen: isStepCount(maxIterations),
     abortSignal: signal,

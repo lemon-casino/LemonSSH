@@ -66,6 +66,9 @@ type Dispatcher struct {
 // chat state that changed while the prompt was open win over the stale
 // approval, so no write starts on revoked authorization.
 func (d *Dispatcher) Dispatch(ctx context.Context, rpcMethod string, params map[string]any) (any, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if d.Registry == nil {
 		d.Registry = Default()
 	}
@@ -141,6 +144,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, rpcMethod string, params map[
 		}
 	}
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return handler(ctx, params, def)
 }
 

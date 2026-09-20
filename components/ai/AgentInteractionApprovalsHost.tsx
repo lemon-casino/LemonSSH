@@ -146,6 +146,7 @@ export const AgentInteractionApprovalsHost: React.FC = () => {
       setPending((prev) => new Map(prev).set(request.interactionId, request));
       armExpiry(request);
     }) ?? (() => undefined);
+    const unsubscribeCleared = bridge?.onAgentInteractionCleared?.(({ interactionId }) => removeInteraction(interactionId));
     // Replay approvals that opened before this host mounted (settings window).
     void bridge?.agentPendingInteractions?.().then((entries) => {
       for (const entry of entries ?? []) {
@@ -159,10 +160,11 @@ export const AgentInteractionApprovalsHost: React.FC = () => {
     }).catch(() => undefined);
     return () => {
       unsubscribe();
+      unsubscribeCleared?.();
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
     };
-  }, [armExpiry]);
+  }, [armExpiry, removeInteraction]);
 
   const respond = useCallback((interactionId: string, approved: boolean) => {
     void respondAgentInteraction(interactionId, approved);

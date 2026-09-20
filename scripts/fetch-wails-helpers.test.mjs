@@ -266,7 +266,9 @@ test("real native packaging survives frontend output cleanup", { skip: !(local |
     } else assert.equal(command, "node");
   });
   const manifest = JSON.parse(await readFile(path.join(outDir, "artifact-manifest.json")));
-  assert.equal(manifest.artifacts.length, hostOS === "windows" ? 26 : 27);
+  assert.equal(manifest.artifacts.length, hostOS === "windows" ? 28 : 29);
+  assert.equal(manifest.tools.length, 2);
+  for (const tool of manifest.tools) assert.ok(manifest.artifacts.some(artifact => artifact.name === tool));
   for (const artifact of manifest.artifacts) {
     checkDigest(await readFile(path.join(outDir, artifact.name)), artifact.sha256, artifact.name);
   }

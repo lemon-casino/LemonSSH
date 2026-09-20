@@ -15,11 +15,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "npm run build && node scripts/wails-prepare-frontend.mjs && go run ./cmd/netcatty",
+    "dev": "npm run build:native-tools && npm run build && node scripts/wails-prepare-frontend.mjs && go run ./cmd/netcatty",
     "clean:vite": "node scripts/clean-vite-cache.cjs",
     "dev:clean": "npm run clean:vite && npm run dev",
     "prebuild": "node scripts/copy-monaco.cjs",
     "build": "npm run build:plugin-packages && vite build",
+    "build:native-tools": "node scripts/build-native-tools.mjs",
     "build:plugin-runtime-deps": "npm run build --workspace @netcatty/plugin-contract && npm run build --workspace @netcatty/plugin-sdk && npm run build --workspace @netcatty/plugin-cli",
     "build:plugin-packages": "npm run generate:plugin-contract && npm run build:plugin-runtime-deps && npm run build --workspace @netcatty/example-hello-plugin",
     "preview": "vite preview",
@@ -41,7 +42,7 @@
     "wails:build": "node scripts/wails-build.mjs",
     "package:wails": "node scripts/package-wails.mjs",
     "package:installers": "node scripts/package-installer.mjs",
-    "wails:dev": "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings && go run ./cmd/netcatty",
+    "wails:dev": "npm run build:native-tools && go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty && go run ./cmd/netcatty",
     "generate:plugin-contract": "node scripts/generate-plugin-contract.mjs",
     "check:plugin-contract": "node scripts/generate-plugin-contract.mjs --check",
     "lint": "eslint .",

@@ -254,11 +254,14 @@ func main() {
 			GOARCH:  runtime.GOARCH,
 		},
 		Jobs:        terminaluse.NewJobQueue(terminalSvc.RunnerFor),
+		SFTP:        agentSFTP{service: sftpService},
 		Vault:       newVaultReader(profileStore),
 		Attachments: attachmentRegistry,
 		Forwards:    forwardService,
 		Approvals:   interactionRouter,
+		VaultRouter: newAgentVaultRouter(func(name string, payload any) { wailsApp.Event.Emit(name, payload) }),
 	})
+	agentService.host = agentHost
 
 	// Live provider (W15): an explicit provider config takes precedence
 	// over the dev fixture; without either, starts fail UNAVAILABLE. The
@@ -287,6 +290,9 @@ func main() {
 		if driverErr != nil {
 			log.Printf("provider driver unavailable: %v", driverErr)
 		} else {
+			driver.dispatchTool = func(ctx context.Context, method string, params map[string]any, chat string) (any, error) {
+				return agentHost.dispatch(ctx, method, params, chat, nil)
+			}
 			turnManager.SetDriver(driver)
 			devDriver = true // a live provider makes the Go runtime authoritative
 			log.Printf("live provider driver wired: model=%s", providerConfig.Model)

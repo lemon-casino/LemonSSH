@@ -2,6 +2,14 @@ import type { CodebuddyAdvancedOptions } from '../../infrastructure/ai/types';
 
 declare global {
   interface NetcattyBridge {
+    aiToolApprovalOwner?: 'host';
+    aiCapability?(method: string, params: Record<string, unknown>, chatSessionId?: string): Promise<unknown>;
+    aiMcpSetPermissionMode?(mode: 'observer' | 'confirm' | 'auto'): Promise<{ ok: boolean }>;
+    aiMcpSetCommandBlocklist?(patterns: string[]): Promise<{ ok: boolean }>;
+    aiMcpSetCommandTimeout?(seconds: number): Promise<{ ok: boolean }>;
+    aiMcpUpdateAttachments?(attachments: Array<{ filename?: string; mediaType?: string; base64Data?: string; filePath?: string }>, chatSessionId?: string): Promise<{ ok: boolean }>;
+    isVaultAgentRequestPending?(requestId: string): Promise<boolean>;
+    onAgentInteractionCleared?(cb: (payload: { interactionId: string }) => void): () => void;
     // AI / external agents
     aiSyncProviders?(providers: Array<{ id: string; providerId: string; apiKey?: string; baseURL?: string; enabled: boolean }>): Promise<{ ok: boolean }>;
     aiChatStream?(requestId: string, url: string, headers?: Record<string, string>, body?: string, providerId?: string, idleTimeoutMs?: number): Promise<{ ok: boolean; statusCode?: number; statusText?: string; error?: string; aborted?: boolean }>;

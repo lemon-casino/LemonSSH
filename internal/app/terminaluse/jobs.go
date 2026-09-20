@@ -5,12 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
+	"unicode/utf8"
 
+	"github.com/binaricat/netcatty/internal/terminal/pty"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -50,6 +55,7 @@ type Job struct {
 	mu              sync.Mutex
 	status          JobStatus
 	output          []byte
+	truncated       bool
 	exitCode        int
 	exitKnown       bool
 	cancel          context.CancelFunc
@@ -70,6 +76,7 @@ func (j *Job) appendOutput(chunk []byte) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if len(j.output)+len(chunk) > JobMaxOutput {
+		j.truncated = true
 		keep := JobMaxOutput - len(j.output)
 		if keep > 0 {
 			j.output = append(j.output, chunk[:keep]...)
@@ -98,7 +105,7 @@ type JobQueue struct {
 
 	mu           sync.Mutex
 	jobs         map[string]*Job
-	sessionLocks map[string]*sync.Mutex
+	sessionLocks map[string]chan struct{}
 	counter      int
 }
 
@@ -108,16 +115,16 @@ func NewJobQueue(runnerFor func(sessionID string) (CommandRunner, error)) *JobQu
 		now:          time.Now,
 		runnerFor:    runnerFor,
 		jobs:         map[string]*Job{},
-		sessionLocks: map[string]*sync.Mutex{},
+		sessionLocks: map[string]chan struct{}{},
 	}
 }
 
-func (q *JobQueue) sessionLock(sessionID string) *sync.Mutex {
+func (q *JobQueue) sessionLock(sessionID string) chan struct{} {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	lock := q.sessionLocks[sessionID]
 	if lock == nil {
-		lock = &sync.Mutex{}
+		lock = make(chan struct{}, 1)
 		q.sessionLocks[sessionID] = lock
 	}
 	return lock
@@ -151,17 +158,30 @@ func (q *JobQueue) Exec(ctx context.Context, sessionID, owner, command string, t
 	}
 
 	lock := q.sessionLock(sessionID)
-	lock.Lock()
-	defer lock.Unlock()
-
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	select {
+	case lock <- struct{}{}:
+	case <-runCtx.Done():
+		return nil, ExitUnknown, false, runCtx.Err()
+	}
+	defer func() { <-lock }()
+	if err := runCtx.Err(); err != nil {
+		return nil, ExitUnknown, false, err
+	}
 	var collected []byte
+	var outputMu sync.Mutex
 	code, known, runErr := runner.Run(runCtx, command, func(chunk []byte) {
+		outputMu.Lock()
+		defer outputMu.Unlock()
+		remaining := JobMaxOutput - len(collected)
+		if len(chunk) > remaining {
+			chunk = chunk[:remaining]
+		}
 		collected = append(collected, chunk...)
 	})
 	if runErr != nil {
-		return nil, code, known, runErr
+		return collected, code, known, runErr
 	}
 	return collected, code, known, nil
 }
@@ -185,8 +205,6 @@ func (q *JobQueue) Start(sessionID, owner, command string, deadline time.Duratio
 	}
 
 	lock := q.sessionLock(sessionID)
-	lock.Lock()
-	defer lock.Unlock()
 
 	started := q.now()
 	runCtx, cancel := context.WithDeadline(context.Background(), started.Add(deadline))
@@ -207,7 +225,19 @@ func (q *JobQueue) Start(sessionID, owner, command string, deadline time.Duratio
 
 	go func() {
 		defer close(job.done)
-		code, known, runErr := runner.Run(runCtx, command, job.appendOutput)
+		defer cancel()
+		code, known, runErr := ExitUnknown, false, runCtx.Err()
+		select {
+		case lock <- struct{}{}:
+			if runCtx.Err() == nil {
+				code, known, runErr = runner.Run(runCtx, command, job.appendOutput)
+			} else {
+				runErr = runCtx.Err()
+			}
+			<-lock
+		case <-runCtx.Done():
+			runErr = runCtx.Err()
+		}
 		job.mu.Lock()
 		defer job.mu.Unlock()
 		switch {
@@ -243,6 +273,49 @@ func (q *JobQueue) Poll(jobID, owner string, offset int) ([]byte, JobStatus, int
 	return output[offset:], status, exitCode, known, nil
 }
 
+// PollText uses JavaScript UTF-16 character offsets, as advertised by the
+// agent schema. Pages never split a surrogate pair or repeat consumed output.
+func (q *JobQueue) PollText(jobID, owner string, offset int) (map[string]any, error) {
+	job := q.lookup(jobID)
+	if job == nil || job.Owner != owner {
+		return nil, fmt.Errorf("job not found in this chat")
+	}
+	job.mu.Lock()
+	defer job.mu.Unlock()
+	output := job.output
+	// A poll can land between bytes of a multibyte character. Leave the
+	// incomplete suffix for the next page instead of advancing past it.
+	for i := len(output) - 1; i >= max(0, len(output)-utf8.UTFMax); i-- {
+		if utf8.RuneStart(output[i]) {
+			if !utf8.FullRune(output[i:]) {
+				output = output[:i]
+			}
+			break
+		}
+	}
+	units := utf16.Encode([]rune(string(output)))
+	if offset < 0 || offset > len(units) {
+		return nil, fmt.Errorf("offset %d out of range", offset)
+	}
+	if offset > 0 && offset < len(units) && units[offset] >= 0xdc00 && units[offset] <= 0xdfff && units[offset-1] >= 0xd800 && units[offset-1] <= 0xdbff {
+		return nil, fmt.Errorf("offset splits a Unicode character")
+	}
+	end := min(len(units), offset+16000)
+	if end < len(units) && end > offset && units[end-1] >= 0xd800 && units[end-1] <= 0xdbff {
+		end--
+	}
+	var exitCode any
+	if job.exitKnown {
+		exitCode = job.exitCode
+	}
+	return map[string]any{
+		"ok": true, "jobId": job.ID, "status": string(job.status),
+		"output": string(utf16.Decode(units[offset:end])), "outputBaseOffset": 0,
+		"nextOffset": end, "totalOutputChars": len(units), "outputTruncated": job.truncated,
+		"exitCodeKnown": job.exitKnown, "exitCode": exitCode,
+	}, nil
+}
+
 // Stop cancels a job the principal owns and waits for the runner to
 // return. It never queues behind session execution (control path).
 func (q *JobQueue) Stop(jobID, owner string) (JobStatus, error) {
@@ -273,6 +346,33 @@ func (q *JobQueue) lookup(jobID string) *Job {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	return q.jobs[jobID]
+}
+
+// CancelOwner interrupts this chat's background work without waiting behind
+// a normal command or another chat's session queue.
+func (q *JobQueue) CancelOwner(owner string) {
+	q.cancelMatching(func(job *Job) bool { return job.Owner == owner })
+}
+
+func (q *JobQueue) CancelAll() { q.cancelMatching(func(*Job) bool { return true }) }
+
+func (q *JobQueue) cancelMatching(matches func(*Job) bool) {
+	q.mu.Lock()
+	var jobs []*Job
+	for _, job := range q.jobs {
+		if matches(job) {
+			jobs = append(jobs, job)
+		}
+	}
+	q.mu.Unlock()
+	for _, job := range jobs {
+		job.mu.Lock()
+		if job.status == JobRunning {
+			job.cancelRequested = true
+			job.cancel()
+		}
+		job.mu.Unlock()
+	}
 }
 
 // sshRunner runs commands on a dedicated SSH exec channel — never the
@@ -315,11 +415,14 @@ func (r sshRunner) Run(ctx context.Context, command string, sink func([]byte)) (
 }
 
 type limitedSink struct {
+	mu   sync.Mutex
 	sink func([]byte)
 	seen int
 }
 
 func (l *limitedSink) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if l.seen+len(p) > JobMaxOutput {
 		keep := JobMaxOutput - l.seen
 		if keep > 0 {
@@ -336,14 +439,32 @@ func (l *limitedSink) Write(p []byte) (int, error) {
 // localRunner runs commands in a fresh noninteractive shell — never the
 // visible PTY — so agent commands and the user's shell state stay
 // independent (design §6.2).
-type localRunner struct{}
+type localRunner struct{ config pty.Config }
 
-func (localRunner) Run(ctx context.Context, command string, sink func([]byte)) (int, bool, error) {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.CommandContext(ctx, "cmd.exe", "/C", command)
-	} else {
-		cmd = exec.CommandContext(ctx, "/bin/sh", "-c", command)
+func (r localRunner) Run(ctx context.Context, command string, sink func([]byte)) (int, bool, error) {
+	shell := r.config.Shell
+	if shell == "" {
+		if runtime.GOOS == "windows" {
+			shell = "cmd.exe"
+		} else {
+			shell = "/bin/sh"
+		}
+	}
+	args := append([]string(nil), r.config.Args...)
+	switch strings.TrimSuffix(strings.ToLower(filepath.Base(shell)), ".exe") {
+	case "cmd":
+		args = []string{"/D", "/S", "/C", command}
+	case "powershell", "pwsh":
+		args = []string{"-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command}
+	case "wsl":
+		args = append(args, "--", "sh", "-c", command)
+	default:
+		args = append(args, "-c", command)
+	}
+	cmd := exec.CommandContext(ctx, shell, args...)
+	cmd.Dir = r.config.CWD
+	if len(r.config.Env) > 0 {
+		cmd.Env = append(os.Environ(), r.config.Env...)
 	}
 	cmd.WaitDelay = 250 * time.Millisecond
 	output := &limitedSink{sink: sink}
@@ -375,7 +496,17 @@ func (s *Service) RunnerFor(sessionID string) (CommandRunner, error) {
 		return sshRunner{client: term.transport.Client}, nil
 	}
 	if term.local != nil {
-		return localRunner{}, nil
+		s.mu.Lock()
+		config := term.localConfig
+		cwd := term.cwd.cwd
+		s.mu.Unlock()
+		if cwd != "" {
+			if runtime.GOOS == "windows" && len(cwd) > 3 && cwd[0] == '/' && cwd[2] == ':' {
+				cwd = cwd[1:]
+			}
+			config.CWD = filepath.FromSlash(cwd)
+		}
+		return localRunner{config: config}, nil
 	}
 	return nil, fmt.Errorf("terminaluse: command execution is unsupported for this terminal transport")
 }

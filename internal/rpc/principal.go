@@ -140,3 +140,19 @@ func (s *TokenStore) RevokeAll() int {
 	}
 	return revoked
 }
+
+// Revoke invalidates one external grant without disrupting first-party tools.
+func (s *TokenStore) Revoke(token string) {
+	raw, err := hex.DecodeString(token)
+	if err != nil {
+		return
+	}
+	digest := sha256.Sum256(raw)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, record := range s.records {
+		if record.digest == digest {
+			record.revoked = true
+		}
+	}
+}

@@ -38,6 +38,8 @@ Do not add a second native bridge shape when an existing Wails service or runtim
 
 The capability catalog in `internal/capability/` is the source of truth for generated frontend tool specs. Observer mode blocks writes; confirm mode requests approval for write capabilities.
 
+Tool dispatch, session scope, native approvals and cancellation flow through `AgentHost.dispatch`. Vault tools use the application hook through `AgentVaultRouter`; do not duplicate vault mutations in Go. See `docs/agent-tools.md`. Run `go test ./cmd/netcatty -run TestEveryAdvertisedNativeToolHasAllRPCSurfaces` when changing the catalog or registration.
+
 ## Plugin Runtime
 
 The migrated plugin host lives under `internal/plugin/` and is exposed through Wails services. Contract and package types come from `packages/plugin-contract/`. Keep protocol changes compatible across the Go host, generated schema, SDK, and examples.

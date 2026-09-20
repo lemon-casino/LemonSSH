@@ -17,6 +17,7 @@ function run(command) {
 const pkg = JSON.parse(await readFile("package.json", "utf8"));
 const version = String(pkg.version ?? "0.0.0").replace(/"/g, "");
 
+run("npm run build:native-tools");
 run("npm run build");
 run("node scripts/wails-prepare-frontend.mjs");
 run(

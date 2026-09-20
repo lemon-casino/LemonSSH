@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/binaricat/netcatty/internal/capability"
 	"github.com/binaricat/netcatty/internal/rpc"
@@ -100,6 +101,14 @@ func run() int {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+	if def.ID == "session.cancel" || def.ID == "session.resume" {
+		params["cancelled"] = def.ID == "session.cancel"
+	}
+	if def.ID == "session.get" {
+		params["sessionId"] = opts["sessionId"]
+	}
 
 	result, err := client.Call(ctx, def.ResolveCLIRPCMethod(), params)
 	if err != nil {
@@ -151,7 +160,7 @@ func parseArgs(args []string) ([]string, map[string]any) {
 			if i+1 < len(args) {
 				i++
 				if value := args[i]; value != "" {
-					scoped := opts["scopedSessionIds"].([]string)
+					scoped, _ := opts["scopedSessionIds"].([]string)
 					opts["scopedSessionIds"] = append(scoped, value)
 				}
 			}
@@ -190,6 +199,15 @@ func optKeyIndex() map[string]string {
 			continue
 		}
 		index[strings.TrimPrefix(binding.Flag, "--")] = binding.OptKey
+	}
+	for _, def := range capability.Catalog {
+		fields, _ := capability.ToolInputFields(def.ID)
+		for name := range fields {
+			binding := capability.CLIFieldBindingFor(name)
+			if binding.Flag != "--" {
+				index[strings.TrimPrefix(binding.Flag, "--")] = binding.OptKey
+			}
+		}
 	}
 	return index
 }

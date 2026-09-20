@@ -21,7 +21,7 @@ const LINUX_BINARY_DIR = "usr/local/bin";
 
 // Matches the artifactBasename layout of scripts/package-wails.mjs.
 const BINARY_PATTERN = /^LemonSSH-(.+)-(windows|linux|darwin)-(amd64|arm64)(\.exe)?$/;
-const HELPER_NAMES = new Set(["mosh-client", "mosh-client.exe", "et", "et.exe"]);
+const HELPER_NAMES = new Set(["mosh-client", "mosh-client.exe", "et", "et.exe", "netcatty-tool", "netcatty-tool.exe", "netcatty-mcp", "netcatty-mcp.exe"]);
 const CHECKSUM_FILE = "checksums.txt";
 const ICON_CANDIDATES = ["build/appicon.png", "build/icons/256x256.png", "build/icons/512x512.png"];
 

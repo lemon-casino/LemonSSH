@@ -167,3 +167,19 @@ func TestBuildCatalogCLIParams(t *testing.T) {
 		})
 	}
 }
+
+func TestCLIHandlesEmptyFilesAndCompleteOptionalFields(t *testing.T) {
+	params, err := BuildCatalogCLIParams("sftp.write", map[string]any{"sessionId": "s", "remotePath": "/empty", "content": ""})
+	if err != nil || params["content"] != "" {
+		t.Fatalf("cannot truncate file: %v %v", params, err)
+	}
+	params, err = BuildCatalogCLIParams("attachment.read", map[string]any{"filePath": "/attached/a"})
+	if err != nil || params["filePath"] != "/attached/a" {
+		t.Fatalf("lost file path: %v %v", params, err)
+	}
+	for _, offset := range []string{"1junk", "NaN", "Infinity", "-1", "1.5"} {
+		if _, err := BuildCatalogCLIParams("terminal.poll", map[string]any{"jobId": "j", "offset": offset}); err == nil {
+			t.Errorf("accepted offset %q", offset)
+		}
+	}
+}

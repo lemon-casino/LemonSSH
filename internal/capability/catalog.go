@@ -97,9 +97,8 @@ func portforwardRuleMutation(id, description, action, mcpTool string) Definition
 	}
 }
 
-// Catalog is the frozen W05 port of electron/capabilities/catalog. Order is
-// load-bearing: CJS registry lookups resolve surface collisions (duplicate
-// rpcMethod on one surface) last-wins, so Go must keep the same sequence.
+// Catalog is the authority for native and renderer-local tools. Preserve
+// order: shared RPC aliases resolve to the final matching definition.
 var Catalog = []Definition{
 	// ---- meta.cjs ----
 	{

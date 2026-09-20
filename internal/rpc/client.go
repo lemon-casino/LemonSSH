@@ -93,6 +93,9 @@ func (c *Client) Call(ctx context.Context, method string, params any) (json.RawM
 		Method:  method,
 		Params:  rawParams,
 	}
+	if deadline, ok := ctx.Deadline(); ok {
+		envelope.DeadlineMS = max(1, time.Until(deadline).Milliseconds())
+	}
 	rawEnvelope, err := json.Marshal(envelope)
 	if err != nil {
 		return nil, err
@@ -116,6 +119,8 @@ func (c *Client) Call(ctx context.Context, method string, params any) (json.RawM
 
 	select {
 	case <-ctx.Done():
+		// A timed-out response must not be consumed by a later request.
+		_ = c.conn.Close()
 		return nil, &RPCError{Code: CodeDeadline, Message: "call deadline exceeded while waiting for the host"}
 	case result := <-responseCh:
 		if result.err != nil {

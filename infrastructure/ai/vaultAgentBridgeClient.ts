@@ -1452,6 +1452,7 @@ export function setupVaultAgentBridge(): () => void {
     const { requestId, op, params } = payload;
     const safeParams = params || {};
     const runHandler = async () => {
+      if (bridge.isVaultAgentRequestPending && !await bridge.isVaultAgentRequestPending(requestId)) return;
       try {
         const result = activeHandler
           ? await activeHandler(op, safeParams)

@@ -73,7 +73,8 @@ func (s *Service) StartLocalWithOptions(request LocalStartRequest) (string, erro
 	s.mu.Unlock()
 
 	request.Cols, request.Rows = cols, rows
-	local := pty.NewSession(localStartConfig(sessionID, request))
+	config := localStartConfig(sessionID, request)
+	local := pty.NewSession(config)
 	if err := local.Start(context.Background(), pty.NewPlatformBackend()); err != nil {
 		return "", fmt.Errorf("local pty: %w", err)
 	}
@@ -84,7 +85,7 @@ func (s *Service) StartLocalWithOptions(request LocalStartRequest) (string, erro
 	}
 
 	s.mu.Lock()
-	s.sessions[sessionID] = &terminalSession{local: local, bootstrap: bootstrap}
+	s.sessions[sessionID] = &terminalSession{local: local, localConfig: config, bootstrap: bootstrap}
 	s.mu.Unlock()
 
 	go func() {

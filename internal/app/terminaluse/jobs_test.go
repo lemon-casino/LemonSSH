@@ -3,6 +3,9 @@ package terminaluse
 import (
 	"context"
 	"errors"
+	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -52,6 +55,92 @@ func newTestQueue(runner CommandRunner) *JobQueue {
 		}
 		return runner, nil
 	})
+}
+
+func TestPollTextPagesUnicodeAndRejectsForeignOwners(t *testing.T) {
+	text := strings.Repeat("a", 15999) + "😀结束"
+	queue := newTestQueue(&fakeRunner{output: text, known: true})
+	id, err := queue.Start("session", "chat", "echo", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-queue.lookup(id).done:
+	case <-time.After(time.Second):
+		t.Fatal("runner blocked")
+	}
+	page, err := queue.PollText(id, "chat", 0)
+	if err != nil || page["nextOffset"] != 15999 {
+		t.Fatalf("%v %v", page, err)
+	}
+	page, err = queue.PollText(id, "chat", page["nextOffset"].(int))
+	if err != nil || page["output"] != "😀结束" || page["nextOffset"] != 16003 {
+		t.Fatalf("%v %v", page, err)
+	}
+	if _, err = queue.PollText(id, "other", 0); err == nil {
+		t.Fatal("foreign owner read job output")
+	}
+}
+
+func TestLocalToolUsesConfiguredShellDirectoryAndEnvironment(t *testing.T) {
+	shell, command := "/bin/sh", "printf '%s\n%s' \"$PWD\" \"$LEMONSSH_TOOL_FIXTURE\""
+	if runtime.GOOS == "windows" {
+		var err error
+		shell, err = exec.LookPath("powershell.exe")
+		if err != nil {
+			t.Skip("PowerShell unavailable")
+		}
+		command = "Write-Output $PWD.Path; Write-Output $env:LEMONSSH_TOOL_FIXTURE"
+	}
+	dir := t.TempDir()
+	runner := localRunner{config: pty.Config{Shell: shell, CWD: dir, Env: []string{"LEMONSSH_TOOL_FIXTURE=custom-value"}}}
+	var out strings.Builder
+	code, known, err := runner.Run(context.Background(), command, func(data []byte) { out.Write(data) })
+	if err != nil || !known || code != 0 || !strings.Contains(out.String(), dir) || !strings.Contains(out.String(), "custom-value") {
+		t.Fatalf("local execution: %q %d %v %v", out.String(), code, known, err)
+	}
+}
+
+func TestCancelledQueuedExecNeverRuns(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	runner := &fakeRunner{block: true, blockChan: release}
+	queue := newTestQueue(runner)
+	id, _ := queue.Start("session", "first", "wait", time.Minute)
+	go func() {
+		for {
+			runner.mu.Lock()
+			runs := runner.runs
+			runner.mu.Unlock()
+			if runs > 0 {
+				close(started)
+				return
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("job did not start")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, _, _, err := queue.Exec(ctx, "session", "second", "must not run", time.Minute)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("queued exec: %v", err)
+	}
+	queue.CancelOwner("first")
+	select {
+	case <-queue.lookup(id).done:
+	case <-time.After(time.Second):
+		t.Fatal("job did not stop")
+	}
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+	if runner.runs != 1 {
+		t.Fatalf("cancelled command ran: %d", runner.runs)
+	}
 }
 
 func TestExecReturnsOutcome(t *testing.T) {

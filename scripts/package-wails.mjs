@@ -186,9 +186,18 @@ export async function packageWails(argv = process.argv.slice(2), runCommand = ru
   }
   await runCommand(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
 
+  // CLI/MCP retain the console subsystem for JSON and stdio transports.
+  const tools = [];
+  for (const command of ['netcatty-tool', 'netcatty-mcp']) {
+    const name = command + (target.goos === 'windows' ? '.exe' : '');
+    await runCommand(`go build -trimpath "-ldflags=-s -w" -o "${path.join(args.outDir, name)}" ./cmd/${command}`, null, { env });
+    tools.push(name);
+  }
+
   await writeProtocolResources(args.outDir, target.goos, path.basename(artifact));
   await writeFile(path.join(args.outDir, "installer-resources.json"), JSON.stringify({
     helpers,
+    tools,
     protocolResources: target.goos === "darwin" ? [{ source: "Info.plist", destination: "Contents/Info.plist" }] : target.goos === "linux" ? [{ source: "lemonssh.desktop", destination: "share/applications/lemonssh.desktop" }] : [],
   }, null, 2));
 
@@ -209,6 +218,7 @@ export async function packageWails(argv = process.argv.slice(2), runCommand = ru
     // Helper pins bind this artifact to the exact locked Mosh/ET bytes and
     // their provenance (also detailed in installer-resources.json).
     helpers,
+    tools,
     artifacts: entries.map((entry) => ({ name: relativeName(entry.path), ...entry })),
     purity: entries.map((entry) => purityInventory({
       artifactName: relativeName(entry.path),

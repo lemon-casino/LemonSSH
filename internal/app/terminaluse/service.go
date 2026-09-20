@@ -58,6 +58,7 @@ type terminalSession struct {
 	x11                *ssh.X11Forwarder
 	session            *gossh.Session
 	local              *pty.Session
+	localConfig        pty.Config
 	telnet             *telnet.Client
 	serial             *serialport.Session
 	serialID           string

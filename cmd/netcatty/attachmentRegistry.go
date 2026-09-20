@@ -12,7 +12,7 @@ type Attachment struct {
 	Filename  string `json:"filename"`
 	MediaType string `json:"mediaType"`
 	FilePath  string `json:"filePath,omitempty"`
-	Base64    string `json:"-"`
+	Base64    string `json:"base64Data,omitempty"`
 	SizeBytes int64  `json:"sizeBytes,omitempty"`
 }
 

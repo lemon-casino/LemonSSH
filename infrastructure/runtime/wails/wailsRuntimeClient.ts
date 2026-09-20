@@ -58,6 +58,7 @@ import * as profileBindings from "./bindings/github.com/binaricat/netcatty/cmd/n
 import { createZmodemBridge } from './zmodemBridge';
 import { subscribePopupConfig } from './popupConfigSubscription';
 import { configureProfileBindings } from "../profile/profileClient";
+import { createAgentToolBridge, type NativeAgentToolBindings } from './agentToolBridge';
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -340,7 +341,7 @@ export interface WailsBindingDeps {
   };
   clipboard?: { SetText: (text: string) => Promise<boolean>; Text: () => Promise<string> };
   openDataPlane?: typeof openDataPlaneSession;
-  agentservice?: {
+  agentservice?: NativeAgentToolBindings & {
     AgentPrepare: (request: AgentPrepareTurnRequest) => Promise<AgentPreparedTurn>;
     AgentStart: (command: AgentTurnCommand) => Promise<void>;
     AgentStop: (turnID: string, reason: string) => Promise<AgentTurnSnapshot>;
@@ -456,7 +457,6 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const platform = typeof navigator === 'undefined' ? '' : navigator.platform;
   const nativeFileActions = createNativeFileActions(bindings.filesystem, bindings.dialogs, transfers.startStreamTransfer,
     /Win/i.test(platform) ? 'win32' : /Mac/i.test(platform) ? 'darwin' : 'linux');
-  const unimplemented = <T extends object>(portName: string): T => portWith<T>(portName, {});
   const sessionAliases = new Map<string, string>();
   const nativeSessionId = (id: string) => sessionAliases.get(id) ?? id;
   const monitoring = createMonitoringBridge(bindings.terminal, nativeSessionId);
@@ -1265,6 +1265,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   }) as unknown as NetcattyBridge["agentRespondInteraction"];
 
   const implementedBridge: Partial<NetcattyBridge> = {
+    ...createAgentToolBridge(bindings.agentservice, bindings.events?.On ?? Events.On, nativeSessionId),
     ...monitoring,
     ...cloudOAuth,
     // Provider discovery / connection probe (aiFetch parity slice): model
@@ -1713,13 +1714,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     },
   }) as NetcattyBridge;
 
-  return {
+  const client: WailsRuntimeClient = {
     app: portWith("app", {
       quitApp: async () => {
         await bindings.tray?.Quit?.();
       },
     }),
-    agent: unimplemented("agent"),
+    agent: portWith("agent", implementedBridge),
     agentRuntime: buildAgentRuntimePort(bindings),
     files: portWith("files", { writeClipboardText, readClipboardText, readClipboardImage, credentialsAvailable, credentialsEncrypt, credentialsDecrypt }),
     script: portWith("script", {
@@ -1822,8 +1823,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       }) as unknown as NetcattyBridge["cloudSyncS3Delete"],
     }),
     system: portWith("system", monitoring),
-    plugin: unimplemented("plugin"),
+    plugin: portWith("plugin", implementedBridge),
     transitionBridge,
+  };
+  // Keep domain ports aligned with the same native implementations used by
+  // aggregate callers; a method must not vanish when a caller narrows its port.
+  const complete = <T extends object>(name: string, port: T): T => portWith<T>(name, { ...implementedBridge, ...port });
+  return {
+    ...client,
+    app: complete('app', client.app), agent: complete('agent', client.agent),
+    files: complete('files', client.files), script: complete('script', client.script),
+    terminal: complete('terminal', client.terminal), sftp: complete('sftp', client.sftp),
+    sync: complete('sync', client.sync), system: complete('system', client.system),
+    plugin: complete('plugin', client.plugin),
   };
 }
 

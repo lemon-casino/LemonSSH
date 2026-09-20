@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"sync"
+	"time"
 
 	"github.com/binaricat/netcatty/internal/capability"
 	"github.com/binaricat/netcatty/internal/rpc"
@@ -24,38 +24,20 @@ import (
 
 const serverVersion = "0.1.0"
 
-type relay struct {
-	mu     sync.Mutex
-	client *rpc.Client
-}
+type relay struct{}
 
 // host returns a connected client, dialing lazily and re-dialing after a
 // lost connection.
 func (r *relay) host(discoveryPath string) (*rpc.Client, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.client != nil {
-		return r.client, nil
-	}
-	client, err := rpc.Dial(discoveryPath)
-	if err != nil {
-		return nil, err
-	}
-	r.client = client
-	return r.client, nil
-}
-
-func (r *relay) drop() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.client != nil {
-		_ = r.client.Close()
-		r.client = nil
-	}
+	// Independent connections let stop/poll proceed during approval or exec.
+	return rpc.Dial(discoveryPath)
 }
 
 func main() {
 	discoveryPath := os.Getenv("NETCATTY_TOOL_CLI_DISCOVERY_FILE")
+	if external := os.Getenv("NETCATTY_EXTERNAL_MCP_DISCOVERY_FILE"); external != "" {
+		discoveryPath = external
+	}
 	registry := capability.Default()
 	tools := registry.ListMcpTools()
 
@@ -93,19 +75,30 @@ func relayCall(ctx context.Context, r *relay, discoveryPath string, tool *capabi
 	)
 	client, dialErr := r.host(discoveryPath)
 	if dialErr == nil {
-		result, callErr = client.Call(ctx, *tool.RPCMethod, req.Params.Arguments)
-		if callErr != nil {
-			r.drop()
+		defer client.Close()
+		params := map[string]any{}
+		if len(req.Params.Arguments) > 0 {
+			if err := json.Unmarshal(req.Params.Arguments, &params); err != nil || params == nil {
+				return errorResult("Tool arguments must be a JSON object"), nil
+			}
 		}
+		params["chatSessionId"] = "__external_mcp__"
+		callCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		method := *tool.RPCMethod
+		if tool.PublicRPCMethod != nil {
+			method = *tool.PublicRPCMethod
+		}
+		result, callErr = client.Call(callCtx, method, params)
 	}
 
 	if dialErr != nil || callErr != nil {
-		message := dialErr.Error()
+		message := "Error: Operation failed"
 		var rpcErr *rpc.RPCError
 		var unavailable *rpc.UnavailableError
 		switch {
 		case dialErr != nil:
-			// message already set
+			message = dialErr.Error()
 		case errors.As(callErr, &unavailable):
 			message = unavailable.Message
 		case errors.As(callErr, &rpcErr):
@@ -116,7 +109,12 @@ func relayCall(ctx context.Context, r *relay, discoveryPath string, tool *capabi
 		return errorResult(message), nil
 	}
 
+	var payload struct {
+		OK *bool `json:"ok"`
+	}
+	_ = json.Unmarshal(result, &payload)
 	return &mcp.CallToolResult{
+		IsError: payload.OK != nil && !*payload.OK,
 		Content: []mcp.Content{&mcp.TextContent{Text: string(result)}},
 	}, nil
 }

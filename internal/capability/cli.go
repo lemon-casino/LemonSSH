@@ -3,8 +3,11 @@ package capability
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
+	"unicode"
 )
 
 // CLIArgError is a typed CLI argument failure; Code matches the CJS
@@ -26,6 +29,7 @@ type CLIFieldBinding struct {
 var CLIFieldBindings = map[string]CLIFieldBinding{
 	"hostId":           {Flag: "--host-id", OptKey: "hostId"},
 	"filename":         {Flag: "--filename", OptKey: "filename"},
+	"filePath":         {Flag: "--file-path", OptKey: "filePath"},
 	"snippetId":        {Flag: "--snippet-id", OptKey: "snippetId"},
 	"scriptId":         {Flag: "--script-id", OptKey: "scriptId"},
 	"runId":            {Flag: "--run-id", OptKey: "runId"},
@@ -58,6 +62,24 @@ var CLIFieldBindings = map[string]CLIFieldBinding{
 	"command":          {Flag: "--", OptKey: "command"},
 	"jobId":            {Flag: "--job", OptKey: "jobId"},
 	"offset":           {Flag: "--offset", OptKey: "offset"},
+}
+
+// CLIFieldBindingFor exposes every schema field, including optional fields
+// added after the original CLI flag table was written.
+func CLIFieldBindingFor(field string) CLIFieldBinding {
+	if binding, ok := CLIFieldBindings[field]; ok {
+		return binding
+	}
+	var flag strings.Builder
+	flag.WriteString("--")
+	for _, ch := range field {
+		if unicode.IsUpper(ch) {
+			flag.WriteByte('-')
+			ch = unicode.ToLower(ch)
+		}
+		flag.WriteRune(ch)
+	}
+	return CLIFieldBinding{Flag: flag.String(), OptKey: field}
 }
 
 // ResolveCLIRPCMethod returns the method a CLI command dispatches to:
@@ -112,7 +134,7 @@ func (r *Registry) FormatCLIHelpLines() []string {
 		if entry.Status == StatusPlanned {
 			suffix = " (planned)"
 		}
-		lines = append(lines, fmt.Sprintf("  netcatty-tool-cli %s%s", strings.Join(entry.Command, " "), suffix))
+		lines = append(lines, fmt.Sprintf("  netcatty-tool %s%s", strings.Join(entry.Command, " "), suffix))
 	}
 	return lines
 }
@@ -137,10 +159,7 @@ func BuildCatalogCLIParams(capabilityID string, opts map[string]any) (map[string
 	params := map[string]any{}
 	for _, fieldName := range names {
 		fieldDef := fields[fieldName]
-		binding, known := CLIFieldBindings[fieldName]
-		if !known {
-			continue
-		}
+		binding := CLIFieldBindingFor(fieldName)
 
 		value := opts[binding.OptKey]
 		if fieldName == "command" {
@@ -171,8 +190,8 @@ func BuildCatalogCLIParams(capabilityID string, opts map[string]any) (map[string
 				if typed == "" {
 					value = nil
 				} else {
-					var parsed float64
-					if _, err := fmt.Sscanf(typed, "%g", &parsed); err != nil {
+					parsed, err := strconv.ParseFloat(typed, 64)
+					if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) || parsed < 0 || math.Trunc(parsed) != parsed {
 						return nil, &CLIArgError{Code: "INVALID_ARGUMENT", Message: fmt.Sprintf("--offset must be a number for %s.", capabilityID)}
 					}
 					value = parsed
@@ -180,7 +199,8 @@ func BuildCatalogCLIParams(capabilityID string, opts map[string]any) (map[string
 			}
 		}
 
-		empty := value == nil || value == ""
+		allowEmpty := fieldName == "content" || fieldName == "notes"
+		empty := value == nil || (value == "" && !allowEmpty)
 		if empty {
 			if !fieldDef.Optional {
 				return nil, &CLIArgError{Code: "INVALID_ARGUMENT", Message: fmt.Sprintf("Missing required %s for %s.", binding.Flag, capabilityID)}

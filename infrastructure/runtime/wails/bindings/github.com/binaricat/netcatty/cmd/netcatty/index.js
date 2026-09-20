@@ -48,6 +48,7 @@ export {
 };
 
 export {
+    AgentSession,
     AgentStatus,
     AppLockRuntimeState,
     Attachment,
@@ -63,6 +64,7 @@ export {
     CloudSyncWebDAVConfig,
     DiscoveredShell,
     DockerStatsOptions,
+    ExternalAgentConfig,
     HelperSessionState,
     HotkeyResult,
     HotkeyStatus,
