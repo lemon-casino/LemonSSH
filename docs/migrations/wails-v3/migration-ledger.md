@@ -5519,3 +5519,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: the External MCP and Go approval stacks share the same fixed bottom-right position and overlap visually if both pend in one window (layout pass deferred); transport-level respond failures are swallowed to card removal — the Go deadline denial is the fail-closed backstop; StrictMode double-mount verified safe (Set dedup + Map keying); live smoke pending
 - Next safe slice: W10 close-out audit (secret-service bindings exposure + raw-channel bypass), then W16
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L196 - 2026-09-20 - Fix partial-bridge streaming crash in the SDK bridge fetch
+
+- Capability rows: `AI-01`, `AI-02`, `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Fix the live-smoke regression exposed by WV3-L195's `window.netcatty` install: `createBridgeFetchForSDK` (`infrastructure/ai/sdk/providers.ts`) gated on bridge truthiness only, so a Catty send under the Wails shell entered the streaming branch and crashed on `bridge.onAiStreamData` — the transition bridge implements `aiFetch` but not the Electron streaming channel — surfacing as "o.onAiStreamData is not a function" plus "No output generated. Check the stream for errors." The guard now checks the surface per request: streaming requires `aiChatStream`/`aiChatCancel`/`onAiStreamData`/`onAiStreamEnd`/`onAiStreamError`, non-streaming requires `aiFetch`; a missing surface falls back to `globalThis.fetch` exactly like a missing bridge did pre-L194. The Electron preload always provides the full surface, so that path is unchanged.
+- Go canonical owner: none (renderer-only)
+- Frontend adapter: `infrastructure/ai/sdk/providers.ts` (surface-capability guard); regression suite `infrastructure/ai/sdk/providers.test.ts` (partial-bridge streaming fallback, non-streaming aiFetch preserved, full-surface IPC channel preserved, missing-bridge fallback)
+- Electron owner affected: none
+- Preserved invariants: full-surface Electron path byte-identical; the WV3-L194 `aiFetch` wins (model catalog, probe) stay on the bridge surface
+- Data/schema impact: none
+- Security impact: none new — the direct-fetch fallback is the pre-L194 status quo and WebView CORS still applies
+- Verification: node --test infrastructure/ai/sdk/providers.test.ts (4/4); node --test infrastructure/ai/sdk/codebuddySdkContract.test.ts (1/1); npm run wails:build ok (exe 14:09)
+- Platforms covered: Windows 10 22H2 x64 unit tests; live Catty send under the Wails shell re-smoke pending user
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node provider stack stays until W22
+- Documentation updated: ledger, remaining-work
+- Residual risks: Catty streaming in the Wails shell without a Go provider now falls back to direct renderer fetch (CORS-dependent, pre-L194 status quo); the real answer remains the Go provider path (`goRuntimeReady` via `NETCATTY_AI_PROVIDER_JSON`) or the P7-04 typed provider methods
+- Next safe slice: W10 close-out audit (secret-service bindings exposure + raw-channel bypass), then W16
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
