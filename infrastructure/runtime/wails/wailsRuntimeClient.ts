@@ -349,6 +349,14 @@ export interface WailsBindingDeps {
     AgentReadEvents: (turnID: string, afterSequence: string, limit: number) => Promise<AgentEventPage>;
     AgentSnapshot: (turnID: string) => Promise<AgentTurnSnapshot>;
     AgentStatus: () => Promise<{ goRuntimeReady: boolean; fixtureDriver: boolean }>;
+    // Go interaction router (W13). Unknown/already-resolved ids fail typed.
+    AgentPendingInteractions?: () => Promise<Array<{
+      interactionId: string;
+      capabilityId: string;
+      summary?: Record<string, unknown>;
+      deadlineMs?: number;
+    }>>;
+    AgentRespondInteraction?: (interactionID: string, approved: boolean) => Promise<void>;
   };
 }
 
@@ -1223,6 +1231,41 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     return { ok };
   };
 
+  // Go interaction router (W13): the host blocks a capability dispatch until
+  // the renderer responds, the deadline lapses or the turn cancels. Lazy
+  // single subscription + Set fan-out, like subscribeScriptEvents, so every
+  // mounted approval host (App shell + settings window) sees the prompt.
+  type AgentInteractionCallback = Parameters<NonNullable<NetcattyBridge["onAgentInteraction"]>>[0];
+  const agentInteractionListeners = new Set<AgentInteractionCallback>();
+  let agentInteractionSubscribed = false;
+  const subscribeAgentInteractionEvents = () => {
+    if (agentInteractionSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    agentInteractionSubscribed = true;
+    eventsOn("agent:interaction", (event) => {
+      const payload = ((event as { data?: unknown })?.data ?? event) as Parameters<AgentInteractionCallback>[0];
+      for (const listener of agentInteractionListeners) listener(payload);
+    });
+  };
+  const onAgentInteraction = ((cb: AgentInteractionCallback) => {
+    subscribeAgentInteractionEvents();
+    agentInteractionListeners.add(cb);
+    return () => {
+      agentInteractionListeners.delete(cb);
+    };
+  }) as unknown as NetcattyBridge["onAgentInteraction"];
+  const agentPendingInteractions = (async () => {
+    if (!bindings.agentservice?.AgentPendingInteractions) missingBridgeMethod("agentPendingInteractions");
+    return bindings.agentservice.AgentPendingInteractions();
+  }) as unknown as NetcattyBridge["agentPendingInteractions"];
+  // Errors propagate untouched: the caller distinguishes typed
+  // "not pending"/"already resolved" outcomes from transport failures.
+  const agentRespondInteraction = (async (interactionId: string, approved: boolean) => {
+    if (!bindings.agentservice?.AgentRespondInteraction) missingBridgeMethod("agentRespondInteraction");
+    await bindings.agentservice.AgentRespondInteraction(interactionId, approved);
+  }) as unknown as NetcattyBridge["agentRespondInteraction"];
+
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
     ...cloudOAuth,
@@ -1257,6 +1300,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       })));
       return { ok: result.OK };
     }) as NonNullable<NetcattyBridge["aiSyncProviders"]>,
+    onAgentInteraction,
+    agentPendingInteractions,
+    agentRespondInteraction,
     openProviderConsole,
     scriptRecordingStart,
     scriptRecordingStop,

@@ -22,6 +22,7 @@ import { cancelSettingsFocus, focusSettingsAnchor } from "./settings/settingsFoc
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { LazyLoadBoundary } from "./ui/lazy-load-boundary";
 import { ExternalMcpApprovalsHost } from "./ai/ExternalMcpApprovalsHost";
+import { AgentInteractionApprovalsHost } from "./ai/AgentInteractionApprovalsHost";
 import { useExternalMcpGrantPersister } from "./ai/useExternalMcpGrantPersister";
 import { setupMcpApprovalBridge } from "../infrastructure/ai/shared/approvalGate";
 import { usePluginContributions } from "../application/state/usePluginContributions";
@@ -705,6 +706,7 @@ const SettingsPageContent: React.FC<{ settings: SettingsState; appLock?: AppLock
             </Tabs>
         </div>
         <ExternalMcpApprovalsHost />
+        <AgentInteractionApprovalsHost />
         <PluginContributionHost locale={settings.uiLanguage} theme={settings.resolvedTheme} />
         </>
     );

@@ -301,6 +301,9 @@ export const zhTWAiMessages: Messages = {
   'ai.toolAccess.mode.mcp': 'MCP',
   'ai.toolAccess.mode.skills': 'Skills + CLI',
 
+  // Go agent interaction approvals (W13)
+  'ai.agentApproval.title': 'Agent 審核',
+
   'ai.externalMcp.title': '對外 MCP',
   'ai.externalMcp.description': '將 Netcatty 作為 MCP 伺服器暴露給 Codex、Claude Code、Cursor、Grok 等外部用戶端。工具面與應用內 Agent 相同。用戶端連線期間請保持 Netcatty 執行。',
   'ai.externalMcp.sessionsExposed': '作用域內工作階段：{count}',

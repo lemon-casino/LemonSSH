@@ -301,6 +301,9 @@ export const esAiMessages: Messages = {
   'ai.toolAccess.mode.mcp': 'MCP',
   'ai.toolAccess.mode.skills': 'Habilidades + CLI',
 
+  // Go agent interaction approvals (W13)
+  'ai.agentApproval.title': 'Aprobaciones del agente',
+
   // External MCP (productized catalog MCP for Codex / Claude Code / Cursor)
   'ai.externalMcp.title': 'MCP externo',
   'ai.externalMcp.description': 'Expón Netcatty como un servidor MCP para clientes externos como Codex, Claude Code, Cursor y Grok. Usa las mismas herramientas del catálogo que los agentes de la aplicación (terminal, SFTP, Vault, reenvío de puertos). Mantén Netcatty en ejecución mientras los clientes estén conectados.',

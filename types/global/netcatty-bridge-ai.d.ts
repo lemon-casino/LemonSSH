@@ -190,6 +190,23 @@ declare global {
       turnKind?: 'review' | 'compact';
     }>;
     aiSdkAgentListModels?(sdkBackend: string, cwd?: string, providerId?: string, chatSessionId?: string, agentEnv?: Record<string, string>, agentCommand?: string, codexRuntime?: 'sdk' | 'app-server'): Promise<{ ok: boolean; models?: Array<{ id: string; name: string; description?: string; thinkingLevels?: string[]; defaultThinkingLevel?: string }>; currentModelId?: string | null; warning?: string; error?: string }>;
+    // Go interaction router (W13): the host blocks a capability dispatch until
+    // the renderer decides, auto-rejecting at deadlineMs / on cancellation.
+    onAgentInteraction?(cb: (payload: {
+      interactionId: string;
+      capabilityId: string;
+      description?: string;
+      summary?: Record<string, unknown>;
+      deadlineMs?: number;
+    }) => void): () => void;
+    agentPendingInteractions?(): Promise<Array<{
+      interactionId: string;
+      capabilityId: string;
+      summary?: Record<string, unknown>;
+      deadlineMs?: number;
+    }>>;
+    /** Unknown / already-resolved interaction ids fail typed. */
+    agentRespondInteraction?(interactionId: string, approved: boolean): Promise<void>;
     codexAppServerGetStatus?(agentCommand?: string, agentEnv?: Record<string, string>): Promise<{ ok: boolean; available: boolean; error?: string }>;
     onCodexAppServerInteractionRequest?(cb: (payload: Record<string, unknown>) => void): () => void;
     onCodexAppServerInteractionCleared?(cb: (payload: { interactionIds: string[]; chatSessionId?: string }) => void): () => void;

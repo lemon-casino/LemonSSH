@@ -10,6 +10,7 @@ import { ToastProvider } from './components/ui/toast';
 import { TooltipProvider } from './components/ui/tooltip';
 import { ScriptAutomationRoot } from './components/scripts/ScriptAutomationRoot';
 import { ExternalMcpApprovalsHost } from './components/ai/ExternalMcpApprovalsHost';
+import { AgentInteractionApprovalsHost } from './components/ai/AgentInteractionApprovalsHost';
 import { PluginAuthenticationHost } from './components/plugins/PluginAuthenticationHost';
 import { useExternalMcpGrantPersister } from './components/ai/useExternalMcpGrantPersister';
 import { setupMcpApprovalBridge } from './infrastructure/ai/shared/approvalGate';
@@ -80,6 +81,7 @@ function AppWithProviders({ settings, appLock }: { settings: SettingsState; appL
             <TooltipProvider delayDuration={300}>
               <ScriptAutomationRoot />
               <ExternalMcpApprovalsHost />
+              <AgentInteractionApprovalsHost />
               <PluginAuthenticationHost />
               <VaultPublisher>
                 <SessionPublisher persistSessionRestore={!isPeerSessionWindow}>

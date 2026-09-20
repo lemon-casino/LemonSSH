@@ -958,3 +958,59 @@ test("vault backup methods are reachable on both surfaces", async () => {
   assert.equal(typeof client.transitionBridge.createVaultBackup, "function");
   assert.equal(typeof client.transitionBridge.listVaultBackups, "function");
 });
+
+test("agent interaction bridge fans events lazily and maps decisions onto the Go gate", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const bindings = stubBindings();
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const responded: Array<[string, boolean]> = [];
+  bindings.agentservice = {
+    AgentPendingInteractions: async () => [
+      { interactionId: "ia_pending", capabilityId: "netcatty.exec", summary: { method: "netcatty/exec", command: "reboot" }, deadlineMs: 4102444800000 },
+    ],
+    AgentRespondInteraction: async (interactionID: string, approved: boolean) => {
+      responded.push([interactionID, approved]);
+      if (interactionID === "ia_gone") throw new Error('interaction "ia_gone" is not pending (already resolved or unknown)');
+    },
+  } as WailsBindingDeps["agentservice"];
+  const client = createWailsRuntimeClient(bindings);
+
+  // The "agent:interaction" subscription stays lazy until a listener arrives.
+  assert.equal(listeners.has("agent:interaction"), false);
+
+  const seen: Array<{ interactionId: string; capabilityId: string }> = [];
+  const dispose = client.transitionBridge.onAgentInteraction!((payload) => seen.push({ interactionId: payload.interactionId, capabilityId: payload.capabilityId }));
+  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_1", capabilityId: "netcatty.exec", description: "Run a command", summary: { command: "reboot" }, deadlineMs: 4102444800000 } });
+  // The same event without the Wails data envelope must still reach listeners.
+  listeners.get("agent:interaction")?.[0]({ interactionId: "ia_2", capabilityId: "netcatty.sftp.write" });
+  assert.deepEqual(seen, [
+    { interactionId: "ia_1", capabilityId: "netcatty.exec" },
+    { interactionId: "ia_2", capabilityId: "netcatty.sftp.write" },
+  ]);
+  dispose();
+  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_3", capabilityId: "netcatty.x" } });
+  assert.deepEqual(seen.map((entry) => entry.interactionId), ["ia_1", "ia_2"]);
+
+  assert.deepEqual(await client.transitionBridge.agentPendingInteractions!(), [
+    { interactionId: "ia_pending", capabilityId: "netcatty.exec", summary: { method: "netcatty/exec", command: "reboot" }, deadlineMs: 4102444800000 },
+  ]);
+  await client.transitionBridge.agentRespondInteraction!("ia_1", true);
+  // Go's typed double-response guard rejects with its own message, untouched.
+  await assert.rejects(client.transitionBridge.agentRespondInteraction!("ia_gone", false), /is not pending/);
+  assert.deepEqual(responded, [["ia_1", true], ["ia_gone", false]]);
+});
+
+test("agent interaction bridge fails closed without the agent service", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  delete (bindings as Partial<WailsBindingDeps>).agentservice;
+  const client = createWailsRuntimeClient(bindings);
+  await assert.rejects(client.transitionBridge.agentPendingInteractions!(), /agentPendingInteractions is not available/);
+  await assert.rejects(client.transitionBridge.agentRespondInteraction!("ia_1", true), /agentRespondInteraction is not available/);
+});

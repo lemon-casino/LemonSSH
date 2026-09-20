@@ -254,6 +254,9 @@ export const ruAiMessages: Messages = {
   'ai.toolAccess.mode.mcp': 'MCP',
   'ai.toolAccess.mode.skills': 'Skills + CLI',
 
+  // Go agent interaction approvals (W13)
+  'ai.agentApproval.title': 'Подтверждения действий агента',
+
   'ai.externalMcp.title': 'Внешний MCP',
   'ai.externalMcp.description': 'Откройте Netcatty как MCP-сервер для Codex, Claude Code, Cursor и Grok. Набор инструментов тот же, что у встроенных агентов. Держите Netcatty запущенным, пока клиенты подключены.',
   'ai.externalMcp.sessionsExposed': 'Сессий в области: {count}',
