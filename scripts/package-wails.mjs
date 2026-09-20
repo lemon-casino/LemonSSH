@@ -4,7 +4,7 @@
 // release-evidence workflow. Native builds keep the platform default CGO
 // setting; cross builds are qualification binaries only (CGO disabled).
 import { createHash } from "node:crypto";
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir, rm } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -188,8 +188,15 @@ export async function packageWails(argv = process.argv.slice(2), runCommand = ru
 
   // CLI/MCP retain the console subsystem for JSON and stdio transports.
   const tools = [];
-  for (const command of ['netcatty-tool', 'netcatty-mcp']) {
-    const name = command + (target.goos === 'windows' ? '.exe' : '');
+  const nativeTools = [
+    { command: 'netcatty-tool', output: 'LemonSSH-tool' },
+    { command: 'netcatty-mcp', output: 'LemonSSH-mcp' },
+  ];
+  for (const legacy of ['netcatty-tool', 'netcatty-mcp']) {
+    await rm(path.join(args.outDir, legacy + (target.goos === 'windows' ? '.exe' : '')), { force: true });
+  }
+  for (const { command, output } of nativeTools) {
+    const name = output + (target.goos === 'windows' ? '.exe' : '');
     await runCommand(`go build -trimpath "-ldflags=-s -w" -o "${path.join(args.outDir, name)}" ./cmd/${command}`, null, { env });
     tools.push(name);
   }

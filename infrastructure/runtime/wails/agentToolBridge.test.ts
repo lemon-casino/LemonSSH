@@ -7,11 +7,11 @@ const on = () => () => {};
 test('external MCP settings reach the independent native access controller', async () => {
   const calls: unknown[] = [];
   const bridge = createAgentToolBridge({
-    AgentExternalStatus: async () => ({ ok: true, enabled: true, launcherPath: 'netcatty-mcp.exe' }),
+    AgentExternalStatus: async () => ({ ok: true, enabled: true, launcherPath: 'LemonSSH-mcp.exe' }),
     AgentExternalSetEnabled: async enabled => { calls.push(enabled); return { ok: true }; },
     AgentExternalSetConfig: async config => { calls.push(config); return { ok: true }; },
   }, on, id => id);
-  assert.equal((await bridge.externalMcpGetStatus!()).launcherPath, 'netcatty-mcp.exe');
+  assert.equal((await bridge.externalMcpGetStatus!()).launcherPath, 'LemonSSH-mcp.exe');
   await bridge.externalMcpSetEnabled!(false);
   await bridge.externalMcpSetConfig!({ mode: 'persistent', idleTimeoutMinutes: 12 });
   assert.deepEqual(calls, [false, { mode: 'persistent', idleTimeoutMinutes: 12 }]);

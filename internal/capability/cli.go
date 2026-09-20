@@ -134,7 +134,7 @@ func (r *Registry) FormatCLIHelpLines() []string {
 		if entry.Status == StatusPlanned {
 			suffix = " (planned)"
 		}
-		lines = append(lines, fmt.Sprintf("  netcatty-tool %s%s", strings.Join(entry.Command, " "), suffix))
+		lines = append(lines, fmt.Sprintf("  LemonSSH-tool %s%s", strings.Join(entry.Command, " "), suffix))
 	}
 	return lines
 }

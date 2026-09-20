@@ -3,6 +3,8 @@ import type { Messages } from '../types';
 export const zhCNAiMessages: Messages = {
   // AI Settings
   'ai.agentSettings': 'Agent 设置',
+  'ai.agent.directory': '目录',
+  'ai.agent.selectDirectory': '选择包含 Agent 可执行文件的目录',
   'ai.chat.preparing': '准备中…',
   'ai.chat.compactingContext': '正在压缩较早的上下文…',
   'ai.chat.compactingStep': '正在为下一步整理上下文…',
@@ -202,8 +204,9 @@ export const zhCNAiMessages: Messages = {
   'ai.cursor.saved': '已保存',
   'ai.cursor.showApiKey': '显示 API Key',
   'ai.cursor.hideApiKey': '隐藏 API Key',
-  'ai.cursor.customPathPlaceholder': '例如 /usr/local/bin/cursor',
+  'ai.cursor.customPathPlaceholder': '例如 /usr/local/bin/cursor-agent',
   'ai.cursor.check': '检查',
+  'ai.cursor.resetPath': '重置',
 
   // AI CodeBuddy Code
   'ai.codebuddy.title': 'CodeBuddy Code',
@@ -358,7 +361,7 @@ export const zhCNAiMessages: Messages = {
   'ai.externalMcp.installCodex': '请先单独安装 Codex，然后点击刷新。',
   'ai.externalMcp.installClaude': '请先单独安装 Claude Code，然后点击刷新。',
   'ai.externalMcp.installGrok': '请先单独安装 Grok CLI，然后点击刷新。',
-  'ai.externalMcp.conflict.description': '已存在指向其他位置的 netcatty-external 条目，请手动删除或修改。',
+  'ai.externalMcp.conflict.description': '已存在指向其他位置的 lemonssh-external 条目，请手动删除或修改。',
   'ai.externalMcp.enableForLauncher': '请先启用对外 MCP，以获取可用的 launcher 路径。',
   'ai.externalMcp.cursor.title': 'Cursor / 其他客户端',
   'ai.externalMcp.cursor.description': '合并到 MCP 配置文件（例如 ~/.cursor/mcp.json）。若已有其他服务器，请勿整文件覆盖。',

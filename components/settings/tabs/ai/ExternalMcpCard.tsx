@@ -220,27 +220,27 @@ function quoteShellArg(value: string) {
   return `"${value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}"`;
 }
 
-const EXTERNAL_MCP_DISCOVERY_ENV_VAR = "NETCATTY_EXTERNAL_MCP_DISCOVERY_FILE";
+const EXTERNAL_MCP_DISCOVERY_ENV_VAR = "LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE";
 
 export function formatCodexAddCommand(launcherPath: string, discoveryPath?: string | null) {
   const envFlags = discoveryPath
     ? ` --env ${EXTERNAL_MCP_DISCOVERY_ENV_VAR}=${quoteShellArg(discoveryPath)}`
     : "";
-  return `codex mcp add netcatty-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
+  return `codex mcp add lemonssh-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
 }
 
 export function formatClaudeAddCommand(launcherPath: string, discoveryPath?: string | null) {
   const envFlags = discoveryPath
     ? ` -e ${EXTERNAL_MCP_DISCOVERY_ENV_VAR}=${quoteShellArg(discoveryPath)}`
     : "";
-  return `claude mcp add -s user netcatty-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
+  return `claude mcp add -s user lemonssh-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
 }
 
 export function formatGrokAddCommand(launcherPath: string, discoveryPath?: string | null) {
   const envFlags = discoveryPath
     ? ` -e ${EXTERNAL_MCP_DISCOVERY_ENV_VAR}=${quoteShellArg(discoveryPath)}`
     : "";
-  return `grok mcp add netcatty-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
+  return `grok mcp add lemonssh-external${envFlags} -- ${quoteShellArg(launcherPath)}`;
 }
 
 function buildTomlEnvBlock(discoveryPath?: string | null) {
@@ -249,13 +249,13 @@ function buildTomlEnvBlock(discoveryPath?: string | null) {
 }
 
 export function buildCodexTomlSnippet(launcherPath: string, discoveryPath?: string | null) {
-  return `[mcp_servers.netcatty-external]
+  return `[mcp_servers.lemonssh-external]
 command = "${escapeTomlBasicString(launcherPath)}"
 args = []${buildTomlEnvBlock(discoveryPath)}`;
 }
 
 export function buildGrokTomlSnippet(launcherPath: string, discoveryPath?: string | null) {
-  return `[mcp_servers.netcatty-external]
+  return `[mcp_servers.lemonssh-external]
 command = "${escapeTomlBasicString(launcherPath)}"
 args = []${buildTomlEnvBlock(discoveryPath)}`;
 }
@@ -278,7 +278,7 @@ function buildJsonServerEntry(launcherPath: string, discoveryPath?: string | nul
 export function buildClaudeSnippet(launcherPath: string, discoveryPath?: string | null) {
   return JSON.stringify({
     mcpServers: {
-      "netcatty-external": buildJsonServerEntry(launcherPath, discoveryPath),
+      "lemonssh-external": buildJsonServerEntry(launcherPath, discoveryPath),
     },
   }, null, 2);
 }
@@ -286,7 +286,7 @@ export function buildClaudeSnippet(launcherPath: string, discoveryPath?: string 
 export function buildCursorSnippet(launcherPath: string, discoveryPath?: string | null) {
   return JSON.stringify({
     mcpServers: {
-      "netcatty-external": buildJsonServerEntry(launcherPath, discoveryPath),
+      "lemonssh-external": buildJsonServerEntry(launcherPath, discoveryPath),
     },
   }, null, 2);
 }

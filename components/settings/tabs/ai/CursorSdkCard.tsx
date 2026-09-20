@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Check, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Check, Eye, EyeOff } from "lucide-react";
 import { useI18n } from "../../../../application/i18n/I18nProvider";
 import { decryptField } from "../../../../infrastructure/persistence/secureFieldAdapter";
 import type { CursorAuthMode } from "../../../../infrastructure/ai/types";
 import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
 import type { AgentPathInfo } from "./types";
+import { AgentExecutablePathField } from "./AgentExecutablePathField";
 
 export const CursorSdkCard: React.FC<{
   pathInfo: AgentPathInfo | null;
   isResolvingPath: boolean;
+  customPath: string;
+  onCustomPathChange: (path: string) => void;
+  onSelectDirectory: () => void;
+  onResetPath: () => void;
   encryptedApiKey?: string;
   authMode: CursorAuthMode;
   onAuthModeChange: (mode: CursorAuthMode) => void;
@@ -18,6 +23,10 @@ export const CursorSdkCard: React.FC<{
 }> = ({
   pathInfo,
   isResolvingPath,
+  customPath,
+  onCustomPathChange,
+  onSelectDirectory,
+  onResetPath,
   encryptedApiKey,
   authMode,
   onAuthModeChange,
@@ -167,6 +176,26 @@ export const CursorSdkCard: React.FC<{
         </p>
       )}
 
+      {!isResolvingPath && (
+        <AgentExecutablePathField
+          i18nPrefix="ai.cursor"
+          customPath={customPath}
+          onCustomPathChange={onCustomPathChange}
+          onSelectDirectory={onSelectDirectory}
+          onRecheckPath={onRecheckPath}
+          onResetPath={onResetPath}
+          allowEmptyCheck
+        />
+      )}
+
+      {installed && pathInfo?.path ? (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">{t("ai.cursor.path")}</span>
+          <span className="font-mono text-foreground truncate">{pathInfo.path}</span>
+          {pathInfo.version ? <span className="text-muted-foreground">{pathInfo.version}</span> : null}
+        </div>
+      ) : null}
+
       {isApiKeyMode ? (
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">{t("ai.cursor.apiKey")}</label>
@@ -202,10 +231,6 @@ export const CursorSdkCard: React.FC<{
               {saved ? <Check size={14} className="mr-1.5" /> : null}
               {saved ? t("ai.cursor.saved") : t("ai.cursor.saveApiKey")}
             </Button>
-            <Button variant="outline" size="sm" onClick={onRecheckPath} disabled={isResolvingPath}>
-              <RefreshCw size={14} className="mr-1.5" />
-              {t("ai.cursor.check")}
-            </Button>
           </div>
           {usesEnvApiKey && !hasStoredApiKey ? (
             <p className="text-[11px] text-muted-foreground leading-4">
@@ -218,14 +243,7 @@ export const CursorSdkCard: React.FC<{
             </p>
           ) : null}
         </div>
-      ) : (
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={onRecheckPath} disabled={isResolvingPath}>
-            <RefreshCw size={14} className="mr-1.5" />
-            {t("ai.cursor.check")}
-          </Button>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };

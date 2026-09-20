@@ -4,6 +4,8 @@ export const ruAiMessages: Messages = {
   'ai.chat.contextUsage': 'Контекст: {used} / {max} токенов',
   // AI Settings
   'ai.agentSettings': 'Настройки агента',
+  'ai.agent.directory': 'Папка',
+  'ai.agent.selectDirectory': 'Выберите папку с исполняемым файлом агента',
   'ai.chat.preparing': 'Подготовка…',
   'ai.title': 'AI',
   'ai.description': 'Настройка AI-провайдеров, агентов и параметров безопасности',
@@ -183,8 +185,9 @@ export const ruAiMessages: Messages = {
   'ai.cursor.saved': 'Сохранено',
   'ai.cursor.showApiKey': 'Показать API-ключ',
   'ai.cursor.hideApiKey': 'Скрыть API-ключ',
-  'ai.cursor.customPathPlaceholder': 'например, /usr/local/bin/cursor',
+  'ai.cursor.customPathPlaceholder': 'например, /usr/local/bin/cursor-agent',
   'ai.cursor.check': 'Проверить',
+  'ai.cursor.resetPath': 'Сбросить',
 
   // AI CodeBuddy Code
   'ai.codebuddy.title': 'CodeBuddy Code',
@@ -310,7 +313,7 @@ export const ruAiMessages: Messages = {
   'ai.externalMcp.installCodex': 'Сначала установите Codex, затем нажмите Обновить.',
   'ai.externalMcp.installClaude': 'Сначала установите Claude Code, затем нажмите Обновить.',
   'ai.externalMcp.installGrok': 'Сначала установите Grok CLI, затем нажмите Обновить.',
-  'ai.externalMcp.conflict.description': 'Запись netcatty-external уже существует и указывает в другое место. Удалите или измените её вручную.',
+  'ai.externalMcp.conflict.description': 'Запись lemonssh-external уже существует и указывает в другое место. Удалите или измените её вручную.',
   'ai.externalMcp.enableForLauncher': 'Включите External MCP, чтобы получить путь launcher.',
   'ai.externalMcp.cursor.title': 'Cursor / другие клиенты',
   'ai.externalMcp.cursor.description': 'Объедините с MCP-конфигом (например ~/.cursor/mcp.json). Не заменяйте весь файл, если там уже есть другие серверы.',

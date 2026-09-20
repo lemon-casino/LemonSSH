@@ -43,7 +43,7 @@ func (h *AgentHost) externalStatus() map[string]any {
 		state = "running"
 	}
 	exe, _ := os.Executable()
-	name := "netcatty-mcp"
+	name := "LemonSSH-mcp"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}

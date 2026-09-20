@@ -38,6 +38,25 @@ declare global {
       acpArgs?: string[];
     }>>;
     aiPrewarmShellEnv?(): Promise<{ ok: boolean; error?: string }>;
+    aiResolveCli?(params: {
+      command: string;
+      customPath?: string;
+      refreshShellEnv?: boolean;
+      apiKeyPresent?: boolean;
+    }): Promise<{
+      path: string | null;
+      binPath?: string | null;
+      version: string | null;
+      available: boolean;
+      installed?: boolean;
+      authenticated?: boolean;
+      authSource?: string | null;
+      cliEmail?: string | null;
+      cliBinPath?: string | null;
+      cliLoginOk?: boolean;
+      apiKeyOk?: boolean;
+      sdkInstalled?: boolean;
+    }>;
     aiCodexGetIntegration?(options?: { refreshShellEnv?: boolean; validateChatGptAuth?: boolean; codexPath?: string }): Promise<{
       state: 'connected_chatgpt' | 'connected_api_key' | 'connected_custom_config' | 'not_logged_in' | 'unknown';
       isConnected: boolean;

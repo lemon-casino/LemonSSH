@@ -277,6 +277,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
   const [cursorPathInfo, setCursorPathInfo] = useState<AgentPathInfo | null>(
     () => getSavedManagedAgentPathInfo(externalAgents, "cursor"),
   );
+  const [cursorCustomPath, setCursorCustomPath] = useState(() => initialManagedPathsRef.current?.cursor ?? "");
   const [isResolvingCursor, setIsResolvingCursor] = useState(false);
 
   const [codebuddyPathInfo, setCodebuddyPathInfo] = useState<AgentPathInfo | null>(
@@ -510,7 +511,10 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
   const handleSaveCursorApiKey = useCallback(async (apiKey: string) => {
     const trimmed = apiKey.trim();
     const encrypted = trimmed ? await encryptField(trimmed) : undefined;
-    const result = await resolveAgentPath("cursor", "", { apiKeyPresent: Boolean(trimmed) });
+    const result = await resolveAgentPath("cursor", cursorCustomPath, {
+      apiKeyPresent: Boolean(trimmed),
+      commandSource: cursorCustomPath.trim() ? "manual" : "auto",
+    });
     setExternalAgents((prev) => {
       const existing = prev.find((agent) => agent.id === "discovered_cursor");
       const others = prev.filter((agent) => agent.id !== "discovered_cursor");
@@ -538,7 +542,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
       };
       return [...others, nextAgent];
     });
-  }, [cursorPathInfo?.path, resolveAgentPath, setExternalAgents]);
+  }, [cursorCustomPath, cursorPathInfo?.path, resolveAgentPath, setExternalAgents]);
 
   const handleCursorAuthModeChange = useCallback((mode: CursorAuthMode) => {
     setExternalAgents((prev) => {
@@ -571,11 +575,12 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
       };
       return [...others, nextAgent];
     });
-    void resolveAgentPath("cursor", "", {
+    void resolveAgentPath("cursor", cursorCustomPath, {
       // Always report stored key presence for discovery fields; mode is separate.
       apiKeyPresent: Boolean(cursorApiKeyEncrypted),
+      commandSource: cursorCustomPath.trim() ? "manual" : "auto",
     });
-  }, [cursorApiKeyEncrypted, cursorPathInfo, resolveAgentPath, setExternalAgents]);
+  }, [cursorApiKeyEncrypted, cursorCustomPath, cursorPathInfo, resolveAgentPath, setExternalAgents]);
 
   // Add a new provider from preset
   const handleAddProvider = useCallback(
@@ -742,13 +747,15 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
         ? claudeCustomPath
         : agentKey === "copilot"
           ? copilotCustomPath
-          : agentKey === "codebuddy"
-            ? codebuddyCustomPath
-            : agentKey === "opencode"
-              ? opencodeCustomPath
-              : agentKey === "grok"
-                ? grokCustomPath
-                : "";
+          : agentKey === "cursor"
+            ? cursorCustomPath
+            : agentKey === "codebuddy"
+              ? codebuddyCustomPath
+              : agentKey === "opencode"
+                ? opencodeCustomPath
+                : agentKey === "grok"
+                  ? grokCustomPath
+                  : "";
     const result = await resolveAgentPath(agentKey, customPath, {
       refreshShellEnv: true,
       commandSource: customPath.trim() ? "manual" : "auto",
@@ -760,7 +767,82 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
         codexPath: result?.path || customPath.trim() || undefined,
       });
     }
-  }, [claudeCustomPath, codexCustomPath, copilotCustomPath, codebuddyCustomPath, opencodeCustomPath, grokCustomPath, resolveAgentPath, refreshCodexIntegration]);
+  }, [claudeCustomPath, codexCustomPath, copilotCustomPath, cursorCustomPath, codebuddyCustomPath, opencodeCustomPath, grokCustomPath, resolveAgentPath, refreshCodexIntegration]);
+
+  const handleSelectAgentDirectory = useCallback(async (agentKey: ManagedAgentKey) => {
+    const bridge = getBridge();
+    if (!bridge?.selectDirectory) return;
+    const customPath = agentKey === "codex"
+      ? codexCustomPath
+      : agentKey === "claude"
+        ? claudeCustomPath
+        : agentKey === "copilot"
+          ? copilotCustomPath
+          : agentKey === "cursor"
+            ? cursorCustomPath
+            : agentKey === "codebuddy"
+              ? codebuddyCustomPath
+              : agentKey === "opencode"
+                ? opencodeCustomPath
+                : grokCustomPath;
+    const resolvedPath = agentKey === "codex"
+      ? codexPathInfo?.path
+      : agentKey === "claude"
+        ? claudePathInfo?.path
+        : agentKey === "copilot"
+          ? copilotPathInfo?.path
+          : agentKey === "cursor"
+            ? cursorPathInfo?.path
+            : agentKey === "codebuddy"
+              ? codebuddyPathInfo?.path
+              : agentKey === "opencode"
+                ? opencodePathInfo?.path
+                : grokPathInfo?.path;
+    const pathForDefault = resolvedPath || customPath;
+    const separatorIndex = Math.max(pathForDefault.lastIndexOf("/"), pathForDefault.lastIndexOf("\\"));
+    const rootSeparator = separatorIndex === 0 || (separatorIndex === 2 && pathForDefault[1] === ":");
+    const defaultDirectory = resolvedPath && separatorIndex >= 0
+      ? pathForDefault.slice(0, separatorIndex + (rootSeparator ? 1 : 0))
+      : pathForDefault;
+    const selectedDirectory = await bridge.selectDirectory(t("ai.agent.selectDirectory"), defaultDirectory || undefined);
+    if (!selectedDirectory) return;
+
+    const setCustomPath = agentKey === "codex"
+      ? setCodexCustomPath
+      : agentKey === "claude"
+        ? setClaudeCustomPath
+        : agentKey === "copilot"
+          ? setCopilotCustomPath
+          : agentKey === "cursor"
+            ? setCursorCustomPath
+            : agentKey === "codebuddy"
+              ? setCodebuddyCustomPath
+              : agentKey === "opencode"
+                ? setOpencodeCustomPath
+                : setGrokCustomPath;
+    setCustomPath(selectedDirectory);
+    const result = await resolveAgentPath(agentKey, selectedDirectory, {
+      refreshShellEnv: true,
+      commandSource: "manual",
+      ...(agentKey === "cursor" ? { apiKeyPresent: Boolean(cursorApiKeyEncrypted) } : {}),
+    });
+    if (result?.available && result.path) {
+      setCustomPath(result.path);
+    }
+    if (agentKey === "codex") {
+      await refreshCodexIntegration({
+        refreshShellEnv: true,
+        validateChatGptAuth: true,
+        codexPath: result?.path || undefined,
+      });
+    }
+  }, [
+    claudeCustomPath, claudePathInfo?.path, codebuddyCustomPath, codebuddyPathInfo?.path,
+    codexCustomPath, codexPathInfo?.path, copilotCustomPath, copilotPathInfo?.path,
+    cursorApiKeyEncrypted, cursorCustomPath, cursorPathInfo?.path, grokCustomPath,
+    grokPathInfo?.path, opencodeCustomPath, opencodePathInfo?.path,
+    refreshCodexIntegration, resolveAgentPath, t,
+  ]);
 
   const handleResetCustomPath = useCallback(async (agentKey: ManagedAgentKey) => {
     if (agentKey === "codex") {
@@ -769,6 +851,8 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
       setClaudeCustomPath("");
     } else if (agentKey === "copilot") {
       setCopilotCustomPath("");
+    } else if (agentKey === "cursor") {
+      setCursorCustomPath("");
     } else if (agentKey === "codebuddy") {
       setCodebuddyCustomPath("");
     } else if (agentKey === "opencode") {
@@ -1074,6 +1158,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingCodex}
               customPath={codexCustomPath}
               onCustomPathChange={setCodexCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("codex")}
               onRecheckPath={() => void handleCheckCustomPath("codex")}
               onResetPath={() => void handleResetCustomPath("codex")}
               integration={codexIntegration}
@@ -1102,6 +1187,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingClaude}
               customPath={claudeCustomPath}
               onCustomPathChange={setClaudeCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("claude")}
               onRecheckPath={() => void handleCheckCustomPath("claude")}
               onResetPath={() => void handleResetCustomPath("claude")}
               configDir={claudeConfigDir}
@@ -1123,6 +1209,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingCopilot}
               customPath={copilotCustomPath}
               onCustomPathChange={setCopilotCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("copilot")}
               onRecheckPath={() => void handleCheckCustomPath("copilot")}
               onResetPath={() => void handleResetCustomPath("copilot")}
             />
@@ -1136,6 +1223,10 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
             <CursorSdkCard
               pathInfo={cursorPathInfo}
               isResolvingPath={isResolvingCursor}
+              customPath={cursorCustomPath}
+              onCustomPathChange={setCursorCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("cursor")}
+              onResetPath={() => void handleResetCustomPath("cursor")}
               encryptedApiKey={cursorApiKeyEncrypted}
               authMode={cursorAuthMode}
               onAuthModeChange={handleCursorAuthModeChange}
@@ -1154,6 +1245,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingCodebuddy}
               customPath={codebuddyCustomPath}
               onCustomPathChange={setCodebuddyCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("codebuddy")}
               onRecheckPath={() => void handleCheckCustomPath("codebuddy")}
               onResetPath={() => void handleResetCustomPath("codebuddy")}
               internetEnv={codebuddyInternetEnv}
@@ -1174,6 +1266,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingOpencode}
               customPath={opencodeCustomPath}
               onCustomPathChange={setOpencodeCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("opencode")}
               onRecheckPath={() => void handleCheckCustomPath("opencode")}
               onResetPath={() => void handleResetCustomPath("opencode")}
               i18nPrefix="ai.opencode"
@@ -1189,6 +1282,7 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
               isResolvingPath={isResolvingGrok}
               customPath={grokCustomPath}
               onCustomPathChange={setGrokCustomPath}
+              onSelectDirectory={() => void handleSelectAgentDirectory("grok")}
               onRecheckPath={() => void handleCheckCustomPath("grok")}
               onResetPath={() => void handleResetCustomPath("grok")}
               i18nPrefix="ai.grok"

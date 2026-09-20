@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ChevronDown, RefreshCw, RotateCcw } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useI18n } from "../../../../application/i18n/I18nProvider";
-import { Button } from "../../../ui/button";
 import { cn } from "../../../../lib/utils";
 import type { AgentPathInfo } from "./types";
 import type { CodebuddyAdvancedOptions } from "../../../../infrastructure/ai/types";
 import { parseEnvLines, serializeEnvLines } from "./codebuddyConfigEnv";
+import { AgentExecutablePathField } from "./AgentExecutablePathField";
 
 const INTERNET_ENV_OPTIONS = [
   { value: "", labelKey: "ai.codebuddy.internetEnv.default" },
@@ -26,6 +26,7 @@ export const CodebuddyCard: React.FC<{
   isResolvingPath: boolean;
   customPath: string;
   onCustomPathChange: (path: string) => void;
+  onSelectDirectory: () => void;
   onRecheckPath: () => void;
   onResetPath: () => void;
   internetEnv: string;
@@ -39,6 +40,7 @@ export const CodebuddyCard: React.FC<{
   isResolvingPath,
   customPath,
   onCustomPathChange,
+  onSelectDirectory,
   onRecheckPath,
   onResetPath,
   internetEnv,
@@ -124,23 +126,14 @@ export const CodebuddyCard: React.FC<{
               {t('ai.codebuddy.notFoundHint')}
             </p>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={customPath}
-              onChange={(e) => onCustomPathChange(e.target.value)}
-              placeholder={t('ai.codebuddy.customPathPlaceholder')}
-              className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-            <Button variant="outline" size="sm" onClick={onRecheckPath} disabled={!customPath.trim()}>
-              <RefreshCw size={14} className="mr-1.5" />
-              {t('ai.codebuddy.check')}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onResetPath} disabled={!customPath.trim()}>
-              <RotateCcw size={14} className="mr-1.5" />
-              {t('ai.codebuddy.resetPath')}
-            </Button>
-          </div>
+          <AgentExecutablePathField
+            i18nPrefix="ai.codebuddy"
+            customPath={customPath}
+            onCustomPathChange={onCustomPathChange}
+            onSelectDirectory={onSelectDirectory}
+            onRecheckPath={onRecheckPath}
+            onResetPath={onResetPath}
+          />
         </div>
       )}
 

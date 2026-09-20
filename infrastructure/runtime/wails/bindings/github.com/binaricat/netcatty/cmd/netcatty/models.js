@@ -25,6 +25,139 @@ import * as script$0 from "../../internal/script/models.js";
 // @ts-ignore: Unused imports
 import * as transfer$0 from "../../internal/terminal/transfer/models.js";
 
+export class AgentCLIPathInfo {
+    /**
+     * Creates a new AgentCLIPathInfo instance.
+     * @param {Partial<AgentCLIPathInfo>} [$$source = {}] - The source object to create the AgentCLIPathInfo.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("binPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["binPath"] = "";
+        }
+        if (!("version" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["version"] = null;
+        }
+        if (!("available" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["available"] = false;
+        }
+        if (!("installed" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["installed"] = false;
+        }
+        if (!("authenticated" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["authenticated"] = false;
+        }
+        if (!("authSource" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["authSource"] = null;
+        }
+        if (!("cliEmail" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cliEmail"] = "";
+        }
+        if (!("cliBinPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cliBinPath"] = "";
+        }
+        if (!("cliLoginOk" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["cliLoginOk"] = false;
+        }
+        if (!("apiKeyOk" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["apiKeyOk"] = false;
+        }
+        if (!("sdkInstalled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["sdkInstalled"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentCLIPathInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AgentCLIPathInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentCLIPathInfo(/** @type {Partial<AgentCLIPathInfo>} */($$parsedSource));
+    }
+}
+
+export class AgentCLIPrewarmResult {
+    /**
+     * Creates a new AgentCLIPrewarmResult instance.
+     * @param {Partial<AgentCLIPrewarmResult>} [$$source = {}] - The source object to create the AgentCLIPrewarmResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AgentCLIPrewarmResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {AgentCLIPrewarmResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AgentCLIPrewarmResult(/** @type {Partial<AgentCLIPrewarmResult>} */($$parsedSource));
+    }
+}
+
 /**
  * AgentSession is renderer-owned metadata. NativeID is used only to resolve
  * the terminal transport; tools continue to see the UI session identity.
@@ -710,6 +843,118 @@ export class CloudSyncWebDAVConfig {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new CloudSyncWebDAVConfig(/** @type {Partial<CloudSyncWebDAVConfig>} */($$parsedSource));
+    }
+}
+
+export class DiscoveredAgentCLI {
+    /**
+     * Creates a new DiscoveredAgentCLI instance.
+     * @param {Partial<DiscoveredAgentCLI>} [$$source = {}] - The source object to create the DiscoveredAgentCLI.
+     */
+    constructor($$source = {}) {
+        if (!("command" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["command"] = "";
+        }
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("binPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["binPath"] = "";
+        }
+        if (!("version" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["version"] = null;
+        }
+        if (!("available" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["available"] = false;
+        }
+        if (!("installed" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["installed"] = false;
+        }
+        if (!("authenticated" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["authenticated"] = false;
+        }
+        if (!("authSource" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["authSource"] = null;
+        }
+        if (!("cliEmail" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cliEmail"] = "";
+        }
+        if (!("cliBinPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["cliBinPath"] = "";
+        }
+        if (!("cliLoginOk" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["cliLoginOk"] = false;
+        }
+        if (!("apiKeyOk" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["apiKeyOk"] = false;
+        }
+        if (!("sdkInstalled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["sdkInstalled"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DiscoveredAgentCLI instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DiscoveredAgentCLI}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DiscoveredAgentCLI(/** @type {Partial<DiscoveredAgentCLI>} */($$parsedSource));
     }
 }
 

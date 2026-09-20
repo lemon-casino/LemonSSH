@@ -6,6 +6,7 @@
 import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as agentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentservice";
+import * as agentCLIServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentcliservice";
 import type {
   EventPage as AgentEventPage,
   PrepareTurnRequest as AgentPrepareTurnRequest,
@@ -59,6 +60,7 @@ import { createZmodemBridge } from './zmodemBridge';
 import { subscribePopupConfig } from './popupConfigSubscription';
 import { configureProfileBindings } from "../profile/profileClient";
 import { createAgentToolBridge, type NativeAgentToolBindings } from './agentToolBridge';
+import { createAgentCliBridge, type NativeAgentCLIBindings } from './agentCliBridge';
 import { createProviderBridge, type NativeProviderBindings } from './providerBridge';
 
 export function isWailsRuntime(): boolean {
@@ -359,6 +361,7 @@ export interface WailsBindingDeps {
     }>>;
     AgentRespondInteraction?: (interactionID: string, approved: boolean) => Promise<void>;
   };
+  agentcli?: NativeAgentCLIBindings;
 }
 
   const defaultBindings: WailsBindingDeps = {
@@ -384,6 +387,7 @@ export interface WailsBindingDeps {
     tray: trayService as unknown as WailsBindingDeps["tray"],
     sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
     agentservice: agentServiceBinding as unknown as WailsBindingDeps["agentservice"],
+    agentcli: agentCLIServiceBinding as unknown as NativeAgentCLIBindings,
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -1269,6 +1273,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
 
   const implementedBridge: Partial<NetcattyBridge> = {
     ...createAgentToolBridge(bindings.agentservice, bindings.events?.On ?? Events.On, nativeSessionId),
+    ...createAgentCliBridge(bindings.agentcli),
     ...monitoring,
     ...cloudOAuth,
     ...createProviderBridge(bindings.provider ?? providerFetchService as unknown as NativeProviderBindings, bindings.events?.On ?? Events.On),

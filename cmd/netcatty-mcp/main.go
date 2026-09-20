@@ -34,15 +34,22 @@ func (r *relay) host(discoveryPath string) (*rpc.Client, error) {
 }
 
 func main() {
-	discoveryPath := os.Getenv("NETCATTY_TOOL_CLI_DISCOVERY_FILE")
-	if external := os.Getenv("NETCATTY_EXTERNAL_MCP_DISCOVERY_FILE"); external != "" {
+	discoveryPath := os.Getenv("LEMONSSH_TOOL_CLI_DISCOVERY_FILE")
+	if discoveryPath == "" {
+		discoveryPath = os.Getenv("NETCATTY_TOOL_CLI_DISCOVERY_FILE")
+	}
+	external := os.Getenv("LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE")
+	if external == "" {
+		external = os.Getenv("NETCATTY_EXTERNAL_MCP_DISCOVERY_FILE")
+	}
+	if external != "" {
 		discoveryPath = external
 	}
 	registry := capability.Default()
 	tools := registry.ListMcpTools()
 
 	sort.Slice(tools, func(i, j int) bool { return tools[i].ToolName < tools[j].ToolName })
-	server := mcp.NewServer(&mcp.Implementation{Name: "netcatty", Version: serverVersion}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "lemonssh", Version: serverVersion}, nil)
 	r := &relay{}
 	for _, tool := range tools {
 		def := tool
@@ -56,7 +63,7 @@ func main() {
 	}
 
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
-		fmt.Fprintf(os.Stderr, "netcatty-mcp: server failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "LemonSSH-mcp: server failed: %v\n", err)
 		os.Exit(1)
 	}
 }

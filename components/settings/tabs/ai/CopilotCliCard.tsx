@@ -1,17 +1,17 @@
 import React from "react";
-import { RefreshCw, RotateCcw } from "lucide-react";
 import { useI18n } from "../../../../application/i18n/I18nProvider";
-import { Button } from "../../../ui/button";
 import { Switch } from "../../../ui/switch";
 import { cn } from "../../../../lib/utils";
 import type { GrokRuntime } from "../../../../infrastructure/ai/types";
 import type { AgentPathInfo } from "./types";
+import { AgentExecutablePathField } from "./AgentExecutablePathField";
 
 export const CopilotCliCard: React.FC<{
   pathInfo: AgentPathInfo | null;
   isResolvingPath: boolean;
   customPath: string;
   onCustomPathChange: (path: string) => void;
+  onSelectDirectory: () => void;
   onRecheckPath: () => void;
   onResetPath?: () => void;
   i18nPrefix?: "ai.copilot" | "ai.cursor" | "ai.opencode" | "ai.grok";
@@ -25,6 +25,7 @@ export const CopilotCliCard: React.FC<{
   isResolvingPath,
   customPath,
   onCustomPathChange,
+  onSelectDirectory,
   onRecheckPath,
   onResetPath,
   i18nPrefix = "ai.copilot",
@@ -80,27 +81,17 @@ export const CopilotCliCard: React.FC<{
               {t(`${i18nPrefix}.notFoundHint`)}
             </p>
           )}
-          <div className={cn("flex items-center gap-2", showCustomPathInput ? "" : "justify-end")}>
-            {showCustomPathInput && (
-              <input
-                type="text"
-                value={customPath}
-                onChange={(e) => onCustomPathChange(e.target.value)}
-                placeholder={t(`${i18nPrefix}.customPathPlaceholder`)}
-                className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            )}
-            <Button variant="outline" size="sm" onClick={onRecheckPath} disabled={!allowEmptyCheck && !customPath.trim()}>
-              <RefreshCw size={14} className="mr-1.5" />
-              {t(`${i18nPrefix}.check`)}
-            </Button>
-            {showCustomPathInput && onResetPath && (
-              <Button variant="ghost" size="sm" onClick={onResetPath} disabled={!customPath.trim()}>
-                <RotateCcw size={14} className="mr-1.5" />
-                {t(`${i18nPrefix}.resetPath`)}
-              </Button>
-            )}
-          </div>
+          {showCustomPathInput ? (
+            <AgentExecutablePathField
+              i18nPrefix={i18nPrefix}
+              customPath={customPath}
+              onCustomPathChange={onCustomPathChange}
+              onSelectDirectory={onSelectDirectory}
+              onRecheckPath={onRecheckPath}
+              onResetPath={onResetPath}
+              allowEmptyCheck={allowEmptyCheck}
+            />
+          ) : null}
         </div>
       )}
 

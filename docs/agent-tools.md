@@ -24,13 +24,13 @@ session scope checks. Each builtin, global and public RPC alias is registered.
 The six harness tools (workspace information, session information, terminal
 context, saved output, web search and URL fetch) execute in the renderer.
 
-Wails packages include `netcatty-tool` and `netcatty-mcp` (with `.exe` on
-Windows). First-party launchers pass `NETCATTY_TOOL_CLI_DISCOVERY_FILE` pointing
+Wails packages include `LemonSSH-tool` and `LemonSSH-mcp` (with `.exe` on
+Windows). First-party launchers pass `LEMONSSH_TOOL_CLI_DISCOVERY_FILE` pointing
 to the running application's discovery file. These binaries contain no
 Electron or Node runtime.
 
 Settings can enable external MCP with a separate revocable token and discovery
-file. Client configuration uses `NETCATTY_EXTERNAL_MCP_DISCOVERY_FILE`.
+file. Client configuration uses `LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE`.
 Disabling external access cancels that scope without affecting first-party
 tools. Temporary access and agent-created sessions expire after their configured
 idle periods; the user's existing terminals are retained.

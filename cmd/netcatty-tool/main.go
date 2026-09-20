@@ -57,9 +57,12 @@ func run() int {
 
 	// Connection precedes command resolution so an app-down condition
 	// surfaces as UNAVAILABLE regardless of arguments (CJS precedence).
-	discoveryPath := os.Getenv("NETCATTY_TOOL_CLI_DISCOVERY_FILE")
+	discoveryPath := os.Getenv("LEMONSSH_TOOL_CLI_DISCOVERY_FILE")
 	if discoveryPath == "" {
-		emitError("UNAVAILABLE", "NETCATTY_TOOL_CLI_DISCOVERY_FILE is not set; launch via Netcatty.")
+		discoveryPath = os.Getenv("NETCATTY_TOOL_CLI_DISCOVERY_FILE")
+	}
+	if discoveryPath == "" {
+		emitError("UNAVAILABLE", "LEMONSSH_TOOL_CLI_DISCOVERY_FILE is not set; launch via LemonSSH.")
 		return exitCall
 	}
 	client, err := rpc.Dial(discoveryPath)
@@ -215,9 +218,9 @@ func optKeyIndex() map[string]string {
 func usageText() string {
 	registry := capability.Default()
 	lines := append([]string{
-		"Netcatty tool CLI",
+		"LemonSSH tool CLI",
 		"",
-		"Usage: netcatty-tool <command> [subcommands] [--flags]",
+		"Usage: LemonSSH-tool <command> [subcommands] [--flags]",
 		"",
 		"Commands:",
 	}, registry.FormatCLIHelpLines()...)

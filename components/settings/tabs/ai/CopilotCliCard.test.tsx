@@ -4,10 +4,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CopilotCliCard } from "./CopilotCliCard";
 
-function firstButton(markup: string): string {
-  const match = markup.match(/<button\b[^>]*>/);
-  return match?.[0] ?? "";
+function buttonFor(markup: string, label: string): string {
+  const buttons = markup.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
+  return buttons.find((button) => button.includes(label)) ?? "";
 }
+
+const noop = () => {};
 
 test("Cursor check button stays enabled without a custom path", () => {
   const markup = renderToStaticMarkup(
@@ -15,14 +17,16 @@ test("Cursor check button stays enabled without a custom path", () => {
       pathInfo={{ path: null, version: null, available: false }}
       isResolvingPath={false}
       customPath=""
-      onCustomPathChange={() => {}}
-      onRecheckPath={() => {}}
+      onCustomPathChange={noop}
+      onSelectDirectory={noop}
+      onRecheckPath={noop}
       i18nPrefix="ai.cursor"
       allowEmptyCheck
     />,
   );
 
-  assert.equal(firstButton(markup).includes("disabled=\"\""), false);
+  assert.equal(buttonFor(markup, "ai.cursor.check").includes("disabled=\"\""), false);
+  assert.ok(markup.indexOf("ai.agent.directory") < markup.indexOf("ai.cursor.check"));
 });
 
 test("Copilot check button still requires a custom path", () => {
@@ -31,12 +35,13 @@ test("Copilot check button still requires a custom path", () => {
       pathInfo={{ path: null, version: null, available: false }}
       isResolvingPath={false}
       customPath=""
-      onCustomPathChange={() => {}}
-      onRecheckPath={() => {}}
+      onCustomPathChange={noop}
+      onSelectDirectory={noop}
+      onRecheckPath={noop}
     />,
   );
 
-  assert.equal(firstButton(markup).includes("disabled=\"\""), true);
+  assert.equal(buttonFor(markup, "ai.copilot.check").includes("disabled=\"\""), true);
 });
 
 test("Grok card surfaces ACP runtime toggle when detected", () => {
@@ -45,11 +50,12 @@ test("Grok card surfaces ACP runtime toggle when detected", () => {
       pathInfo={{ path: "/usr/bin/grok", version: "0.2.118", available: true }}
       isResolvingPath={false}
       customPath=""
-      onCustomPathChange={() => {}}
-      onRecheckPath={() => {}}
+      onCustomPathChange={noop}
+      onSelectDirectory={noop}
+      onRecheckPath={noop}
       i18nPrefix="ai.grok"
       grokRuntime="acp"
-      onGrokRuntimeChange={() => {}}
+      onGrokRuntimeChange={noop}
     />,
   );
 
@@ -63,8 +69,9 @@ test("Grok card hides ACP toggle without runtime change handler", () => {
       pathInfo={{ path: "/usr/bin/grok", version: "0.2.118", available: true }}
       isResolvingPath={false}
       customPath=""
-      onCustomPathChange={() => {}}
-      onRecheckPath={() => {}}
+      onCustomPathChange={noop}
+      onSelectDirectory={noop}
+      onRecheckPath={noop}
       i18nPrefix="ai.grok"
       grokRuntime="acp"
     />,

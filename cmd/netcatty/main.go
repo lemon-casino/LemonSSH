@@ -243,6 +243,7 @@ func main() {
 		wailsApp.Event.Emit(name, payload)
 	})
 	agentService := newAgentService(turnManager, devDriver, attachmentRegistry, outputStore, interactionRouter)
+	agentCLIService := newAgentCLIService()
 
 	// Agent host (W13): the authenticated loopback RPC surface the native
 	// CLI/MCP binaries connect to via the discovery file.
@@ -322,6 +323,7 @@ func main() {
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(scriptService))
 	wailsApp.RegisterService(application.NewService(agentService))
+	wailsApp.RegisterService(application.NewService(agentCLIService))
 	wailsApp.RegisterService(application.NewService(providerFetchService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))

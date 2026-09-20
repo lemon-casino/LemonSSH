@@ -3,6 +3,8 @@ import type { Messages } from '../types';
 export const enAiMessages: Messages = {
   // AI Settings
   'ai.agentSettings': 'Agent Settings',
+  'ai.agent.directory': 'Directory',
+  'ai.agent.selectDirectory': 'Select the directory containing the agent executable',
   'ai.chat.preparing': 'Preparing…',
   'ai.chat.compactingContext': 'Compacting earlier context…',
   'ai.chat.compactingStep': 'Trimming context for next step…',
@@ -202,8 +204,9 @@ export const enAiMessages: Messages = {
   'ai.cursor.saved': 'Saved',
   'ai.cursor.showApiKey': 'Show API key',
   'ai.cursor.hideApiKey': 'Hide API key',
-  'ai.cursor.customPathPlaceholder': 'e.g. /usr/local/bin/cursor',
+  'ai.cursor.customPathPlaceholder': 'e.g. /usr/local/bin/cursor-agent',
   'ai.cursor.check': 'Check',
+  'ai.cursor.resetPath': 'Reset',
 
   // AI CodeBuddy Code
   'ai.codebuddy.title': 'CodeBuddy Code',
@@ -358,7 +361,7 @@ export const enAiMessages: Messages = {
   'ai.externalMcp.installCodex': 'Install Codex separately, then click Refresh.',
   'ai.externalMcp.installClaude': 'Install Claude Code separately, then click Refresh.',
   'ai.externalMcp.installGrok': 'Install the Grok CLI separately, then click Refresh.',
-  'ai.externalMcp.conflict.description': 'A netcatty-external entry already exists and points elsewhere. Remove or edit it manually.',
+  'ai.externalMcp.conflict.description': 'A lemonssh-external entry already exists and points elsewhere. Remove or edit it manually.',
   'ai.externalMcp.enableForLauncher': 'Enable External MCP to get a usable launcher path.',
   'ai.externalMcp.cursor.title': 'Cursor / other clients',
   'ai.externalMcp.cursor.description': 'Merge this into your MCP config (for example ~/.cursor/mcp.json). Do not replace the whole file if you already have other servers.',

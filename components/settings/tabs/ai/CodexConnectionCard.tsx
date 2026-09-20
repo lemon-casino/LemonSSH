@@ -1,16 +1,18 @@
 import React from "react";
-import { ExternalLink, LogIn, LogOut, RefreshCw, RotateCcw, X } from "lucide-react";
+import { ExternalLink, LogIn, LogOut, RefreshCw, X } from "lucide-react";
 import { useI18n } from "../../../../application/i18n/I18nProvider";
 import { Button } from "../../../ui/button";
 import { Switch } from "../../../ui/switch";
 import { cn } from "../../../../lib/utils";
 import type { AgentPathInfo, CodexAppServerStatus, CodexIntegrationStatus, CodexLoginSession } from "./types";
+import { AgentExecutablePathField } from "./AgentExecutablePathField";
 
 export const CodexConnectionCard: React.FC<{
   pathInfo: AgentPathInfo | null;
   isResolvingPath: boolean;
   customPath: string;
   onCustomPathChange: (path: string) => void;
+  onSelectDirectory: () => void;
   onRecheckPath: () => void;
   onResetPath: () => void;
   integration: CodexIntegrationStatus | null;
@@ -31,6 +33,7 @@ export const CodexConnectionCard: React.FC<{
   isResolvingPath,
   customPath,
   onCustomPathChange,
+  onSelectDirectory,
   onRecheckPath,
   onResetPath,
   integration,
@@ -127,23 +130,14 @@ export const CodexConnectionCard: React.FC<{
               {t('ai.codex.notFoundHint')}
             </p>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={customPath}
-              onChange={(e) => onCustomPathChange(e.target.value)}
-              placeholder={t('ai.codex.customPathPlaceholder')}
-              className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-            <Button variant="outline" size="sm" onClick={onRecheckPath} disabled={!customPath.trim()}>
-              <RefreshCw size={14} className="mr-1.5" />
-              {t('ai.codex.check')}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onResetPath} disabled={!customPath.trim()}>
-              <RotateCcw size={14} className="mr-1.5" />
-              {t('ai.codex.resetPath')}
-            </Button>
-          </div>
+          <AgentExecutablePathField
+            i18nPrefix="ai.codex"
+            customPath={customPath}
+            onCustomPathChange={onCustomPathChange}
+            onSelectDirectory={onSelectDirectory}
+            onRecheckPath={onRecheckPath}
+            onResetPath={onResetPath}
+          />
         </div>
       )}
 
