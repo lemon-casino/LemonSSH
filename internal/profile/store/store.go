@@ -123,7 +123,9 @@ func (s *Store) Revision() (uint64, error) {
 	return s.revision, nil
 }
 
-// GetRaw returns the raw value bytes for domain/key.
+// GetRaw returns the raw value bytes for domain/key. A stored zero-length
+// value is present: it returns an empty (non-nil) slice, and ErrNoSuchKey is
+// reserved for keys the store does not hold.
 func (s *Store) GetRaw(domain, key string) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

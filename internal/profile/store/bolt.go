@@ -95,20 +95,27 @@ func getRaw(path, domain, key string) ([]byte, error) {
 		return nil, err
 	}
 	var value []byte
+	// Presence is tracked separately from the copied bytes: a stored value may
+	// legitimately be zero-length (localStorage empty string), and copying it
+	// with append([]byte(nil), raw...) would collapse it back to nil and look
+	// like a missing key.
+	found := false
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket, err := domainBucket(tx, domain, false)
 		if err != nil || bucket == nil {
 			return err
 		}
 		if raw := bucket.Get([]byte(key)); raw != nil {
-			value = append([]byte(nil), raw...)
+			found = true
+			value = make([]byte, len(raw))
+			copy(value, raw)
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if value == nil {
+	if !found {
 		return nil, ErrNoSuchKey
 	}
 	return value, nil

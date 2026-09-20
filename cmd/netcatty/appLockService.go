@@ -62,7 +62,9 @@ func (s *AppLockService) loadVerifier() {
 		return
 	}
 	raw, err := s.store.GetRaw(appLockDomain, appLockKey)
-	if errors.Is(err, store.ErrNoSuchKey) {
+	// A missing or empty verifier means app lock was never configured; an empty
+	// value must not lock the app with an unusable verifier.
+	if errors.Is(err, store.ErrNoSuchKey) || (err == nil && len(raw) == 0) {
 		return
 	}
 	s.verifierPresent = true

@@ -51,6 +51,57 @@ func TestRawValueRoundTripAndBounds(t *testing.T) {
 	}
 }
 
+func TestEmptyValueIsPresentNotMissing(t *testing.T) {
+	s := openTestStore(t)
+	// A zero-length value is a real value: localStorage stores empty strings
+	// (no custom CSS, default session log directory) and they must not read
+	// back as ErrNoSuchKey.
+	if err := s.SetRaw("settings", "netcatty_custom_css_v1", []byte{}); err != nil {
+		t.Fatalf("set empty: %v", err)
+	}
+	value, err := s.GetRaw("settings", "netcatty_custom_css_v1")
+	if err != nil {
+		t.Fatalf("empty value must read back, got %v", err)
+	}
+	if value == nil || len(value) != 0 {
+		t.Fatalf("empty value must be non-nil and zero-length, got %#v", value)
+	}
+
+	// The same holds for a transaction-issued empty value.
+	if _, err := s.Write(WriteRequest{Mutations: []Mutation{{
+		Domain: "settings", Key: "netcatty_session_logs_dir_v1", Value: []byte{},
+	}}}); err != nil {
+		t.Fatalf("transaction empty: %v", err)
+	}
+	value, err = s.GetRaw("settings", "netcatty_session_logs_dir_v1")
+	if err != nil || len(value) != 0 {
+		t.Fatalf("transaction empty value must read back, got %q (%v)", value, err)
+	}
+
+	// Enumeration reports the key, so hydration can see it.
+	keys, err := s.DomainKeys("settings")
+	if err != nil {
+		t.Fatalf("domain keys: %v", err)
+	}
+	found := false
+	for _, key := range keys {
+		if key == "netcatty_custom_css_v1" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("empty-valued key must stay enumerable, got %v", keys)
+	}
+
+	// A deleted key is still absent, not empty.
+	if err := s.DeleteRaw("settings", "netcatty_custom_css_v1"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if _, err := s.GetRaw("settings", "netcatty_custom_css_v1"); !errors.Is(err, ErrNoSuchKey) {
+		t.Fatalf("deleted key must be ErrNoSuchKey, got %v", err)
+	}
+}
+
 func TestRevisionCASAndConflict(t *testing.T) {
 	s := openTestStore(t)
 	revision, err := s.Revision()
