@@ -13,14 +13,25 @@ import (
 // MonitoringResult keeps the existing shell success/error envelope. Payload
 // keys are collection-specific and omitted on failure.
 type MonitoringResult struct {
-	Success      bool           `json:"success"`
-	Error        string         `json:"error,omitempty"`
-	Stats        any            `json:"stats,omitempty"`
-	Capabilities monitoring.Row `json:"capabilities,omitempty"`
-	Processes    any            `json:"processes,omitempty"`
-	Sessions     any            `json:"sessions,omitempty"`
-	Containers   any            `json:"containers,omitempty"`
-	Images       any            `json:"images,omitempty"`
+	Success             bool           `json:"success"`
+	Error               string         `json:"error,omitempty"`
+	Stats               any            `json:"stats,omitempty"`
+	Capabilities        monitoring.Row `json:"capabilities,omitempty"`
+	Processes           any            `json:"processes,omitempty"`
+	Sessions            any            `json:"sessions,omitempty"`
+	Windows             any            `json:"windows,omitempty"`
+	Panes               any            `json:"panes,omitempty"`
+	Clients             any            `json:"clients,omitempty"`
+	Containers          any            `json:"containers,omitempty"`
+	Images              any            `json:"images,omitempty"`
+	Ports               any            `json:"ports,omitempty"`
+	Units               any            `json:"units,omitempty"`
+	Devices             any            `json:"devices,omitempty"`
+	Inspect             any            `json:"inspect,omitempty"`
+	Output              string         `json:"output,omitempty"`
+	TmuxVersion         string         `json:"tmuxVersion,omitempty"`
+	NvidiaDriverVersion string         `json:"nvidiaDriverVersion,omitempty"`
+	ProbedAt            int64          `json:"probedAt,omitempty"`
 }
 
 // DockerStatsOptions filters docker stats rows client-side by name or ID.

@@ -18,7 +18,9 @@ var (
 
 // Action is the parsed intent.
 type Action struct {
-	Kind      string     `json:"kind"` // "ssh" | "telnet"
+	Kind      string     `json:"kind"` // "ssh" | "telnet" | "jms"
+	URL       string     `json:"url,omitempty"`
+	Path      string     `json:"path,omitempty"`
 	Host      string     `json:"host"`
 	Port      string     `json:"port"`
 	Username  string     `json:"username,omitempty"`
@@ -39,6 +41,13 @@ func Parse(rawURL string) (*Action, error) {
 		return nil, ErrMalformedIntent
 	}
 	scheme = strings.ToLower(scheme)
+	if scheme == "jms" {
+		payload := strings.TrimSpace(rest)
+		if payload == "" || strings.ContainsAny(payload, " \t\r\n") {
+			return nil, ErrMalformedIntent
+		}
+		return &Action{Kind: "jms", URL: strings.TrimSpace(rawURL)}, nil
+	}
 	kind := "ssh"
 	switch scheme {
 	case "netcatty":
@@ -80,7 +89,7 @@ func Parse(rawURL string) (*Action, error) {
 	if host == "" || strings.ContainsAny(host, " \t\r\n") {
 		return nil, ErrMalformedIntent
 	}
-	action := &Action{Kind: kind, Host: host, Port: port}
+	action := &Action{Kind: kind, URL: strings.TrimSpace(rawURL), Host: host, Port: port}
 	if username != "" {
 		action.Username = username
 	}
@@ -137,6 +146,26 @@ func (q *Queue) Enqueue(rawURL string) error {
 	}
 	q.pending = append(q.pending, action)
 	return nil
+}
+
+// EnqueueAction records an already validated native action.
+func (q *Queue) EnqueueAction(action *Action, dedupeKey string) {
+	if action == nil || strings.TrimSpace(dedupeKey) == "" {
+		return
+	}
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.seen[dedupeKey] {
+		return
+	}
+	q.seen[dedupeKey] = true
+	if q.ready {
+		for _, handler := range q.handlers {
+			handler(action)
+		}
+		return
+	}
+	q.pending = append(q.pending, action)
 }
 
 // Ready marks the app ready and flushes buffered intents in order.

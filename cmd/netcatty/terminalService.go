@@ -27,6 +27,14 @@ type (
 	TerminalRemoteInfo          = terminaluse.TerminalRemoteInfo
 	MonitoringResult            = terminaluse.MonitoringResult
 	DockerStatsOptions          = terminaluse.DockerStatsOptions
+	ProcessSignalOptions        = terminaluse.ProcessSignalOptions
+	TmuxSessionRequest          = terminaluse.TmuxSessionRequest
+	TmuxTargetRequest           = terminaluse.TmuxTargetRequest
+	TmuxActionRequest           = terminaluse.TmuxActionRequest
+	SystemServiceActionRequest  = terminaluse.SystemServiceActionRequest
+	DockerInspectRequest        = terminaluse.DockerInspectRequest
+	DockerActionRequest         = terminaluse.DockerActionRequest
+	DockerImageActionRequest    = terminaluse.DockerImageActionRequest
 	AutocompleteDirectoryEntry  = terminaluse.AutocompleteDirectoryEntry
 	AutocompleteDirectoryResult = terminaluse.AutocompleteDirectoryResult
 	DiscoveredShell             = terminaluse.DiscoveredShell
@@ -222,6 +230,66 @@ func (s *TerminalService) ListDockerImages(ctx context.Context, sessionID string
 
 func (s *TerminalService) GetDockerStats(ctx context.Context, options DockerStatsOptions) MonitoringResult {
 	return s.core.GetDockerStats(ctx, options)
+}
+
+func (s *TerminalService) SignalSystemProcess(ctx context.Context, options ProcessSignalOptions) MonitoringResult {
+	return s.core.SignalSystemProcess(ctx, options)
+}
+
+func (s *TerminalService) SetupOsc7Tracking(ctx context.Context, sessionID, command string) MonitoringResult {
+	return s.core.SetupOSC7Tracking(ctx, sessionID, command)
+}
+
+func (s *TerminalService) CreateTmuxSession(ctx context.Context, request TmuxSessionRequest) MonitoringResult {
+	return s.core.CreateTmuxSession(ctx, request)
+}
+
+func (s *TerminalService) ListTmuxWindows(ctx context.Context, request TmuxTargetRequest) MonitoringResult {
+	return s.core.ListTmuxWindows(ctx, request)
+}
+
+func (s *TerminalService) ListTmuxPanes(ctx context.Context, request TmuxTargetRequest) MonitoringResult {
+	return s.core.ListTmuxPanes(ctx, request)
+}
+
+func (s *TerminalService) ListTmuxClients(ctx context.Context, request TmuxTargetRequest) MonitoringResult {
+	return s.core.ListTmuxClients(ctx, request)
+}
+
+func (s *TerminalService) TmuxAction(ctx context.Context, request TmuxActionRequest) MonitoringResult {
+	return s.core.TmuxAction(ctx, request)
+}
+
+func (s *TerminalService) ListAccelerators(ctx context.Context, sessionID string) MonitoringResult {
+	return s.core.ListAccelerators(ctx, sessionID)
+}
+
+func (s *TerminalService) ListListeningPorts(ctx context.Context, sessionID string) MonitoringResult {
+	return s.core.ListListeningPorts(ctx, sessionID)
+}
+
+func (s *TerminalService) ListSystemServices(ctx context.Context, sessionID string) MonitoringResult {
+	return s.core.ListSystemServices(ctx, sessionID)
+}
+
+func (s *TerminalService) SystemServiceAction(ctx context.Context, request SystemServiceActionRequest) MonitoringResult {
+	return s.core.SystemServiceAction(ctx, request)
+}
+
+func (s *TerminalService) DockerInspect(ctx context.Context, request DockerInspectRequest) MonitoringResult {
+	return s.core.DockerInspect(ctx, request)
+}
+
+func (s *TerminalService) DockerImageInspect(ctx context.Context, request DockerInspectRequest) MonitoringResult {
+	return s.core.DockerImageInspect(ctx, request)
+}
+
+func (s *TerminalService) DockerAction(ctx context.Context, request DockerActionRequest) MonitoringResult {
+	return s.core.DockerAction(ctx, request)
+}
+
+func (s *TerminalService) DockerImageAction(ctx context.Context, request DockerImageActionRequest) MonitoringResult {
+	return s.core.DockerImageAction(ctx, request)
 }
 
 func (s *TerminalService) ListAutocompleteDirectory(ctx context.Context, sessionID, directory string, foldersOnly bool, prefix string, limit int) AutocompleteDirectoryResult {

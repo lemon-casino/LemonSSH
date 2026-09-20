@@ -55,6 +55,16 @@ export function CancelZmodem(sessionID) {
 }
 
 /**
+ * @param {$models.SSHAgentOptions} options
+ * @returns {$CancellablePromise<$models.SSHAgentStatus>}
+ */
+export function CheckSshAgent(options) {
+    return $Call.ByID(3260916108, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * @param {string} sessionID
  * @returns {$CancellablePromise<void>}
  */
@@ -71,11 +81,80 @@ export function Connect(request) {
 }
 
 /**
+ * @param {$models.TmuxSessionRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function CreateTmuxSession(request) {
+    return $Call.ByID(2346936473, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * @returns {$CancellablePromise<$models.DiscoveredShell[]>}
  */
 export function DiscoverShells() {
     return $Call.ByID(2771791745).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * @param {$models.DockerActionRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function DockerAction(request) {
+    return $Call.ByID(165986671, request).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.DockerImageActionRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function DockerImageAction(request) {
+    return $Call.ByID(2638850792, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.DockerInspectRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function DockerImageInspect(request) {
+    return $Call.ByID(1692815502, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.DockerInspectRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function DockerInspect(request) {
+    return $Call.ByID(3781119207, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.KeyPairOptions} options
+ * @returns {$CancellablePromise<$models.KeyPairResult>}
+ */
+export function GenerateKeyPair(options) {
+    return $Call.ByID(1524652637, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType5($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.DefaultSSHKey[]>}
+ */
+export function GetDefaultKeys() {
+    return $Call.ByID(1930779420).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType7($result);
     }));
 }
 
@@ -92,7 +171,7 @@ export function GetDefaultShell() {
  */
 export function GetDockerStats(options) {
     return $Call.ByID(612413738, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
     }));
 }
 
@@ -102,7 +181,7 @@ export function GetDockerStats(options) {
  */
 export function GetExitStatus(id) {
     return $Call.ByID(222198297, id).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType9($result);
     }));
 }
 
@@ -112,7 +191,7 @@ export function GetExitStatus(id) {
  */
 export function GetHelperSessionState(sessionID) {
     return $Call.ByID(796067590, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType10($result);
     }));
 }
 
@@ -122,7 +201,7 @@ export function GetHelperSessionState(sessionID) {
  */
 export function GetServerStats(sessionID) {
     return $Call.ByID(2973806447, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
     }));
 }
 
@@ -133,7 +212,7 @@ export function GetServerStats(sessionID) {
  */
 export function GetSessionPwd(sessionID, options) {
     return $Call.ByID(1679513552, sessionID, options).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType7($result);
+        return $$createType11($result);
     }));
 }
 
@@ -143,7 +222,7 @@ export function GetSessionPwd(sessionID, options) {
  */
 export function GetSessionRemoteInfo(sessionID) {
     return $Call.ByID(3844699739, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType8($result);
+        return $$createType12($result);
     }));
 }
 
@@ -153,7 +232,17 @@ export function GetSessionRemoteInfo(sessionID) {
  */
 export function GetTelnetEchoMode(sessionID) {
     return $Call.ByID(2459092297, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType9($result);
+        return $$createType13($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListAccelerators(sessionID) {
+    return $Call.ByID(1247856625, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
     }));
 }
 
@@ -167,7 +256,7 @@ export function GetTelnetEchoMode(sessionID) {
  */
 export function ListAutocompleteDirectory(sessionID, directory, foldersOnly, prefix, limit) {
     return $Call.ByID(1485152420, sessionID, directory, foldersOnly, prefix, limit).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType10($result);
+        return $$createType14($result);
     }));
 }
 
@@ -177,7 +266,7 @@ export function ListAutocompleteDirectory(sessionID, directory, foldersOnly, pre
  */
 export function ListDockerContainers(sessionID) {
     return $Call.ByID(3885403661, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
     }));
 }
 
@@ -187,7 +276,17 @@ export function ListDockerContainers(sessionID) {
  */
 export function ListDockerImages(sessionID) {
     return $Call.ByID(1903017463, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListListeningPorts(sessionID) {
+    return $Call.ByID(1107536006, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
     }));
 }
 
@@ -196,7 +295,7 @@ export function ListDockerImages(sessionID) {
  */
 export function ListSerialPorts() {
     return $Call.ByID(663993127).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType12($result);
+        return $$createType16($result);
     }));
 }
 
@@ -206,7 +305,37 @@ export function ListSerialPorts() {
  */
 export function ListSystemProcesses(sessionID) {
     return $Call.ByID(3602454473, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListSystemServices(sessionID) {
+    return $Call.ByID(1687033304, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.TmuxTargetRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListTmuxClients(request) {
+    return $Call.ByID(364471245, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.TmuxTargetRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListTmuxPanes(request) {
+    return $Call.ByID(4015298154, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
     }));
 }
 
@@ -216,7 +345,17 @@ export function ListSystemProcesses(sessionID) {
  */
 export function ListTmuxSessions(sessionID) {
     return $Call.ByID(3524218066, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.TmuxTargetRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function ListTmuxWindows(request) {
+    return $Call.ByID(1858283168, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
     }));
 }
 
@@ -233,7 +372,7 @@ export function ListenAddr() {
  */
 export function ProbeSystemCapabilities(sessionID) {
     return $Call.ByID(2006892894, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType2($result);
     }));
 }
 
@@ -244,7 +383,7 @@ export function ProbeSystemCapabilities(sessionID) {
  */
 export function ReceiveSerialYmodem(sessionID, destinationDir) {
     return $Call.ByID(3045917549, sessionID, destinationDir).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType14($result);
+        return $$createType18($result);
     }));
 }
 
@@ -293,7 +432,7 @@ export function RespondKeyboardInteractive(requestID, responses, cancelled) {
  */
 export function RestartHelper(sessionID) {
     return $Call.ByID(2694891548, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType10($result);
     }));
 }
 
@@ -314,7 +453,7 @@ export function RunnerFor(sessionID) {
  */
 export function SendSerialYmodem(sessionID, filePath) {
     return $Call.ByID(4074171664, sessionID, filePath).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType15($result);
+        return $$createType19($result);
     }));
 }
 
@@ -331,11 +470,32 @@ export function SendZmodem(sessionID, filePath, remoteName, command) {
 
 /**
  * @param {string} sessionID
+ * @param {string} command
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function SetupOsc7Tracking(sessionID, command) {
+    return $Call.ByID(1680930791, sessionID, command).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
  * @param {string} signal
  * @returns {$CancellablePromise<void>}
  */
 export function Signal(sessionID, signal) {
     return $Call.ByID(4236247009, sessionID, signal);
+}
+
+/**
+ * @param {$models.ProcessSignalOptions} options
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function SignalSystemProcess(options) {
+    return $Call.ByID(512255837, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
 }
 
 /**
@@ -390,13 +550,33 @@ export function StartTelnet(request) {
 }
 
 /**
+ * @param {$models.SystemServiceActionRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function SystemServiceAction(request) {
+    return $Call.ByID(3026757165, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * TestProxy probes HTTP/SOCKS5/ProxyCommand reachability without opening a session.
  * @param {$models.ProxyProbeRequest} request
  * @returns {$CancellablePromise<$models.ProxyProbeResult>}
  */
 export function TestProxy(request) {
     return $Call.ByID(3774340899, request).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType16($result);
+        return $$createType20($result);
+    }));
+}
+
+/**
+ * @param {$models.TmuxActionRequest} request
+ * @returns {$CancellablePromise<$models.MonitoringResult>}
+ */
+export function TmuxAction(request) {
+    return $Call.ByID(2420520077, request).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
     }));
 }
 
@@ -408,7 +588,7 @@ export function TestProxy(request) {
  */
 export function TransportFor(sessionID) {
     return $Call.ByID(1529495929, sessionID).then(/** @type {($result: any) => any} */(($result) => {
-        $result[0] = $$createType18($result[0]);
+        $result[0] = $$createType22($result[0]);
         return $result;
     }));
 }
@@ -420,7 +600,7 @@ export function TransportFor(sessionID) {
  */
 export function ValidatePath(path, kind) {
     return $Call.ByID(1211764756, path, kind).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType19($result);
+        return $$createType23($result);
     }));
 }
 
@@ -435,22 +615,26 @@ export function Write(sessionID, data) {
 
 // Private type creation functions
 const $$createType0 = dataplane$0.RouteBootstrap.createFrom;
-const $$createType1 = terminaluse$0.DiscoveredShell.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = terminaluse$0.MonitoringResult.createFrom;
-const $$createType4 = terminaluse$0.TerminalExitStatus.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = terminaluse$0.HelperSessionState.createFrom;
-const $$createType7 = terminaluse$0.TerminalPwdResult.createFrom;
-const $$createType8 = terminaluse$0.TerminalRemoteInfo.createFrom;
-const $$createType9 = $Create.Map($Create.Any, $Create.Any);
-const $$createType10 = terminaluse$0.AutocompleteDirectoryResult.createFrom;
-const $$createType11 = serialport$0.Info.createFrom;
-const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = ymodem$0.ReceiveResult.createFrom;
-const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = ymodem$0.SendResult.createFrom;
-const $$createType16 = terminaluse$0.ProxyProbeResult.createFrom;
-const $$createType17 = ssh$0.Client.createFrom;
-const $$createType18 = $Create.Nullable($$createType17);
-const $$createType19 = terminaluse$0.PathValidation.createFrom;
+const $$createType1 = $models.SSHAgentStatus.createFrom;
+const $$createType2 = terminaluse$0.MonitoringResult.createFrom;
+const $$createType3 = terminaluse$0.DiscoveredShell.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $models.KeyPairResult.createFrom;
+const $$createType6 = $models.DefaultSSHKey.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = terminaluse$0.TerminalExitStatus.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = terminaluse$0.HelperSessionState.createFrom;
+const $$createType11 = terminaluse$0.TerminalPwdResult.createFrom;
+const $$createType12 = terminaluse$0.TerminalRemoteInfo.createFrom;
+const $$createType13 = $Create.Map($Create.Any, $Create.Any);
+const $$createType14 = terminaluse$0.AutocompleteDirectoryResult.createFrom;
+const $$createType15 = serialport$0.Info.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = ymodem$0.ReceiveResult.createFrom;
+const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = ymodem$0.SendResult.createFrom;
+const $$createType20 = terminaluse$0.ProxyProbeResult.createFrom;
+const $$createType21 = ssh$0.Client.createFrom;
+const $$createType22 = $Create.Nullable($$createType21);
+const $$createType23 = terminaluse$0.PathValidation.createFrom;

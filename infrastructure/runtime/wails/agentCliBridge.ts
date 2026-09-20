@@ -31,7 +31,41 @@ export interface NativeAgentCLIPathInfo {
   command?: string;
 }
 
+export interface NativeCodexIntegrationOptions {
+  refreshShellEnv?: boolean;
+  validateChatGptAuth?: boolean;
+  codexPath?: string;
+}
+
+export interface NativeCodexLoginSession {
+  sessionId: string;
+  state: 'running' | 'success' | 'error' | 'cancelled';
+  url?: string;
+  output: string;
+  error?: string;
+  exitCode?: number | null;
+  codexPath?: string;
+}
+
 export interface NativeAgentCLIBindings {
+  CodexGetIntegration: (options: NativeCodexIntegrationOptions) => Promise<{
+    state: string;
+    isConnected: boolean;
+    rawOutput: string;
+    exitCode?: number | null;
+    customConfig?: Record<string, unknown>;
+  }>;
+  CodexStartLogin: (options: NativeCodexIntegrationOptions) => Promise<{ ok: boolean; session?: NativeCodexLoginSession; error?: string }>;
+  CodexGetLoginSession: (sessionID: string) => Promise<{ ok: boolean; found?: boolean; session?: NativeCodexLoginSession; error?: string }>;
+  CodexCancelLogin: (sessionID: string) => Promise<{ ok: boolean; found?: boolean; session?: NativeCodexLoginSession; error?: string }>;
+  CodexLogout: (options: NativeCodexIntegrationOptions) => Promise<{
+    ok: boolean;
+    state?: string;
+    isConnected?: boolean;
+    rawOutput?: string;
+    logoutOutput?: string;
+    error?: string;
+  }>;
   Resolve: (command: string, customPath: string, refreshShellEnv: boolean, apiKeyPresent: boolean) => Promise<NativeAgentCLIPathInfo>;
   Discover: (refreshShellEnv: boolean, apiKeyPresent: boolean) => Promise<NativeAgentCLIPathInfo[]>;
   Prewarm: () => Promise<{ OK?: boolean; ok?: boolean }>;
@@ -69,7 +103,26 @@ export function createAgentCliBridge(bindings: NativeAgentCLIBindings | undefine
     if (!bindings) throw new Error('Native agent CLI discovery is unavailable');
     return bindings;
   };
+  const options = (value?: NativeCodexIntegrationOptions): NativeCodexIntegrationOptions => ({
+    refreshShellEnv: value?.refreshShellEnv ?? false,
+    validateChatGptAuth: value?.validateChatGptAuth ?? false,
+    codexPath: value?.codexPath ?? '',
+  });
   return {
+    aiCodexGetIntegration: async value => {
+      const result = await required().CodexGetIntegration(options(value));
+      return {
+        state: result.state as Awaited<ReturnType<NonNullable<NetcattyBridge['aiCodexGetIntegration']>>>['state'],
+        isConnected: result.isConnected,
+        rawOutput: result.rawOutput,
+        exitCode: result.exitCode ?? null,
+        customConfig: result.customConfig as Awaited<ReturnType<NonNullable<NetcattyBridge['aiCodexGetIntegration']>>>['customConfig'],
+      };
+    },
+    aiCodexStartLogin: async value => required().CodexStartLogin(options(value)) as ReturnType<NonNullable<NetcattyBridge['aiCodexStartLogin']>>,
+    aiCodexGetLoginSession: async sessionID => required().CodexGetLoginSession(sessionID) as ReturnType<NonNullable<NetcattyBridge['aiCodexGetLoginSession']>>,
+    aiCodexCancelLogin: async sessionID => required().CodexCancelLogin(sessionID) as ReturnType<NonNullable<NetcattyBridge['aiCodexCancelLogin']>>,
+    aiCodexLogout: async value => required().CodexLogout(options(value)) as ReturnType<NonNullable<NetcattyBridge['aiCodexLogout']>>,
     aiResolveCli: async params => normalize(await required().Resolve(
       params.command,
       params.customPath ?? '',

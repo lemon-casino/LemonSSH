@@ -846,6 +846,532 @@ export class CloudSyncWebDAVConfig {
     }
 }
 
+export class CodexIntegrationOptions {
+    /**
+     * Creates a new CodexIntegrationOptions instance.
+     * @param {Partial<CodexIntegrationOptions>} [$$source = {}] - The source object to create the CodexIntegrationOptions.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["refreshShellEnv"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["validateChatGptAuth"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["codexPath"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CodexIntegrationOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CodexIntegrationOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CodexIntegrationOptions(/** @type {Partial<CodexIntegrationOptions>} */($$parsedSource));
+    }
+}
+
+export class CodexIntegrationStatus {
+    /**
+     * Creates a new CodexIntegrationStatus instance.
+     * @param {Partial<CodexIntegrationStatus>} [$$source = {}] - The source object to create the CodexIntegrationStatus.
+     */
+    constructor($$source = {}) {
+        if (!("state" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["state"] = "";
+        }
+        if (!("isConnected" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isConnected"] = false;
+        }
+        if (!("rawOutput" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["rawOutput"] = "";
+        }
+        if (!("exitCode" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["exitCode"] = null;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: any } | undefined}
+             */
+            this["customConfig"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CodexIntegrationStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CodexIntegrationStatus}
+     */
+    static createFrom($$source = {}) {
+        const $$createField4_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("customConfig" in $$parsedSource) {
+            $$parsedSource["customConfig"] = $$createField4_0($$parsedSource["customConfig"]);
+        }
+        return new CodexIntegrationStatus(/** @type {Partial<CodexIntegrationStatus>} */($$parsedSource));
+    }
+}
+
+export class CodexLoginResult {
+    /**
+     * Creates a new CodexLoginResult instance.
+     * @param {Partial<CodexLoginResult>} [$$source = {}] - The source object to create the CodexLoginResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["found"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {CodexLoginSession | null | undefined}
+             */
+            this["session"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CodexLoginResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CodexLoginResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("session" in $$parsedSource) {
+            $$parsedSource["session"] = $$createField2_0($$parsedSource["session"]);
+        }
+        return new CodexLoginResult(/** @type {Partial<CodexLoginResult>} */($$parsedSource));
+    }
+}
+
+export class CodexLoginSession {
+    /**
+     * Creates a new CodexLoginSession instance.
+     * @param {Partial<CodexLoginSession>} [$$source = {}] - The source object to create the CodexLoginSession.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("state" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["state"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["url"] = undefined;
+        }
+        if (!("output" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["output"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+        if (!("exitCode" in $$source)) {
+            /**
+             * @member
+             * @type {number | null}
+             */
+            this["exitCode"] = null;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["codexPath"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CodexLoginSession instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CodexLoginSession}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CodexLoginSession(/** @type {Partial<CodexLoginSession>} */($$parsedSource));
+    }
+}
+
+export class CodexLogoutResult {
+    /**
+     * Creates a new CodexLogoutResult instance.
+     * @param {Partial<CodexLogoutResult>} [$$source = {}] - The source object to create the CodexLogoutResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["state"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["isConnected"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["rawOutput"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["logoutOutput"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CodexLogoutResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CodexLogoutResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CodexLogoutResult(/** @type {Partial<CodexLogoutResult>} */($$parsedSource));
+    }
+}
+
+export class CrashLogEntry {
+    /**
+     * Creates a new CrashLogEntry instance.
+     * @param {Partial<CrashLogEntry>} [$$source = {}] - The source object to create the CrashLogEntry.
+     */
+    constructor($$source = {}) {
+        if (!("timestamp" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["timestamp"] = "";
+        }
+        if (!("source" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["source"] = "";
+        }
+        if (!("message" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["message"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["stack"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["pid"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["platform"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["arch"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["version"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CrashLogEntry instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CrashLogEntry}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CrashLogEntry(/** @type {Partial<CrashLogEntry>} */($$parsedSource));
+    }
+}
+
+export class CrashLogFile {
+    /**
+     * Creates a new CrashLogFile instance.
+     * @param {Partial<CrashLogFile>} [$$source = {}] - The source object to create the CrashLogFile.
+     */
+    constructor($$source = {}) {
+        if (!("fileName" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["fileName"] = "";
+        }
+        if (!("date" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["date"] = "";
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+        if (!("entryCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["entryCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CrashLogFile instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {CrashLogFile}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CrashLogFile(/** @type {Partial<CrashLogFile>} */($$parsedSource));
+    }
+}
+
+export class DefaultSSHKey {
+    /**
+     * Creates a new DefaultSSHKey instance.
+     * @param {Partial<DefaultSSHKey>} [$$source = {}] - The source object to create the DefaultSSHKey.
+     */
+    constructor($$source = {}) {
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DefaultSSHKey instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DefaultSSHKey}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DefaultSSHKey(/** @type {Partial<DefaultSSHKey>} */($$parsedSource));
+    }
+}
+
+export class DeletedLogsResult {
+    /**
+     * Creates a new DeletedLogsResult instance.
+     * @param {Partial<DeletedLogsResult>} [$$source = {}] - The source object to create the DeletedLogsResult.
+     */
+    constructor($$source = {}) {
+        if (!("deletedCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["deletedCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeletedLogsResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DeletedLogsResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeletedLogsResult(/** @type {Partial<DeletedLogsResult>} */($$parsedSource));
+    }
+}
+
+export class DesktopToggleResult {
+    /**
+     * Creates a new DesktopToggleResult instance.
+     * @param {Partial<DesktopToggleResult>} [$$source = {}] - The source object to create the DesktopToggleResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("enabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enabled"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["supported"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DesktopToggleResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DesktopToggleResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DesktopToggleResult(/** @type {Partial<DesktopToggleResult>} */($$parsedSource));
+    }
+}
+
 export class DiscoveredAgentCLI {
     /**
      * Creates a new DiscoveredAgentCLI instance.
@@ -974,6 +1500,42 @@ export const DiscoveredShell = terminaluse$0.DiscoveredShell;
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  */
+export const DockerActionRequest = terminaluse$0.DockerActionRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.DockerActionRequest} DockerActionRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const DockerImageActionRequest = terminaluse$0.DockerImageActionRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.DockerImageActionRequest} DockerImageActionRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const DockerInspectRequest = terminaluse$0.DockerInspectRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.DockerInspectRequest} DockerInspectRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
 export const DockerStatsOptions = terminaluse$0.DockerStatsOptions;
 
 /**
@@ -1021,6 +1583,573 @@ export class ExternalAgentConfig {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ExternalAgentConfig(/** @type {Partial<ExternalAgentConfig>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentHistoryMessage {
+    /**
+     * Creates a new ExternalAgentHistoryMessage instance.
+     * @param {Partial<ExternalAgentHistoryMessage>} [$$source = {}] - The source object to create the ExternalAgentHistoryMessage.
+     */
+    constructor($$source = {}) {
+        if (!("role" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["role"] = "";
+        }
+        if (!("content" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["content"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentHistoryMessage instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentHistoryMessage}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentHistoryMessage(/** @type {Partial<ExternalAgentHistoryMessage>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentImage {
+    /**
+     * Creates a new ExternalAgentImage instance.
+     * @param {Partial<ExternalAgentImage>} [$$source = {}] - The source object to create the ExternalAgentImage.
+     */
+    constructor($$source = {}) {
+        if (!("base64Data" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["base64Data"] = "";
+        }
+        if (!("mediaType" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mediaType"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["filename"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["filePath"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentImage instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentImage}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentImage(/** @type {Partial<ExternalAgentImage>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentModelsResult {
+    /**
+     * Creates a new ExternalAgentModelsResult instance.
+     * @param {Partial<ExternalAgentModelsResult>} [$$source = {}] - The source object to create the ExternalAgentModelsResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: any }[] | undefined}
+             */
+            this["models"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["currentModelId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["warning"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentModelsResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentModelsResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("models" in $$parsedSource) {
+            $$parsedSource["models"] = $$createField1_0($$parsedSource["models"]);
+        }
+        return new ExternalAgentModelsResult(/** @type {Partial<ExternalAgentModelsResult>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentResult {
+    /**
+     * Creates a new ExternalAgentResult instance.
+     * @param {Partial<ExternalAgentResult>} [$$source = {}] - The source object to create the ExternalAgentResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentResult(/** @type {Partial<ExternalAgentResult>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentSteerResult {
+    /**
+     * Creates a new ExternalAgentSteerResult instance.
+     * @param {Partial<ExternalAgentSteerResult>} [$$source = {}] - The source object to create the ExternalAgentSteerResult.
+     */
+    constructor($$source = {}) {
+        if (!("status" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["status"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["message"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["turnKind"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentSteerResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentSteerResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentSteerResult(/** @type {Partial<ExternalAgentSteerResult>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentStreamRequest {
+    /**
+     * Creates a new ExternalAgentStreamRequest instance.
+     * @param {Partial<ExternalAgentStreamRequest>} [$$source = {}] - The source object to create the ExternalAgentStreamRequest.
+     */
+    constructor($$source = {}) {
+        if (!("requestId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["requestId"] = "";
+        }
+        if (!("chatSessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["chatSessionId"] = "";
+        }
+        if (!("sdkBackend" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sdkBackend"] = "";
+        }
+        if (!("prompt" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["prompt"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["cwd"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["providerId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["model"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["existingSessionId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {ExternalAgentHistoryMessage[] | undefined}
+             */
+            this["historyMessages"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {ExternalAgentImage[] | undefined}
+             */
+            this["images"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["toolIntegrationMode"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {ExternalAgentTarget | null | undefined}
+             */
+            this["defaultTargetSession"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["userSkillsContext"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string } | undefined}
+             */
+            this["agentEnv"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["agentCommand"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["codexRuntime"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["permissionMode"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: any } | undefined}
+             */
+            this["codebuddyOptions"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentStreamRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentStreamRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField8_0 = $$createType7;
+        const $$createField9_0 = $$createType9;
+        const $$createField11_0 = $$createType11;
+        const $$createField13_0 = $$createType12;
+        const $$createField17_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("historyMessages" in $$parsedSource) {
+            $$parsedSource["historyMessages"] = $$createField8_0($$parsedSource["historyMessages"]);
+        }
+        if ("images" in $$parsedSource) {
+            $$parsedSource["images"] = $$createField9_0($$parsedSource["images"]);
+        }
+        if ("defaultTargetSession" in $$parsedSource) {
+            $$parsedSource["defaultTargetSession"] = $$createField11_0($$parsedSource["defaultTargetSession"]);
+        }
+        if ("agentEnv" in $$parsedSource) {
+            $$parsedSource["agentEnv"] = $$createField13_0($$parsedSource["agentEnv"]);
+        }
+        if ("codebuddyOptions" in $$parsedSource) {
+            $$parsedSource["codebuddyOptions"] = $$createField17_0($$parsedSource["codebuddyOptions"]);
+        }
+        return new ExternalAgentStreamRequest(/** @type {Partial<ExternalAgentStreamRequest>} */($$parsedSource));
+    }
+}
+
+export class ExternalAgentTarget {
+    /**
+     * Creates a new ExternalAgentTarget instance.
+     * @param {Partial<ExternalAgentTarget>} [$$source = {}] - The source object to create the ExternalAgentTarget.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("label" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["label"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["os"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["username"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["protocol"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["shellType"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["deviceType"] = undefined;
+        }
+        if (!("connected" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["connected"] = false;
+        }
+        if (!("source" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["source"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExternalAgentTarget instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ExternalAgentTarget}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExternalAgentTarget(/** @type {Partial<ExternalAgentTarget>} */($$parsedSource));
+    }
+}
+
+export class HTTPNetworkProxyResult {
+    /**
+     * Creates a new HTTPNetworkProxyResult instance.
+     * @param {Partial<HTTPNetworkProxyResult>} [$$source = {}] - The source object to create the HTTPNetworkProxyResult.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["success"] = undefined;
+        }
+        if (!("settings" in $$source)) {
+            /**
+             * @member
+             * @type {HTTPNetworkProxySettings}
+             */
+            this["settings"] = (new HTTPNetworkProxySettings());
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HTTPNetworkProxyResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {HTTPNetworkProxyResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField1_0 = $$createType13;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("settings" in $$parsedSource) {
+            $$parsedSource["settings"] = $$createField1_0($$parsedSource["settings"]);
+        }
+        return new HTTPNetworkProxyResult(/** @type {Partial<HTTPNetworkProxyResult>} */($$parsedSource));
+    }
+}
+
+export class HTTPNetworkProxySettings {
+    /**
+     * Creates a new HTTPNetworkProxySettings instance.
+     * @param {Partial<HTTPNetworkProxySettings>} [$$source = {}] - The source object to create the HTTPNetworkProxySettings.
+     */
+    constructor($$source = {}) {
+        if (!("mode" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mode"] = "";
+        }
+        if (!("url" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["url"] = "";
+        }
+        if (!("bypass" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["bypass"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HTTPNetworkProxySettings instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {HTTPNetworkProxySettings}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HTTPNetworkProxySettings(/** @type {Partial<HTTPNetworkProxySettings>} */($$parsedSource));
     }
 }
 
@@ -1120,6 +2249,164 @@ export class HotkeyStatus {
     }
 }
 
+export class KeyPairOptions {
+    /**
+     * Creates a new KeyPairOptions instance.
+     * @param {Partial<KeyPairOptions>} [$$source = {}] - The source object to create the KeyPairOptions.
+     */
+    constructor($$source = {}) {
+        if (!("type" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["type"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["bits"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["comment"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new KeyPairOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {KeyPairOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new KeyPairOptions(/** @type {Partial<KeyPairOptions>} */($$parsedSource));
+    }
+}
+
+export class KeyPairResult {
+    /**
+     * Creates a new KeyPairResult instance.
+     * @param {Partial<KeyPairResult>} [$$source = {}] - The source object to create the KeyPairResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["privateKey"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["publicKey"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new KeyPairResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {KeyPairResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new KeyPairResult(/** @type {Partial<KeyPairResult>} */($$parsedSource));
+    }
+}
+
+/**
+ * LocalFileInfo is the complete metadata shape used by the renderer's local
+ * file operations. Lstat preserves symlink identity while Stat follows it.
+ */
+export class LocalFileInfo {
+    /**
+     * Creates a new LocalFileInfo instance.
+     * @param {Partial<LocalFileInfo>} [$$source = {}] - The source object to create the LocalFileInfo.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("isDir" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isDir"] = false;
+        }
+        if (!("isSymlink" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isSymlink"] = false;
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+        if (!("mode" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mode"] = "";
+        }
+        if (!("modTime" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["modTime"] = "0001-01-01T00:00:00.000Z";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LocalFileInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {LocalFileInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LocalFileInfo(/** @type {Partial<LocalFileInfo>} */($$parsedSource));
+    }
+}
+
 /**
  * LocalPathStat is the os.Stat view of one local path.
  */
@@ -1176,6 +2463,104 @@ export const LocalStartRequest = terminaluse$0.LocalStartRequest;
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.LocalStartRequest} LocalStartRequest
  */
+
+export class LocalSystemInfo {
+    /**
+     * Creates a new LocalSystemInfo instance.
+     * @param {Partial<LocalSystemInfo>} [$$source = {}] - The source object to create the LocalSystemInfo.
+     */
+    constructor($$source = {}) {
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LocalSystemInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {LocalSystemInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new LocalSystemInfo(/** @type {Partial<LocalSystemInfo>} */($$parsedSource));
+    }
+}
+
+export class ManualSessionLogResult {
+    /**
+     * Creates a new ManualSessionLogResult instance.
+     * @param {Partial<ManualSessionLogResult>} [$$source = {}] - The source object to create the ManualSessionLogResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["started"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["stopped"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["isLogging"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["filePath"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ManualSessionLogResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ManualSessionLogResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ManualSessionLogResult(/** @type {Partial<ManualSessionLogResult>} */($$parsedSource));
+    }
+}
 
 /**
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
@@ -1262,8 +2647,8 @@ export class NativeStartRequest {
      * @returns {NativeStartRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
-        const $$createField5_0 = $$createType5;
+        const $$createField3_0 = $$createType14;
+        const $$createField5_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("args" in $$parsedSource) {
             $$parsedSource["args"] = $$createField3_0($$parsedSource["args"]);
@@ -1272,6 +2657,41 @@ export class NativeStartRequest {
             $$parsedSource["env"] = $$createField5_0($$parsedSource["env"]);
         }
         return new NativeStartRequest(/** @type {Partial<NativeStartRequest>} */($$parsedSource));
+    }
+}
+
+export class OpenLogsResult {
+    /**
+     * Creates a new OpenLogsResult instance.
+     * @param {Partial<OpenLogsResult>} [$$source = {}] - The source object to create the OpenLogsResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new OpenLogsResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {OpenLogsResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new OpenLogsResult(/** @type {Partial<OpenLogsResult>} */($$parsedSource));
     }
 }
 
@@ -1286,6 +2706,34 @@ export const PathValidation = terminaluse$0.PathValidation;
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.PathValidation} PathValidation
  */
+
+export class PluginPackageInstallOptions {
+    /**
+     * Creates a new PluginPackageInstallOptions instance.
+     * @param {Partial<PluginPackageInstallOptions>} [$$source = {}] - The source object to create the PluginPackageInstallOptions.
+     */
+    constructor($$source = {}) {
+        if (!("enable" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enable"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginPackageInstallOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {PluginPackageInstallOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PluginPackageInstallOptions(/** @type {Partial<PluginPackageInstallOptions>} */($$parsedSource));
+    }
+}
 
 export class PopupOpenResult {
     /**
@@ -1363,6 +2811,18 @@ export const PortForwardRuntimeSnapshot = forwarduse$0.RuntimeSnapshot;
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
  * internal/app/forwarduse; these aliases keep the Wails API names stable.
  * @typedef {forwarduse$0.RuntimeSnapshot} PortForwardRuntimeSnapshot
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const ProcessSignalOptions = terminaluse$0.ProcessSignalOptions;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.ProcessSignalOptions} ProcessSignalOptions
  */
 
 /**
@@ -1518,7 +2978,7 @@ export class ProviderEndpointConfig {
      * @returns {ProviderEndpointConfig}
      */
     static createFrom($$source = {}) {
-        const $$createField6_0 = $$createType5;
+        const $$createField6_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("CustomHeaders" in $$parsedSource) {
             $$parsedSource["CustomHeaders"] = $$createField6_0($$parsedSource["CustomHeaders"]);
@@ -1602,7 +3062,7 @@ export class ProviderFetchRequest {
      * @returns {ProviderFetchRequest}
      */
     static createFrom($$source = {}) {
-        const $$createField2_0 = $$createType5;
+        const $$createField2_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("Headers" in $$parsedSource) {
             $$parsedSource["Headers"] = $$createField2_0($$parsedSource["Headers"]);
@@ -1743,6 +3203,69 @@ export const ProxyProbeResult = terminaluse$0.ProxyProbeResult;
  * @typedef {terminaluse$0.ProxyProbeResult} ProxyProbeResult
  */
 
+export class SFTPLstatResult {
+    /**
+     * Creates a new SFTPLstatResult instance.
+     * @param {Partial<SFTPLstatResult>} [$$source = {}] - The source object to create the SFTPLstatResult.
+     */
+    constructor($$source = {}) {
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("isDir" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isDir"] = false;
+        }
+        if (!("isSymlink" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["isSymlink"] = false;
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+        if (!("mode" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mode"] = "";
+        }
+        if (!("modTime" in $$source)) {
+            /**
+             * @member
+             * @type {any}
+             */
+            this["modTime"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SFTPLstatResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SFTPLstatResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SFTPLstatResult(/** @type {Partial<SFTPLstatResult>} */($$parsedSource));
+    }
+}
+
 /**
  * SFTPOpenRequest is the shell-facing SFTP open payload. The canonical
  * definition (and JSON contract) lives in internal/app/sftpuse; this alias
@@ -1757,6 +3280,104 @@ export const SFTPOpenRequest = sftpuse$0.OpenRequest;
  * @typedef {sftpuse$0.OpenRequest} SFTPOpenRequest
  */
 
+export class SSHAgentOptions {
+    /**
+     * Creates a new SSHAgentOptions instance.
+     * @param {Partial<SSHAgentOptions>} [$$source = {}] - The source object to create the SSHAgentOptions.
+     */
+    constructor($$source = {}) {
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["identityAgent"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["agentForwarding"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["hostname"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["port"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["username"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SSHAgentOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SSHAgentOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SSHAgentOptions(/** @type {Partial<SSHAgentOptions>} */($$parsedSource));
+    }
+}
+
+export class SSHAgentStatus {
+    /**
+     * Creates a new SSHAgentStatus instance.
+     * @param {Partial<SSHAgentStatus>} [$$source = {}] - The source object to create the SSHAgentStatus.
+     */
+    constructor($$source = {}) {
+        if (!("running" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["running"] = false;
+        }
+        if (!("startupType" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["startupType"] = null;
+        }
+        if (!("error" in $$source)) {
+            /**
+             * @member
+             * @type {string | null}
+             */
+            this["error"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SSHAgentStatus instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SSHAgentStatus}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SSHAgentStatus(/** @type {Partial<SSHAgentStatus>} */($$parsedSource));
+    }
+}
+
 /**
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
@@ -1768,6 +3389,55 @@ export const SSHConnectRequest = terminaluse$0.SSHConnectRequest;
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.SSHConnectRequest} SSHConnectRequest
  */
+
+export class SSHDebugLogInfo {
+    /**
+     * Creates a new SSHDebugLogInfo instance.
+     * @param {Partial<SSHDebugLogInfo>} [$$source = {}] - The source object to create the SSHDebugLogInfo.
+     */
+    constructor($$source = {}) {
+        if (!("enabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["enabled"] = false;
+        }
+        if (!("path" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["path"] = "";
+        }
+        if (!("exists" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["exists"] = false;
+        }
+        if (!("size" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["size"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SSHDebugLogInfo instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SSHDebugLogInfo}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SSHDebugLogInfo(/** @type {Partial<SSHDebugLogInfo>} */($$parsedSource));
+    }
+}
 
 export class ScriptOKResult {
     /**
@@ -1862,7 +3532,7 @@ export class ScriptRecordingStopResult {
      * @returns {ScriptRecordingStopResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType7;
+        const $$createField0_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("steps" in $$parsedSource) {
             $$parsedSource["steps"] = $$createField0_0($$parsedSource["steps"]);
@@ -1978,8 +3648,8 @@ export class ScriptRunResult {
      * @returns {ScriptRunResult}
      */
     static createFrom($$source = {}) {
-        const $$createField3_0 = $$createType4;
-        const $$createField4_0 = $$createType9;
+        const $$createField3_0 = $$createType14;
+        const $$createField4_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("runIds" in $$parsedSource) {
             $$parsedSource["runIds"] = $$createField3_0($$parsedSource["runIds"]);
@@ -2008,6 +3678,55 @@ export const SerialStartRequest = terminaluse$0.SerialStartRequest;
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.SerialStartRequest} SerialStartRequest
  */
+
+export class SessionLogsClearResult {
+    /**
+     * Creates a new SessionLogsClearResult instance.
+     * @param {Partial<SessionLogsClearResult>} [$$source = {}] - The source object to create the SessionLogsClearResult.
+     */
+    constructor($$source = {}) {
+        if (!("success" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["success"] = false;
+        }
+        if (!("deletedCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["deletedCount"] = 0;
+        }
+        if (!("failedCount" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["failedCount"] = 0;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SessionLogsClearResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SessionLogsClearResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SessionLogsClearResult(/** @type {Partial<SessionLogsClearResult>} */($$parsedSource));
+    }
+}
 
 export class SystemNotificationRequest {
     /**
@@ -2085,6 +3804,18 @@ export class SystemNotificationResult {
         return new SystemNotificationResult(/** @type {Partial<SystemNotificationResult>} */($$parsedSource));
     }
 }
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const SystemServiceActionRequest = terminaluse$0.SystemServiceActionRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.SystemServiceActionRequest} SystemServiceActionRequest
+ */
 
 /**
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
@@ -2221,6 +3952,42 @@ export const TerminalRemoteInfo = terminaluse$0.TerminalRemoteInfo;
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  * @typedef {terminaluse$0.TerminalRemoteInfo} TerminalRemoteInfo
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TmuxActionRequest = terminaluse$0.TmuxActionRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TmuxActionRequest} TmuxActionRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TmuxSessionRequest = terminaluse$0.TmuxSessionRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TmuxSessionRequest} TmuxSessionRequest
+ */
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ */
+export const TmuxTargetRequest = terminaluse$0.TmuxTargetRequest;
+
+/**
+ * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
+ * internal/app/terminaluse; these aliases keep the Wails API names stable.
+ * @typedef {terminaluse$0.TmuxTargetRequest} TmuxTargetRequest
  */
 
 export class TransferSnapshot {
@@ -2482,6 +4249,214 @@ export class TransferStartRequest {
     }
 }
 
+export class UserSkillStatusItem {
+    /**
+     * Creates a new UserSkillStatusItem instance.
+     * @param {Partial<UserSkillStatusItem>} [$$source = {}] - The source object to create the UserSkillStatusItem.
+     */
+    constructor($$source = {}) {
+        if (!("id" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["id"] = "";
+        }
+        if (!("slug" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["slug"] = "";
+        }
+        if (!("directoryName" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["directoryName"] = "";
+        }
+        if (!("directoryPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["directoryPath"] = "";
+        }
+        if (!("skillPath" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["skillPath"] = "";
+        }
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("description" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["description"] = "";
+        }
+        if (!("status" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["status"] = "";
+        }
+        if (!("warnings" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["warnings"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UserSkillStatusItem instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {UserSkillStatusItem}
+     */
+    static createFrom($$source = {}) {
+        const $$createField8_0 = $$createType14;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("warnings" in $$parsedSource) {
+            $$parsedSource["warnings"] = $$createField8_0($$parsedSource["warnings"]);
+        }
+        return new UserSkillStatusItem(/** @type {Partial<UserSkillStatusItem>} */($$parsedSource));
+    }
+}
+
+export class UserSkillsContextResult {
+    /**
+     * Creates a new UserSkillsContextResult instance.
+     * @param {Partial<UserSkillsContextResult>} [$$source = {}] - The source object to create the UserSkillsContextResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["context"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UserSkillsContextResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {UserSkillsContextResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new UserSkillsContextResult(/** @type {Partial<UserSkillsContextResult>} */($$parsedSource));
+    }
+}
+
+export class UserSkillsStatusResult {
+    /**
+     * Creates a new UserSkillsStatusResult instance.
+     * @param {Partial<UserSkillsStatusResult>} [$$source = {}] - The source object to create the UserSkillsStatusResult.
+     */
+    constructor($$source = {}) {
+        if (!("ok" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["ok"] = false;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["directoryPath"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["readyCount"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["warningCount"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {UserSkillStatusItem[] | undefined}
+             */
+            this["skills"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string[] | undefined}
+             */
+            this["warnings"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["error"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UserSkillsStatusResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {UserSkillsStatusResult}
+     */
+    static createFrom($$source = {}) {
+        const $$createField4_0 = $$createType20;
+        const $$createField5_0 = $$createType14;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("skills" in $$parsedSource) {
+            $$parsedSource["skills"] = $$createField4_0($$parsedSource["skills"]);
+        }
+        if ("warnings" in $$parsedSource) {
+            $$parsedSource["warnings"] = $$createField5_0($$parsedSource["warnings"]);
+        }
+        return new UserSkillsStatusResult(/** @type {Partial<UserSkillsStatusResult>} */($$parsedSource));
+    }
+}
+
 export class VaultBackupCapabilities {
     /**
      * Creates a new VaultBackupCapabilities instance.
@@ -2603,7 +4578,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType11;
+        const $$createField1_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -2635,7 +4610,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType12;
+        const $$createField0_0 = $$createType23;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -2800,7 +4775,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType10;
+        const $$createField0_0 = $$createType21;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -2881,7 +4856,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType13;
+        const $$createField7_0 = $$createType24;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -2958,13 +4933,24 @@ const $$createType0 = $Create.Map($Create.Any, $Create.Any);
 const $$createType1 = $Create.Array($$createType0);
 const $$createType2 = CloudSyncSyncedFile.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = $Create.Map($Create.Any, $Create.Any);
-const $$createType6 = script$0.Step.createFrom;
+const $$createType4 = CodexLoginSession.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = ExternalAgentHistoryMessage.createFrom;
 const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = script$0.Run.createFrom;
-const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = VaultBackupSummary.createFrom;
+const $$createType8 = ExternalAgentImage.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = ExternalAgentTarget.createFrom;
 const $$createType11 = $Create.Nullable($$createType10);
-const $$createType12 = $Create.Array($$createType10);
-const $$createType13 = VaultBackupPreview.createFrom;
+const $$createType12 = $Create.Map($Create.Any, $Create.Any);
+const $$createType13 = HTTPNetworkProxySettings.createFrom;
+const $$createType14 = $Create.Array($Create.Any);
+const $$createType15 = script$0.Step.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = script$0.Run.createFrom;
+const $$createType18 = $Create.Nullable($$createType17);
+const $$createType19 = UserSkillStatusItem.createFrom;
+const $$createType20 = $Create.Array($$createType19);
+const $$createType21 = VaultBackupSummary.createFrom;
+const $$createType22 = $Create.Nullable($$createType21);
+const $$createType23 = $Create.Array($$createType21);
+const $$createType24 = VaultBackupPreview.createFrom;

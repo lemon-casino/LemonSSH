@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -72,8 +73,18 @@ func (p *Policy) NewClient(opts ClientOptions) *http.Client {
 	opts = opts.withDefaults()
 
 	dialer := &net.Dialer{Timeout: 30 * time.Second}
+	proxyMode, proxyURL, proxyBypass := p.proxySnapshot()
+	var proxyAddresses sync.Map
+	rememberProxy := func(proxy *url.URL) {
+		if address := canonicalProxyAddress(proxy); address != "" {
+			proxyAddresses.Store(strings.ToLower(address), struct{}{})
+		}
+	}
 	base := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if _, trustedProxy := proxyAddresses.Load(strings.ToLower(addr)); trustedProxy {
+				return dialer.DialContext(ctx, network, addr)
+			}
 			host, port, err := net.SplitHostPort(addr)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %v", ErrDialDenied, err)
@@ -84,6 +95,26 @@ func (p *Policy) NewClient(opts ClientOptions) *http.Client {
 			}
 			return dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 		},
+	}
+	switch proxyMode {
+	case "direct":
+		base.Proxy = nil
+	case "custom":
+		rememberProxy(proxyURL)
+		base.Proxy = func(request *http.Request) (*url.URL, error) {
+			if shouldBypassProxy(strings.ToLower(request.URL.Hostname()), proxyBypass) {
+				return nil, nil
+			}
+			return proxyURL, nil
+		}
+	default:
+		base.Proxy = func(request *http.Request) (*url.URL, error) {
+			proxy, err := http.ProxyFromEnvironment(request)
+			if err == nil {
+				rememberProxy(proxy)
+			}
+			return proxy, err
+		}
 	}
 	if opts.SkipTLSVerify {
 		base.TLSClientConfig = skipTLSConfig(base.TLSClientConfig)
@@ -102,6 +133,40 @@ func (p *Policy) NewClient(opts ClientOptions) *http.Client {
 		return nil
 	}
 	return client
+}
+
+func canonicalProxyAddress(proxy *url.URL) string {
+	if proxy == nil || proxy.Hostname() == "" {
+		return ""
+	}
+	port := proxy.Port()
+	if port == "" {
+		switch strings.ToLower(proxy.Scheme) {
+		case "https":
+			port = "443"
+		case "socks5", "socks5h":
+			port = "1080"
+		default:
+			port = "80"
+		}
+	}
+	return net.JoinHostPort(proxy.Hostname(), port)
+}
+
+func shouldBypassProxy(host string, patterns []string) bool {
+	for _, pattern := range patterns {
+		switch {
+		case pattern == "<local>" && !strings.Contains(host, "."):
+			return true
+		case host == pattern:
+			return true
+		case strings.HasPrefix(pattern, "*.") && strings.HasSuffix(host, pattern[1:]):
+			return true
+		case strings.HasPrefix(pattern, ".") && strings.HasSuffix(host, pattern):
+			return true
+		}
+	}
+	return false
 }
 
 // enforcingTransport validates each request URL and carries the
@@ -148,8 +213,8 @@ func (p *Policy) isRegisteredLoopback(u *url.URL) bool {
 	} else if u.Scheme == "https" {
 		port = 443
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	return p.localPorts[port]
 }
 

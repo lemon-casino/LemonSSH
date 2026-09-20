@@ -166,7 +166,8 @@ export async function collectPluginSyncSidecarsFromHost(options?: {
    * of applying a stale cache snapshot (e.g. convergent conflict materialize).
    */
   liveOnly?: boolean;
-} = {}): Promise<PluginSyncSidecarBundle | null> {
+}): Promise<PluginSyncSidecarBundle | null> {
+  options ??= {};
   const liveOnly = options.liveOnly === true;
   const api = getSidecarApi();
   if (typeof api?.collectPluginSyncSidecars !== 'function') {

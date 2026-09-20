@@ -24,6 +24,15 @@ export function ClearTemp() {
 }
 
 /**
+ * @param {string} path
+ * @param {string} expectedType
+ * @returns {$CancellablePromise<void>}
+ */
+export function DeletePath(path, expectedType) {
+    return $Call.ByID(2395507066, path, expectedType);
+}
+
+/**
  * @param {string} filePath
  * @returns {$CancellablePromise<void>}
  */
@@ -58,6 +67,33 @@ export function ListDir(path) {
 }
 
 /**
+ * @returns {$CancellablePromise<string[]>}
+ */
+export function ListDrives() {
+    return $Call.ByID(3979334175).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {string} path
+ * @returns {$CancellablePromise<$models.LocalFileInfo>}
+ */
+export function Lstat(path) {
+    return $Call.ByID(2915506260, path).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * @param {string} path
+ * @returns {$CancellablePromise<void>}
+ */
+export function Mkdir(path) {
+    return $Call.ByID(3152918341, path);
+}
+
+/**
  * @param {string} filePath
  * @param {string} appPath
  * @returns {$CancellablePromise<void>}
@@ -80,7 +116,20 @@ export function OpenWithSystemDefault(filePath) {
  */
 export function ReadClipboardImage() {
     return $Call.ByID(1323029781).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType4($result);
+        return $$createType6($result);
+    }));
+}
+
+/**
+ * ReadFile returns a bounded local file payload. A non-positive maxBytes uses
+ * the editor's existing 64 MiB desktop ceiling.
+ * @param {string} path
+ * @param {number} maxBytes
+ * @returns {$CancellablePromise<string>}
+ */
+export function ReadFile(path, maxBytes) {
+    return $Call.ByID(932756824, path, maxBytes).then(/** @type {($result: any) => any} */(($result) => {
+        return $Create.ByteSlice($result);
     }));
 }
 
@@ -92,6 +141,15 @@ export function ReadClipboardImage() {
  */
 export function ReleaseTempFile(filePath) {
     return $Call.ByID(4145957983, filePath);
+}
+
+/**
+ * @param {string} oldPath
+ * @param {string} newPath
+ * @returns {$CancellablePromise<void>}
+ */
+export function RenamePath(oldPath, newPath) {
+    return $Call.ByID(3929756967, oldPath, newPath);
 }
 
 /**
@@ -139,6 +197,16 @@ export function StageFromLocalPath(path) {
 }
 
 /**
+ * @param {string} path
+ * @returns {$CancellablePromise<$models.LocalFileInfo>}
+ */
+export function Stat(path) {
+    return $Call.ByID(3714331452, path).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
  * StatPath stats one local path (read-only) so dropped files can be
  * classified before upload.
  * @param {string} path
@@ -146,7 +214,16 @@ export function StageFromLocalPath(path) {
  */
 export function StatPath(path) {
     return $Call.ByID(1999196219, path).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType5($result);
+        return $$createType7($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.LocalSystemInfo>}
+ */
+export function SystemInfo() {
+    return $Call.ByID(1771393923).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType8($result);
     }));
 }
 
@@ -163,7 +240,7 @@ export function TempFilePath(name) {
  */
 export function TempInfo() {
     return $Call.ByID(3758389736).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType6($result);
+        return $$createType9($result);
     }));
 }
 
@@ -175,11 +252,25 @@ export function ValidateTempFile(filePath) {
     return $Call.ByID(3295034776, filePath);
 }
 
+/**
+ * WriteFile writes renderer-provided bytes to a local file without following
+ * a final symlink. Parent directories must already exist.
+ * @param {string} path
+ * @param {string} data
+ * @returns {$CancellablePromise<void>}
+ */
+export function WriteFile(path, data) {
+    return $Call.ByID(2971061639, path, data);
+}
+
 // Private type creation functions
 const $$createType0 = $models.TempClearResult.createFrom;
 const $$createType1 = filesystem$0.LocalEntry.createFrom;
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $models.ClipboardImageFile.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $models.LocalPathStat.createFrom;
-const $$createType6 = $models.TempDirectoryInfo.createFrom;
+const $$createType3 = $Create.Array($Create.Any);
+const $$createType4 = $models.LocalFileInfo.createFrom;
+const $$createType5 = $models.ClipboardImageFile.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $models.LocalPathStat.createFrom;
+const $$createType8 = $models.LocalSystemInfo.createFrom;
+const $$createType9 = $models.TempDirectoryInfo.createFrom;

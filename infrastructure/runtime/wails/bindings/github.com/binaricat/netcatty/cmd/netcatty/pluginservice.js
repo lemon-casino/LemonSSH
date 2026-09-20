@@ -87,6 +87,17 @@ export function Install(pluginID, version, sha256Hex, manifestJSON) {
 }
 
 /**
+ * @param {string} archivePath
+ * @param {$models.PluginPackageInstallOptions} options
+ * @returns {$CancellablePromise<store$0.PackageRecord | null>}
+ */
+export function InstallPackage(archivePath, options) {
+    return $Call.ByID(4264915603, archivePath, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * @param {string} pluginID
  * @param {string} wasmBytes
  * @returns {$CancellablePromise<void>}
@@ -119,6 +130,25 @@ export function NativeRunning(pluginID) {
  */
 export function RecoverStaged() {
     return $Call.ByID(1700987992);
+}
+
+/**
+ * @param {string} pluginID
+ * @param {string} settingID
+ * @returns {$CancellablePromise<void>}
+ */
+export function ResetSetting(pluginID, settingID) {
+    return $Call.ByID(2846559247, pluginID, settingID);
+}
+
+/**
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<store$0.PackageRecord | null>}
+ */
+export function Restart(pluginID) {
+    return $Call.ByID(2729497529, pluginID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
 }
 
 /**
@@ -190,6 +220,14 @@ export function UISchema(pluginID) {
     return $Call.ByID(587981467, pluginID).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType5($result);
     }));
+}
+
+/**
+ * @param {string} pluginID
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function Uninstall(pluginID) {
+    return $Call.ByID(1118432000, pluginID);
 }
 
 // Private type creation functions

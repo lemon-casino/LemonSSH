@@ -7,6 +7,8 @@ import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runt
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
 import * as agentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentservice";
 import * as agentCLIServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentcliservice";
+import * as externalAgentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/externalagentservice";
+import * as userSkillsServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/userskillsservice";
 import type {
   EventPage as AgentEventPage,
   PrepareTurnRequest as AgentPrepareTurnRequest,
@@ -28,6 +30,8 @@ import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cm
 import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
 import * as scriptService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/scriptservice";
 import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
+import * as sessionLogServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sessionlogservice";
+import * as httpNetworkProxyServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/httpnetworkproxyservice";
 import * as syncServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/syncservice";
 import * as providerFetchService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/providerfetchservice";
 import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
@@ -62,6 +66,9 @@ import { configureProfileBindings } from "../profile/profileClient";
 import { createAgentToolBridge, type NativeAgentToolBindings } from './agentToolBridge';
 import { createAgentCliBridge, type NativeAgentCLIBindings } from './agentCliBridge';
 import { createProviderBridge, type NativeProviderBindings } from './providerBridge';
+import { createExternalAgentBridge } from './externalAgentBridge';
+import { createUserSkillsBridge, type NativeUserSkillsBindings } from './userSkillsBridge';
+import { createPluginBridge, type NativePluginBindings } from './pluginBridge';
 
 export function isWailsRuntime(): boolean {
   return typeof window !== "undefined" && "_wails" in window;
@@ -87,6 +94,23 @@ function missingBridgeMethod(property: string | symbol): never {
   throw new Error(
     `Netcatty bridge method ${String(property)} is not available under the Wails runtime yet`,
   );
+}
+
+function base64ToArrayBuffer(value: string): ArrayBuffer {
+  const binary = typeof atob === "function" ? atob(value) : Buffer.from(value, "base64").toString("binary");
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function localStatToResult(stat: { path: string; isDir: boolean; isSymlink?: boolean; size: number; mode: string; modTime: string }): SftpStatResult {
+  const segments = stat.path.split(/[\\/]/);
+  return {
+    name: segments[segments.length - 1] || stat.path,
+    type: stat.isSymlink ? "symlink" : stat.isDir ? "directory" : "file",
+    size: stat.size,
+    lastModified: Date.parse(stat.modTime) || 0,
+    permissions: stat.mode.length >= 9 ? stat.mode.slice(-9) : undefined,
+  };
 }
 
 function normalizePortForwardResult(tunnelId: string, result: unknown): PortForwardResult {
@@ -135,6 +159,9 @@ export interface WailsBindingDeps {
       productId?: string;
       pnpId?: string;
     }>>;
+    GenerateKeyPair?: (options: { type: string; bits?: number; comment?: string }) => Promise<{ success: boolean; privateKey?: string; publicKey?: string; error?: string }>;
+    CheckSshAgent?: (options: { identityAgent?: string; agentForwarding?: boolean; hostname?: string; port?: number; username?: string }) => Promise<{ running: boolean; startupType?: string | null; error?: string | null }>;
+    GetDefaultKeys?: () => Promise<Array<{ name: string; path: string }>>;
     SendZmodem?: (sessionID: string, filePath: string, remoteName: string, command: string) => Promise<unknown>;
     ReceiveZmodem?: (sessionID: string, destinationDir: string) => Promise<unknown>;
     CancelZmodem?: (sessionID: string) => Promise<unknown>;
@@ -175,10 +202,17 @@ export interface WailsBindingDeps {
     Remove: (sftpID: string, path: string) => Promise<unknown>;
     Rename: (sftpID: string, oldPath: string, newPath: string) => Promise<unknown>;
     Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
+    Lstat?: (sftpID: string, path: string) => Promise<WailsSftpFileInfo & { isSymlink?: boolean }>;
+    RealPath?: (sftpID: string, path: string) => Promise<string>;
     Close: (sftpID: string) => Promise<unknown>;
+    RetainTransfer?: (sftpID: string, leaseID: string) => Promise<unknown>;
+    ReleaseTransfer?: (sftpID: string, leaseID: string) => Promise<unknown>;
+    CopyDirectory?: (sftpID: string, sourcePath: string, targetPath: string) => Promise<unknown>;
     Chmod?: (sftpID: string, path: string, mode: string) => Promise<unknown>;
     Read?: (sftpID: string, path: string) => Promise<string>;
+    ReadBinary?: (sftpID: string, path: string) => Promise<string>;
     WriteText?: (sftpID: string, path: string, content: string) => Promise<unknown>;
+    WriteBinary?: (sftpID: string, path: string, content: string) => Promise<unknown>;
     HomeDir?: (sftpID: string) => Promise<string>;
     ExtractArchive?: (sftpID: string, remotePath: string) => Promise<number>;
     UploadCompressedFolder?: (sftpID: string, localFolder: string, remoteZipPath: string) => Promise<number>;
@@ -235,7 +269,7 @@ export interface WailsBindingDeps {
     SetSystemUnlockEnabled?: (enabled: boolean, password: string, autoPrompt: boolean) => Promise<{ systemUnlockEnabled: boolean; systemUnlockAutoPromptEnabled: boolean }>;
     SetRuntimeLocked?: (reason: string) => Promise<unknown>;
   };
-  plugins?: {
+  plugins?: NativePluginBindings & {
     List: () => Promise<unknown[]>;
     Install?: (pluginID: string, version: string, sha256Hex: string, manifestJSON: string) => Promise<unknown>;
     SetEnabled?: (pluginID: string, enabled: boolean) => Promise<unknown>;
@@ -252,6 +286,12 @@ export interface WailsBindingDeps {
     Drain?: () => Promise<unknown[]>;
     GetOSProtocolStatus?: () => Promise<{ success: boolean; registered: boolean; error?: string }>;
     SetOSProtocol?: (enabled: boolean) => Promise<{ success: boolean; registered: boolean; error?: string }>;
+    SetSshDeepLinkEnabled?: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; supported?: boolean; error?: string }>;
+    GetSshDeepLinkEnabled?: () => Promise<boolean>;
+    SetJmsDeepLinkEnabled?: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; supported?: boolean; error?: string }>;
+    GetJmsDeepLinkEnabled?: () => Promise<boolean>;
+    SetExplorerContextMenuEnabled?: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; supported?: boolean; error?: string }>;
+    GetExplorerContextMenuEnabled?: () => Promise<{ success: boolean; enabled: boolean; supported?: boolean; error?: string }>;
   };
   filesystem?: NativeFileBindings & {
     ReadClipboardImage?: () => Promise<{ path: string; name: string; mediaType: string; size?: number } | null>;
@@ -262,7 +302,16 @@ export interface WailsBindingDeps {
     ListDir?: (path: string) => Promise<RemoteFile[]>;
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
     StatPath?: (path: string) => Promise<{ name: string; isDir: boolean; size: number }>;
-    StageFromLocalPath?: (path: string) => Promise<{ stagedPath: string; name: string; size: number }>;
+    ReadFile?: (path: string, maxBytes: number) => Promise<string>;
+    WriteFile?: (path: string, data: string) => Promise<unknown>;
+    DeletePath?: (path: string, expectedType: string) => Promise<unknown>;
+    RenamePath?: (oldPath: string, newPath: string) => Promise<unknown>;
+    Mkdir?: (path: string) => Promise<unknown>;
+    Stat?: (path: string) => Promise<{ path: string; isDir: boolean; isSymlink?: boolean; size: number; mode: string; modTime: string }>;
+    Lstat?: (path: string) => Promise<{ path: string; isDir: boolean; isSymlink?: boolean; size: number; mode: string; modTime: string }>;
+    ListDrives?: () => Promise<string[]>;
+    SystemInfo?: () => Promise<{ username: string; hostname: string }>;
+    StageFromLocalPath?: (path: string) => Promise<[string, number] | { stagedPath: string; name: string; size: number }>;
     StageBegin?: (fileName: string) => Promise<string>;
     StageAppend?: (tempPath: string, offset: number, data: string) => Promise<unknown>;
     StageDiscard?: (tempPath: string) => Promise<unknown>;
@@ -338,6 +387,23 @@ export interface WailsBindingDeps {
   };
   diagnosticLog?: {
     Append?: (line: string) => Promise<unknown>;
+    GetCrashLogs?: () => Promise<Array<{ fileName: string; date: string; size: number; entryCount: number }>>;
+    ReadCrashLog?: (fileName: string) => Promise<Array<{ timestamp: string; source: string; message: string; stack?: string }>>;
+    ClearCrashLogs?: () => Promise<{ deletedCount: number }>;
+    OpenCrashLogsDir?: () => Promise<{ success: boolean; error?: string }>;
+    GetSshDebugLogInfo?: () => Promise<{ enabled: boolean; path: string; exists: boolean; size: number }>;
+    OpenSshDebugLogDir?: () => Promise<{ success: boolean; error?: string }>;
+  };
+  httpNetworkProxy?: {
+    Set?: (settings: { mode: string; url: string; bypass: string }) => Promise<{ success?: boolean; settings: { mode: string; url: string; bypass: string }; error?: string }>;
+    Get?: () => Promise<{ settings: { mode: string; url: string; bypass: string } }>;
+  };
+  sessionLog?: {
+    Start?: (sessionID: string, filePath: string, initialLine: string) => Promise<{ success: boolean; started?: boolean; isLogging?: boolean; filePath?: string; error?: string }>;
+    Stop?: (sessionID: string) => Promise<{ success: boolean; stopped?: boolean; filePath?: string; error?: string }>;
+    Status?: (sessionID: string) => Promise<{ success: boolean; isLogging?: boolean; filePath?: string; error?: string }>;
+    OpenDirectory?: (directory: string) => Promise<{ success: boolean; error?: string }>;
+    ClearDirectory?: (directory: string) => Promise<{ success: boolean; deletedCount: number; failedCount: number; error?: string }>;
   };
   tray?: {
     SetLanguage?: (language: string) => Promise<boolean>;
@@ -362,6 +428,8 @@ export interface WailsBindingDeps {
     AgentRespondInteraction?: (interactionID: string, approved: boolean) => Promise<void>;
   };
   agentcli?: NativeAgentCLIBindings;
+  externalAgent?: Parameters<typeof createExternalAgentBridge>[0];
+  userSkills?: NativeUserSkillsBindings;
 }
 
   const defaultBindings: WailsBindingDeps = {
@@ -384,10 +452,14 @@ export interface WailsBindingDeps {
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
     script: scriptService as unknown as WailsBindingDeps["script"],
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
+    sessionLog: sessionLogServiceBinding as unknown as WailsBindingDeps["sessionLog"],
+    httpNetworkProxy: httpNetworkProxyServiceBinding as unknown as WailsBindingDeps["httpNetworkProxy"],
     tray: trayService as unknown as WailsBindingDeps["tray"],
     sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
     agentservice: agentServiceBinding as unknown as WailsBindingDeps["agentservice"],
     agentcli: agentCLIServiceBinding as unknown as NativeAgentCLIBindings,
+    externalAgent: externalAgentServiceBinding as unknown as NonNullable<WailsBindingDeps["externalAgent"]>,
+    userSkills: userSkillsServiceBinding as unknown as NativeUserSkillsBindings,
   };
 
 type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
@@ -801,10 +873,50 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       throw error;
     }
   };
-  const closeSftp = (sftpID: string) =>
-    bindings.sftp.Close(sftpID) as Promise<void>;
+  const closeSftp = async (sftpID: string) => {
+    await bindings.sftp.Close(sftpID);
+    return { success: true };
+  };
   const readSftp = (sftpID: string, path: string) => bindings.sftp.Read?.(sftpID, path) as Promise<string>;
+  const readSftpBinary = async (sftpID: string, path: string) => {
+    if (!bindings.sftp.ReadBinary) missingBridgeMethod("readSftpBinary");
+    return base64ToArrayBuffer(await bindings.sftp.ReadBinary(sftpID, path));
+  };
   const writeSftp = (sftpID: string, path: string, content: string) => bindings.sftp.WriteText?.(sftpID, path, content) as Promise<void>;
+  const writeSftpBinary = async (sftpID: string, path: string, content: ArrayBuffer) => {
+    if (!bindings.sftp.WriteBinary) missingBridgeMethod("writeSftpBinary");
+    await bindings.sftp.WriteBinary(sftpID, path, bytesToBase64(new Uint8Array(content)));
+  };
+  const realpathSftp = async (sftpID: string, path: string) => {
+    if (!bindings.sftp.RealPath) missingBridgeMethod("realpathSftp");
+    return bindings.sftp.RealPath(sftpID, path);
+  };
+  const lstatSftp = async (sftpID: string, path: string) => {
+    try {
+      const stat = bindings.sftp.Lstat
+        ? await bindings.sftp.Lstat(sftpID, path)
+        : await bindings.sftp.Stat(sftpID, path);
+      return { ...statToSftpStatResult(stat), type: stat.isSymlink ? "symlink" as const : stat.isDir ? "directory" as const : "file" as const };
+    } catch (error) {
+      if (error instanceof Error && /does not exist|no such file/i.test(error.message)) return null;
+      throw error;
+    }
+  };
+  const retainSftpTransferSession = async (sftpID: string, leaseID: string) => {
+    if (!bindings.sftp.RetainTransfer) return { success: false, reason: "unsupported" };
+    await bindings.sftp.RetainTransfer(sftpID, leaseID);
+    return { success: true };
+  };
+  const releaseSftpTransferSession = async (sftpID: string, leaseID: string) => {
+    if (!bindings.sftp.ReleaseTransfer) return { success: false, reason: "unsupported" };
+    await bindings.sftp.ReleaseTransfer(sftpID, leaseID);
+    return { success: true };
+  };
+  const sameHostCopyDirectory = async (sftpID: string, sourcePath: string, targetPath: string) => {
+    if (!bindings.sftp.CopyDirectory) return { success: false };
+    await bindings.sftp.CopyDirectory(sftpID, sourcePath, targetPath);
+    return { success: true };
+  };
   const getSftpHomeDir = (sftpID: string) => bindings.sftp.HomeDir?.(sftpID) as Promise<string>;
 
   const windowMinimize = () => bindings.window?.Minimise();
@@ -819,6 +931,68 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const notifySettingsPainted = () => bindings.settings?.PaintReady?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
   const { selectFile, selectDirectory, showSaveDialog } = nativeFileActions;
+  const encodeUtf8 = (value: string) => bytesToBase64(new TextEncoder().encode(value));
+  const safeLogName = (label: string, startTime: number, format: 'txt' | 'raw' | 'html') => {
+    const base = [...label.trim()].map(character => character.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(character) ? '-' : character).join('').replace(/\s+/g, ' ').slice(0, 80) || 'session';
+    const stamp = new Date(Number.isFinite(startTime) ? startTime : Date.now()).toISOString().replace(/[:.]/g, '-');
+    return `${base}-${stamp}.${format}`;
+  };
+  const formatSessionLog = (terminalData: string, format: 'txt' | 'raw' | 'html', title: string) => {
+    if (format === 'raw') return terminalData;
+    const normalized = terminalData.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (format === 'txt') return normalized;
+    const escaped = normalized.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title><style>body{background:#101318;color:#e5e7eb;font:14px/1.5 ui-monospace,monospace;padding:24px}pre{white-space:pre-wrap}</style></head><body><pre>${escaped}</pre></body></html>`;
+  };
+  const joinNativePath = (directory: string, name: string) => `${directory.replace(/[\\/]+$/, '')}${navigator.platform.startsWith('Win') ? '\\' : '/'}${name}`;
+  const exportSessionLog: NonNullable<NetcattyBridge['exportSessionLog']> = async payload => {
+    if (!bindings.filesystem?.WriteFile) return { success: false };
+    const fileName = safeLogName(payload.hostLabel || payload.hostname, payload.startTime, payload.format);
+    const filePath = await showSaveDialog(fileName, [{ name: payload.format.toUpperCase(), extensions: [payload.format] }]);
+    if (!filePath) return { success: false, canceled: true };
+    await bindings.filesystem.WriteFile(filePath, encodeUtf8(formatSessionLog(payload.terminalData, payload.format, payload.hostLabel || payload.hostname)));
+    return { success: true, filePath };
+  };
+  const autoSaveSessionLog: NonNullable<NetcattyBridge['autoSaveSessionLog']> = async payload => {
+    try {
+      if (!bindings.filesystem?.WriteFile) throw new Error('Session log writer unavailable');
+      const filePath = joinNativePath(payload.directory, safeLogName(payload.hostLabel || payload.hostname, payload.startTime, payload.format));
+      await bindings.filesystem.WriteFile(filePath, encodeUtf8(formatSessionLog(payload.terminalData, payload.format, payload.hostLabel || payload.hostname)));
+      return { success: true, filePath };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+  const manualLogSelections = new Map<string, string>();
+  const chooseManualSessionLogPath: NonNullable<NetcattyBridge['chooseManualSessionLogPath']> = async payload => {
+    const format = payload.format ?? 'txt';
+    const fileName = safeLogName(payload.sessionName || 'session', Date.now(), format);
+    const defaultPath = payload.preferredDirectory ? joinNativePath(payload.preferredDirectory, fileName) : fileName;
+    const filePath = await showSaveDialog(defaultPath, [{ name: format.toUpperCase(), extensions: [format] }]);
+    if (!filePath) return { success: false, canceled: true };
+    const selectionToken = crypto.randomUUID();
+    manualLogSelections.set(selectionToken, filePath);
+    return { success: true, selectionToken, filePath, format };
+  };
+  const startManualSessionLog: NonNullable<NetcattyBridge['startManualSessionLog']> = async payload => {
+    if (!bindings.sessionLog?.Start) return { success: false, started: false, error: 'Session log service unavailable' };
+    const filePath = payload.selectionToken ? manualLogSelections.get(payload.selectionToken) : undefined;
+    if (payload.selectionToken) manualLogSelections.delete(payload.selectionToken);
+    if (!filePath) return { success: false, started: false, canceled: true, error: 'Session log path was not selected' };
+    const result = await bindings.sessionLog.Start(nativeSessionId(payload.sessionId), filePath, payload.initialLine ?? '');
+    return { success: result.success, started: Boolean(result.started), error: result.error, filePath: result.filePath };
+  };
+  const stopManualSessionLog: NonNullable<NetcattyBridge['stopManualSessionLog']> = async payload => {
+    if (!bindings.sessionLog?.Stop) return { success: false, stopped: false, error: 'Session log service unavailable' };
+    const result = await bindings.sessionLog.Stop(nativeSessionId(payload.sessionId));
+    return { success: result.success, stopped: Boolean(result.stopped), error: result.error, filePath: result.filePath };
+  };
+  const getManualSessionLogStatus: NonNullable<NetcattyBridge['getManualSessionLogStatus']> = async payload => {
+    if (!bindings.sessionLog?.Status) return { success: false, isLogging: false, error: 'Session log service unavailable' };
+    const result = await bindings.sessionLog.Status(nativeSessionId(payload.sessionId));
+    return { success: result.success, isLogging: Boolean(result.isLogging), error: result.error };
+  };
   const startPortForward = async (options: PortForwardOptions): Promise<PortForwardResult> => {
     if (!bindings.forward?.Start) missingBridgeMethod("startPortForward");
     const request = pickSSHConnectArgs(options as Parameters<NetcattyBridge["startSSHSession"]>[0]);
@@ -875,6 +1049,42 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   };
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
+  const readLocalFile: NonNullable<NetcattyBridge["readLocalFile"]> = async (path, options) => {
+    if (!bindings.filesystem?.ReadFile) missingBridgeMethod("readLocalFile");
+    return base64ToArrayBuffer(await bindings.filesystem.ReadFile(path, options?.maxBytes ?? 0));
+  };
+  const writeLocalFile: NonNullable<NetcattyBridge["writeLocalFile"]> = async (path, content) => {
+    if (!bindings.filesystem?.WriteFile) missingBridgeMethod("writeLocalFile");
+    await bindings.filesystem.WriteFile(path, bytesToBase64(new Uint8Array(content)));
+  };
+  const deleteLocalFile: NonNullable<NetcattyBridge["deleteLocalFile"]> = async (path, expectedType) => {
+    if (!bindings.filesystem?.DeletePath) missingBridgeMethod("deleteLocalFile");
+    await bindings.filesystem.DeletePath(path, expectedType ?? "");
+  };
+  const renameLocalFile = async (oldPath: string, newPath: string) => {
+    if (!bindings.filesystem?.RenamePath) missingBridgeMethod("renameLocalFile");
+    await bindings.filesystem.RenamePath(oldPath, newPath);
+  };
+  const mkdirLocal = async (path: string) => {
+    if (!bindings.filesystem?.Mkdir) missingBridgeMethod("mkdirLocal");
+    await bindings.filesystem.Mkdir(path);
+  };
+  const statLocal = async (path: string) => {
+    if (!bindings.filesystem?.Stat) missingBridgeMethod("statLocal");
+    return localStatToResult(await bindings.filesystem.Stat(path));
+  };
+  const lstatLocal = async (path: string) => {
+    if (!bindings.filesystem?.Lstat) missingBridgeMethod("lstatLocal");
+    return localStatToResult(await bindings.filesystem.Lstat(path));
+  };
+  const listDrives = async () => {
+    if (!bindings.filesystem?.ListDrives) return [];
+    return bindings.filesystem.ListDrives();
+  };
+  const getSystemInfo = async () => {
+    if (!bindings.filesystem?.SystemInfo) missingBridgeMethod("getSystemInfo");
+    return bindings.filesystem.SystemInfo();
+  };
   const getHomeDir = async () => {
     if (!bindings.filesystem?.HomeDir) missingBridgeMethod("getHomeDir");
     return bindings.filesystem.HomeDir();
@@ -1274,6 +1484,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const implementedBridge: Partial<NetcattyBridge> = {
     ...createAgentToolBridge(bindings.agentservice, bindings.events?.On ?? Events.On, nativeSessionId),
     ...createAgentCliBridge(bindings.agentcli),
+    ...createUserSkillsBridge(bindings.userSkills),
+    ...createExternalAgentBridge(bindings.externalAgent, bindings.events?.On ?? Events.On),
     ...monitoring,
     ...cloudOAuth,
     ...createProviderBridge(bindings.provider ?? providerFetchService as unknown as NativeProviderBindings, bindings.events?.On ?? Events.On),
@@ -1314,6 +1526,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     writeClipboardText,
     readClipboardText,
     readClipboardImage,
+    generateKeyPair: (async options => {
+      if (!bindings.terminal.GenerateKeyPair) return { success: false, error: 'generateKeyPair unavailable' };
+      return bindings.terminal.GenerateKeyPair(options);
+    }) as NetcattyBridge['generateKeyPair'],
+    checkSshAgent: (async options => {
+      if (!bindings.terminal.CheckSshAgent) return { running: false, startupType: null, error: 'checkSshAgent unavailable' };
+      const result = await bindings.terminal.CheckSshAgent(options ?? {});
+      return { running: result.running, startupType: result.startupType ?? null, error: result.error ?? null };
+    }) as NetcattyBridge['checkSshAgent'],
+    getDefaultKeys: (async () => bindings.terminal.GetDefaultKeys?.() ?? []) as NetcattyBridge['getDefaultKeys'],
     startSSHSession,
     testProxy,
     startLocalSession,
@@ -1339,9 +1561,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     deleteSftp,
     renameSftp,
     statSftp,
+    lstatSftp,
+    realpathSftp,
     closeSftp,
+    retainSftpTransferSession,
+    releaseSftpTransferSession,
+    sameHostCopyDirectory,
     readSftp,
+    readSftpBinary,
     writeSftp,
+    writeSftpBinary,
     // The Go bindings return Wails-native shapes; cast until the shared
     // port types gain Wails-specific variants.
     getSftpHomeDir: ((sftpID: string) =>
@@ -1354,12 +1583,43 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }) as unknown as NetcattyBridge["getPathForFile"],
     statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
     getHomeDir,
+    listDrives,
+    getSystemInfo,
+    readLocalFile,
+    writeLocalFile,
+    deleteLocalFile,
+    renameLocalFile,
+    mkdirLocal,
+    statLocal,
+    lstatLocal,
     listLocalDir,
     listLocalTree,
     cancelLocalTreeScan,
-    stageFromLocalPath: ((path: string) =>
-      bindings.filesystem?.StageFromLocalPath?.(path) as Promise<{ stagedPath: string; name: string; size: number }>) as unknown as NetcattyBridge["stageFromLocalPath"],
+    stageFromLocalPath: (async (path: string) => {
+      if (!bindings.filesystem?.StageFromLocalPath) throw new Error('Native staging unavailable');
+      const result = await bindings.filesystem.StageFromLocalPath(path);
+      if (Array.isArray(result)) return { stagedPath: result[0], name: path.split(/[\\/]/).pop() || path, size: result[1] };
+      return result;
+    }) as NetcattyBridge["stageFromLocalPath"],
     appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
+    getCrashLogs: (() => bindings.diagnosticLog?.GetCrashLogs?.() ?? Promise.resolve([])) as NetcattyBridge['getCrashLogs'],
+    readCrashLog: ((fileName: string) => bindings.diagnosticLog?.ReadCrashLog?.(fileName) ?? Promise.resolve([])) as NetcattyBridge['readCrashLog'],
+    clearCrashLogs: (() => bindings.diagnosticLog?.ClearCrashLogs?.() ?? Promise.resolve({ deletedCount: 0 })) as NetcattyBridge['clearCrashLogs'],
+    openCrashLogsDir: (() => bindings.diagnosticLog?.OpenCrashLogsDir?.() ?? Promise.resolve({ success: false })) as NetcattyBridge['openCrashLogsDir'],
+    getSshDebugLogInfo: (() => bindings.diagnosticLog?.GetSshDebugLogInfo?.() ?? Promise.resolve({ enabled: false, path: '', exists: false, size: 0 })) as NetcattyBridge['getSshDebugLogInfo'],
+    openSshDebugLogDir: (() => bindings.diagnosticLog?.OpenSshDebugLogDir?.() ?? Promise.resolve({ success: false })) as NetcattyBridge['openSshDebugLogDir'],
+    exportSessionLog,
+    autoSaveSessionLog,
+    selectSessionLogsDir: (async () => {
+      const directory = await selectDirectory('Select session log directory');
+      return directory ? { success: true, directory } : { success: false, canceled: true };
+    }) as NetcattyBridge['selectSessionLogsDir'],
+    openSessionLogsDir: (async (directory: string) => bindings.sessionLog?.OpenDirectory?.(directory) ?? { success: false, error: 'Session log service unavailable' }) as NetcattyBridge['openSessionLogsDir'],
+    clearSessionLogsDir: (async (directory: string) => bindings.sessionLog?.ClearDirectory?.(directory) ?? { success: false, deletedCount: 0, failedCount: 0, error: 'Session log service unavailable' }) as NetcattyBridge['clearSessionLogsDir'],
+    chooseManualSessionLogPath,
+    startManualSessionLog,
+    stopManualSessionLog,
+    getManualSessionLogStatus,
     stageUploadFile: (async (file: File, _transferId: string) => {
       if (!bindings.filesystem?.StageBegin || !bindings.filesystem?.StageAppend || !bindings.filesystem?.StageDiscard) {
         throw new Error("staged uploads are not available");
@@ -1412,8 +1672,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       }
     }) as unknown as NetcattyBridge["extractLocalArchive"],
     drainDeepLinks: (async () => {
+      const pending = await bindings.deepLink?.Drain?.() ?? [];
       await bindings.deepLink?.Ready?.();
-      return bindings.deepLink?.Drain?.() ?? [];
+      return pending;
     }) as unknown as NetcattyBridge["drainDeepLinks"],
     getOSProtocolStatus: (async () => {
       const result = await bindings.deepLink?.GetOSProtocolStatus?.();
@@ -1427,17 +1688,57 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== "function") return () => undefined;
       return eventsOn("deeplink:ssh", (event) => {
-        const data = (event?.data ?? event) as { url?: string; Kind?: string; Host?: string; Port?: string; Username?: string };
-        if (data.url) {
-          cb({ url: data.url });
-          return;
-        }
-        if (!data.Host) return;
-        const user = data.Username ? `${data.Username}@` : "";
-        const port = data.Port ? `:${data.Port}` : "";
-        cb({ url: `ssh://${user}${data.Host}${port}` });
+        const data = (event?.data ?? event) as { url?: string; URL?: string; host?: string; Host?: string; port?: string; Port?: string; username?: string; Username?: string };
+        const rawUrl = data.url ?? data.URL;
+        if (rawUrl) return cb({ url: rawUrl });
+        const host = data.host ?? data.Host;
+        if (!host) return;
+        const username = data.username ?? data.Username;
+        const portValue = data.port ?? data.Port;
+        cb({ url: `ssh://${username ? `${username}@` : ""}${host}${portValue ? `:${portValue}` : ""}` });
       });
     }) as unknown as NetcattyBridge["onSshDeepLink"],
+    onTelnetDeepLink: ((cb: (payload: { url?: string }) => void) => {
+      const eventsOn = bindings.events?.On ?? Events.On;
+      if (typeof eventsOn !== 'function') return () => undefined;
+      return eventsOn('deeplink:telnet', event => {
+        const data = (event?.data ?? event) as { url?: string; URL?: string; host?: string; Host?: string; port?: string; Port?: string };
+        const host = data.host ?? data.Host;
+        cb({ url: data.url ?? data.URL ?? (host ? `telnet://${host}${(data.port ?? data.Port) ? `:${data.port ?? data.Port}` : ''}` : '') });
+      });
+    }) as NetcattyBridge['onTelnetDeepLink'],
+    onJmsDeepLink: ((cb: (payload: { url?: string }) => void) => {
+      const eventsOn = bindings.events?.On ?? Events.On;
+      if (typeof eventsOn !== 'function') return () => undefined;
+      return eventsOn('deeplink:jms', event => {
+        const data = (event?.data ?? event) as { url?: string; URL?: string };
+        cb({ url: data.url ?? data.URL });
+      });
+    }) as NetcattyBridge['onJmsDeepLink'],
+    onOpenTerminalPath: ((cb: (payload: { path?: string }) => void) => {
+      const eventsOn = bindings.events?.On ?? Events.On;
+      if (typeof eventsOn !== 'function') return () => undefined;
+      return eventsOn('deeplink:open-terminal', event => {
+        const data = (event?.data ?? event) as { path?: string; Path?: string };
+        cb({ path: data.path ?? data.Path });
+      });
+    }) as NetcattyBridge['onOpenTerminalPath'],
+    setSshDeepLinkEnabled: (async enabled => bindings.deepLink?.SetSshDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as NetcattyBridge['setSshDeepLinkEnabled'],
+    getSshDeepLinkEnabled: (async () => bindings.deepLink?.GetSshDeepLinkEnabled?.() ?? false) as NetcattyBridge['getSshDeepLinkEnabled'],
+    setJmsDeepLinkEnabled: (async enabled => bindings.deepLink?.SetJmsDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as NetcattyBridge['setJmsDeepLinkEnabled'],
+    getJmsDeepLinkEnabled: (async () => bindings.deepLink?.GetJmsDeepLinkEnabled?.() ?? false) as NetcattyBridge['getJmsDeepLinkEnabled'],
+    setExplorerContextMenuEnabled: (async enabled => bindings.deepLink?.SetExplorerContextMenuEnabled?.(enabled) ?? { success: false, enabled: false, supported: false }) as NetcattyBridge['setExplorerContextMenuEnabled'],
+    getExplorerContextMenuEnabled: (async () => bindings.deepLink?.GetExplorerContextMenuEnabled?.() ?? { success: false, enabled: false, supported: false }) as NetcattyBridge['getExplorerContextMenuEnabled'],
+    setHttpNetworkProxy: (async settings => {
+      const result = await bindings.httpNetworkProxy?.Set?.(settings);
+      if (!result) return { success: false, settings };
+      if (result.error) throw new Error(result.error);
+      return { success: result.success !== false, settings: result.settings as typeof settings };
+    }) as NetcattyBridge['setHttpNetworkProxy'],
+    getHttpNetworkProxy: (async () => {
+      const result = await bindings.httpNetworkProxy?.Get?.();
+      return { settings: (result?.settings ?? { mode: 'system', url: '', bypass: '<local>' }) as { mode: 'system' | 'direct' | 'custom'; url: string; bypass: string } };
+    }) as NetcattyBridge['getHttpNetworkProxy'],
     openTerminalPopup: (async (payload) => {
       if (!bindings.popup?.Open) return { success: false, error: "openTerminalPopup unavailable" };
       return bindings.popup.Open(payload);
@@ -1521,6 +1822,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     },
     listPlugins: (() =>
       Promise.resolve(bindings.plugins?.List() ?? [])) as unknown as NetcattyBridge["listPlugins"],
+    ...createPluginBridge(bindings.plugins),
     requestAppLockPasswordChange: (async (input: { currentPassword?: string; nextPassword: string }) => {
       if (!input.nextPassword) return { ok: false, error: "empty-next" };
       if (input.currentPassword) {
@@ -1718,6 +2020,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       getDefaultShell,
       discoverShells,
       validatePath,
+      generateKeyPair: implementedBridge.generateKeyPair,
+      checkSshAgent: implementedBridge.checkSshAgent,
+      getDefaultKeys: implementedBridge.getDefaultKeys,
       getServerStats: monitoring.getServerStats,
       getSessionPwd,
       getSessionRemoteInfo,
@@ -1748,7 +2053,14 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       statSftp,
       closeSftp,
       readSftp,
+      readSftpBinary,
       writeSftp,
+      writeSftpBinary,
+      realpathSftp,
+      lstatSftp,
+      retainSftpTransferSession,
+      releaseSftpTransferSession,
+      sameHostCopyDirectory,
       getSftpHomeDir,
     }),
     sync: portWith("sync", {

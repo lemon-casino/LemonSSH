@@ -102,6 +102,9 @@ func main() {
 	for _, rawURL := range deepLinkURLsFromArgs(os.Args) {
 		_ = deepLinkService.Enqueue(rawURL)
 	}
+	for _, path := range openTerminalPathsFromArgs(os.Args) {
+		deepLinkService.EnqueueOpenTerminalPath(path)
+	}
 	// Acquire the single-instance lock FIRST: bbolt blocks on the profile
 	// store's file lock while another instance runs, which would otherwise
 	// hang a second launch before Wails could forward it to the first.
@@ -115,6 +118,9 @@ func main() {
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				for _, rawURL := range deepLinkURLsFromArgs(data.Args) {
 					_ = deepLinkService.Enqueue(rawURL)
+				}
+				for _, path := range openTerminalPathsFromArgs(data.Args) {
+					deepLinkService.EnqueueOpenTerminalPath(path)
 				}
 				app := application.Get()
 				if app == nil {
@@ -134,6 +140,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
+	deepLinkService.setEventEmitter(func(name string, payload any) { wailsApp.Event.Emit(name, payload) })
 	core := app.New("LemonSSH", version)
 	service := newNetcattyService(core)
 
@@ -205,6 +212,7 @@ func main() {
 	})
 	scriptService.setSessionCloser(terminalSvc.Close)
 	sessionLogManager := sessionlog.NewManager(filepath.Join(baseProfileDir(), "session-logs"))
+	sessionLogService := newSessionLogService(sessionLogManager)
 	defer sessionLogManager.CloseAll()
 	scriptService.setSessionLog(
 		func(sessionID, filePath string) (string, error) {
@@ -244,6 +252,9 @@ func main() {
 	})
 	agentService := newAgentService(turnManager, devDriver, attachmentRegistry, outputStore, interactionRouter)
 	agentCLIService := newAgentCLIService()
+	externalAgentService := newExternalAgentService(filepath.Join(baseProfileDir(), "agent-rpc-discovery.json"), managedTemp.Root())
+	userSkillsService := newUserSkillsService(filepath.Join(baseProfileDir(), userSkillsDirName))
+	externalAgentService.setEventEmitter(func(name string, payload any) { wailsApp.Event.Emit(name, payload) })
 
 	// Agent host (W13): the authenticated loopback RPC surface the native
 	// CLI/MCP binaries connect to via the discovery file.
@@ -276,6 +287,7 @@ func main() {
 	// shares this policy: the same allowlist authority decides the live
 	// provider driver and the renderer-initiated fetches.
 	providerFetchService := newProviderFetchService(providerNetPolicy)
+	httpNetworkProxyService := newHTTPNetworkProxyService(providerNetPolicy)
 	providerFetchService.credentials = credentialProvider
 	providerFetchService.emit = func(name string, payload any) { wailsApp.Event.Emit(name, payload) }
 	defer providerFetchService.closeStreams()
@@ -324,10 +336,14 @@ func main() {
 	wailsApp.RegisterService(application.NewService(scriptService))
 	wailsApp.RegisterService(application.NewService(agentService))
 	wailsApp.RegisterService(application.NewService(agentCLIService))
+	wailsApp.RegisterService(application.NewService(externalAgentService))
+	wailsApp.RegisterService(application.NewService(userSkillsService))
 	wailsApp.RegisterService(application.NewService(providerFetchService))
+	wailsApp.RegisterService(application.NewService(httpNetworkProxyService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))
 	wailsApp.RegisterService(application.NewService(diagnosticLogService))
+	wailsApp.RegisterService(application.NewService(sessionLogService))
 
 	mainWindow := wailsApp.Window.NewWithOptions(mainWindowOptions())
 	setTaskbarIcon(mainWindow)

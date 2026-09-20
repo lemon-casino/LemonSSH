@@ -6,21 +6,29 @@ export {
     AutocompleteDirectoryEntry,
     AutocompleteDirectoryResult,
     DiscoveredShell,
+    DockerActionRequest,
+    DockerImageActionRequest,
+    DockerInspectRequest,
     DockerStatsOptions,
     HelperSessionState,
     LocalStartRequest,
     MonitoringResult,
     MoshStartRequest,
     PathValidation,
+    ProcessSignalOptions,
     ProxyProbeRequest,
     ProxyProbeResult,
     SSHConnectRequest,
     SerialStartRequest,
+    SystemServiceActionRequest,
     TelnetStartRequest,
     TerminalExitStatus,
     TerminalPwdOptions,
     TerminalPwdResult,
-    TerminalRemoteInfo
+    TerminalRemoteInfo,
+    TmuxActionRequest,
+    TmuxSessionRequest,
+    TmuxTargetRequest
 } from "./models.js";
 
 import * as $models from "./models.js";

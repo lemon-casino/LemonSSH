@@ -11,13 +11,63 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as $models from "./models.js";
 
 /**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.CodexLoginResult>}
+ */
+export function CodexCancelLogin(sessionID) {
+    return $Call.ByID(2925650086, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @param {$models.CodexIntegrationOptions} options
+ * @returns {$CancellablePromise<$models.CodexIntegrationStatus>}
+ */
+export function CodexGetIntegration(options) {
+    return $Call.ByID(2122397961, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<$models.CodexLoginResult>}
+ */
+export function CodexGetLoginSession(sessionID) {
+    return $Call.ByID(675606730, sessionID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @param {$models.CodexIntegrationOptions} options
+ * @returns {$CancellablePromise<$models.CodexLogoutResult>}
+ */
+export function CodexLogout(options) {
+    return $Call.ByID(3838627337, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @param {$models.CodexIntegrationOptions} options
+ * @returns {$CancellablePromise<$models.CodexLoginResult>}
+ */
+export function CodexStartLogin(options) {
+    return $Call.ByID(2887084730, options).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
  * @param {boolean} refreshShellEnv
  * @param {boolean} apiKeyPresent
  * @returns {$CancellablePromise<$models.DiscoveredAgentCLI[]>}
  */
 export function Discover(refreshShellEnv, apiKeyPresent) {
     return $Call.ByID(1078283503, refreshShellEnv, apiKeyPresent).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType4($result);
     }));
 }
 
@@ -26,7 +76,7 @@ export function Discover(refreshShellEnv, apiKeyPresent) {
  */
 export function Prewarm() {
     return $Call.ByID(853984860).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType5($result);
     }));
 }
 
@@ -39,12 +89,15 @@ export function Prewarm() {
  */
 export function Resolve(command, customPath, refreshShellEnv, apiKeyPresent) {
     return $Call.ByID(2334403244, command, customPath, refreshShellEnv, apiKeyPresent).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType6($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = $models.DiscoveredAgentCLI.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $models.AgentCLIPrewarmResult.createFrom;
-const $$createType3 = $models.AgentCLIPathInfo.createFrom;
+const $$createType0 = $models.CodexLoginResult.createFrom;
+const $$createType1 = $models.CodexIntegrationStatus.createFrom;
+const $$createType2 = $models.CodexLogoutResult.createFrom;
+const $$createType3 = $models.DiscoveredAgentCLI.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $models.AgentCLIPrewarmResult.createFrom;
+const $$createType6 = $models.AgentCLIPathInfo.createFrom;

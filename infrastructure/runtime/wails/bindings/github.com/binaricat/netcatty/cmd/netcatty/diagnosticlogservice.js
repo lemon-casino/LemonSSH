@@ -12,11 +12,78 @@
 // @ts-ignore: Unused imports
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
- * Append writes one timestamped line to the logs directory.
  * @param {string} line
  * @returns {$CancellablePromise<boolean>}
  */
 export function Append(line) {
     return $Call.ByID(3744274950, line);
 }
+
+/**
+ * @returns {$CancellablePromise<$models.DeletedLogsResult>}
+ */
+export function ClearCrashLogs() {
+    return $Call.ByID(83702589).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.CrashLogFile[]>}
+ */
+export function GetCrashLogs() {
+    return $Call.ByID(2108019426).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.SSHDebugLogInfo>}
+ */
+export function GetSshDebugLogInfo() {
+    return $Call.ByID(2630171519).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.OpenLogsResult>}
+ */
+export function OpenCrashLogsDir() {
+    return $Call.ByID(2451392853).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<$models.OpenLogsResult>}
+ */
+export function OpenSshDebugLogDir() {
+    return $Call.ByID(3221785814).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * @param {string} fileName
+ * @returns {$CancellablePromise<$models.CrashLogEntry[]>}
+ */
+export function ReadCrashLog(fileName) {
+    return $Call.ByID(4182755545, fileName).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
+}
+
+// Private type creation functions
+const $$createType0 = $models.DeletedLogsResult.createFrom;
+const $$createType1 = $models.CrashLogFile.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = $models.SSHDebugLogInfo.createFrom;
+const $$createType4 = $models.OpenLogsResult.createFrom;
+const $$createType5 = $models.CrashLogEntry.createFrom;
+const $$createType6 = $Create.Array($$createType5);

@@ -174,6 +174,174 @@ export class DiscoveredShell {
     }
 }
 
+export class DockerActionRequest {
+    /**
+     * Creates a new DockerActionRequest instance.
+     * @param {Partial<DockerActionRequest>} [$$source = {}] - The source object to create the DockerActionRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("containerId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["containerId"] = "";
+        }
+        if (!("action" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["action"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["newName"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DockerActionRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DockerActionRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DockerActionRequest(/** @type {Partial<DockerActionRequest>} */($$parsedSource));
+    }
+}
+
+export class DockerImageActionRequest {
+    /**
+     * Creates a new DockerImageActionRequest instance.
+     * @param {Partial<DockerImageActionRequest>} [$$source = {}] - The source object to create the DockerImageActionRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("action" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["action"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["imageRef"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["imageId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["force"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["all"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["repository"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["tag"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DockerImageActionRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DockerImageActionRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DockerImageActionRequest(/** @type {Partial<DockerImageActionRequest>} */($$parsedSource));
+    }
+}
+
+export class DockerInspectRequest {
+    /**
+     * Creates a new DockerInspectRequest instance.
+     * @param {Partial<DockerInspectRequest>} [$$source = {}] - The source object to create the DockerInspectRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["containerId"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["imageId"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DockerInspectRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {DockerInspectRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DockerInspectRequest(/** @type {Partial<DockerInspectRequest>} */($$parsedSource));
+    }
+}
+
 /**
  * DockerStatsOptions filters docker stats rows client-side by name or ID.
  */
@@ -450,6 +618,27 @@ export class MonitoringResult {
              * @member
              * @type {any | undefined}
              */
+            this["windows"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["panes"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["clients"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
             this["containers"] = undefined;
         }
         if (/** @type {any} */(false)) {
@@ -458,6 +647,62 @@ export class MonitoringResult {
              * @type {any | undefined}
              */
             this["images"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["ports"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["units"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["devices"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {any | undefined}
+             */
+            this["inspect"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["output"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["tmuxVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["nvidiaDriverVersion"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["probedAt"] = undefined;
         }
 
         Object.assign(this, $$source);
@@ -751,6 +996,59 @@ export class PathValidation {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new PathValidation(/** @type {Partial<PathValidation>} */($$parsedSource));
+    }
+}
+
+/**
+ * Extended monitoring request DTOs are kept in the application layer so the
+ * Wails facade and any later RPC facade share the same validation rules.
+ */
+export class ProcessSignalOptions {
+    /**
+     * Creates a new ProcessSignalOptions instance.
+     * @param {Partial<ProcessSignalOptions>} [$$source = {}] - The source object to create the ProcessSignalOptions.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("pid" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["pid"] = 0;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["signal"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | null | undefined}
+             */
+            this["nice"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProcessSignalOptions instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProcessSignalOptions}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProcessSignalOptions(/** @type {Partial<ProcessSignalOptions>} */($$parsedSource));
     }
 }
 
@@ -1127,6 +1425,55 @@ export class SerialStartRequest {
     }
 }
 
+export class SystemServiceActionRequest {
+    /**
+     * Creates a new SystemServiceActionRequest instance.
+     * @param {Partial<SystemServiceActionRequest>} [$$source = {}] - The source object to create the SystemServiceActionRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("unitName" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["unitName"] = "";
+        }
+        if (!("action" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["action"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["scope"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SystemServiceActionRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SystemServiceActionRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SystemServiceActionRequest(/** @type {Partial<SystemServiceActionRequest>} */($$parsedSource));
+    }
+}
+
 /**
  * TelnetStartRequest is the shell-facing telnet dial payload. Auto-login
  * credentials are held in memory for the prompt exchange and never persisted.
@@ -1393,6 +1740,181 @@ export class TerminalRemoteInfo {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new TerminalRemoteInfo(/** @type {Partial<TerminalRemoteInfo>} */($$parsedSource));
+    }
+}
+
+export class TmuxActionRequest {
+    /**
+     * Creates a new TmuxActionRequest instance.
+     * @param {Partial<TmuxActionRequest>} [$$source = {}] - The source object to create the TmuxActionRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("action" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["action"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["sessionName"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["newName"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["windowName"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["windowIndex"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["paneIndex"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["direction"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["keys"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["enter"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TmuxActionRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TmuxActionRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TmuxActionRequest(/** @type {Partial<TmuxActionRequest>} */($$parsedSource));
+    }
+}
+
+export class TmuxSessionRequest {
+    /**
+     * Creates a new TmuxSessionRequest instance.
+     * @param {Partial<TmuxSessionRequest>} [$$source = {}] - The source object to create the TmuxSessionRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["command"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TmuxSessionRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TmuxSessionRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TmuxSessionRequest(/** @type {Partial<TmuxSessionRequest>} */($$parsedSource));
+    }
+}
+
+export class TmuxTargetRequest {
+    /**
+     * Creates a new TmuxTargetRequest instance.
+     * @param {Partial<TmuxTargetRequest>} [$$source = {}] - The source object to create the TmuxTargetRequest.
+     */
+    constructor($$source = {}) {
+        if (!("sessionId" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionId"] = "";
+        }
+        if (!("sessionName" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["sessionName"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["windowIndex"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new TmuxTargetRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {TmuxTargetRequest}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new TmuxTargetRequest(/** @type {Partial<TmuxTargetRequest>} */($$parsedSource));
     }
 }
 

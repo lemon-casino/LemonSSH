@@ -17,11 +17,25 @@ export class Action {
     constructor($$source = {}) {
         if (!("kind" in $$source)) {
             /**
-             * "ssh" | "telnet"
+             * "ssh" | "telnet" | "jms"
              * @member
              * @type {string}
              */
             this["kind"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["url"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["path"] = undefined;
         }
         if (!("host" in $$source)) {
             /**

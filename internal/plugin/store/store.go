@@ -238,6 +238,42 @@ func (s *Store) SetSetting(id, key string, value json.RawMessage) error {
 	return s.persistLocked(previous)
 }
 
+// SetLabels replaces host-owned package metadata such as the immutable archive path.
+func (s *Store) SetLabels(id string, labels map[string]string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, ok := s.plugins[id]
+	if !ok {
+		return ErrNotInstalled
+	}
+	previous := s.snapshotLocked()
+	record.Labels = make(map[string]string, len(labels))
+	for key, value := range labels {
+		record.Labels[key] = value
+	}
+	record.UpdatedAt = time.Now()
+	return s.persistLocked(previous)
+}
+
+// DeleteSetting removes one persisted non-secret setting value.
+func (s *Store) DeleteSetting(id, key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, ok := s.plugins[id]
+	if !ok {
+		return ErrNotInstalled
+	}
+	previous := s.snapshotLocked()
+	values := make(map[string]json.RawMessage, len(record.Settings))
+	for currentKey, value := range record.Settings {
+		if currentKey != key {
+			values[currentKey] = append(json.RawMessage(nil), value...)
+		}
+	}
+	record.Settings = values
+	return s.persistLocked(previous)
+}
+
 // Checksum computes SHA-256 of the data (used for package integrity).
 func Checksum(data []byte) string {
 	sum := sha256.Sum256(data)

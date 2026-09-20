@@ -6,6 +6,7 @@
 package netpolicy
 
 import (
+	"fmt"
 	"net/netip"
 	"net/url"
 	"strconv"
@@ -56,11 +57,14 @@ type FetchOptions struct {
 
 // Policy holds the dynamic endpoint sets rebuilt from provider configs.
 type Policy struct {
-	mu                sync.Mutex
+	mu                sync.RWMutex
 	providerHosts     map[string]bool
 	providerHTTPHosts map[string]bool
 	localPorts        map[int]bool
 	webSearchHost     string
+	proxyMode         string
+	proxyURL          *url.URL
+	proxyBypass       []string
 }
 
 // New returns a policy seeded with the builtin hosts and ports.
@@ -111,12 +115,12 @@ func (p *Policy) AddProviderEndpoint(rawURL string) {
 // use plain http like explicit provider http endpoints.
 func (p *Policy) SetWebSearchHost(rawURL string) {
 	parsed, err := url.Parse(rawURL)
-	if err != nil {
+	if err != nil || parsed.Hostname() == "" {
 		return
 	}
-	if parsed.Hostname() != "" {
-		p.webSearchHost = parsed.Hostname()
-	}
+	p.mu.Lock()
+	p.webSearchHost = parsed.Hostname()
+	p.mu.Unlock()
 }
 
 // IsPrivateIP reports whether the address is loopback, private, link-local,
@@ -175,6 +179,9 @@ func (p *Policy) isAllowedParsedURL(parsed *url.URL, opts FetchOptions) bool {
 		return false
 	}
 
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	if opts.AllowCustomEndpoints {
 		if isPrivateHost(hostname) {
 			return false
@@ -189,7 +196,7 @@ func (p *Policy) isAllowedParsedURL(parsed *url.URL, opts FetchOptions) bool {
 		} else if parsed.Scheme == "https" {
 			port = 443
 		}
-		return p.isLocalPortAllowed(port)
+		return BuiltinLocalhostPorts[port] || p.localPorts[port]
 	}
 
 	if parsed.Scheme != "https" && parsed.Scheme != "http" {
@@ -204,8 +211,63 @@ func (p *Policy) isAllowedParsedURL(parsed *url.URL, opts FetchOptions) bool {
 }
 
 func (p *Policy) isLocalPortAllowed(port int) bool {
-	if BuiltinLocalhostPorts[port] {
-		return true
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return BuiltinLocalhostPorts[port] || p.localPorts[port]
+}
+
+// SetHTTPProxy updates the process-local HTTP transport policy used by AI provider requests.
+func (p *Policy) SetHTTPProxy(mode, rawURL, bypass string) error {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode != "system" && mode != "direct" && mode != "custom" {
+		return fmt.Errorf("unsupported proxy mode %q", mode)
 	}
-	return p.localPorts[port]
+	var parsed *url.URL
+	if mode == "custom" {
+		var err error
+		parsed, err = url.Parse(strings.TrimSpace(rawURL))
+		if err != nil || parsed.Hostname() == "" {
+			return fmt.Errorf("custom proxy URL is invalid")
+		}
+		if parsed.User != nil {
+			return fmt.Errorf("proxy credentials are not accepted in the proxy URL")
+		}
+		switch strings.ToLower(parsed.Scheme) {
+		case "http", "https", "socks5", "socks5h":
+		default:
+			return fmt.Errorf("unsupported proxy scheme %q", parsed.Scheme)
+		}
+	}
+	bypassItems := []string{}
+	for _, item := range strings.Split(bypass, ",") {
+		if item = strings.ToLower(strings.TrimSpace(item)); item != "" {
+			bypassItems = append(bypassItems, item)
+		}
+	}
+	p.mu.Lock()
+	p.proxyMode, p.proxyURL, p.proxyBypass = mode, parsed, bypassItems
+	p.mu.Unlock()
+	return nil
+}
+
+// HTTPProxy reports the normalized proxy configuration without credentials.
+func (p *Policy) HTTPProxy() (string, string, string) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	rawURL := ""
+	if p.proxyURL != nil {
+		rawURL = p.proxyURL.String()
+	}
+	return p.proxyMode, rawURL, strings.Join(p.proxyBypass, ",")
+}
+
+func (p *Policy) proxySnapshot() (string, *url.URL, []string) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	var cloned *url.URL
+	if p.proxyURL != nil {
+		copy := *p.proxyURL
+		cloned = &copy
+	}
+	return p.proxyMode, cloned, append([]string(nil), p.proxyBypass...)
 }

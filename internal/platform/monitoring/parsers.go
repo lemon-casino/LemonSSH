@@ -119,13 +119,13 @@ func ParseCapabilities(text string) (Row, error) {
 	if os == "" {
 		os = "unknown"
 	}
-	r := Row{"targetOs": os, "hasTmux": false, "hasDocker": false, "hasNvidiaSmi": false, "hasNpuSmi": false, "probedAt": time.Now().UnixMilli()}
+	r := Row{"targetOs": os, "hasTmux": false, "hasDocker": false, "hasNvidiaSmi": false, "hasNpuSmi": false, "hasSs": false, "hasNetstat": false, "hasLsof": false, "hasSystemctl": false, "probedAt": time.Now().UnixMilli()}
 	for _, line := range f[1:] {
 		p := strings.Split(line, "=")
 		if len(p) != 2 || (p[1] != "0" && p[1] != "1") {
 			return nil, fmt.Errorf("invalid capability value")
 		}
-		if key := map[string]string{"tmux": "hasTmux", "docker": "hasDocker"}[p[0]]; key != "" {
+		if key := map[string]string{"tmux": "hasTmux", "docker": "hasDocker", "nvidia-smi": "hasNvidiaSmi", "npu-smi": "hasNpuSmi", "ss": "hasSs", "netstat": "hasNetstat", "lsof": "hasLsof", "systemctl": "hasSystemctl"}[p[0]]; key != "" {
 			r[key] = p[1] == "1"
 		}
 	}

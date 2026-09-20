@@ -32,14 +32,45 @@ export function Enqueue(rawURL) {
 }
 
 /**
+ * @param {string} path
+ * @returns {$CancellablePromise<void>}
+ */
+export function EnqueueOpenTerminalPath(path) {
+    return $Call.ByID(2370862464, path);
+}
+
+/**
+ * @returns {$CancellablePromise<$models.DesktopToggleResult>}
+ */
+export function GetExplorerContextMenuEnabled() {
+    return $Call.ByID(2352536659).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function GetJmsDeepLinkEnabled() {
+    return $Call.ByID(2489131400);
+}
+
+/**
  * GetOSProtocolStatus reports whether the schemes currently hand off to this
  * executable. A drift (another tool took over ssh://) reads as unregistered.
  * @returns {$CancellablePromise<$models.ProtocolRegistrationResult>}
  */
 export function GetOSProtocolStatus() {
     return $Call.ByID(614614681).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType4($result);
     }));
+}
+
+/**
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function GetSshDeepLinkEnabled() {
+    return $Call.ByID(2975773976);
 }
 
 /**
@@ -67,6 +98,26 @@ export function Ready() {
 }
 
 /**
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<$models.DesktopToggleResult>}
+ */
+export function SetExplorerContextMenuEnabled(enabled) {
+    return $Call.ByID(3260167135, enabled).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<$models.DesktopToggleResult>}
+ */
+export function SetJmsDeepLinkEnabled(enabled) {
+    return $Call.ByID(2680350412, enabled).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType3($result);
+    }));
+}
+
+/**
  * SetOSProtocol registers or removes the ssh/telnet/netcatty URL schemes.
  * On Windows this writes HKCU\Software\Classes, which needs no elevation;
  * other platforms fail closed until their installer formats own registration.
@@ -75,6 +126,16 @@ export function Ready() {
  */
 export function SetOSProtocol(enabled) {
     return $Call.ByID(896377307, enabled).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<$models.DesktopToggleResult>}
+ */
+export function SetSshDeepLinkEnabled(enabled) {
+    return $Call.ByID(3347299940, enabled).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType3($result);
     }));
 }
@@ -83,4 +144,5 @@ export function SetOSProtocol(enabled) {
 const $$createType0 = deeplink$0.Action.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $models.ProtocolRegistrationResult.createFrom;
+const $$createType3 = $models.DesktopToggleResult.createFrom;
+const $$createType4 = $models.ProtocolRegistrationResult.createFrom;

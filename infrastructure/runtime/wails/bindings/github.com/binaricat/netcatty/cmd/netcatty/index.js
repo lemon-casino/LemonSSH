@@ -8,8 +8,10 @@ import * as AppLockService from "./applockservice.js";
 import * as CredentialService from "./credentialservice.js";
 import * as DeepLinkService from "./deeplinkservice.js";
 import * as DiagnosticLogService from "./diagnosticlogservice.js";
+import * as ExternalAgentService from "./externalagentservice.js";
 import * as FilesystemService from "./filesystemservice.js";
 import * as ForwardService from "./forwardservice.js";
+import * as HTTPNetworkProxyService from "./httpnetworkproxyservice.js";
 import * as NetcattyService from "./netcattyservice.js";
 import * as PTYService from "./ptyservice.js";
 import * as PluginService from "./pluginservice.js";
@@ -18,12 +20,14 @@ import * as ProfileService from "./profileservice.js";
 import * as ProviderFetchService from "./providerfetchservice.js";
 import * as SFTPService from "./sftpservice.js";
 import * as ScriptService from "./scriptservice.js";
+import * as SessionLogService from "./sessionlogservice.js";
 import * as SettingsWindowService from "./settingswindowservice.js";
 import * as ShortcutService from "./shortcutservice.js";
 import * as SyncService from "./syncservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as TransferService from "./transferservice.js";
 import * as TrayService from "./trayservice.js";
+import * as UserSkillsService from "./userskillsservice.js";
 export {
     AgentCLIService,
     AgentService,
@@ -31,8 +35,10 @@ export {
     CredentialService,
     DeepLinkService,
     DiagnosticLogService,
+    ExternalAgentService,
     FilesystemService,
     ForwardService,
+    HTTPNetworkProxyService,
     NetcattyService,
     PTYService,
     PluginService,
@@ -41,12 +47,14 @@ export {
     ProviderFetchService,
     SFTPService,
     ScriptService,
+    SessionLogService,
     SettingsWindowService,
     ShortcutService,
     SyncService,
     TerminalService,
     TransferService,
-    TrayService
+    TrayService,
+    UserSkillsService
 };
 
 export {
@@ -66,23 +74,53 @@ export {
     CloudSyncResource,
     CloudSyncSyncedFile,
     CloudSyncWebDAVConfig,
+    CodexIntegrationOptions,
+    CodexIntegrationStatus,
+    CodexLoginResult,
+    CodexLoginSession,
+    CodexLogoutResult,
+    CrashLogEntry,
+    CrashLogFile,
+    DefaultSSHKey,
+    DeletedLogsResult,
+    DesktopToggleResult,
     DiscoveredAgentCLI,
     DiscoveredShell,
+    DockerActionRequest,
+    DockerImageActionRequest,
+    DockerInspectRequest,
     DockerStatsOptions,
     ExternalAgentConfig,
+    ExternalAgentHistoryMessage,
+    ExternalAgentImage,
+    ExternalAgentModelsResult,
+    ExternalAgentResult,
+    ExternalAgentSteerResult,
+    ExternalAgentStreamRequest,
+    ExternalAgentTarget,
+    HTTPNetworkProxyResult,
+    HTTPNetworkProxySettings,
     HelperSessionState,
     HotkeyResult,
     HotkeyStatus,
+    KeyPairOptions,
+    KeyPairResult,
+    LocalFileInfo,
     LocalPathStat,
     LocalStartRequest,
+    LocalSystemInfo,
+    ManualSessionLogResult,
     MonitoringResult,
     MoshStartRequest,
     NativeStartRequest,
+    OpenLogsResult,
     PathValidation,
+    PluginPackageInstallOptions,
     PopupOpenResult,
     PortForwardListItem,
     PortForwardResult,
     PortForwardRuntimeSnapshot,
+    ProcessSignalOptions,
     ProtocolRegistrationResult,
     ProviderAllowlistResult,
     ProviderEndpointConfig,
@@ -91,8 +129,12 @@ export {
     ProviderStreamResult,
     ProxyProbeRequest,
     ProxyProbeResult,
+    SFTPLstatResult,
     SFTPOpenRequest,
+    SSHAgentOptions,
+    SSHAgentStatus,
     SSHConnectRequest,
+    SSHDebugLogInfo,
     ScriptOKResult,
     ScriptRecordingStartResult,
     ScriptRecordingStopResult,
@@ -100,8 +142,10 @@ export {
     ScriptRunResult,
     ScriptStep,
     SerialStartRequest,
+    SessionLogsClearResult,
     SystemNotificationRequest,
     SystemNotificationResult,
+    SystemServiceActionRequest,
     TelnetStartRequest,
     TempClearResult,
     TempDirectoryInfo,
@@ -109,8 +153,14 @@ export {
     TerminalPwdOptions,
     TerminalPwdResult,
     TerminalRemoteInfo,
+    TmuxActionRequest,
+    TmuxSessionRequest,
+    TmuxTargetRequest,
     TransferSnapshot,
     TransferStartRequest,
+    UserSkillStatusItem,
+    UserSkillsContextResult,
+    UserSkillsStatusResult,
     VaultBackupCapabilities,
     VaultBackupCreateRequest,
     VaultBackupCreateResult,

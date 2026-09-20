@@ -38,8 +38,15 @@ func (b *boundedBuffer) Write(p []byte) (int, error) {
 // Keep unresponsive SSH channel-open requests bounded without closing a shared transport.
 var execSlots = make(chan struct{}, 8)
 
+func withDefaultTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if _, hasDeadline := ctx.Deadline(); hasDeadline {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
 func Execute(ctx context.Context, open func() (Channel, error), command string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	ctx, cancel := withDefaultTimeout(ctx, 8*time.Second)
 	defer cancel()
 	if e := ctx.Err(); e != nil {
 		return "", e
@@ -100,7 +107,7 @@ func ExecuteLocal(ctx context.Context, command string) (string, error) {
 	if runtime.GOOS != "linux" {
 		return "", fmt.Errorf("local monitoring is unsupported on %s; Linux is required", runtime.GOOS)
 	}
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	ctx, cancel := withDefaultTimeout(ctx, 8*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", command)
 	cmd.WaitDelay = 250 * time.Millisecond
@@ -120,7 +127,7 @@ func ExecuteLocal(ctx context.Context, command string) (string, error) {
 	return out.b.String(), nil
 }
 
-const ProbeCommand = `export LC_ALL=C; uname -s; for tool in tmux docker; do if command -v "$tool" >/dev/null 2>&1; then printf '%s=1\n' "$tool"; else printf '%s=0\n' "$tool"; fi; done; if test -r /proc/stat -a -r /proc/meminfo; then printf 'proc=1\n'; else printf 'proc=0\n'; fi; if command -v ps >/dev/null 2>&1; then printf 'ps=1\n'; else printf 'ps=0\n'; fi`
+const ProbeCommand = `export LC_ALL=C; uname -s; for tool in tmux docker nvidia-smi npu-smi ss netstat lsof systemctl; do if command -v "$tool" >/dev/null 2>&1; then printf '%s=1\n' "$tool"; else printf '%s=0\n' "$tool"; fi; done; if test -r /proc/stat -a -r /proc/meminfo; then printf 'proc=1\n'; else printf 'proc=0\n'; fi; if command -v ps >/dev/null 2>&1; then printf 'ps=1\n'; else printf 'ps=0\n'; fi`
 const ProcessesCommand = `export LC_ALL=C; command -v ps >/dev/null 2>&1 || { printf 'ps unavailable' >&2; exit 127; }; ps -eo pid=,ppid=,user=,stat=,pcpu=,pmem=,rss=,vsz=,etime=,args= --sort=-pmem`
 const TmuxCommand = "export LC_ALL=C; command -v tmux >/dev/null 2>&1 || { printf 'tmux unavailable' >&2; exit 127; }; tmux list-sessions -F '#{session_name}\t#{session_windows}\t#{session_attached}\t#{session_created}'"
 const ContainersCommand = `export LC_ALL=C; command -v docker >/dev/null 2>&1 || { printf 'docker unavailable' >&2; exit 127; }; docker ps -a --no-trunc --format '{{json .}}'`

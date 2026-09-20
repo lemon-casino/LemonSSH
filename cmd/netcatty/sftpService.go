@@ -1,7 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"path"
+	"strings"
+	"sync"
 
 	pkgsftp "github.com/pkg/sftp"
 
@@ -24,7 +29,19 @@ type SFTPOpenRequest = sftpuse.OpenRequest
 // shared sftpuse.Service, so a future capability dispatch entry point can call
 // the same instance.
 type SFTPService struct {
-	core *sftpuse.Service
+	core           *sftpuse.Service
+	mu             sync.Mutex
+	transferLeases map[string]map[string]struct{}
+	pendingClose   map[string]bool
+}
+
+type SFTPLstatResult struct {
+	Path      string `json:"path"`
+	IsDir     bool   `json:"isDir"`
+	IsSymlink bool   `json:"isSymlink"`
+	Size      int64  `json:"size"`
+	Mode      string `json:"mode"`
+	ModTime   any    `json:"modTime"`
 }
 
 // NewSFTPService wires the pool, known-hosts store and the local upload-source
@@ -32,7 +49,7 @@ type SFTPService struct {
 func NewSFTPService(pool *sshpool.Pool, knownHosts *netcattyssh.KnownHosts) *SFTPService {
 	core := sftpuse.New(pool, knownHosts)
 	core.SetStagingOpener(openLocalForUpload)
-	return &SFTPService{core: core}
+	return &SFTPService{core: core, transferLeases: make(map[string]map[string]struct{}), pendingClose: make(map[string]bool)}
 }
 
 func (s *SFTPService) setTempService(temp *filesystem.TempService) { s.core.SetTempService(temp) }
@@ -81,6 +98,18 @@ func (s *SFTPService) Stat(sessionID, target string) (sftp.FileInfo, error) {
 	return s.core.Stat(sessionID, target)
 }
 
+func (s *SFTPService) Lstat(sessionID, target string) (SFTPLstatResult, error) {
+	info, symlink, err := s.core.Lstat(sessionID, target)
+	if err != nil {
+		return SFTPLstatResult{}, err
+	}
+	return SFTPLstatResult{Path: info.Path, IsDir: info.IsDir, IsSymlink: symlink, Size: info.Size, Mode: info.Mode, ModTime: info.ModTime}, nil
+}
+
+func (s *SFTPService) RealPath(sessionID, target string) (string, error) {
+	return s.core.RealPath(sessionID, target)
+}
+
 // Mkdir creates a remote directory.
 func (s *SFTPService) Mkdir(sessionID, dir string) error { return s.core.Mkdir(sessionID, dir) }
 
@@ -102,9 +131,17 @@ func (s *SFTPService) Read(sessionID, remotePath string) (string, error) {
 	return s.core.Read(sessionID, remotePath)
 }
 
+func (s *SFTPService) ReadBinary(sessionID, remotePath string) ([]byte, error) {
+	return s.core.ReadBinary(sessionID, remotePath)
+}
+
 // WriteText writes UTF-8 text to a remote file, creating or truncating it.
 func (s *SFTPService) WriteText(sessionID, remotePath, content string) error {
 	return s.core.WriteText(sessionID, remotePath, content)
+}
+
+func (s *SFTPService) WriteBinary(sessionID, remotePath string, content []byte) error {
+	return s.core.WriteBinary(sessionID, remotePath, content)
 }
 
 // HomeDir returns the remote working directory for the SFTP session.
@@ -131,5 +168,116 @@ func (s *SFTPService) UploadCompressedFolder(sessionID, localFolder, remoteZipPa
 	return s.core.UploadCompressedFolder(sessionID, localFolder, remoteZipPath)
 }
 
-// Close releases the SFTP client and returns the transport to the pool.
-func (s *SFTPService) Close(sessionID string) error { return s.core.Close(sessionID) }
+// RetainTransfer defers a close while a renderer-owned transfer still uses the
+// SFTP session. Lease IDs are idempotent within one session.
+func (s *SFTPService) RetainTransfer(sessionID, leaseID string) error {
+	if leaseID == "" {
+		return fmt.Errorf("lease id is required")
+	}
+	// Validate the session without retaining a raw client handle.
+	_, release, err := s.core.Acquire(sessionID)
+	if err != nil {
+		return err
+	}
+	release()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	leases := s.transferLeases[sessionID]
+	if leases == nil {
+		leases = make(map[string]struct{})
+		s.transferLeases[sessionID] = leases
+	}
+	leases[leaseID] = struct{}{}
+	return nil
+}
+
+func (s *SFTPService) ReleaseTransfer(sessionID, leaseID string) error {
+	s.mu.Lock()
+	leases := s.transferLeases[sessionID]
+	delete(leases, leaseID)
+	shouldClose := len(leases) == 0 && s.pendingClose[sessionID]
+	if len(leases) == 0 {
+		delete(s.transferLeases, sessionID)
+	}
+	if shouldClose {
+		delete(s.pendingClose, sessionID)
+	}
+	s.mu.Unlock()
+	if shouldClose {
+		return s.core.Close(sessionID)
+	}
+	return nil
+}
+
+// CopyDirectory performs a same-host recursive copy entirely through the
+// existing SFTP connection, avoiding a renderer/local staging round trip.
+func (s *SFTPService) CopyDirectory(sessionID, sourcePath, targetPath string) error {
+	client, release, err := s.core.Acquire(sessionID)
+	if err != nil {
+		return err
+	}
+	defer release()
+	source := path.Clean(sourcePath)
+	target := path.Clean(targetPath)
+	if source == "." || target == "." {
+		return fmt.Errorf("source and target paths are required")
+	}
+	if err := client.MkdirAll(target); err != nil {
+		return err
+	}
+	walker := client.Walk(source)
+	for walker.Step() {
+		if err := walker.Err(); err != nil {
+			return err
+		}
+		current := path.Clean(walker.Path())
+		relative := strings.TrimPrefix(current, source)
+		relative = strings.TrimPrefix(relative, "/")
+		destination := target
+		if relative != "" {
+			destination = path.Join(target, relative)
+		}
+		info := walker.Stat()
+		if info.IsDir() {
+			if err := client.MkdirAll(destination); err != nil {
+				return err
+			}
+			continue
+		}
+		reader, err := client.Open(current)
+		if err != nil {
+			return err
+		}
+		writer, err := client.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+		if err != nil {
+			_ = reader.Close()
+			return err
+		}
+		_, copyErr := io.Copy(writer, reader)
+		readCloseErr := reader.Close()
+		writeCloseErr := writer.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		if readCloseErr != nil {
+			return readCloseErr
+		}
+		if writeCloseErr != nil {
+			return writeCloseErr
+		}
+	}
+	return nil
+}
+
+// Close releases the SFTP client once outstanding transfer leases drain.
+func (s *SFTPService) Close(sessionID string) error {
+	s.mu.Lock()
+	if len(s.transferLeases[sessionID]) > 0 {
+		s.pendingClose[sessionID] = true
+		s.mu.Unlock()
+		return nil
+	}
+	delete(s.pendingClose, sessionID)
+	s.mu.Unlock()
+	return s.core.Close(sessionID)
+}

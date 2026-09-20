@@ -78,6 +78,17 @@ func (m *Manager) Stop(sessionID string) error {
 	return file.Close()
 }
 
+// Status reports whether one session is currently being logged and the active file path.
+func (m *Manager) Status(sessionID string) (bool, string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	file := m.streams[sessionID]
+	if file == nil {
+		return false, ""
+	}
+	return true, file.Name()
+}
+
 func (m *Manager) CloseAll() {
 	m.mu.Lock()
 	files := m.streams

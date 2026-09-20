@@ -1543,11 +1543,20 @@ export function AppSideEffects() {
     void bridge.drainDeepLinks().then((actions) => {
       for (const action of actions ?? []) {
         const kind = (action.Kind ?? action.kind ?? "ssh").toLowerCase();
+        const rawUrl = action.URL ?? action.url;
+        if (kind === 'jms') {
+          _handleJmsDeepLink({ url: rawUrl });
+          continue;
+        }
+        if (kind === 'open-terminal') {
+          _handleOpenTerminalPath({ path: action.Path ?? action.path });
+          continue;
+        }
         const host = action.Host ?? action.host;
         if (!host) continue;
         const user = action.Username ?? action.username;
         const port = action.Port ?? action.port;
-        const url = `${kind}://${user ? `${user}@` : ""}${host}${port ? `:${port}` : ""}`;
+        const url = rawUrl || `${kind}://${user ? `${user}@` : ""}${host}${port ? `:${port}` : ""}`;
         if (kind === "telnet") _processTelnetDeepLink({ url });
         else _handleSshDeepLink({ url });
       }

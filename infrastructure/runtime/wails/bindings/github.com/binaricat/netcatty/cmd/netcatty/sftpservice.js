@@ -39,12 +39,24 @@ export function Chmod(sessionID, target, permissions) {
 }
 
 /**
- * Close releases the SFTP client and returns the transport to the pool.
+ * Close releases the SFTP client once outstanding transfer leases drain.
  * @param {string} sessionID
  * @returns {$CancellablePromise<void>}
  */
 export function Close(sessionID) {
     return $Call.ByID(3365137644, sessionID);
+}
+
+/**
+ * CopyDirectory performs a same-host recursive copy entirely through the
+ * existing SFTP connection, avoiding a renderer/local staging round trip.
+ * @param {string} sessionID
+ * @param {string} sourcePath
+ * @param {string} targetPath
+ * @returns {$CancellablePromise<void>}
+ */
+export function CopyDirectory(sessionID, sourcePath, targetPath) {
+    return $Call.ByID(1738141560, sessionID, sourcePath, targetPath);
 }
 
 /**
@@ -91,6 +103,17 @@ export function List(sessionID, dir) {
 }
 
 /**
+ * @param {string} sessionID
+ * @param {string} target
+ * @returns {$CancellablePromise<$models.SFTPLstatResult>}
+ */
+export function Lstat(sessionID, target) {
+    return $Call.ByID(754954718, sessionID, target).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType2($result);
+    }));
+}
+
+/**
  * Mkdir creates a remote directory.
  * @param {string} sessionID
  * @param {string} dir
@@ -130,6 +153,35 @@ export function Read(sessionID, remotePath) {
 }
 
 /**
+ * @param {string} sessionID
+ * @param {string} remotePath
+ * @returns {$CancellablePromise<string>}
+ */
+export function ReadBinary(sessionID, remotePath) {
+    return $Call.ByID(671847977, sessionID, remotePath).then(/** @type {($result: any) => any} */(($result) => {
+        return $Create.ByteSlice($result);
+    }));
+}
+
+/**
+ * @param {string} sessionID
+ * @param {string} target
+ * @returns {$CancellablePromise<string>}
+ */
+export function RealPath(sessionID, target) {
+    return $Call.ByID(2209466803, sessionID, target);
+}
+
+/**
+ * @param {string} sessionID
+ * @param {string} leaseID
+ * @returns {$CancellablePromise<void>}
+ */
+export function ReleaseTransfer(sessionID, leaseID) {
+    return $Call.ByID(2816978006, sessionID, leaseID);
+}
+
+/**
  * Remove deletes a remote file or directory tree.
  * @param {string} sessionID
  * @param {string} target
@@ -151,6 +203,17 @@ export function Rename(sessionID, oldPath, newPath) {
 }
 
 /**
+ * RetainTransfer defers a close while a renderer-owned transfer still uses the
+ * SFTP session. Lease IDs are idempotent within one session.
+ * @param {string} sessionID
+ * @param {string} leaseID
+ * @returns {$CancellablePromise<void>}
+ */
+export function RetainTransfer(sessionID, leaseID) {
+    return $Call.ByID(69927926, sessionID, leaseID);
+}
+
+/**
  * Stat stats one remote path.
  * @param {string} sessionID
  * @param {string} target
@@ -158,7 +221,7 @@ export function Rename(sessionID, oldPath, newPath) {
  */
 export function Stat(sessionID, target) {
     return $Call.ByID(2968321290, sessionID, target).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType3($result);
     }));
 }
 
@@ -185,6 +248,16 @@ export function UploadCompressedFolder(sessionID, localFolder, remoteZipPath) {
 }
 
 /**
+ * @param {string} sessionID
+ * @param {string} remotePath
+ * @param {string} content
+ * @returns {$CancellablePromise<void>}
+ */
+export function WriteBinary(sessionID, remotePath, content) {
+    return $Call.ByID(3701483082, sessionID, remotePath, content);
+}
+
+/**
  * WriteText writes UTF-8 text to a remote file, creating or truncating it.
  * @param {string} sessionID
  * @param {string} remotePath
@@ -198,4 +271,5 @@ export function WriteText(sessionID, remotePath, content) {
 // Private type creation functions
 const $$createType0 = sftp$0.Entry.createFrom;
 const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = sftp$0.FileInfo.createFrom;
+const $$createType2 = $models.SFTPLstatResult.createFrom;
+const $$createType3 = sftp$0.FileInfo.createFrom;

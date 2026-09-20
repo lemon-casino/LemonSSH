@@ -629,7 +629,7 @@ test("pauseTransfer reaches the Go transfer service", async () => {
   assert.deepEqual(paused, ["t-1"]);
 });
 
-test("drainDeepLinks Ready then Drain", async () => {
+test("drainDeepLinks drains cold-start intents before enabling live delivery", async () => {
   const calls: string[] = [];
   const bindings = stubBindings();
   bindings.deepLink = {
@@ -643,7 +643,7 @@ test("drainDeepLinks Ready then Drain", async () => {
   };
   const client = createWailsRuntimeClient(bindings);
   const actions = await client.transitionBridge.drainDeepLinks?.();
-  assert.deepEqual(calls, ["ready", "drain"]);
+  assert.deepEqual(calls, ["drain", "ready"]);
   assert.equal((actions?.[0] as { Host?: string }).Host, "lab");
 });
 
