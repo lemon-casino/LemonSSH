@@ -12,6 +12,7 @@
 import type { NetcattyBridge } from '../cattyAgent/executor';
 import type { WebSearchConfig } from '../types';
 import { WEB_SEARCH_PROVIDER_PRESETS } from '../types';
+import { decryptField } from '../../persistence/secureFieldAdapter';
 
 export interface WebSearchResult {
   title: string;
@@ -200,15 +201,57 @@ const PROVIDER_SEARCH_FNS: Record<string, typeof searchTavily> = {
  */
 const WEB_SEARCH_KEY_PLACEHOLDER = '__WEB_SEARCH_KEY__';
 
+/**
+ * Renderer-side decrypt hook for the stored (enc:v1) API key.
+ * Defaults to the real `decryptField` so shells without a main-process
+ * key injection step (Wails) can resolve the plaintext key themselves;
+ * tests inject fakes. Returning null/undefined, throwing, or returning
+ * the stored value unchanged (a passthrough, not a decryption) keeps the
+ * placeholder in place.
+ */
+export type WebSearchKeyDecrypt = (
+  value: string | undefined,
+) => Promise<string | undefined | null>;
+
 export async function executeWebSearchProvider(
   bridge: NetcattyBridge,
   config: WebSearchConfig,
   query: string,
   maxResults: number,
+  decrypt: WebSearchKeyDecrypt = decryptField,
 ): Promise<WebSearchResult[]> {
   const fn = PROVIDER_SEARCH_FNS[config.providerId];
   if (!fn) throw new Error(`Unsupported web search provider: ${config.providerId}`);
-  // Use placeholder — main process replaces with real decrypted key before HTTP request
-  const safeConfig = { ...config, apiKey: WEB_SEARCH_KEY_PLACEHOLDER };
-  return fn(bridge, safeConfig, query, maxResults);
+
+  // Resolve the real key renderer-side for shells without main-process
+  // injection (Wails). A result equal to the stored value is a passthrough
+  // (shell without a credentialsDecrypt bridge), never a decryption, so it
+  // keeps the placeholder — ciphertext must not go out as the API key. On
+  // decrypt failure or an empty result the placeholder is kept too, so the
+  // Electron main process injection path still works.
+  let apiKey = WEB_SEARCH_KEY_PLACEHOLDER;
+  try {
+    const realKey = await decrypt(config.apiKey);
+    if (typeof realKey === 'string' && realKey.length > 0 && realKey !== config.apiKey) {
+      apiKey = realKey;
+    }
+  } catch {
+    // Decrypt failed - keep the placeholder.
+  }
+
+  // Best-effort allowlist self-service for user-configured API hosts before
+  // the fetch (process-lifetime entries). netpolicy still adjudicates every
+  // request fail-closed, so this call is advisory: ignore result and errors.
+  if (typeof config.apiHost === 'string' && config.apiHost.length > 0) {
+    const allowlistBridge = bridge as NetcattyBridge & {
+      aiAllowlistAddHost?: (baseURL: string) => Promise<unknown>;
+    };
+    try {
+      await allowlistBridge.aiAllowlistAddHost?.(config.apiHost);
+    } catch {
+      // Advisory only - never block the search on allowlist seeding.
+    }
+  }
+
+  return fn(bridge, { ...config, apiKey }, query, maxResults);
 }

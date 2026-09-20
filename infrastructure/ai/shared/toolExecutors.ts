@@ -10,7 +10,8 @@
 import type { NetcattyBridge, ExecutorContext } from '../cattyAgent/executor';
 import type { AIPermissionMode, WebSearchConfig } from '../types';
 import { checkCommandSafety } from '../cattyAgent/safety';
-import { executeWebSearchProvider } from './webSearchProviders';
+import { decryptField } from '../../persistence/secureFieldAdapter';
+import { executeWebSearchProvider, type WebSearchKeyDecrypt } from './webSearchProviders';
 
 // ---------------------------------------------------------------------------
 // Shared result types
@@ -177,6 +178,7 @@ export function executeWorkspaceGetSessionInfo(
 export async function executeWebSearch(
   deps: ToolDeps,
   args: { query: string; maxResults?: number },
+  decrypt: WebSearchKeyDecrypt = decryptField,
 ): Promise<ToolExecResult<{ results: Array<{ title: string; url: string; content: string }> }>> {
   const { bridge, webSearchConfig } = deps;
 
@@ -189,7 +191,7 @@ export async function executeWebSearch(
 
   try {
     const maxResults = Math.max(1, Math.min(20, args.maxResults ?? webSearchConfig.maxResults ?? 5));
-    const results = await executeWebSearchProvider(bridge, webSearchConfig, args.query, maxResults);
+    const results = await executeWebSearchProvider(bridge, webSearchConfig, args.query, maxResults, decrypt);
     // Enforce maxResults after provider normalization (some providers ignore the limit)
     return { ok: true, data: { results: results.slice(0, maxResults) } };
   } catch (err) {
