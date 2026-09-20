@@ -5494,3 +5494,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: SSE chat streaming (`aiChatStream`) remains an Electron-only path — Catty turns in the Wails shell need the typed provider/config methods from the P7-04 design; allowlist persistence across restarts comes from SyncProviders replay on boot, not a persisted list; web search stays fail-closed under the Wails shell until an `aiSyncWebSearch` equivalent lands (host allowlist sync + `__WEB_SEARCH_KEY__` injection — the transition bridge `aiFetch` would send the literal placeholder, so a configured web search errors at request time instead of searching)
 - Next safe slice: scripts.reference disposition + renderer approval UI, then W16
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L195 - 2026-09-20 - Renderer approval prompt UI (W13 tail) and Wails web search restoration (W15 residue)
+
+- Capability rows: `AI-01`, `AI-02`, `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Two parallel slices closing the renderer-side gaps left by L186 and L194. (1) W13 tail — `AgentInteractionApprovalsHost` mirrors `ExternalMcpApprovalsHost` (bottom-right card stack reusing `ToolCall` pending state; mounted in App.tsx and SettingsPage.tsx): `wailsRuntimeClient` lazily subscribes the `agent:interaction` event (single subscription, Set fan-out, `event.data ?? event` envelope) and surfaces `onAgentInteraction` / `agentPendingInteractions` / `agentRespondInteraction` on the transition bridge (types appended to `types/global/netcatty-bridge-ai.d.ts` — the generate-runtime-ports input, not a generated artifact); replay-on-mount via `AgentPendingInteractions`; one-shot per-card deadline timer (Go auto-denies at the deadline, the timer only dismisses the card); Go typed already-resolved errors swallow to local card removal; i18n key `ai.agentApproval.title` across 5 locales with a parity test. (2) W15 residue — `executeWebSearchProvider` resolves the stored `enc:v1` key renderer-side via `decryptField` (Wails: Go credential bridge Seal/Open) and self-seeds the allowlist via `aiAllowlistAddHost(apiHost)` before the fetch (advisory; process-lifetime per WV3-L194; netpolicy still adjudicates every request fail-closed). A decrypt result equal to the stored value is treated as a passthrough and keeps the placeholder (review fix: `decryptField` returns the sealed value unchanged in shells without `credentialsDecrypt`, and ciphertext must not go out as the API key); the Electron main placeholder injection stays behaviorally unchanged when decryption is unavailable.
+- Go canonical owner: none (zero Go changes; renderer-side only)
+- Frontend adapter: `infrastructure/ai/shared/webSearchProviders.ts` + `toolExecutors.ts`; `components/ai/AgentInteractionApprovalsHost.tsx`; `infrastructure/runtime/wails/wailsRuntimeClient.ts`
+- Electron owner affected: none; `electron/` untouched (grep-verified: no renderer-facing `onAgentInteraction`/`agentRespond*` in preload or aiBridge, so the host is a no-op under Electron)
+- Preserved invariants: Electron web search path behavior-identical (placeholder kept when decrypt unavailable; main injection no-ops when the real key is present); approval decisions consumed exactly once by Go; approval summaries carry no secrets (Go-side sanitized)
+- Data/schema impact: none
+- Security impact: web search API key now transits renderer memory under both shells — the accepted "renderer sends the Authorization header it already holds" model from WV3-L194; passthrough guard prevents sealed-ciphertext leakage to search endpoints
+- Verification: dynamic-workflow run (dwfrun-939ef125) all gates green — node --test infrastructure/runtime/wails/wailsRuntimeClient.test.ts (47/47), components/ai/AgentInteractionApprovalsHost.test.tsx (7/7), infrastructure/ai/shared/webSearchProviders.test.ts (5/5), infrastructure/ai/providerConnectionProbe.test.ts (11/11), vite build (exit 0); independent read-only review verdict approve; review P3 fix applied and re-verified in-session: decrypt passthrough guard + dedicated test case (webSearchProviders 6/6, probe 11/11)
+- Platforms covered: Windows 10 22H2 x64 unit tests; live Wails-shell approval flow and real search provider calls remain user-side smoke
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node provider stack stays until W22
+- Documentation updated: ledger, remaining-work
+- Residual risks: the External MCP and Go approval stacks share the same fixed bottom-right position and overlap visually if both pend in one window (layout pass deferred); transport-level respond failures are swallowed to card removal — the Go deadline denial is the fail-closed backstop; StrictMode double-mount verified safe (Set dedup + Map keying); live smoke pending
+- Next safe slice: W10 close-out audit (secret-service bindings exposure + raw-channel bypass), then W16
+- Drift decision: `user-approved-implementation-ahead-of-evidence`

@@ -4,7 +4,7 @@
 [capability-matrix.md](capability-matrix.md) 与 [migration-ledger.md](migration-ledger.md)；
 本文是导航快照，与矩阵冲突时以矩阵为准。
 
-当前台账头：`WV3-L194`。矩阵 required 叶行：implemented 15 / probe 14 /
+当前台账头：`WV3-L195`。矩阵 required 叶行：implemented 15 / probe 14 /
 not-started 7 / **verified 0 / migrated 0**。2026-09-14 基础切片：Wails
 模块对齐 beta.12 + 版本漂移守卫（L133）、go1.27.1 工具链评估探针（L134，暂不锁
 1.27，生成钉保持 go1.25.0）、存量漂移修复（L135）、插件 sidecar NUL 截断（L136）。
@@ -62,9 +62,13 @@ authorization + 全链测试）；W15 切片已落（L194：ProviderFetchService
 aiFetch / aiAllowlistAddHost / aiSyncProviders，与 live driver 共享同一
 netpolicy 权威；transition bridge 首次安装为 window.netcatty，修复 Wails 壳内
 「当前环境无法进行连接检测」与模型列表为空；临时 allowlist TTL 简化为进程
-生命周期，重启靠 SyncProviders 回放、不落盘）。残留：SSE aiChatStream 仍
-Electron 专属（P7-04 typed provider 方法）；web search 在 Wails 壳内保持
-fail-closed，等 aiSyncWebSearch 等价物（host allowlist 同步 + 密钥注入）。
+生命周期，重启靠 SyncProviders 回放、不落盘）；W15 残留已清（L195：
+executeWebSearchProvider 渲染端解密 enc:v1 密钥 + 搜索前 aiAllowlistAddHost
+自服务，Electron 注入路径行为不变；透传守卫防密文外泄）。W13 tail 已落
+（L195：AgentInteractionApprovalsHost 审批卡片宿主 + agent:interaction 订阅
+扇出 + agentPendingInteractions/agentRespondInteraction 桥面，App 与
+SettingsPage 双挂载）。残留：SSE aiChatStream 仍 Electron 专属（P7-04
+typed provider 方法）。
 生产 AI 下一刀是 W14 切片 2（ToolResultDedup + contextBudget）与
 scripts.reference 文档移植及渲染层审批 UI，不是伪造 NONAI-COMPLETE。
 
