@@ -298,6 +298,16 @@ export function RestartHelper(sessionID) {
 }
 
 /**
+ * RunnerFor exposes the transport-specific command runner for the agent
+ * job queue (W13). Not a Wails method.
+ * @param {string} sessionID
+ * @returns {$CancellablePromise<terminaluse$0.CommandRunner>}
+ */
+export function RunnerFor(sessionID) {
+    return $Call.ByID(3449065190, sessionID);
+}
+
+/**
  * @param {string} sessionID
  * @param {string} filePath
  * @returns {$CancellablePromise<ymodem$0.SendResult>}

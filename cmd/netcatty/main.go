@@ -270,6 +270,10 @@ func main() {
 	if endpoint := os.Getenv("NETCATTY_AI_ENDPOINT"); endpoint != "" {
 		providerNetPolicy.AddProviderEndpoint(endpoint)
 	}
+	// Renderer provider traffic (settings model discovery + connection probe)
+	// shares this policy: the same allowlist authority decides the live
+	// provider driver and the renderer-initiated fetches.
+	providerFetchService := newProviderFetchService(providerNetPolicy)
 	providerDispatcher := &capability.Dispatcher{
 		Registry:       capability.Default(),
 		Surface:        capability.SurfaceBuiltin,
@@ -313,6 +317,7 @@ func main() {
 	wailsApp.RegisterService(application.NewService(transferService))
 	wailsApp.RegisterService(application.NewService(scriptService))
 	wailsApp.RegisterService(application.NewService(agentService))
+	wailsApp.RegisterService(application.NewService(providerFetchService))
 	wailsApp.RegisterService(application.NewService(shortcutService))
 	wailsApp.RegisterService(application.NewService(syncService))
 	wailsApp.RegisterService(application.NewService(diagnosticLogService))

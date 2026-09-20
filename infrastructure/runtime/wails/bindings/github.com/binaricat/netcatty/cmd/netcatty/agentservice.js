@@ -16,11 +16,24 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as tools$0 from "../../internal/agent/tools/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as contracts$0 from "../../internal/app/contracts/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * AgentPendingInteractions lists open approval prompts for the settings UI.
+ * @returns {$CancellablePromise<{ [_ in string]?: any }[]>}
+ */
+export function AgentPendingInteractions() {
+    return $Call.ByID(689829149).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
 
 /**
  * AgentPrepare reserves one turn slot. Idempotent per request ID.
@@ -29,7 +42,7 @@ import * as $models from "./models.js";
  */
 export function AgentPrepare(request) {
     return $Call.ByID(3172602556, request).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType2($result);
     }));
 }
 
@@ -42,8 +55,30 @@ export function AgentPrepare(request) {
  */
 export function AgentReadEvents(turnID, afterSequence, limit) {
     return $Call.ByID(4134149572, turnID, afterSequence, limit).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType1($result);
+        return $$createType3($result);
     }));
+}
+
+/**
+ * AgentRegisterChatAttachments lets the renderer push the current chat's
+ * attachments into the host registry so agents can list/read them.
+ * @param {string} chatSessionID
+ * @param {$models.Attachment[]} attachments
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentRegisterChatAttachments(chatSessionID, attachments) {
+    return $Call.ByID(3332714496, chatSessionID, attachments);
+}
+
+/**
+ * AgentRespondInteraction resolves one pending approval. The decision is
+ * consumed exactly once; unknown or stale IDs fail typed.
+ * @param {string} interactionID
+ * @param {boolean} approved
+ * @returns {$CancellablePromise<void>}
+ */
+export function AgentRespondInteraction(interactionID, approved) {
+    return $Call.ByID(2580188558, interactionID, approved);
 }
 
 /**
@@ -53,7 +88,7 @@ export function AgentReadEvents(turnID, afterSequence, limit) {
  */
 export function AgentSnapshot(turnID) {
     return $Call.ByID(1938931437, turnID).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType4($result);
     }));
 }
 
@@ -75,7 +110,7 @@ export function AgentStart(command) {
  */
 export function AgentStatus() {
     return $Call.ByID(2395112271).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType3($result);
+        return $$createType5($result);
     }));
 }
 
@@ -87,12 +122,44 @@ export function AgentStatus() {
  */
 export function AgentStop(turnID, reason) {
     return $Call.ByID(3522632773, turnID, reason).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType2($result);
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * ToolOutputRead implements harness.tool_output.read over the W14 handle
+ * store: bounded head/tail/range/full/search reads with owner chat scope
+ * and explicit expired/not-found/evicted outcomes.
+ * @param {string} chatSessionID
+ * @param {tools$0.ReadOptions} input
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
+ */
+export function ToolOutputRead(chatSessionID, input) {
+    return $Call.ByID(2518588099, chatSessionID, input).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
+/**
+ * ToolOutputStore stores tool output under a fresh handle.
+ * @param {string} chatSessionID
+ * @param {string} capabilityID
+ * @param {string} sessionID
+ * @param {string} content
+ * @param {number} previewChars
+ * @returns {$CancellablePromise<tools$0.StoreInputResult>}
+ */
+export function ToolOutputStore(chatSessionID, capabilityID, sessionID, content, previewChars) {
+    return $Call.ByID(1794602232, chatSessionID, capabilityID, sessionID, content, previewChars).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
     }));
 }
 
 // Private type creation functions
-const $$createType0 = contracts$0.PreparedTurn.createFrom;
-const $$createType1 = contracts$0.EventPage.createFrom;
-const $$createType2 = contracts$0.TurnSnapshot.createFrom;
-const $$createType3 = $models.AgentStatus.createFrom;
+const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = contracts$0.PreparedTurn.createFrom;
+const $$createType3 = contracts$0.EventPage.createFrom;
+const $$createType4 = contracts$0.TurnSnapshot.createFrom;
+const $$createType5 = $models.AgentStatus.createFrom;
+const $$createType6 = tools$0.StoreInputResult.createFrom;

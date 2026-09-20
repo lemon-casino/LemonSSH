@@ -22,3 +22,12 @@ export {
     TerminalPwdResult,
     TerminalRemoteInfo
 } from "./models.js";
+
+import * as $models from "./models.js";
+
+/**
+ * CommandRunner executes one command bound to a session's transport and
+ * reports the outcome. known is false when the run ended without an
+ * observable exit status.
+ * @typedef {$models.CommandRunner} CommandRunner
+ */

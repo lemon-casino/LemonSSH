@@ -98,6 +98,13 @@ export class AutocompleteDirectoryResult {
 }
 
 /**
+ * CommandRunner executes one command bound to a session's transport and
+ * reports the outcome. known is false when the run ended without an
+ * observable exit status.
+ * @typedef {any} CommandRunner
+ */
+
+/**
  * DiscoveredShell describes a locally available shell.
  */
 export class DiscoveredShell {

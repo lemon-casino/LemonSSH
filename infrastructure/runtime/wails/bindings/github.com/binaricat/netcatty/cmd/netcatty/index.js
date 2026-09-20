@@ -15,6 +15,7 @@ import * as PluginService from "./pluginservice.js";
 import * as PopupWindowService from "./popupwindowservice.js";
 import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
+import * as ProviderFetchService from "./providerfetchservice.js";
 import * as SFTPService from "./sftpservice.js";
 import * as ScriptService from "./scriptservice.js";
 import * as SettingsWindowService from "./settingswindowservice.js";
@@ -38,6 +39,7 @@ export {
     PopupWindowService,
     ProfileMigrationService,
     ProfileService,
+    ProviderFetchService,
     SFTPService,
     ScriptService,
     SettingsWindowService,
@@ -52,6 +54,7 @@ export {
 export {
     AgentStatus,
     AppLockRuntimeState,
+    Attachment,
     AutocompleteDirectoryResult,
     BiometricSettings,
     BiometricStatus,
@@ -78,6 +81,10 @@ export {
     PortForwardResult,
     PortForwardRuntimeSnapshot,
     ProtocolRegistrationResult,
+    ProviderAllowlistResult,
+    ProviderEndpointConfig,
+    ProviderFetchRequest,
+    ProviderFetchResult,
     ProxyProbeRequest,
     ProxyProbeResult,
     SFTPOpenRequest,

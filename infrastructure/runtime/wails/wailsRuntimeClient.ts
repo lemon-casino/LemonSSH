@@ -28,6 +28,7 @@ import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/n
 import * as scriptService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/scriptservice";
 import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
 import * as syncServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/syncservice";
+import * as providerFetchService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/providerfetchservice";
 import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
 import {
   buildTerminalSocketUrl,
@@ -1225,6 +1226,37 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const implementedBridge: Partial<NetcattyBridge> = {
     ...monitoring,
     ...cloudOAuth,
+    // Provider discovery / connection probe (aiFetch parity slice): model
+    // listing, the settings "Test" button and web search all ride the Go
+    // netpolicy-enforced fetch. Secret values never cross this call: the
+    // renderer sends the Authorization header it already holds; Go only
+    // transports it to the allowlisted endpoint.
+    aiAllowlistAddHost: (async (baseURL: string) => {
+      const result = await providerFetchService.AllowlistAddHost(baseURL);
+      return result.Error ? { ok: false, error: result.Error } : { ok: result.OK };
+    }) as NonNullable<NetcattyBridge["aiAllowlistAddHost"]>,
+    aiFetch: (async (url, method, headers, body, providerId, skipHostCheck, followRedirects, skipTLSVerify) => {
+      const result = await providerFetchService.Fetch({
+        URL: url,
+        Method: method ?? "",
+        Headers: headers ?? {},
+        Body: body ?? "",
+        ProviderID: providerId ?? "",
+        SkipHostCheck: skipHostCheck ?? false,
+        FollowRedirects: followRedirects ?? false,
+        SkipTLSVerify: skipTLSVerify ?? false,
+      });
+      return { ok: result.OK, status: result.Status || undefined, data: result.Data ?? "", error: result.Error || undefined };
+    }) as NonNullable<NetcattyBridge["aiFetch"]>,
+    aiSyncProviders: (async (providers) => {
+      const result = await providerFetchService.SyncProviders((providers ?? []).map((provider) => ({
+        ID: provider.id,
+        ProviderID: provider.providerId,
+        BaseURL: provider.baseURL ?? "",
+        Enabled: provider.enabled,
+      })));
+      return { ok: result.OK };
+    }) as NonNullable<NetcattyBridge["aiSyncProviders"]>,
     openProviderConsole,
     scriptRecordingStart,
     scriptRecordingStop,
@@ -1791,10 +1823,16 @@ export function installWailsRuntimeClient(): boolean {
   // Go alpha.63 calls this global after resolving native file paths. The npm
   // runtime only installs _wails.handlePlatformFileDrop; reuse its Window here.
   // Remove the alias once Go uses that newer entry point too.
-  const host = window as typeof window & { wails?: { Window?: typeof wailsWindow } };
+  const host = window as typeof window & { wails?: { Window?: typeof wailsWindow }; netcatty?: NetcattyBridge };
   host.wails ??= {};
   host.wails.Window = wailsWindow;
   configureProfileBindings(profileBindings);
-  setActiveRuntimeClient(createWailsRuntimeClient());
+  const client = createWailsRuntimeClient();
+  // Legacy consumers read window.netcatty directly (getNetcattyBridge in
+  // aiChatStreamingSupport, AIChatSidePanel, the settings AI tab, ...). The
+  // transition bridge is the same fail-closed surface: implemented methods
+  // call Go bindings, unimplemented ones stay undefined.
+  host.netcatty ??= client.transitionBridge;
+  setActiveRuntimeClient(client);
   return true;
 }

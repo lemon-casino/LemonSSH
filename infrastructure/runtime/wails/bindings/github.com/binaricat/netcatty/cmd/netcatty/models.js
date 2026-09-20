@@ -134,6 +134,59 @@ export class AppLockRuntimeState {
 }
 
 /**
+ * Attachment is one user-attached file registered for a chat session.
+ * Content arrives either inline (base64Data) or as a host-readable path.
+ */
+export class Attachment {
+    /**
+     * Creates a new Attachment instance.
+     * @param {Partial<Attachment>} [$$source = {}] - The source object to create the Attachment.
+     */
+    constructor($$source = {}) {
+        if (!("filename" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["filename"] = "";
+        }
+        if (!("mediaType" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["mediaType"] = "";
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["filePath"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {number | undefined}
+             */
+            this["sizeBytes"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Attachment instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {Attachment}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Attachment(/** @type {Partial<Attachment>} */($$parsedSource));
+    }
+}
+
+/**
  * Shell-facing DTOs. The canonical definitions (and JSON contracts) live in
  * internal/app/terminaluse; these aliases keep the Wails API names stable.
  */
@@ -937,6 +990,233 @@ export class ProtocolRegistrationResult {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProtocolRegistrationResult(/** @type {Partial<ProtocolRegistrationResult>} */($$parsedSource));
+    }
+}
+
+/**
+ * ProviderAllowlistResult reports whether an allowlist mutation was applied.
+ */
+export class ProviderAllowlistResult {
+    /**
+     * Creates a new ProviderAllowlistResult instance.
+     * @param {Partial<ProviderAllowlistResult>} [$$source = {}] - The source object to create the ProviderAllowlistResult.
+     */
+    constructor($$source = {}) {
+        if (!("OK" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["OK"] = false;
+        }
+        if (!("Error" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProviderAllowlistResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProviderAllowlistResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProviderAllowlistResult(/** @type {Partial<ProviderAllowlistResult>} */($$parsedSource));
+    }
+}
+
+/**
+ * ProviderEndpointConfig is the allowlist-relevant part of one provider
+ * config synced from the renderer.
+ */
+export class ProviderEndpointConfig {
+    /**
+     * Creates a new ProviderEndpointConfig instance.
+     * @param {Partial<ProviderEndpointConfig>} [$$source = {}] - The source object to create the ProviderEndpointConfig.
+     */
+    constructor($$source = {}) {
+        if (!("ID" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["ID"] = "";
+        }
+        if (!("ProviderID" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["ProviderID"] = "";
+        }
+        if (!("BaseURL" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["BaseURL"] = "";
+        }
+        if (!("Enabled" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["Enabled"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProviderEndpointConfig instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProviderEndpointConfig}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProviderEndpointConfig(/** @type {Partial<ProviderEndpointConfig>} */($$parsedSource));
+    }
+}
+
+/**
+ * ProviderFetchRequest mirrors the aiFetch IPC payload.
+ */
+export class ProviderFetchRequest {
+    /**
+     * Creates a new ProviderFetchRequest instance.
+     * @param {Partial<ProviderFetchRequest>} [$$source = {}] - The source object to create the ProviderFetchRequest.
+     */
+    constructor($$source = {}) {
+        if (!("URL" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["URL"] = "";
+        }
+        if (!("Method" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Method"] = "";
+        }
+        if (!("Headers" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string }}
+             */
+            this["Headers"] = {};
+        }
+        if (!("Body" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Body"] = "";
+        }
+        if (!("ProviderID" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["ProviderID"] = "";
+        }
+        if (!("SkipHostCheck" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["SkipHostCheck"] = false;
+        }
+        if (!("FollowRedirects" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["FollowRedirects"] = false;
+        }
+        if (!("SkipTLSVerify" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["SkipTLSVerify"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProviderFetchRequest instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProviderFetchRequest}
+     */
+    static createFrom($$source = {}) {
+        const $$createField2_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("Headers" in $$parsedSource) {
+            $$parsedSource["Headers"] = $$createField2_0($$parsedSource["Headers"]);
+        }
+        return new ProviderFetchRequest(/** @type {Partial<ProviderFetchRequest>} */($$parsedSource));
+    }
+}
+
+/**
+ * ProviderFetchResult mirrors the aiFetch IPC response shape.
+ */
+export class ProviderFetchResult {
+    /**
+     * Creates a new ProviderFetchResult instance.
+     * @param {Partial<ProviderFetchResult>} [$$source = {}] - The source object to create the ProviderFetchResult.
+     */
+    constructor($$source = {}) {
+        if (!("OK" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["OK"] = false;
+        }
+        if (!("Status" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["Status"] = 0;
+        }
+        if (!("Data" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Data"] = "";
+        }
+        if (!("Error" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["Error"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProviderFetchResult instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ProviderFetchResult}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProviderFetchResult(/** @type {Partial<ProviderFetchResult>} */($$parsedSource));
     }
 }
 
