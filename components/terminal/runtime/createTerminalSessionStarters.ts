@@ -222,7 +222,7 @@ export const createTerminalSessionStarters = (ctx: TerminalSessionStartersContex
     // reopen approval UI after disconnect → reconnect.
     setTerminalBootEpoch(ctx.sessionId, bootEpoch);
     if (!ctx.terminalBackend.backendAvailable()) {
-      ctx.setError("Native SSH bridge unavailable. Launch via Electron app.");
+      ctx.setError("Native SSH bridge unavailable. Launch the LemonSSH desktop app.");
       writeTerminalLine(
         ctx,
         term,

@@ -510,7 +510,7 @@ export const esAiMessages: Messages = {
   'ai.chatShortcuts.selectionAction.description': 'Muestra un pequeño botón de IA junto al texto seleccionado de la terminal.',
 
   // AI Error
-  'ai.codex.bridgeError': 'Los controladores del proceso principal de Codex aún no están cargados. Reinicia Netcatty por completo o reinicia el proceso de desarrollo de Electron y vuelve a intentarlo.',
+  'ai.codex.bridgeError': 'Los controladores nativos de Codex aún no están cargados. Reinicia por completo la aplicación de escritorio o reinicia el proceso de desarrollo de Wails y vuelve a intentarlo.',
 
   // AI Web Search
   'ai.webSearch.title': 'Búsqueda web',

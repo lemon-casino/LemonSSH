@@ -578,7 +578,7 @@ export const esTerminalMessages: Messages = {
   'keychain.validation.labelAndKeyMaterialRequired': 'Se requieren la etiqueta y una clave pública o privada',
   'keychain.validation.labelAndUsernameRequired': 'La etiqueta y el nombre de usuario son obligatorios',
   'keychain.error.generationUnavailable':
-    'La generación de claves no está disponible: asegúrate de que la app se esté ejecutando en Electron',
+    'La generación de claves no está disponible: asegúrate de que la aplicación de escritorio LemonSSH esté abierta',
   'keychain.error.generateKeyPairFailed': 'No se pudo generar el par de claves',
   'keychain.error.generateKeyFailed': 'No se pudo generar la clave',
   'keychain.error.keyGenerationTitle': 'Generación de claves',

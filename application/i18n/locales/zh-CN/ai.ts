@@ -510,7 +510,7 @@ export const zhCNAiMessages: Messages = {
   'ai.chatShortcuts.selectionAction.description': '在终端里选中文本后显示 AI 快捷按钮。',
 
   // AI Error
-  'ai.codex.bridgeError': 'Codex 主进程处理器尚未加载。请完全重启 Netcatty 或重启 Electron 开发进程，然后重试。',
+  'ai.codex.bridgeError': 'Codex 原生处理器尚未加载。请完全重启桌面应用，或重启 Wails 开发进程，然后重试。',
 
   // AI Web Search
   'ai.webSearch.title': '网络搜索',

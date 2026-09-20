@@ -231,7 +231,7 @@ export function getFetchBridge(): FetchBridge | undefined {
 export function normalizeCodexBridgeError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes("No handler registered for 'netcatty:ai:codex:")) {
-    return "Codex main-process handlers are not loaded yet. Fully restart Netcatty, or restart the Electron dev process, then try again.";
+    return "Codex native handlers are not loaded yet. Fully restart the desktop app, or restart the Wails dev process, then try again.";
   }
   return message;
 }

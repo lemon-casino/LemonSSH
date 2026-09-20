@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ToolCall } from '../ai-elements/tool-call';
 import { useI18n } from '../../application/i18n/I18nProvider';
+import { getAgentInteractionBridge } from '../../application/agentInteractionBridge';
 
 /** Wire payload of the Go "agent:interaction" event and pending list. */
 export interface AgentInteractionRequest {
@@ -56,7 +57,7 @@ export function agentInteractionExpiryDelayMs(deadlineMs: number | undefined, no
  */
 export async function respondAgentInteraction(interactionId: string, approved: boolean): Promise<boolean> {
   try {
-    const respond = window.netcatty?.agentRespondInteraction;
+    const respond = getAgentInteractionBridge()?.agentRespondInteraction;
     if (!respond) return false;
     await respond(interactionId, approved);
     return true;
@@ -137,7 +138,7 @@ export const AgentInteractionApprovalsHost: React.FC = () => {
   }, [removeInteraction]);
 
   useEffect(() => {
-    const bridge = window.netcatty;
+    const bridge = getAgentInteractionBridge();
     const timers = expiryTimers.current;
     const unsubscribe = bridge?.onAgentInteraction?.((payload) => {
       const request = normalizeAgentInteraction(payload);

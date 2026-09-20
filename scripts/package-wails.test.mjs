@@ -85,8 +85,8 @@ test("purityInventory never claims a signed installer", () => {
   });
   assert.equal(inventory.signed, false);
   assert.deepEqual(inventory.installerFormats, []);
-  assert.ok(inventory.electronMarkers.includes("electron"));
-  assert.ok(inventory.notes.some((note) => note.includes("P8-01")));
+  assert.ok(inventory.forbiddenRuntimeMarkers.includes("electron"));
+  assert.match(inventory.notes.join("\n"), /not a release gate|optional/i);
 });
 
 test("shouldUseShell runs npm through the shell on Windows", () => {

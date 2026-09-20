@@ -168,11 +168,9 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 		cmd.Dir = bridge.directory
 		cmd.Env = helperEnvironment(bridge.env)
 		response, err := cmd.CombinedOutput()
-		if err != nil {
+		expected := "IDPASSKEY:" + strings.Repeat("I", 16) + "/" + strings.Repeat("K", 32)
+		if !strings.Contains(string(response), expected) {
 			t.Fatalf("native SSH handoff failed: %v %s", err, response)
-		}
-		if !strings.Contains(string(response), "IDPASSKEY:"+strings.Repeat("I", 16)+"/"+strings.Repeat("K", 32)) {
-			t.Fatal("native SSH did not receive ET reply")
 		}
 	} else {
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(identity)}

@@ -37,7 +37,7 @@ export function isPluginSidecarHostUnavailableError(error: unknown): boolean {
     && maybe.message.includes('Plugin sidecar host is unavailable');
 }
 
-type ElectronSidecarApi = {
+type NativeSidecarApi = {
   collectPluginSyncSidecars?: () => Promise<PluginSyncSidecarBundle | null | undefined>;
   applyPluginSyncSidecars?: (
     bundle: PluginSyncSidecarBundle | null | undefined,
@@ -46,15 +46,9 @@ type ElectronSidecarApi = {
   pluginHostReady?: () => boolean;
 };
 
-function getSidecarApi(): ElectronSidecarApi | null {
+function getSidecarApi(): NativeSidecarApi | null {
   if (typeof window === 'undefined') return null;
-  // Preload exposes the production bridge as window.netcatty only.
-  const bridge = (window as Window & {
-    netcatty?: ElectronSidecarApi;
-    electron?: ElectronSidecarApi;
-  }).netcatty
-    ?? (window as Window & { electron?: ElectronSidecarApi }).electron;
-  return bridge ?? null;
+  return (window as Window & { netcatty?: NativeSidecarApi }).netcatty ?? null;
 }
 
 /**

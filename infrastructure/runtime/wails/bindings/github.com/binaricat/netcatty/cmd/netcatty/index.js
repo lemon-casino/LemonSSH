@@ -13,7 +13,6 @@ import * as NetcattyService from "./netcattyservice.js";
 import * as PTYService from "./ptyservice.js";
 import * as PluginService from "./pluginservice.js";
 import * as PopupWindowService from "./popupwindowservice.js";
-import * as ProfileMigrationService from "./profilemigrationservice.js";
 import * as ProfileService from "./profileservice.js";
 import * as ProviderFetchService from "./providerfetchservice.js";
 import * as SFTPService from "./sftpservice.js";
@@ -24,7 +23,6 @@ import * as SyncService from "./syncservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as TransferService from "./transferservice.js";
 import * as TrayService from "./trayservice.js";
-import * as UpgradeService from "./upgradeservice.js";
 export {
     AgentService,
     AppLockService,
@@ -37,7 +35,6 @@ export {
     PTYService,
     PluginService,
     PopupWindowService,
-    ProfileMigrationService,
     ProfileService,
     ProviderFetchService,
     SFTPService,
@@ -47,8 +44,7 @@ export {
     SyncService,
     TerminalService,
     TransferService,
-    TrayService,
-    UpgradeService
+    TrayService
 };
 
 export {
@@ -107,7 +103,6 @@ export {
     TerminalRemoteInfo,
     TransferSnapshot,
     TransferStartRequest,
-    UpgradeStatus,
     VaultBackupCapabilities,
     VaultBackupCreateRequest,
     VaultBackupCreateResult,

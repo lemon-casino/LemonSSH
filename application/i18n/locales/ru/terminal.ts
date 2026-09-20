@@ -595,7 +595,7 @@ export const ruTerminalMessages: Messages = {
   'keychain.validation.labelAndPrivateKeyRequired': 'Метка и приватный ключ обязательны',
   'keychain.validation.labelAndKeyMaterialRequired': 'Нужны метка и открытый или закрытый ключ',
   'keychain.validation.labelAndUsernameRequired': 'Метка и имя пользователя обязательны',
-  'keychain.error.generationUnavailable': 'Генератор ключей не работает - пожалуйста, убедитесь, что приложение работает в Electron',
+  'keychain.error.generationUnavailable': 'Генератор ключей недоступен — убедитесь, что настольное приложение LemonSSH запущено',
   'keychain.error.generateKeyPairFailed': 'Не удалось сгенерировать пару ключей',
   'keychain.error.generateKeyFailed': 'Не удалось сгенерировать ключ',
   'keychain.error.keyGenerationTitle': 'Генерация ключа',

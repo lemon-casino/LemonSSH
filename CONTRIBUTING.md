@@ -1,6 +1,6 @@
 # Contributing to Netcatty
 
-Thank you for your interest in contributing to Netcatty — an AI-powered SSH client, SFTP browser, and terminal manager built with Electron, React, and xterm.js.
+Thank you for your interest in contributing to Netcatty — an AI-powered SSH client, SFTP browser, and terminal manager built with Go, Wails v3, React, and xterm.js.
 
 Please read this guide before submitting issues or pull requests.
 
@@ -39,7 +39,7 @@ structure (required headings such as "Steps to reproduce" or
 
 ## Development Setup
 
-**Prerequisites:** Node.js 22+ and npm.
+**Prerequisites:** Node.js 22+, npm, and Go 1.25+. Install the native WebKit/GTK prerequisites documented by Wails when developing on Linux.
 
 ```bash
 # Clone the repository
@@ -49,25 +49,25 @@ cd Netcatty
 # Install dependencies
 npm ci
 
-# Start in development mode (Vite + Electron)
+# Start in development mode (Vite frontend + Go/Wails application)
 npm run dev
 ```
 
 ## Build & Package
 
 ```bash
-npm run build          # Build for production
-npm run pack           # Package for current platform
-npm run pack:mac       # macOS (DMG + ZIP)
-npm run pack:win       # Windows (NSIS, portable, ZIP)
-npm run pack:linux     # Linux (AppImage, DEB, RPM, pacman)
+npm run build          # Build the frontend
+npm run wails:build    # Build the native Wails application
+npm run package:wails # Create the current-platform Wails artifact
+npm run package:installers # Optionally create installers when platform tools are present
 ```
 
 ## Linting and Tests
 
 ```bash
 npm run lint           # Run ESLint
-npm test               # Run the test suite
+npm test               # Run the frontend and tooling test suite
+go test ./internal/... ./cmd/... # Run Go service tests
 ```
 
 ## Pull Request Process

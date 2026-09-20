@@ -145,9 +145,7 @@ func main() {
 	profileService := newProfileService(profileStore)
 	credentialProvider := credentials.NewOSProvider()
 	credentialService := newCredentialService(credentialProvider)
-	migrationService := newProfileMigrationService(credentialProvider, filepath.Dir(profileStore.Path()))
 	ptyService := newPTYService()
-	upgradeService := newUpgradeService(filepath.Dir(profileStore.Path()))
 	appLockService := newAppLockServiceWithDeps(
 		applock.New(credentialProvider),
 		profileStore,
@@ -304,9 +302,7 @@ func main() {
 	wailsApp.RegisterService(application.NewService(service))
 	wailsApp.RegisterService(application.NewService(profileService))
 	wailsApp.RegisterService(application.NewService(credentialService))
-	wailsApp.RegisterService(application.NewService(migrationService))
 	wailsApp.RegisterService(application.NewService(ptyService))
-	wailsApp.RegisterService(application.NewService(upgradeService))
 	wailsApp.RegisterService(application.NewService(appLockService))
 	wailsApp.RegisterService(application.NewService(deepLinkService))
 	wailsApp.RegisterService(application.NewService(pluginService))

@@ -1,16 +1,11 @@
 import type { RuntimePorts } from "./generated/runtimePorts";
 
-// Shell-neutral RuntimeClient (P1-01). Application and UI code consumes the
-// domain ports; Electron and Wails adapters implement the same structural
-// contract. Only the Electron adapter may touch window.netcatty and only the
-// Wails adapter may import generated Wails bindings.
+// Application and UI code consume domain ports through the Wails adapter.
 
 export interface RuntimeClient extends RuntimePorts {
   /**
-   * Transition-period unwrapped bridge so the existing netcattyBridge facade
-   * keeps its exact semantics while consumers migrate port by port. New code
-   * must use the domain ports. Removed once the last consumer migrated and
-   * the Electron path retires.
+   * Aggregate bridge retained for callers that have not moved to a narrower
+   * domain port yet.
    */
   readonly transitionBridge: NetcattyBridge;
 }

@@ -578,7 +578,7 @@ export const enTerminalMessages: Messages = {
   'keychain.validation.labelAndKeyMaterialRequired': 'Label and a public or private key are required',
   'keychain.validation.labelAndUsernameRequired': 'Label and username are required',
   'keychain.error.generationUnavailable':
-    'Key generation not available - please ensure the app is running in Electron',
+    'Key generation not available - please ensure the LemonSSH desktop app is running',
   'keychain.error.generateKeyPairFailed': 'Failed to generate key pair',
   'keychain.error.generateKeyFailed': 'Failed to generate key',
   'keychain.error.keyGenerationTitle': 'Key Generation',

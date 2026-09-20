@@ -2539,12 +2539,12 @@ test('generated changes may add or update regression tests', () => {
   assert.deepEqual(workingTree, []);
 });
 
-test('hasProtectedChangesInSources blocks electron-builder configs', () => {
+test('hasProtectedChangesInSources blocks Wails runtime and packaging changes', () => {
   const hits = auto.hasProtectedChangesInSources({
-    changedFiles: ['electron-builder.config.cjs', 'components/App.tsx', 'nix/release.nix'],
+    changedFiles: ['cmd/netcatty/main.go', 'components/App.tsx', 'scripts/package-wails.mjs'],
   });
-  assert.ok(hits.includes('electron-builder.config.cjs'));
-  assert.ok(hits.includes('nix/release.nix'));
+  assert.ok(hits.includes('cmd/netcatty/main.go'));
+  assert.ok(hits.includes('scripts/package-wails.mjs'));
   assert.ok(!hits.includes('components/App.tsx'));
 });
 
@@ -2637,14 +2637,14 @@ test('hasProtectedChanges flags workflow edits', () => {
   ]);
 });
 
-test('protected paths allow ordinary electron-builder regression tests', () => {
+test('protected paths cover Wails manifests and allow ordinary component tests', () => {
   assert.deepEqual(
-    auto.hasProtectedChanges(' M scripts/electron-builder-config.test.cjs\n'),
+    auto.hasProtectedChanges(' M components/App.test.tsx\n'),
     [],
   );
   assert.deepEqual(
-    auto.hasProtectedChanges(' M electron-builder.config.cjs\n'),
-    ['electron-builder.config.cjs'],
+    auto.hasProtectedChanges(' M build/windows/lemonssh.manifest\n'),
+    ['build/windows/lemonssh.manifest'],
   );
 });
 
@@ -5402,7 +5402,7 @@ test('buildPullRequestBody prefers substantial agent body over one-line template
     '',
     '## Testing',
     '',
-    '- node --test electron/bridges/transferLimits.test.cjs',
+    '- go test ./internal/terminal/...',
     '',
     'Fixes #2449',
   ].join('\n');
@@ -5467,7 +5467,7 @@ test('buildPullRequestBody still appends Fixes when body only has Related to', (
       '',
       '## Testing',
       '',
-      '- node --test electron/bridges/transferLimits.test.cjs',
+      '- go test ./internal/terminal/...',
       '',
       'Related to #2449',
     ].join('\n'),

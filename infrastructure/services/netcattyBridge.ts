@@ -1,5 +1,4 @@
 import { getActiveRuntimeClient } from "../runtime/runtimeClient";
-import { getElectronBridge } from "../runtime/electron/electronRuntimeClient";
 
 export class BridgeUnavailableError extends Error {
   constructor(message = "Netcatty bridge unavailable") {
@@ -8,14 +7,16 @@ export class BridgeUnavailableError extends Error {
   }
 }
 
-// Transition facade (P1-01). Resolves the active RuntimeClient when a shell
-// adapter registered itself and falls back to the Electron bridge exactly as
-// before. Callers migrate to RuntimeClient domain ports slice by slice; this
-// object is deleted with the Electron path.
+// Compatibility facade for callers that still consume the aggregate bridge.
+// The active client is always installed by the Wails bootstrap.
 
 export const netcattyBridge = {
   get(): NetcattyBridge | undefined {
-    return getActiveRuntimeClient()?.transitionBridge ?? getElectronBridge();
+    const active = getActiveRuntimeClient()?.transitionBridge;
+    if (active) return active;
+    // The Wails adapter mirrors its aggregate bridge on window.netcatty for
+    // compatibility with renderer modules and isolated unit-test harnesses.
+    return typeof window === "undefined" ? undefined : window.netcatty;
   },
 
   require(): NetcattyBridge {

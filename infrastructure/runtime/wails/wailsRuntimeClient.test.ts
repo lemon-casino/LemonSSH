@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { useSftpDirectoryListing } from "../../../application/state/sftp/useSftpDirectoryListing";
 import { getActiveRuntimeClient, setActiveRuntimeClient } from "../runtimeClient";
-import { createElectronRuntimeClient } from "../electron/electronRuntimeClient";
 import { useSftpExternalOperations } from "../../../application/state/sftp/useSftpExternalOperations";
 import { sftpTransferCenterStore } from "../../../application/state/sftpTransferCenterStore";
 import type { SftpPane } from "../../../application/state/sftp/types";
@@ -232,10 +231,6 @@ test("local browsing uses native paths through the bridge and fails without file
     await assert.rejects(listing.getLocalHomeDir(), /getHomeDir.*not available/);
     await assert.rejects(listing.listLocalFiles(home), /listLocalDir.*not available/);
 
-    // An installed but incomplete desktop bridge must never enable preview data.
-    setActiveRuntimeClient(createElectronRuntimeClient({} as NetcattyBridge));
-    await assert.rejects(listing.getLocalHomeDir(), /getHomeDir unavailable/);
-    await assert.rejects(listing.listLocalFiles(home), /listLocalDir unavailable/);
     setActiveRuntimeClient(undefined);
     assert.ok((await listing.listLocalFiles("C:/Users/damao/Documents")).some((file) => file.name === "report.pdf"));
   } finally {

@@ -509,7 +509,7 @@ export const zhTWAiMessages: Messages = {
   'ai.chatShortcuts.selectionAction.description': '在終端裡選取文字後顯示 AI 快捷按鈕。',
 
   // AI Error
-  'ai.codex.bridgeError': 'Codex 主程序處理器尚未載入。請完全重新啟動 Netcatty 或重新啟動 Electron 開發程序，然後重試。',
+  'ai.codex.bridgeError': 'Codex 原生處理器尚未載入。請完全重新啟動桌面應用程式，或重新啟動 Wails 開發程序，然後重試。',
 
   // AI Web Search
   'ai.webSearch.title': '網路搜尋',

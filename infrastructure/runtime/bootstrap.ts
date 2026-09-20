@@ -1,28 +1,20 @@
-import { installElectronRuntimeClient } from "./electron/electronRuntimeClient";
 import { installWailsRuntimeClient } from "./wails/wailsRuntimeClient";
 import { createProfileClient } from "./profile/profileClient";
 import { getActiveRuntimeClient } from "./runtimeClient";
 import { configureHostProfileClient, hydrateHostProfile } from "../persistence/hostStorageAdapter";
-// Runtime selection bootstrap (P1-02). Installs the Wails RuntimeClient when
-// the bundle runs under the Wails shell and the Electron adapter otherwise.
-// Electron remains the default dev/release shell, so the Electron path must
-// behave exactly as before this module existed.
+// LemonSSH has one desktop runtime. The frontend must fail early when it is
+// loaded outside the Wails host instead of silently selecting a legacy shell.
 
 export let hydrateReady: Promise<void> = Promise.resolve();
 
 export function installRuntimeClient(): void {
-  if (installWailsRuntimeClient()) {
-    const client = createProfileClient();
-    configureHostProfileClient(client);
-    installRendererErrorLogging();
-    hydrateReady = hydrateHostProfile();
-    return;
+  if (!installWailsRuntimeClient()) {
+    throw new Error("LemonSSH requires the Wails runtime");
   }
-  // Electron remains the stable release shell; localStorage is canonical
-  // until P2-07's cutover gate moves a domain to the Go profile store.
-  configureHostProfileClient(undefined);
-  hydrateReady = Promise.resolve();
-  installElectronRuntimeClient();
+  const client = createProfileClient();
+  configureHostProfileClient(client);
+  installRendererErrorLogging();
+  hydrateReady = hydrateHostProfile();
 }
 
 let rendererErrorLoggingInstalled = false;

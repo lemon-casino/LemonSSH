@@ -3,17 +3,11 @@ import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import unusedImports from "eslint-plugin-unused-imports";
 import reactHooks from "eslint-plugin-react-hooks";
-import globals from "globals";
 
 export default [
-  // The recommended preset has no file scope of its own, so scope it off all of
-  // electron/ — that main-process tree is historically unlinted. The bridges
-  // get a focused rule set in the dedicated block at the end of this config;
-  // every other electron/ file matches no config and stays unlinted as before.
-  // Disposable experiments/ probes follow the same boundary.
-  { ...js.configs.recommended, ignores: ["electron/**", "experiments/**"] },
+  js.configs.recommended,
   {
-    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", "release/**", "release-build/**", ".worktrees/**",
+    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", ".zcode/**", "release/**", "release-build/**", ".worktrees/**",
       // Retired dist backups set aside during packaging (dist.vacate-*,
       // dist.retired-*, .retired-dist-*): minified bundles, not lintable source.
       // .tmp holds disposable plugin-smoke scratch trees.
@@ -22,10 +16,8 @@ export default [
   {
     // Shell-neutral runtime boundary (P1-01): only the Wails adapter may
     // import the Wails runtime; window.netcatty access is already restricted
-    // globally with an explicit Electron adapter allowlist below. Disposable
-    // experiments/ probes are exempt.
     files: ["**/*.{ts,tsx}"],
-    ignores: ["experiments/**", "infrastructure/runtime/wails/wailsRuntimeClient.ts"],
+    ignores: ["infrastructure/runtime/wails/wailsRuntimeClient.ts"],
     rules: {
       "no-restricted-imports": ["error",
         { paths: [{ name: "@wailsio/runtime", message: "Only the Wails RuntimeClient adapter may import the Wails runtime." }] },
@@ -93,7 +85,7 @@ export default [
         getComputedStyle: "readonly",
         atob: "readonly",
         btoa: "readonly",
-        // Node.js globals (for Electron)
+        // Node.js globals used by test and tooling modules
         process: "readonly",
         global: "readonly",
         Buffer: "readonly",
@@ -158,7 +150,7 @@ export default [
     },
   },
   {
-    files: ["infrastructure/services/netcattyBridge.ts", "infrastructure/runtime/electron/electronRuntimeClient.ts"],
+    files: ["infrastructure/services/netcattyBridge.ts"],
     rules: {
       "no-restricted-properties": "off",
     },
@@ -189,28 +181,6 @@ export default [
           ],
         },
       ],
-    },
-  },
-  {
-    // Electron main-process bridges are CommonJS and were historically excluded
-    // from linting. Lint them for undefined references only — the cheap,
-    // high-value guard against e.g. a removed variable still referenced
-    // elsewhere. (The TS config disables no-undef because the type-checker
-    // already covers it there; these .cjs files have no such safety net.)
-    files: ["electron/bridges/**/*.cjs"],
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "commonjs",
-      globals: globals.node,
-    },
-    linterOptions: {
-      // Only no-undef is enabled here, so pre-existing eslint-disable comments
-      // for other rules (no-console, no-control-regex, …) would all report as
-      // "unused". Don't flag them — they stay valid for future rule additions.
-      reportUnusedDisableDirectives: "off",
-    },
-    rules: {
-      "no-undef": "error",
     },
   },
 ];

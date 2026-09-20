@@ -9,41 +9,31 @@ test.afterEach(() => {
   setActiveRuntimeClient(undefined);
 });
 
-test("node test runtime selects the Electron adapter", () => {
+test("node test runtime refuses to install without the Wails host", () => {
   assert.equal(isWailsRuntime(), false);
-  installRuntimeClient();
-  // Under plain Node there is no window.netcatty, so the Electron adapter
-  // refuses to install and no client is active.
+  assert.throws(() => installRuntimeClient(), /requires the Wails runtime/);
   assert.equal(getActiveRuntimeClient(), undefined);
 });
 
-test("wails adapter routes migrated ports and rejects un-migrated fail-closed", () => {
+test("wails adapter exposes the desktop runtime ports", () => {
   const client = createWailsRuntimeClient();
-  // Slice A/B/C: SSH terminal sessions and SFTP browsing route to Go.
   assert.equal(typeof client.terminal.startSSHSession, "function");
   assert.equal(typeof client.sftp.listSftp, "function");
   assert.equal(typeof client.transitionBridge.startSSHSession, "function");
   assert.equal(typeof client.transitionBridge.onSessionData, "function");
-  // Electron-owned capabilities of the same ports still fail closed.
   assert.equal(typeof client.terminal.startLocalSession, "function");
   assert.equal(typeof client.terminal.startTelnetSession, "function");
   assert.equal(typeof client.terminal.startSerialSession, "function");
-  assert.throws(
-    () => (client.terminal as unknown as Record<string, unknown>).startMoshSession,
-    /not migrated to the Wails runtime yet/,
-  );
-  assert.throws(() => client.files.readClipboardText);
-  // quitApp is migrated: the Go TrayService owns process termination.
+  assert.equal(typeof client.transitionBridge.startMoshSession, "function");
+  assert.equal(typeof client.files.readClipboardText, "function");
   assert.equal(typeof client.app.quitApp, "function");
 });
 
-test("wails transition bridge leaves unmigrated methods undefined for optional chaining", () => {
+test("wails transition bridge exposes compatibility methods", () => {
   const client = createWailsRuntimeClient();
   const bridge = client.transitionBridge as unknown as Record<string, unknown>;
   assert.equal(typeof bridge.startMoshSession, "function");
   assert.equal(typeof bridge.startEtSession, "function");
-  // Tray language switching is migrated: the Appearance language drives the
-  // Go tray menu through TrayService.SetLanguage.
   assert.equal(typeof bridge.setLanguage, "function");
 });
 

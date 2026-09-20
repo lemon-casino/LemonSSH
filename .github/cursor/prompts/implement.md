@@ -18,7 +18,7 @@ Implement a **small, focused** fix for this single issue.
 3. Follow repository architecture in `Agents.md` / `Claude.md`:
    - domain pure logic under `domain/`
    - React state under `application/state/`
-   - bridges under `electron/`
+   - native services under `cmd/netcatty/` and `internal/`
    - no business logic dumped into components
 4. Prefer the smallest correct change. Avoid drive-by refactors.
 5. Add or update tests when practical for the changed logic.

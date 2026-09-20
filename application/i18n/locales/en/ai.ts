@@ -510,7 +510,7 @@ export const enAiMessages: Messages = {
   'ai.chatShortcuts.selectionAction.description': 'Show a small AI button next to selected terminal text.',
 
   // AI Error
-  'ai.codex.bridgeError': 'Codex main-process handlers are not loaded yet. Fully restart Netcatty, or restart the Electron dev process, then try again.',
+  'ai.codex.bridgeError': 'Codex native handlers are not loaded yet. Fully restart the desktop app, or restart the Wails dev process, then try again.',
 
   // AI Web Search
   'ai.webSearch.title': 'Web Search',

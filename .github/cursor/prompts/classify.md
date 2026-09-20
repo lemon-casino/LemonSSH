@@ -75,7 +75,7 @@ when the external product maps to those subsystems.
 ### 4. Open and read code (required)
 
 Open **at least two** source files that search returned (prefer
-`components/`, `application/`, `domain/`, `electron/`, not docs-only).
+`components/`, `application/`, `domain/`, `cmd/`, or `internal/`, not docs-only).
 
 Read enough of each file to answer:
 

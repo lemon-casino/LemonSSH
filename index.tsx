@@ -15,9 +15,7 @@ import type AppComponent from './App';
 import type { AppLockGate as AppLockGateComponent } from './components/AppLockGate';
 import { hydrateReady, installRuntimeClient } from './infrastructure/runtime/bootstrap';
 
-// Shell-neutral runtime selection (P1-02): install the Wails RuntimeClient
-// under the Wails shell and the Electron adapter otherwise, before any
-// consumer resolves the bridge.
+// Install the Wails RuntimeClient before any consumer resolves the bridge.
 installRuntimeClient();
 
 // Component graphs contain singleton stores; evaluate them only after Go hydration.

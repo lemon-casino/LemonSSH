@@ -654,7 +654,7 @@ export const zhCNTerminalMessages: Messages = {
   'keychain.validation.labelAndPrivateKeyRequired': 'Label 和私钥为必填项',
   'keychain.validation.labelAndKeyMaterialRequired': 'Label 以及公钥或私钥为必填项',
   'keychain.validation.labelAndUsernameRequired': 'Label 和用户名为必填项',
-  'keychain.error.generationUnavailable': '无法生成密钥：请确保应用运行在 Electron 环境',
+  'keychain.error.generationUnavailable': '无法生成密钥：请确保 LemonSSH 桌面应用正在运行',
   'keychain.error.generateKeyPairFailed': '生成密钥对失败',
   'keychain.error.generateKeyFailed': '生成密钥失败',
   'keychain.error.keyGenerationTitle': '密钥生成',

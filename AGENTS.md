@@ -1,307 +1,90 @@
-# Agents Overview
+# AGENTS.md
 
-This project is wired around three layers: domain (pure logic), application state (React hooks orchestrating the domain), and UI (components). Use this document as a quick guide for extending or reusing the codebase.
+## Project Architecture
 
-## Current Agents (Roles)
-- **Domain** (`domain/`): Models and pure helpers. Examples:
-  - `models.ts` defines Host/SSHKey/Snippet/Workspace entities.
-  - `agentActivity.ts` defines persisted agent activity and token usage records.
-  - `host.ts` handles distro normalization and host sanitization.
-  - `workspace.ts` contains workspace tree operations (split/insert/prune/sizing).
-- **Application State** (`application/state/`): Hooks that own state and persistence boundaries.
-  - `useSettingsState` handles theme, accent color, terminal themes, sync config (localStorage).
-  - `useVaultState` owns hosts/keys/snippets/custom groups and import/export, persisting to storage.
-  - `useSessionState` owns terminal sessions, workspace lifecycle, drag/split logic.
-- **Infrastructure** (`infrastructure/`): External edges and configuration.
-  - `config/` holds defaults, storage keys, terminal themes.
-  - `persistence/localStorageAdapter.ts` abstracts localStorage read/write.
-  - `services/` contains networked services (Gemini AI, GitHub Gist sync).
-- **UI** (`components/`, `App.tsx`): Presentation; depends on hooks and domain helpers only.
+LemonSSH is a Go + Wails v3 desktop application with a React/TypeScript frontend.
+Keep the dependency flow one way:
 
-## How Things Talk
-- UI calls application hooks -> hooks call domain helpers -> persistence/config via infrastructure adapters.
-- `App.tsx` wires hooks to components; no business logic should live in components beyond view glue.
-- Local storage keys are centralized in `infrastructure/config/storageKeys.ts`; avoid ad-hoc `localStorage` calls elsewhere.
+- `domain/`: pure models and helpers.
+- `application/` and `application/state/`: orchestration, React hooks, and persistence boundaries.
+- `infrastructure/`: adapters for Wails services, storage, networking, AI, and generated bindings.
+- `components/` and `App.tsx`: presentation and view wiring.
+- `cmd/netcatty/`: Wails application entry point and services exposed to the frontend.
+- `internal/`: Go implementations for SSH, SFTP, terminal sessions, capabilities, plugins, credentials, and profile storage.
 
-## AI Agent Harness (`infrastructure/ai/harness/`)
+Components must not call native APIs, network services, or persistence directly. Add a typed adapter or application hook first. Keep storage keys in `infrastructure/config/storageKeys.ts` and use `infrastructure/persistence/localStorageAdapter.ts`.
 
-Turn orchestration is centralized in **AgentRuntime**; the React hook `useAIChatStreaming` only manages UI state and delegates `runTurn` / `stopTurn`.
+## Runtime Boundary
 
-| Layer | Module | Role |
-|-------|--------|------|
-| Runtime | `agentRuntime.ts`, `globalAgentRuntime.ts` | Turn lifecycle, trace fan-out, per-turn ToolOutputStore / ToolResultDedup |
-| Drivers | `turnDrivers/cattyTurnDriver.ts`, `turnDrivers/externalSdkTurnDriver.ts` | Catty `streamText` + External SDK IPC; emit unified `AgentEvent`s |
-| Context | `contextManager.ts`, `contextBudget.ts`, `tokenEstimator.ts`, `sessionState.ts`, `staleContextPruner.ts`, `compactionPruner.ts`, `cattyRuntime.ts` | Pre-turn / step / 413 compaction, dynamic thresholds, SessionState reinjection, stale tool pruning |
-| Tools | `capabilityTools.ts`, `toolOutputStore.ts`, `toolResultDedup.ts` | Catalog tools, truncated output handles (`tool_output_read`), duplicate-read notices |
-| Trace | `traceStore.ts`, `agentEventAdapter.ts` | Session event log incl. `usage`, `performance`, and `CompactionTrace` |
+The frontend uses the runtime client under `infrastructure/runtime/`. Wails is the only desktop runtime. Native capabilities belong in Go services under `cmd/netcatty/` or `internal/`; expose them through generated Wails bindings and the runtime adapter.
 
-External SDK turns normalize file changes, web searches, plan updates, recoverable warnings, and token usage into the shared event protocol. These activity and usage records are stored on assistant messages so the compact activity view is restored with chat history.
+Run this after changing exported Wails service methods:
 
-**Stop** always goes through `stopAgentTurn()` (UI, `/stop`, MCP). Do not add parallel abort paths in hooks.
-
-### Codex App Server (experimental)
-
-Codex can opt into a persistent `codex app-server --stdio` runtime under
-`electron/bridges/aiBridge/codexAppServer/`; the existing TypeScript SDK remains
-the default. The main process owns JSONL RPC correlation, thread/turn routing,
-native approvals, `request_user_input`, model discovery, and process cleanup.
-
-- Session identities include the Codex runtime; SDK and App Server threads must
-  never resume across runtimes.
-- Observer maps to `read-only + never`, Confirm to `read-only + on-request`, and
-  Auto to `danger-full-access + never`.
-- App Server native “allow for session” decisions are session-scoped Codex
-  grants and must not become persistent Netcatty permission grants.
-- `turn/completed` is the terminal lifecycle event. Retryable `error`
-  notifications are warnings; process exit is fatal.
-- Regenerate the committed protocol contract with
-  `npm run generate:codex-app-server-schema` after upgrading Codex, and verify it
-  with `npm run check:codex-app-server-schema`.
-
-### AI SDK v7 (Catty path)
-
-Catty sidebar turns use **Vercel AI SDK 7** via `streamText` in `turnDrivers/cattyStreamProcessor.ts`. Key conventions:
-
-| Concern | Module | Notes |
-|---------|--------|-------|
-| `runtimeContext` | `cattyRuntimeContext.ts` | Per-turn orchestration state (`chatSessionId`, `turnId`, `agentKind`, `permissionMode`, scope, `lastCompaction`). Passed to `prepareStep` and lifecycle callbacks. **Does not replace** pre-turn compaction or 413 handling. |
-| `toolsContext` | `capabilityTools.ts` | Per-tool keyed context (`bridge`, `getExecutorContext`, `toolOutputStore`, …). Tools read deps from `{ context }` in `execute`, not closure capture. |
-| `toolApproval` | `cattyToolApproval.ts` | Write-tool gating for Catty `streamText` only. Calls `requestApproval()` in confirm mode; observer auto-denies writes. **External MCP agents** still approve via main-process `mcpServerBridge` → `setupMcpApprovalBridge()` — unchanged. |
-| `timeout` | `streamTimeouts.ts` | `totalMs` / `stepMs` / `chunkMs` / `toolMs` on `streamText`; compaction `generateText` uses a shorter 90s timeout. |
-| Lifecycle | `cattyStreamProcessor.ts` | `onStart` → `model_call_start`; `onStepEnd` → per-step `step_end` usage; `onEnd` → turn-total `usage`; `finalStep.performance` → `performance` event. Distinct from `AgentRuntime` turn_start/turn_end. |
-
-Compaction remains **`prepareTurnContext` / `compactCattyMessages`** (pre-turn + 413-retry). Step-level pruning is **`prepareStepContext`** only (typed compression + handle notices, no LLM summarize).
-
-### Capability exposure (Round 2 + gap fill)
-
-Single source of truth: `electron/capabilities/catalog/` + `electron/capabilities/codegen/toolSurfaces.cjs`.
-
-**Agent kinds** (where an in-app agent runs — orthogonal to MCP/CLI/RPC surfaces):
-
-| Kind | UI | Tool list | Notes |
-|------|-----|-----------|--------|
-| `sidebar` | Chat side panel (Catty) | `listAgentToolSpecs('sidebar')` → `cattyToolSpecs.json` | Includes `harness.*` renderer-local tools (`surfaces.catty`) |
-| `global` | Future app-wide agent | `listAgentToolSpecs('global')` → `globalAgentToolSpecs.json` | Shared RPC tools (terminal, SFTP, vault, …); **no** sidebar-only harness tools unless opted in |
-
-Placement rules (`resolveAgentKinds` in `toolSurfaces.cjs`):
-
-- Explicit `agentKinds` on a catalog entry overrides inference.
-- `surfaces.globalAgent` only → global agent (future global-only local tools).
-- `surfaces.catty` only (harness) → sidebar only.
-- RPC/MCP-backed tools → both agents unless restricted via `agentKinds`.
-
-| Surface | Codegen / consumer | Notes |
-|---------|-------------------|--------|
-| Catty (sidebar) tools | `npm run generate:capability-tools` → `infrastructure/ai/harness/generated/cattyToolSpecs.json` | Sidebar agent tool set. CI verifies JSON drift. |
-| Global agent tools | same script → `globalAgentToolSpecs.json` | Prepared for future global agent runtime; shared RPC tools only today. |
-| MCP stdio | `electron/capabilities/codegen/mcpToolRegistry.cjs` → `electron/mcp/netcatty-mcp-server.cjs` | Registry-driven; external agents. Harness tools are **not** on MCP. |
-| CLI | `electron/cli/netcatty-tool-cli.cjs` + `electron/capabilities/adapters/cliAdapter.cjs` | **30** catalog commands; exec/sftp/session remain special-case; vault/portforward/snippets use catalog fallback dispatch |
-| RPC dispatch | `electron/bridges/mcpServerBridge.cjs` + `capabilityRpcDispatch.cjs` | `netcatty/*` builtin handlers via `buildBuiltinRpcHandlerRegistry` (catalog-aligned); `public/*`, `vault/*`, `portforward/*` → services |
-| Vault bridge | `electron/bridges/aiBridge/vaultAgentBridge.cjs` + `infrastructure/ai/vaultAgentBridgeClient.ts` | Renderer vault state; **never** returns password/privateKey |
-| AI context | `buildAITerminalSessionInfo` + `useTerminalAiContexts` | Per-session `hostChain` + `activePortForwards`; mirrored in `getContext` and Catty system prompt |
-
-**Policy:** SFTP writes/transfers, `portforward_start`, and `host_notes_set` require confirm-mode approval. Observer mode blocks writes.
-
-**Handles:** `ToolOutputStore` persists across turns per chat session; cleared on chat session delete. Large `sftp.read` results spill to `tool_output_read`.
-
-**Harness domain (`catalog/harness.cjs`):** Catty-only surface (`surfaces.catty.toolName`). Registered in the capability catalog but executed locally in `capabilityTools.executeLocalCattyCapability` (not MCP/CLI). `harness.web.search` is omitted when web search is not configured.
-
-## Plugin host runtime (internal preview)
-
-The phase-2 plugin host lives under `electron/plugins/` and is disabled unless
-`NETCATTY_PLUGIN_DEV=1` is present at application launch. Public wire and package
-types still come only from `packages/plugin-contract/schema/`; do not add a
-second private RPC shape when extending the host.
-
-- `PackageStore` validates an immutable `.ncpkg` snapshot, extracts only into
-  private staging, and atomically publishes an installed version.
-- `PluginManager` serializes install, enable/disable, restart and uninstall
-  mutations. Do not bypass it from renderer IPC.
-- Ordinary plugins run in a sandboxed, offline `BrowserWindow` session and can
-  reach only their runtime-scoped `netcatty-plugin://` authority.
-- Node-only plugins run in a dedicated `utilityProcess`; they remain an advanced
-  development-only path until permission and distribution phases land.
-- `PluginRpcRouter` owns correlation, cancellation, deadlines, stream credit and
-  protocol-failure containment. Runtime identity is assigned by the host and is
-  never accepted from request parameters.
-- App quit goes through `runPluginShutdown()` after the dirty-editor guard; do
-  not add another independent quit interception path.
-
-Run `npm run test:plugin-runtime` for main-process boundaries and
-`npm run test:plugin-runtime:electron` for real BrowserWindow/utilityProcess
-smoke coverage. Packaged-resource changes must also pass `npm run pack:dir`.
-
-## Extending the System
-1) **New domain logic**: Add pure functions/types under `domain/`; avoid side effects.  
-2) **New stateful behavior**: Wrap it in a hook under `application/state/`; keep external I/O behind adapters.  
-3) **New integrations**: Create adapters under `infrastructure/services/` (or `persistence/`); expose typed functions.  
-4) **UI changes**: Consume hook outputs/handlers; do not bypass state hooks for persistence or domain logic.
-
-## Data & Storage
-- Persisted keys: see `storageKeys.ts`. Use `localStorageAdapter` for all reads/writes.
-- Seed data: `config/defaultData.ts`; terminal themes: `config/terminalThemes.ts`.
-- **Temporary files**: All temporary files (e.g., SFTP downloaded files for external editing) must be written to Netcatty's dedicated temp directory via `tempDirBridge.getTempFilePath(fileName)`. Do not write directly to `os.tmpdir()`. This ensures proper cleanup and user visibility in Settings > System.
-
-## Terminal Side Panel Splits
-
-- `domain/sidePanelLayout.ts` owns the pure pane/split tree operations, including focus, unique tools, close collapse, resize, and the pane limit.
-- `application/state/useTerminalSidePanelLayoutState.ts` owns per-terminal layouts and keeps the legacy focused-tool map compatible with external open paths.
-- `TerminalLayerSidePanelSection.tsx` renders one shared toolbar plus the nested pane chrome. Each pane content host must remain `overflow-hidden` and layout-contained.
-- Mounted tool panels use a stable portal node that moves between their pane host and the hidden parking host. Never fall back to an `absolute inset-0` side-panel root when a pane host is not ready.
-- Closing the whole side panel clears that terminal's split tree. Switching terminal tabs must not reuse another tab's layout.
-
-## Testing & Safety
-- Favor unit tests for domain helpers (e.g., `workspace.ts`, `host.ts`) and hook-level tests for application state.
-- When changing storage keys or schema, provide migration or backward-compat handling.
-- Keep components dumb: if a prop list grows large, consider deriving a smaller view model in the hook.
-
-## Coding Conventions
-- Keep logic pure in domain; side effects belong to application/infrastructure layers.
-- Prefer composition over deep prop drilling; lift shared state into hooks.
-- Avoid direct network/fetch in components; add a service/adaptor first.
-- Maintain ASCII-only unless required by existing file content.
-
-## Reporting Issues & PRs
-
-Issues opened without the required format are **auto-closed** by the issue-format bot. Agents that file issues via `gh` or the API must still follow these rules:
-
-- **Title:** start with `[Bug]`, `[Feature]`, or `[Other]`, then a short summary (≥ 4 characters after the prefix). Example: `[Bug] SFTP upload fails on Windows`.
-- **Body:** use the templates under [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) (Bug Report or Feature Request) and fill every required field. Blank issues are disabled.
-- **PRs:** follow [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md).
-
-Full contributor guidance (setup, commits, PR process): [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-## Review Boundaries
-- Treat `electron/cli/*`, `netcatty-tool-cli`, the CLI discovery file, and the local TCP bridge as internal Netcatty integration surfaces unless a task explicitly says otherwise.
-- Do not review those surfaces as public APIs by default, and do not assume they must support third-party callers, manual launches, or non-Netcatty agents.
-- On supported first-party paths, assume Netcatty's own launcher provides required integration environment such as `NETCATTY_TOOL_CLI_DISCOVERY_FILE`.
-- If a review concern depends on external exposure, third-party compatibility, or public API stability, call it out as out of scope unless the task explicitly includes that contract.
-
----
-
-## Aside Panel Design System
-
-VaultView subpages (Hosts, Keychain, Port Forwarding, Snippets, Known Hosts) share a unified aside panel design system via reusable components in `components/ui/aside-panel.tsx`.
-
-### Core Components
-
-Import from `./ui/aside-panel`:
-```tsx
-import {
-  AsidePanel,
-  AsidePanelHeader,
-  AsidePanelContent,
-  AsidePanelFooter,
-  AsideActionMenu,
-  AsideActionMenuItem
-} from "./ui/aside-panel";
+```bash
+go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty
 ```
 
-### Basic Usage
-```tsx
-<AsidePanel
-  open={isOpen}
-  onClose={handleClose}
-  title="Panel Title"
-  subtitle="Optional subtitle"
-  // For sub-panels with back navigation:
-  showBackButton={true}
-  onBack={handleBack}
-  // Optional action menu:
-  actions={
-    <AsideActionMenu>
-      <AsideActionMenuItem onClick={handleDuplicate}>
-        <Copy size={14} className="mr-2" /> Duplicate
-      </AsideActionMenuItem>
-      <AsideActionMenuItem variant="destructive" onClick={handleDelete}>
-        <Trash2 size={14} className="mr-2" /> Delete
-      </AsideActionMenuItem>
-    </AsideActionMenu>
-  }
->
-  <AsidePanelContent>
-    {/* Your scrollable content here */}
-  </AsidePanelContent>
-  <AsidePanelFooter>
-    <Button className="w-full">Save</Button>
-  </AsidePanelFooter>
-</AsidePanel>
+Capability metadata is generated from the Go catalog:
+
+```bash
+npm run generate:capability-tools
 ```
 
-Note: When `title` prop is provided, AsidePanel automatically renders the header. Do NOT use `AsidePanelHeader` directly inside AsidePanel - this would cause duplicate headers.
+Do not add a second native bridge shape when an existing Wails service or runtime port can be extended.
 
-### Component Props
+## AI Agent Harness
 
-**AsidePanel**
-- `open: boolean` - Controls panel visibility
-- `onClose: () => void` - Close button handler
-- `title?: string` - Header title (header only renders if title is provided)
-- `subtitle?: string` - Secondary text below title
-- `showBackButton?: boolean` - Show back arrow (for sub-panels)
-- `onBack?: () => void` - Back button handler
-- `actions?: ReactNode` - Right-side actions (buttons or AsideActionMenu)
-- `width?: string` - Panel width (default: "w-[380px]")
-- `children: ReactNode` - Panel content
+`infrastructure/ai/harness/` owns turn orchestration. `AgentRuntime` controls lifecycle, cancellation, trace fan-out, compaction, tool output storage, and deduplication. UI hooks manage view state and delegate turns to the runtime. Stop requests always go through `stopAgentTurn()`.
 
-**AsidePanelContent**
-- `children: ReactNode` - Content wrapped in ScrollArea with `space-y-4` gap
-- `className?: string` - Additional CSS classes
+The capability catalog in `internal/capability/` is the source of truth for generated frontend tool specs. Observer mode blocks writes; confirm mode requests approval for write capabilities.
 
-**AsidePanelFooter**
-- `children: ReactNode` - Footer content (usually buttons)
-- `className?: string` - Additional CSS classes
+## Plugin Runtime
 
-**AsideActionMenu / AsideActionMenuItem**
-- Popover-based dropdown menu for header actions
-- `variant="destructive"` for delete actions (red text)
+The migrated plugin host lives under `internal/plugin/` and is exposed through Wails services. Contract and package types come from `packages/plugin-contract/`. Keep protocol changes compatible across the Go host, generated schema, SDK, and examples.
 
-### Design Specifications
-- Position: `absolute right-0 top-0 bottom-0` (relative to parent container with `relative` positioning)
-- Width: `w-[380px]` (configurable via `width` prop)
-- Background: `bg-background` (solid, no backdrop-blur)
-- Border: `border-l border-border/60`
-- Z-index: `z-30`
-- Header: `shrink-0` to prevent scrolling, close button uses X icon
-- Content: `flex-1 overflow-hidden` with internal ScrollArea and `space-y-4` gap
-- **Important**: Parent container must have `relative` positioning for the panel to position correctly
+Use:
 
-### Panel Navigation Patterns
-- **Main panels**: Close with X icon, no back button
-- **Sub-panels (stacked)**: ArrowLeft (←) back button + X close button
-- Use panel stack state for nested navigation: `panelStack: PanelMode[]`
-- `popPanel()` returns to previous panel, `closePanel()` closes all panels
-
-### SelectHostPanel Integration
-For host selection, use `SelectHostPanel` component with:
-- Breadcrumb navigation in content area (not header)
-- `multiSelect` prop for multiple host selection
-- `selectedHostIds` array for controlled selection
-- Sort dropdown and tag filter for large host lists
-- Uses `absolute` positioning (not `fixed`) - parent needs `relative`
-
-### Migration from Manual Implementation
-Replace manual panel structure:
-```tsx
-// OLD: Manual implementation
-<div className="fixed right-0 top-0 bottom-0 w-[380px] border-l border-border/60 bg-background z-50 flex flex-col">
-  <div className="px-4 py-3 flex items-center justify-between border-b border-border/60 app-no-drag shrink-0">
-    {/* header content */}
-  </div>
-  <ScrollArea className="flex-1">
-    <div className="p-4 space-y-4">{/* content */}</div>
-  </ScrollArea>
-</div>
-
-// NEW: Using AsidePanel components (header via props)
-<AsidePanel open={open} onClose={onClose} title="Title">
-  <AsidePanelContent>{/* content */}</AsidePanelContent>
-</AsidePanel>
+```bash
+npm run check:plugin-contract
+npm run test:plugin-runtime
 ```
 
-### Important Positioning Notes
-- AsidePanel uses `absolute` positioning with `top-0 bottom-0 right-0`
-- The panel positions relative to its nearest positioned ancestor
-- For correct alignment with the top of the page:
-  - Render AsidePanel at the root level of your section (e.g., VaultView root div)
-  - Do NOT render AsidePanel inside a scrollable content area or nested containers
-  - The parent container should be `absolute inset-0` or have `relative` positioning
+## Temporary Files
+
+Use Netcatty's dedicated temporary-file service. Do not write application temporary data directly to the operating system temp directory.
+
+## Terminal Side Panels
+
+- `domain/sidePanelLayout.ts` owns pure split-tree operations.
+- `application/state/useTerminalSidePanelLayoutState.ts` owns per-terminal layouts.
+- `TerminalLayerSidePanelSection.tsx` renders the shared toolbar and pane tree.
+- Mounted tool panels use stable portal nodes and the hidden parking host.
+- Closing a side panel clears that terminal's layout; switching terminals must not reuse another terminal's tree.
+
+## Aside Panels
+
+Vault subpages use `components/ui/aside-panel.tsx`. Pass `title` to `AsidePanel`; do not also render `AsidePanelHeader`. Render the panel at the section root inside a positioned parent because it uses absolute positioning. Use `SelectHostPanel` for host selection.
+
+## Testing
+
+```bash
+npm run lint
+npm test
+go test ./internal/... ./cmd/...
+npm run build
+```
+
+Add unit tests for domain logic and Go services when behavior changes. Add hook tests for stateful frontend behavior. When changing stored schemas, include backward-compatible handling.
+
+## Packaging
+
+```bash
+npm run wails:helpers
+npm run package:wails
+```
+
+Wails packages are the repository's release artifacts. Platform signing is optional distribution metadata and is not a source or release gate.
+
+## Issues and Pull Requests
+
+Issue titles must start with `[Bug]`, `[Feature]`, or `[Other]` and use the required template in `.github/ISSUE_TEMPLATE/`. Pull requests must follow `.github/PULL_REQUEST_TEMPLATE.md`. See `CONTRIBUTING.md` for the full workflow.

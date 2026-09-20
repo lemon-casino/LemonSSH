@@ -462,7 +462,7 @@ export const ruAiMessages: Messages = {
   'ai.chatShortcuts.selectionAction.description': 'Показывать небольшую кнопку AI рядом с выделенным текстом терминала.',
 
   // AI Error
-  'ai.codex.bridgeError': 'Обработчики главного процесса Codex ещё не загружены. Полностью перезапустите Netcatty или dev-процесс Electron и попробуйте снова.',
+  'ai.codex.bridgeError': 'Нативные обработчики Codex ещё не загружены. Полностью перезапустите настольное приложение или dev-процесс Wails и попробуйте снова.',
 
   // AI Web Search
   'ai.webSearch.title': 'Веб-поиск',

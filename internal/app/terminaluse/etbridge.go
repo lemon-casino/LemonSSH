@@ -103,6 +103,9 @@ func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request 
 	if err = os.WriteFile(keyPath, pem.EncodeToMemory(block), 0600); err != nil {
 		return nil, err
 	}
+	if err = restrictPrivateFile(keyPath); err != nil {
+		return nil, err
+	}
 	_, hostPrivate, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -122,6 +125,9 @@ func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request 
 	knownPath := filepath.Join(b.directory, "known_hosts")
 	_, sshPort, _ := net.SplitHostPort(b.bootstrap.Addr().String())
 	if err = os.WriteFile(knownPath, append([]byte("[127.0.0.1]:"+sshPort+" "), ssh.MarshalAuthorizedKey(hostSigner.PublicKey())...), 0600); err != nil {
+		return nil, err
+	}
+	if err = restrictPrivateFile(knownPath); err != nil {
 		return nil, err
 	}
 	_, etPort, _ := net.SplitHostPort(b.tcp.Addr().String())

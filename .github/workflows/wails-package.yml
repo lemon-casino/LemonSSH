@@ -1,10 +1,7 @@
 name: wails-package
 
-# Unsigned Wails qualification binaries only. No Authenticode, notarization,
-# or installer formats. The operator self-signs later.
-# Push to main uploads Actions artifacts. A v* tag also publishes a GitHub
-# Release with the same unsigned zip files.
-
+# Builds the Wails application from the current source tree. Code signing is
+# optional distribution metadata and is not a release gate.
 on:
   push:
     branches:
@@ -25,7 +22,7 @@ env:
 
 jobs:
   package:
-    name: Unsigned Wails binary (${{ matrix.os }})
+    name: Wails package (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -54,11 +51,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
       - name: Test helper supply and packaging
-        run: node --test scripts/package-wails.test.mjs scripts/fetch-wails-helpers.test.mjs scripts/fetch-mosh-binaries.test.cjs scripts/fetch-et-binaries.test.cjs
+        run: node --test scripts/package-wails.test.mjs scripts/fetch-wails-helpers.test.mjs
 
       - name: Fetch locked Mosh and ET helpers
         run: node scripts/fetch-wails-helpers.mjs
@@ -77,7 +74,7 @@ jobs:
           WAILS_HELPER_TEST_HOST: '1'
         run: node --test --test-name-pattern="real " scripts/fetch-wails-helpers.test.mjs
 
-      - name: Package unsigned Wails binary
+      - name: Package Wails application
         run: node scripts/package-wails.mjs
 
       - name: Inspect packaged binary
@@ -92,14 +89,7 @@ jobs:
             Linux) readelf -h "$artifact" | sed -n '1,16p' ;;
           esac
 
-      - name: Record unsigned Authenticode status
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          artifact=$(ls dist/wails/LemonSSH-*.exe | head -1)
-          node scripts/sign-wails-probe.mjs --artifact "$artifact"
-
-      - name: Upload unsigned artifacts
+      - name: Upload Wails artifacts
         uses: actions/upload-artifact@v7
         with:
           name: lemonssh-${{ matrix.os }}
@@ -108,7 +98,7 @@ jobs:
           retention-days: 14
 
   release:
-    name: Publish unsigned GitHub Release
+    name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs: package
     runs-on: ubuntu-latest
@@ -139,7 +129,7 @@ jobs:
           zip -r lemonssh-macos-latest.zip lemonssh-macos-latest
           zip -r lemonssh-ubuntu-latest.zip lemonssh-ubuntu-latest
 
-      - name: Publish unsigned GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
@@ -148,5 +138,5 @@ jobs:
             release/lemonssh-macos-latest.zip
             release/lemonssh-ubuntu-latest.zip
           body: |
-            Unsigned Wails qualification binaries. Self-sign before public distribution.
-            No Authenticode, notarization, or installer formats.
+            LemonSSH Wails builds generated from this tag.
+            Platform code signing may be added by downstream distributors.

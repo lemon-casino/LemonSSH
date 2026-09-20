@@ -22,7 +22,7 @@ import {
 import { emitAIStateChanged } from './aiStateEvents';
 import { getAgentRuntime } from '../../infrastructure/ai/harness/globalAgentRuntime';
 
-/** Typed accessor for the Electron IPC bridge exposed on `window.netcatty`. */
+/** Typed accessor for the native bridge exposed on `window.netcatty`. */
 export interface AIBridge {
   aiSdkAgentCleanup?: (chatSessionId: string) => Promise<{ ok: boolean }>;
   deleteChatToolOutputsTemp?: (chatSessionId: string) => Promise<{ deletedCount: number }>;

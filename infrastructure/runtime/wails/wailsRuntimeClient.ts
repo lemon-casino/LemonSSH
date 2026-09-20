@@ -1,7 +1,7 @@
-// Wails RuntimeClient adapter (P1-02). This module is the only frontend file
+// Wails RuntimeClient adapter. This module is the only frontend file
 // allowed to import the Wails runtime and the generated bindings (enforced by
-// ESLint). Ports without a Go owner reject every call fail-closed instead of
-// pretending parity; they are implemented domain by domain from P2 onward.
+// ESLint). Missing Go capabilities fail closed instead of returning partial
+// results.
 
 import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
 import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
@@ -64,10 +64,8 @@ export function isWailsRuntime(): boolean {
 }
 
 /**
- * Builds a port whose implemented methods are backed by generated bindings
- * and whose remaining methods reject with an explicit migration error. The
- * rejection is the honest state during the migration: the Electron bridge
- * still owns those capabilities.
+ * Builds a port whose implemented methods are backed by generated bindings.
+ * Missing methods fail closed so unsupported calls cannot appear successful.
  */
 function portWith<T extends object>(portName: string, implemented: object): T {
   return new Proxy(implemented, {
@@ -75,7 +73,7 @@ function portWith<T extends object>(portName: string, implemented: object): T {
       if (property in target) return Reflect.get(target, property, receiver);
       if (property === "__wails__") return undefined;
       throw new Error(
-        `Netcatty.${portName}.${String(property)} is not migrated to the Wails runtime yet`,
+        `LemonSSH.${portName}.${String(property)} is unavailable in the Wails runtime`,
       );
     },
   }) as T;

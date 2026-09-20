@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { I18nProvider } from "../../application/i18n/I18nProvider.tsx";
 import { TooltipProvider } from "../ui/tooltip.tsx";
+import { getActiveRuntimeClient, setActiveRuntimeClient } from "../../infrastructure/runtime/runtimeClient.ts";
+import type { RuntimeClient } from "../../infrastructure/runtime/runtimeClient.ts";
 import {
   AgentInteractionApprovalCards,
   AgentInteractionApprovalsHost,
@@ -73,28 +75,24 @@ test("agentInteractionExpiryDelayMs clamps past deadlines and skips unknown ones
 });
 
 test("respondAgentInteraction forwards decisions and swallows typed already-resolved errors", async () => {
-  const globalWithWindow = globalThis as { window?: unknown };
-  const previousWindow = globalWithWindow.window;
+  const previousClient = getActiveRuntimeClient();
   const calls: Array<[string, boolean]> = [];
   try {
-    globalWithWindow.window = {
-      netcatty: {
+    setActiveRuntimeClient({
+      transitionBridge: {
         agentRespondInteraction: async (interactionId: string, approved: boolean) => {
           calls.push([interactionId, approved]);
           if (interactionId === "ia_gone") throw new Error('interaction "ia_gone" was already resolved');
         },
-      },
-    };
+      } as NetcattyBridge,
+    } as RuntimeClient);
     assert.equal(await respondAgentInteraction("ia_1", true), true);
     assert.equal(await respondAgentInteraction("ia_gone", false), false);
     assert.deepEqual(calls, [["ia_1", true], ["ia_gone", false]]);
-    // Missing bridge or missing method stays quiet (Electron shell, migration).
-    globalWithWindow.window = {};
+    setActiveRuntimeClient(undefined);
     assert.equal(await respondAgentInteraction("ia_2", false), false);
-    globalWithWindow.window = undefined;
-    assert.equal(await respondAgentInteraction("ia_3", true), false);
   } finally {
-    globalWithWindow.window = previousWindow;
+    setActiveRuntimeClient(previousClient);
   }
 });
 

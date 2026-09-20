@@ -7,7 +7,7 @@ import { lstat, mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual, promisify } from "node:util";
-import tarChecks from "./fetch-et-binaries.cjs";
+import tarChecks from "./archive-checks.cjs";
 import tarMoshRelease from "./resolve-mosh-bin-release.cjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));

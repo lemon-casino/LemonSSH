@@ -30,19 +30,17 @@ on:
       - main
     paths:
       - ".github/workflows/build-et-binaries.yml"
-      - "electron-builder.config.cjs"
       - "package.json"
       - "scripts/build-et/**"
-      - "scripts/fetch-et-binaries.cjs"
-      - "scripts/et-extra-resources.cjs"
+      - "scripts/fetch-wails-helpers.mjs"
+      - "scripts/fetch-wails-helpers.lock.json"
   pull_request:
     paths:
       - ".github/workflows/build-et-binaries.yml"
-      - "electron-builder.config.cjs"
       - "package.json"
       - "scripts/build-et/**"
-      - "scripts/fetch-et-binaries.cjs"
-      - "scripts/et-extra-resources.cjs"
+      - "scripts/fetch-wails-helpers.mjs"
+      - "scripts/fetch-wails-helpers.lock.json"
 
 concurrency:
   group: build-et-binaries-${{ github.workflow }}-${{ github.ref }}
@@ -310,7 +308,7 @@ jobs:
             exit 1
           fi
           {
-            printf '%s\n' 'Pre-built EternalTerminal `et` client binaries consumed by `scripts/fetch-et-binaries.cjs` during `npm run pack`.'
+            printf '%s\n' 'Pre-built EternalTerminal `et` client binaries pinned by `scripts/fetch-wails-helpers.lock.json` and consumed by Wails packaging.'
             printf 'Built from `MisterTea/EternalTerminal` upstream ref `%s`.\n\n' "${ET_REF}"
             printf 'Source workflow: %s/%s/actions/runs/%s\n' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
             printf 'Source commit: `%s`\n\n' "${GITHUB_SHA}"

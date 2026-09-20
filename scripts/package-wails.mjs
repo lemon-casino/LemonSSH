@@ -32,10 +32,9 @@ export function windowsGuiLdflags(goos) {
   return goos === "windows" ? " -H windowsgui" : "";
 }
 
-const ELECTRON_MARKERS = Object.freeze(["electron", "node.exe", ".asar", "runtime/node_modules"]);
+const FORBIDDEN_RUNTIME_MARKERS = Object.freeze(["electron", "node.exe", ".asar", "runtime/node_modules"]);
 
-// purityInventory records what a qualification artifact is, without claiming a
-// signed installer or a Node-free final RC. REL-03.1 still needs P8-01.
+// purityInventory records the runtime contents of the Wails artifact.
 export function purityInventory({ artifactName, sha256, bytes, goos, goarch, cross }) {
   return {
     artifactName,
@@ -46,11 +45,10 @@ export function purityInventory({ artifactName, sha256, bytes, goos, goarch, cro
     cross,
     signed: false,
     installerFormats: [],
-    electronMarkers: [...ELECTRON_MARKERS],
+    forbiddenRuntimeMarkers: [...FORBIDDEN_RUNTIME_MARKERS],
     notes: [
-      "bare Go binary only; no msi, pkg, AppImage, deb, or rpm",
-      "Authenticode/codesign not invoked",
-      "REL-03.1 artifact purity waits on P8-01 signed RC",
+      "Wails/Go runtime artifact",
+      "code signing is optional and is not a release gate",
     ],
   };
 }

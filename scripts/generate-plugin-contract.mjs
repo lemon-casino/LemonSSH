@@ -16,10 +16,6 @@ const generatedLimitsPath = path.join(
   rootDir,
   "packages/plugin-contract/src/generated/plugin-contract-limits.ts",
 );
-const electronBundlePath = path.join(
-  rootDir,
-  "electron/plugins/generated/plugin-contract.schema.json",
-);
 const checkOnly = process.argv.includes("--check");
 const typescriptTypeOverrides = new Map([
   [
@@ -363,15 +359,12 @@ async function assertCurrent(filePath, expected, label) {
 if (checkOnly) {
   await assertCurrent(generatedTypesPath, generatedTypes, "Generated plugin TypeScript contract");
   await assertCurrent(generatedLimitsPath, generatedLimits, "Generated plugin JSON limits");
-  await assertCurrent(electronBundlePath, normalizedSchema, "Electron plugin schema bundle");
   console.log("Plugin contract generated artifacts are current.");
 } else {
   await mkdir(path.dirname(generatedTypesPath), { recursive: true });
-  await mkdir(path.dirname(electronBundlePath), { recursive: true });
   await Promise.all([
     writeFile(generatedTypesPath, generatedTypes, "utf8"),
     writeFile(generatedLimitsPath, generatedLimits, "utf8"),
-    writeFile(electronBundlePath, normalizedSchema, "utf8"),
   ]);
-  console.log("Generated plugin TypeScript contract and Electron schema bundle.");
+  console.log("Generated plugin TypeScript contract.");
 }

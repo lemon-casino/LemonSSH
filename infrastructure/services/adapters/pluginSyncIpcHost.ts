@@ -1,6 +1,6 @@
 /**
- * Renderer-side host that drives plugin sync Providers over the preload IPC
- * surface. Main process extensionProviderService owns activation, permission
+ * Renderer-side host that drives plugin sync providers over the native bridge
+ * surface. The host service owns activation, permission
  * checks, and stream handling; this client shuttles already-encrypted object
  * bytes with inline Uint8Array for small objects and pull/chunked transfers
  * above the SyncLimits inline cutoff.
@@ -20,7 +20,7 @@ const STREAM_WINDOW_BYTES = 256 * 1024;
 /** Same as main INLINE_SYNC_OBJECT_SAFE_BYTES (aligned SyncLimits.inlineObjectBytes). */
 const INLINE_SYNC_OBJECT_SAFE_BYTES = PLUGIN_SYNC_INLINE_OBJECT_BYTES;
 
-type ElectronPluginSyncApi = {
+type NativePluginSyncApi = {
   cancelPluginExtensionRequest?: (requestId: string) => Promise<boolean>;
   pluginSyncConnect?: (params: {
     requestId: string;
@@ -115,15 +115,9 @@ type ElectronPluginSyncApi = {
   }) => Promise<{ restored: number; discarded?: number }>;
 };
 
-function getPluginSyncApi(): ElectronPluginSyncApi | null {
+function getPluginSyncApi(): NativePluginSyncApi | null {
   if (typeof window === 'undefined') return null;
-  // Preload exposes the production bridge as window.netcatty only.
-  const bridge = (window as Window & {
-    netcatty?: ElectronPluginSyncApi;
-    electron?: ElectronPluginSyncApi;
-  }).netcatty
-    ?? (window as Window & { electron?: ElectronPluginSyncApi }).electron;
-  return bridge ?? null;
+  return (window as Window & { netcatty?: NativePluginSyncApi }).netcatty ?? null;
 }
 
 function mintRequestId(): string {
@@ -147,7 +141,7 @@ function coerceBytes(value: unknown): Uint8Array {
 }
 
 async function withAbortSignal<T>(
-  api: ElectronPluginSyncApi,
+  api: NativePluginSyncApi,
   signal: AbortSignal | undefined,
   run: (requestId: string) => Promise<T>,
 ): Promise<T> {
