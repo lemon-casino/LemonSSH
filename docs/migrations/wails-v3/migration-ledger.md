@@ -5469,3 +5469,28 @@ capability row, source paths, verification output or CI run.
 - Residual risks: real-provider smoke still needs network + key (user-side); anthropic/google request builders remain future slices; usage-loop integration pending
 - Next safe slice: scripts.reference disposition + renderer approval UI, then W16
 - Drift decision: `user-approved-implementation-ahead-of-evidence`
+
+## WV3-L194 - 2026-09-20 - Wails provider fetch surface (aiFetch / aiAllowlistAddHost / aiSyncProviders)
+
+- Capability rows: `AI-03`
+- Plan task: `P7-04`
+- Status change: `probe -> probe`
+- Scope change: `none`
+- Goal: Close the Wails-shell provider-discovery gap behind `portWith("agent", ...)` fail-closed semantics. New Go facade `ProviderFetchService` owns the renderer's `aiFetch` / `aiAllowlistAddHost` / `aiSyncProviders` IPC trio (providerHandlers.cjs parity): model-catalog fetches, the settings "Test" probe and web search now run through the same netpolicy authority as the W15 live provider driver (one shared `netpolicy.Policy` instance in main.go, so URL decision, dial validation, redirect re-validation, 10 MiB body limit and 30s timeout match the Electron path). Secret values never enter the Go service: the renderer sends the Authorization header it already holds; `SyncProviders` consumes endpoint metadata only. `fetchProviderModelCatalog` no longer needs the `bridge?.aiFetch` guard on Wails, so saved providers hydrate their model catalogs without opening the dropdown; `probeProviderConnection` returns a typed classification instead of `reason: "unavailable"`. `installWailsRuntimeClient` now also installs the transition bridge as `window.netcatty` — legacy consumers (`getNetcattyBridge` in aiChatStreamingSupport, AIChatSidePanel, the settings AI tab) previously read `undefined` under Wails, which was the concrete cause of "当前环境无法进行连接检测" and empty model lists. Bindings regenerated with the pinned generator command (`wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty`), which also closed pre-existing drift: the committed bindings were missing `AgentPendingInteractions`, `AgentRegisterChatAttachments`, `AgentRespondInteraction` and terminal `RunnerFor` — no bindings were removed, the diff is purely additive plus the new `providerfetchservice.js`.
+- Go canonical owner: `cmd/netcatty/providerFetchService.go`; composition in main.go
+- Frontend adapter: `infrastructure/runtime/wails/wailsRuntimeClient.ts` (aiFetch/aiAllowlistAddHost/aiSyncProviders on the transition bridge; transition bridge installed as `window.netcatty` for legacy `getNetcattyBridge()` consumers; agent port stays fail-closed otherwise)
+- Electron owner affected: none; `electron/bridges/aiBridge/providerHandlers.cjs` keeps owning the Electron IPC channel
+- Preserved invariants: AI-03 stays probe; SSRF guard unchanged (skipHostCheck still refuses private/metadata hosts and mandates HTTPS; builtin loopback ports still allowlisted); redirect targets policy-rechecked; no provider key is logged
+- Data/schema impact: none (bindings-only wire additions)
+- Security impact: one policy authority now covers both renderer discovery traffic and the live provider driver; temp allowlist TTL semantics simplify to process lifetime (no longer 30s), matching the durable-synced behavior of registered provider hosts
+- Verification: go vet ./cmd/netcatty/ (ok); go test -count=1 ./cmd/netcatty/ (ok incl. new provider fetch suite: allowlist gate, loopback registration unlock, sync-providers rebuild, private/CGNAT/metadata refusal under skipHostCheck, redirect toggle, empty-URL rejection); node --test --import tsx infrastructure/runtime/wails/wailsRuntimeClient.test.ts (45/45); node --test --import tsx infrastructure/ai/providerConnectionProbe.test.ts (pass); `npm run wails:build` (ok; clean app smoke with no provider errors)
+- Platforms covered: Windows 10 22H2 x64 unit tests over httptest loopback servers; real provider smoke needs a user-side key
+- Evidence grade: `C`
+- Decision references: `WV3-001`, `WV3-025`
+- Gate: `none`
+- Closure evidence: `none`
+- Electron retirement: cutover-trigger: Node provider stack stays until W22
+- Documentation updated: ledger, remaining-work, work-packages, capability-matrix
+- Residual risks: SSE chat streaming (`aiChatStream`) remains an Electron-only path — Catty turns in the Wails shell need the typed provider/config methods from the P7-04 design; allowlist persistence across restarts comes from SyncProviders replay on boot, not a persisted list; web search stays fail-closed under the Wails shell until an `aiSyncWebSearch` equivalent lands (host allowlist sync + `__WEB_SEARCH_KEY__` injection — the transition bridge `aiFetch` would send the literal placeholder, so a configured web search errors at request time instead of searching)
+- Next safe slice: scripts.reference disposition + renderer approval UI, then W16
+- Drift decision: `user-approved-implementation-ahead-of-evidence`
