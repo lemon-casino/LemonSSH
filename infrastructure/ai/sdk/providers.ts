@@ -459,7 +459,22 @@ export function createBridgeFetchForSDK(
       : undefined;
 
     // Streaming path
-    if (isStreamingRequest(resolvedInit)) {
+    // The bridge object is partial in shells that only implement part of the
+    // Electron IPC surface (the Wails transition bridge has aiFetch but no
+    // streaming channel), so each surface is checked, not just bridge truth.
+    // A missing surface falls back to direct fetch exactly like a missing
+    // bridge does.
+    const streaming = isStreamingRequest(resolvedInit);
+    const streamingSurfaceReady = typeof bridge.aiChatStream === 'function'
+      && typeof bridge.aiChatCancel === 'function'
+      && typeof bridge.onAiStreamData === 'function'
+      && typeof bridge.onAiStreamEnd === 'function'
+      && typeof bridge.onAiStreamError === 'function';
+    if (streaming ? !streamingSurfaceReady : typeof bridge.aiFetch !== 'function') {
+      return globalThis.fetch(input, init);
+    }
+
+    if (streaming) {
       const requestId = `sdk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const captureOpenAIChatFields = createOpenAIChatStreamFieldCapture(requestContext);
       const normalizeOpenAIChatToolCalls = createOpenAIChatToolCallNormalizer(requestId);
