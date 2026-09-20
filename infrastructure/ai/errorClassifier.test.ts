@@ -94,6 +94,25 @@ test("classifyError marks 502/503/504 as network+retryable", () => {
   }
 });
 
+test("classifyError unwraps the AI SDK RetryError to preserve the provider status", () => {
+  const providerError = Object.assign(new Error("Service temporarily unavailable"), {
+    statusCode: 503,
+  });
+  const retryError = Object.assign(
+    new Error("Failed after 3 attempts. Last error: AI_APICallError: Service temporarily unavailable"),
+    {
+      name: "AI_RetryError",
+      lastError: providerError,
+      errors: [providerError],
+    },
+  );
+
+  const info = classifyError(retryError);
+  assert.equal(info.type, "network");
+  assert.equal(info.retryable, true);
+  assert.match(info.message, /HTTP 503/);
+});
+
 test("classifyError does not treat timing text as a gateway status", () => {
   const info = classifyError("retry after 502 ms");
   const leadingInfo = classifyError("502 ms");

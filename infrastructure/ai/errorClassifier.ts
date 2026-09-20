@@ -20,6 +20,29 @@ function extractMessage(error: unknown): string {
   }
 }
 
+/** Walk the bounded error-wrapper shapes used by the AI SDK and fetch APIs. */
+function nestedErrors(error: unknown): unknown[] {
+  const pending: unknown[] = [error];
+  const found: unknown[] = [];
+  const seen = new Set<object>();
+
+  while (pending.length > 0 && found.length < 16) {
+    const current = pending.shift();
+    found.push(current);
+    if (!current || typeof current !== 'object' || seen.has(current)) continue;
+    seen.add(current);
+    const record = current as Record<string, unknown>;
+    for (const key of ['lastError', 'cause']) {
+      if (record[key] !== undefined) pending.push(record[key]);
+    }
+    if (Array.isArray(record.errors)) {
+      pending.push(...record.errors.slice(-8).reverse());
+    }
+  }
+
+  return found;
+}
+
 /**
  * Pull the HTTP status code out of an error when the SDK layer attached one.
  * Vercel AI SDK's APICallError exposes `.statusCode`; some shims use
@@ -27,14 +50,11 @@ function extractMessage(error: unknown): string {
  * when no structured field is available.
  */
 function extractStatusCode(error: unknown, message: string): number | undefined {
-  if (error && typeof error === 'object') {
-    const obj = error as Record<string, unknown>;
+  for (const candidate of nestedErrors(error)) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const obj = candidate as Record<string, unknown>;
     if (typeof obj.statusCode === 'number') return obj.statusCode;
     if (typeof obj.status === 'number') return obj.status;
-    if (obj.cause && typeof obj.cause === 'object') {
-      const causeStatus = (obj.cause as Record<string, unknown>).statusCode;
-      if (typeof causeStatus === 'number') return causeStatus;
-    }
   }
   const statusPatterns = [
     /\bHTTP\s*(4\d{2}|5\d{2})\b/i,
@@ -43,8 +63,10 @@ function extractStatusCode(error: unknown, message: string): number | undefined 
     /^\s*(4\d{2}|5\d{2})\b(?!\s*ms\b)/i,
   ];
   for (const pattern of statusPatterns) {
-    const match = message.match(pattern);
-    if (match) return Number(match[1]);
+    for (const candidate of [message, ...nestedErrors(error).map(extractMessage)]) {
+      const match = candidate.match(pattern);
+      if (match) return Number(match[1]);
+    }
   }
   return undefined;
 }
@@ -54,9 +76,11 @@ function extractStatusCode(error: unknown, message: string): number | undefined 
  * Nginx / CDN proxy error pages ship as HTML, so we can detect them here.
  */
 function extractResponseBody(error: unknown): string | undefined {
-  if (!error || typeof error !== 'object') return undefined;
-  const body = (error as Record<string, unknown>).responseBody;
-  if (typeof body === 'string') return body;
+  for (const candidate of nestedErrors(error)) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const body = (candidate as Record<string, unknown>).responseBody;
+    if (typeof body === 'string') return body;
+  }
   return undefined;
 }
 

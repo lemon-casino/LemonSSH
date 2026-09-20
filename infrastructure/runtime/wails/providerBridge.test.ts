@@ -56,6 +56,7 @@ for (const style of ['openai', 'anthropic', 'google'] as ProviderStyle[]) {
   test(`${style} SDK produces text through the Wails streaming bridge`, async t => {
     const { native, emit } = fixture(t);
     native.ChatStream = async (id, request) => {
+      if (style === 'openai') assert.equal(request.URL, 'https://fixture.test/v1/chat/completions');
       if (style === 'google') assert.match(request.URL, /streamGenerateContent/);
       const events: Array<Record<string, unknown>> = style === 'anthropic' ? [
         { type: 'message_start', message: { id: 'msg_test', type: 'message', role: 'assistant', model: 'fixture', content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 1, output_tokens: 0 } } },
@@ -74,7 +75,7 @@ for (const style of ['openai', 'anthropic', 'google'] as ProviderStyle[]) {
       emit('ai:stream-end', { requestId: id });
       return { OK: true, StatusCode: 200, StatusText: 'OK', Error: '', Aborted: false };
     };
-    const model = createModelFromConfig({ id: 'p', providerId: style, style, name: 'fixture', defaultModel: 'fixture', apiKey: 'encrypted-fixture', baseURL: 'https://fixture.test/v1', enabled: true });
+    const model = createModelFromConfig({ id: 'p', providerId: style, style, name: 'fixture', defaultModel: 'fixture', apiKey: 'encrypted-fixture', baseURL: style === 'openai' ? 'https://fixture.test/' : 'https://fixture.test/v1', enabled: true });
     const result = streamText({ model, prompt: 'hello' });
     assert.equal(await result.text, 'hello');
   });

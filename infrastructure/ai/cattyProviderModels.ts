@@ -1,6 +1,7 @@
 import { decryptField } from '../persistence/secureFieldAdapter';
 import { buildModelDiscoveryHeaders, resolveModelsDiscoveryEndpoint } from './modelDiscoveryHeaders';
 import { normalizeOllamaSdkBaseURL } from './ollamaCompatBaseUrl';
+import { normalizeOpenAICompatSdkBaseURL } from './openaiCompatBaseUrl';
 import { buildProviderProbeUrl } from './providerConnectionProbe';
 import { sanitizeContextWindow } from './contextCompaction';
 import { PROVIDER_PRESETS, resolveProviderStyle, type ProviderConfig } from './types';
@@ -67,7 +68,9 @@ export function providerModelCacheKey(provider: ProviderConfig): string {
 export function resolveProviderDiscoveryBaseURL(provider: ProviderConfig): string {
   const raw = provider.baseURL || PROVIDER_PRESETS[provider.providerId]?.defaultBaseURL || '';
   if (!raw) return '';
-  return provider.providerId === 'ollama' ? normalizeOllamaSdkBaseURL(raw) : raw;
+  if (provider.providerId === 'ollama') return normalizeOllamaSdkBaseURL(raw);
+  if (resolveProviderStyle(provider) === 'openai') return normalizeOpenAICompatSdkBaseURL(raw);
+  return raw;
 }
 
 export function seedProviderModelCatalog(provider: ProviderConfig): ProviderModelCatalog {

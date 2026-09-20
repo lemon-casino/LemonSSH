@@ -93,7 +93,7 @@ func (s *ProviderFetchService) ChatStream(id string, request ProviderFetchReques
 		defer response.Body.Close()
 		defer s.finishStream(id, stream)
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 64<<10))
-		return ProviderStreamResult{Error: "AI provider did not return an event stream: " + providerResponseError(response.StatusCode, body)}
+		return ProviderStreamResult{Error: unexpectedStreamResponse(response.StatusCode, contentType, body)}
 	}
 	go func() {
 		defer response.Body.Close()
@@ -191,10 +191,26 @@ func providerResponseError(status int, data []byte) string {
 		}
 	}
 	if text := strings.TrimSpace(string(data)); text != "" {
-		if len(text) > 4096 {
-			text = text[:4096]
+		if looksLikeHTML(text) {
+			return fmt.Sprintf("HTTP %d returned an HTML error page", status)
+		}
+		if len(text) > 1024 {
+			text = text[:1024]
 		}
 		return text
 	}
 	return fmt.Sprintf("HTTP %d %s", status, http.StatusText(status))
+}
+
+func unexpectedStreamResponse(status int, contentType string, data []byte) string {
+	text := strings.TrimSpace(string(data))
+	if strings.Contains(strings.ToLower(contentType), "text/html") || looksLikeHTML(text) {
+		return fmt.Sprintf("AI provider returned an HTML page instead of an event stream (HTTP %d). Check that the Base URL points to the API prefix, usually ending in /v1", status)
+	}
+	return "AI provider did not return an event stream: " + providerResponseError(status, data)
+}
+
+func looksLikeHTML(text string) bool {
+	lower := strings.ToLower(strings.TrimSpace(text))
+	return strings.HasPrefix(lower, "<!doctype html") || strings.HasPrefix(lower, "<html")
 }

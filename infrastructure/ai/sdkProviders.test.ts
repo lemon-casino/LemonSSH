@@ -131,14 +131,23 @@ test("resolveProviderEndpoint normalizes Anthropic-compat Base URL for @ai-sdk/a
     ).baseURL,
     "https://proxy.example/anthropic",
   );
-  // OpenAI-compat style must not rewrite the path.
+  // OpenAI-compatible bare origins gain the standard API prefix.
   assert.equal(
     resolveProviderEndpoint(
       makeConfig({ style: "openai", baseURL: "https://api.deepseek.com" }),
       "openai",
       "sk-test",
     ).baseURL,
-    "https://api.deepseek.com",
+    "https://api.deepseek.com/v1",
+  );
+  // Explicit gateway path prefixes are complete SDK bases and stay unchanged.
+  assert.equal(
+    resolveProviderEndpoint(
+      makeConfig({ style: "openai", baseURL: "https://gateway.example/openai" }),
+      "openai",
+      "sk-test",
+    ).baseURL,
+    "https://gateway.example/openai",
   );
 });
 test("resolveProviderEndpoint applies the ollama URL fallback for every style override", () => {

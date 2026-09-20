@@ -5,6 +5,7 @@ import type { ProviderConfig, ProviderStyle } from '../types';
 import { resolveOpenAIApi, resolveProviderStyle } from '../types';
 import { normalizeAnthropicSdkBaseURL } from '../anthropicCompatBaseUrl';
 import { normalizeOllamaSdkBaseURL } from '../ollamaCompatBaseUrl';
+import { normalizeOpenAICompatSdkBaseURL } from '../openaiCompatBaseUrl';
 
 export { normalizeOllamaSdkBaseURL };
 import {
@@ -684,6 +685,8 @@ export function resolveProviderEndpoint(
   // complete the SDK base and must not become …/anthropic/v1.
   if (style === 'anthropic' && baseURL) {
     baseURL = normalizeAnthropicSdkBaseURL(baseURL);
+  } else if (style === 'openai' && baseURL) {
+    baseURL = normalizeOpenAICompatSdkBaseURL(baseURL);
   }
   return { baseURL, apiKey };
 }

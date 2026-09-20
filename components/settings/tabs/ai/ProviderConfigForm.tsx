@@ -3,6 +3,7 @@ import { Check, ChevronDown, ChevronRight, Eye, EyeOff, Pencil, Upload, RotateCc
 import type { ProviderConfig, ProviderAdvancedParams, OpenAIApiFormat, ProviderStyle } from "../../../../infrastructure/ai/types";
 import { PROVIDER_PRESETS, resolveOpenAIApi, resolveProviderStyle } from "../../../../infrastructure/ai/types";
 import { normalizeOllamaSdkBaseURL } from "../../../../infrastructure/ai/ollamaCompatBaseUrl";
+import { normalizeOpenAICompatSdkBaseURL } from "../../../../infrastructure/ai/openaiCompatBaseUrl";
 import { sanitizeContextWindow } from "../../../../infrastructure/ai/contextCompaction";
 import {
   probeProviderConnection,
@@ -97,9 +98,12 @@ export const ProviderConfigForm: React.FC<{
 
   const preset = PROVIDER_PRESETS[provider.providerId];
   const resolvedStyle: ProviderStyle = form.style || resolveProviderStyle({ providerId: provider.providerId });
+  const rawBaseURL = form.baseURL || preset?.defaultBaseURL || "";
   const resolvedBaseURL = provider.providerId === "ollama"
-    ? normalizeOllamaSdkBaseURL(form.baseURL || preset?.defaultBaseURL || "")
-    : (form.baseURL || preset?.defaultBaseURL || "");
+    ? normalizeOllamaSdkBaseURL(rawBaseURL)
+    : resolvedStyle === "openai"
+      ? normalizeOpenAICompatSdkBaseURL(rawBaseURL)
+      : rawBaseURL;
   const modelMetadataSourceKey = useMemo(() => JSON.stringify({
     providerId: provider.providerId,
     baseURL: form.baseURL || preset?.defaultBaseURL || "",
@@ -338,9 +342,9 @@ export const ProviderConfigForm: React.FC<{
 
     const updates: Partial<ProviderConfig> = {
       name: trimmedName || defaultName,
-      baseURL: provider.providerId === "ollama"
-        ? resolvedBaseURL
-        : (form.baseURL || undefined),
+      baseURL: provider.providerId === "ollama" || resolvedStyle === "openai"
+        ? (resolvedBaseURL || undefined)
+        : (form.baseURL.trim() || undefined),
       defaultModel: form.defaultModel || undefined,
       contextWindow: manualContextWindow,
       modelContextWindows: Object.keys(form.modelContextWindows).length > 0 ? form.modelContextWindows : undefined,

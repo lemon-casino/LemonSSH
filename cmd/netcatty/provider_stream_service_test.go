@@ -106,6 +106,28 @@ func TestNativeProviderStreamPreservesHttpErrors(t *testing.T) {
 	}
 }
 
+func TestNativeProviderStreamDoesNotExposeHTMLResponseBody(t *testing.T) {
+	s, _ := streamTestService(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<!doctype html><html><title>Private gateway dashboard</title></html>`))
+	}))
+	defer server.Close()
+	s.AllowlistAddHost(server.URL)
+	result := s.ChatStream("html", ProviderFetchRequest{URL: server.URL}, 1000)
+	if result.OK || !strings.Contains(result.Error, "usually ending in /v1") {
+		t.Fatalf("HTML response was not classified: %+v", result)
+	}
+	if strings.Contains(result.Error, "Private gateway dashboard") || strings.Contains(result.Error, "<!doctype") {
+		t.Fatalf("HTML response leaked into the error: %q", result.Error)
+	}
+
+	message := providerResponseError(502, []byte(`<!doctype html><html><body>upstream details</body></html>`))
+	if strings.Contains(message, "upstream details") || message != "HTTP 502 returned an HTML error page" {
+		t.Fatalf("HTTP HTML error was not sanitized: %q", message)
+	}
+}
+
 func TestNativeProviderStreamCancelAndIdleDeadline(t *testing.T) {
 	for _, idle := range []bool{false, true} {
 		t.Run(fmt.Sprint(idle), func(t *testing.T) {
