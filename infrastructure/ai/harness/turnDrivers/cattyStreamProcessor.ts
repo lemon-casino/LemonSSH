@@ -63,6 +63,9 @@ export interface ProcessCattyStreamInput {
   turnId?: string;
   commandTimeoutMs?: number;
   responseIdleTimeoutMs?: number;
+  forceTextResponse?: boolean;
+  autoFinalizeAfterTools?: boolean;
+  suppressStreamErrors?: boolean;
   runtimeContext: CattyRuntimeContext;
   onAgentEvent?: (event: AgentEvent) => void;
   prepareStep?: (args: {
@@ -84,6 +87,8 @@ export interface ProcessCattyStreamResult {
     timeToFirstOutputMs?: number;
     outputTokensPerSecond?: number;
   };
+  producedAssistantText?: boolean;
+  finalizedAfterTools?: boolean;
 }
 
 /** Skip trace emission for SDK-internal stream bookkeeping errors we suppress in UI. */
@@ -122,6 +127,9 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     turnId,
     commandTimeoutMs,
     responseIdleTimeoutMs,
+    forceTextResponse = false,
+    autoFinalizeAfterTools = true,
+    suppressStreamErrors = false,
     runtimeContext: initialRuntimeContext,
     onAgentEvent,
     prepareStep,
@@ -144,6 +152,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
       hostApproval: Object.values(toolsContext).some(context => context.bridge.aiToolApprovalOwner === 'host'),
     }),
     stopWhen: isStepCount(maxIterations),
+    ...(forceTextResponse ? { toolChoice: 'none' as const } : {}),
     abortSignal: signal,
     include: { rawChunks: true },
     timeout: buildCattyStreamTimeouts({
@@ -233,6 +242,8 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
   let activeMsgId = currentAssistantMsgId;
   let lastAddedRole: 'assistant' | 'tool' = 'assistant';
   let hadToolProgress = false;
+  let toolResultAwaitingFollowup = false;
+  let producedAssistantText = false;
   let reportedStreamError = false;
   const successfulToolOutputs = new Map<string, string>();
   const reader = result.stream.getReader();
@@ -289,6 +300,10 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     if (pendingText) {
       const text = pendingText;
       pendingText = '';
+      if (text.trim()) {
+        producedAssistantText = true;
+        toolResultAwaitingFollowup = false;
+      }
       if (lastAddedRole === 'tool') {
         clearCompactionStatusFromAssistant(activeMsgId);
         const newId = generateId();
@@ -322,6 +337,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     cancelPendingFlush();
     flushText();
     hadToolProgress = true;
+    toolResultAwaitingFollowup = true;
     ui.updateMessageById(streamSessionId, activeMsgId, msg =>
       msg.role === 'assistant' && msg.executionStatus === 'running'
         ? { ...msg, executionStatus: 'completed', statusText: undefined } : msg,
@@ -378,15 +394,19 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     ui.updateMessageById(streamSessionId, activeMsgId, msg => ({
       ...msg,
       statusText: '',
-      executionStatus: msg.executionStatus === 'running' ? 'failed' : msg.executionStatus,
+      executionStatus: msg.executionStatus === 'running'
+        ? (suppressStreamErrors ? 'completed' : 'failed')
+        : msg.executionStatus,
     }));
-    ui.addMessageToSession(streamSessionId, {
-      id: generateId(),
-      role: 'assistant',
-      content: '',
-      errorInfo,
-      timestamp: Date.now(),
-    });
+    if (!suppressStreamErrors) {
+      ui.addMessageToSession(streamSessionId, {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        errorInfo,
+        timestamp: Date.now(),
+      });
+    }
   };
 
   try {
@@ -569,7 +589,11 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     return {};
   }
 
-  const [usageResult, finalStepResult] = await Promise.allSettled([result.usage, result.finalStep]);
+  const [usageResult, finalStepResult, responseMessagesResult] = await Promise.allSettled([
+    result.usage,
+    result.finalStep,
+    result.responseMessages,
+  ]);
   if (usageResult.status === 'rejected') {
     if (isRequestTooLargeError(usageResult.reason)) {
       throw createCattyRequestTooLargeRetryError(usageResult.reason, hadToolProgress);
@@ -603,7 +627,7 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
     } as AgentEvent);
   }
 
-  return {
+  const streamResult: ProcessCattyStreamResult = {
     usage: usage ? {
       promptTokens: usage.inputTokens,
       completionTokens: usage.outputTokens,
@@ -614,7 +638,66 @@ export async function processCattyStream(input: ProcessCattyStreamInput): Promis
       timeToFirstOutputMs: performance.timeToFirstOutputMs,
       outputTokensPerSecond: performance.outputTokensPerSecond,
     } : undefined,
+    producedAssistantText,
   };
+
+  if (autoFinalizeAfterTools && toolResultAwaitingFollowup && !signal.aborted) {
+    clearCompactionStatusFromAssistant(activeMsgId);
+    const finalMessageId = generateId();
+    ui.addMessageToSession(streamSessionId, {
+      id: finalMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    });
+    const setCollectedOutputFallback = () => {
+      const collectedOutput = [...successfulToolOutputs.values()]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(-16_000)
+        .replace(/```/g, "''' ");
+      ui.updateMessageById(streamSessionId, finalMessageId, message => ({
+        ...message,
+        content: collectedOutput
+          ? `工具执行已完成，但模型没有生成结果解读。以下是已采集的内容：\n\n\`\`\`text\n${collectedOutput}\n\`\`\``
+          : '工具执行已完成，但模型没有生成结果解读。采集结果已保留在上方，请重试本次分析。',
+        executionStatus: 'completed',
+        statusText: undefined,
+        errorInfo: undefined,
+      }));
+    };
+    if (responseMessagesResult.status !== 'fulfilled') {
+      setCollectedOutputFallback();
+      return { ...streamResult, finalizedAfterTools: true };
+    }
+    const completionPrompt = `${systemPrompt}
+
+## Complete the response after tool execution
+
+The requested tools have finished. Do not call any more tools in this step. Interpret the tool results and answer the user's original request now. Lead with concrete findings, numbers, risks, and actionable next steps. Do not repeat the plan or end with raw tool output.`;
+    const completionResult = await processCattyStream({
+      ...input,
+      systemPrompt: completionPrompt,
+      sdkMessages: [
+        ...sdkMessages,
+        ...(responseMessagesResult.value as ModelMessage[]),
+      ],
+      currentAssistantMsgId: finalMessageId,
+      maxIterations: 1,
+      forceTextResponse: true,
+      autoFinalizeAfterTools: false,
+      suppressStreamErrors: true,
+    });
+    if (!completionResult.producedAssistantText && !signal.aborted) {
+      setCollectedOutputFallback();
+    }
+    return {
+      ...completionResult,
+      finalizedAfterTools: true,
+    };
+  }
+
+  return streamResult;
 }
 
 export { hadToolProgressBeforeRequestTooLarge };

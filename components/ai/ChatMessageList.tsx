@@ -675,7 +675,12 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
                 {!isUser && message.thinking && (
                   <ThinkingBlock
                     content={message.thinking}
-                    isStreaming={!!isThisStreaming && !message.content}
+                    isStreaming={
+                      !!isThisStreaming
+                      && !message.content
+                      && !message.toolCalls?.length
+                      && !message.agentActivities?.length
+                    }
                     durationMs={message.thinkingDurationMs}
                   />
                 )}

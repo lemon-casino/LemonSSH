@@ -40,3 +40,16 @@ test('system prompt does not tell Catty to call host_open', () => {
   assert.match(prompt, /cannot open new terminal sessions yourself/i);
   assert.match(prompt, /ask them to open/i);
 });
+
+
+test('system prompt keeps read-only inspection concise and requires a conclusion after tools', () => {
+  const prompt = buildSystemPrompt({
+    scopeType: 'terminal',
+    hosts: [],
+    permissionMode: 'auto',
+  });
+
+  assert.match(prompt, /read-only checks.*one short sentence/i);
+  assert.match(prompt, /Never end a turn on a plan, status line, or raw tool result/i);
+  assert.doesNotMatch(prompt, /Always present a plan for multi-step tasks/i);
+});

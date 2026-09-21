@@ -105,6 +105,7 @@ async function runExternalTurn(
   );
 
   const requestId = ctx.turnId;
+  let activeRequestId = requestId;
   ui.setStreamingForScope(sessionId, true);
 
   if (netcattyBridge.aiMcpUpdateSessions) {
@@ -112,6 +113,10 @@ async function runExternalTurn(
   }
 
   let needsNewAssistantMsg = false;
+  let awaitingFinalResponse = false;
+  let streamErrored = false;
+  let latestExternalSessionId = context.existingSessionId;
+  const completedToolOutputs: string[] = [];
   let activeAssistantMessageId = assistantMsgId;
   let steerInFlight = false;
   let ended = false;
@@ -244,6 +249,7 @@ async function runExternalTurn(
   };
   const callbacks: SdkAgentCallbacks = {
     onTextDelta: (text: string) => {
+      if (text.trim()) awaitingFinalResponse = false;
       enqueueTextDelta(text);
     },
     onThinkingDelta: (text: string) => {
@@ -280,6 +286,15 @@ async function runExternalTurn(
       });
     },
     onToolResult: (toolCallId: string, result: string, toolName?: string) => {
+      awaitingFinalResponse = true;
+      const outputLabel = toolName || toolNamesByCallId.get(toolCallId) || toolCallId || 'tool';
+      const boundedResult = result.length > 12_000
+        ? `${result.slice(0, 12_000)}\n[output truncated for continuation]`
+        : result;
+      completedToolOutputs.push(`[${outputLabel}]\n${boundedResult}`);
+      while (completedToolOutputs.join('\n\n').length > 24_000 && completedToolOutputs.length > 1) {
+        completedToolOutputs.shift();
+      }
       flushTextBeforeNonTextEvent();
       const existingToolCallMessageId = toolCallMessageIds.get(toolCallId);
       runOrBufferUiOperation(() => {
@@ -377,9 +392,11 @@ async function runExternalTurn(
       completeCodebuddyElicitation(notification);
     },
     onSessionId: (externalSessionId: string) => {
+      latestExternalSessionId = externalSessionId;
       context.updateExternalSessionId?.(sessionId, externalSessionId);
     },
     onError: (error: string) => {
+      streamErrored = true;
       flushTextBeforeNonTextEvent();
       ui.reportStreamError(sessionId, signal, error);
       ui.setStreamingForScope(sessionId, false);
@@ -403,7 +420,7 @@ async function runExternalTurn(
       steerInFlight = true;
       const result = await steerSdkAgentTurn(
         netcattyBridge,
-        requestId,
+        activeRequestId,
         sessionId,
         steerInput.prompt,
         steerInput.attachedImages.length > 0 ? steerInput.attachedImages : undefined,
@@ -443,19 +460,25 @@ async function runExternalTurn(
   registerLiveTurn(liveTurn);
 
   try {
-    await runSdkAgentTurn(
+    const runAgent = async (
+      turnRequestId: string,
+      prompt: string,
+      existingSessionId: string | undefined,
+      historyMessages: ExternalTurnInput['context']['historyMessages'],
+      images: ExternalTurnInput['attachedImages'] | undefined,
+    ) => runSdkAgentTurn(
       netcattyBridge,
-      requestId,
+      turnRequestId,
       sessionId,
       agentConfig,
-      trimmed,
+      prompt,
       callbacks,
       signal,
       undefined,
       context.selectedAgentModel,
-      context.existingSessionId,
-      context.historyMessages,
-      attachedImages.length > 0 ? attachedImages : undefined,
+      existingSessionId,
+      historyMessages,
+      images,
       context.toolIntegrationMode,
       context.defaultTargetSession,
       userSkillsContext,
@@ -465,6 +488,47 @@ async function runExternalTurn(
         skipHarnessTrace: true,
       },
     );
+
+    await runAgent(
+      requestId,
+      trimmed,
+      context.existingSessionId,
+      context.historyMessages,
+      attachedImages.length > 0 ? attachedImages : undefined,
+    );
+
+    if (awaitingFinalResponse && !streamErrored && !signal.aborted) {
+      const evidence = completedToolOutputs.join('\n\n').slice(-24_000);
+      const continuationPrompt = [
+        'Continue the task that just finished its tool calls. Give the user the final answer now.',
+        'Do not repeat the plan and do not rerun completed tools unless the captured output is insufficient.',
+        'Interpret the results, lead with concrete findings or numbers, and include actionable next steps.',
+        evidence ? `Captured tool results:\n\n${evidence}` : '',
+      ].filter(Boolean).join('\n\n');
+      awaitingFinalResponse = true;
+      activeRequestId = `${requestId}-finalize`;
+      liveTurn.requestId = activeRequestId;
+      await runAgent(
+        activeRequestId,
+        continuationPrompt,
+        latestExternalSessionId,
+        latestExternalSessionId ? undefined : context.historyMessages,
+        undefined,
+      );
+      if (awaitingFinalResponse && !streamErrored && !signal.aborted) {
+        maybeCreateAssistantMsg();
+        const fallbackOutput = evidence.replace(/```/g, "''' ");
+        updateActiveAssistant(message => ({
+          ...message,
+          content: fallbackOutput
+            ? `工具执行已完成，但外部 Agent 没有生成结果解读。以下是已采集的内容：\n\n\`\`\`text\n${fallbackOutput}\n\`\`\``
+            : '工具执行已完成，但外部 Agent 没有生成结果解读。',
+          executionStatus: 'completed',
+          statusText: undefined,
+        }));
+        awaitingFinalResponse = false;
+      }
+    }
 
     const estimatedUsage = resolveEstimatedUsageFallback(trimmed, actualUsageReported);
     if (estimatedUsage) {

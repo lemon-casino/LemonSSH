@@ -185,6 +185,91 @@ test('plan updates replace the same activity across tool message boundaries', as
   ]);
 });
 
+
+test('external agents automatically continue when a turn ends on a tool result', async () => {
+  const eventHandlers = new Map<string, (event: Record<string, unknown>) => void>();
+  const doneHandlers = new Map<string, () => void>();
+  const prompts: string[] = [];
+  const bridge: Record<string, (...args: unknown[]) => unknown> = {
+    onAiSdkAgentEvent: (requestId, callback) => {
+      eventHandlers.set(String(requestId), callback as (event: Record<string, unknown>) => void);
+      return () => eventHandlers.delete(String(requestId));
+    },
+    onAiSdkAgentDone: (requestId, callback) => {
+      doneHandlers.set(String(requestId), callback as () => void);
+      return () => doneHandlers.delete(String(requestId));
+    },
+    onAiSdkAgentError: () => () => {},
+    aiSdkAgentCancel: async () => ({ ok: true }),
+    aiSdkAgentStream: async (requestId, _sessionId, _backend, prompt) => {
+      const id = String(requestId);
+      prompts.push(String(prompt));
+      queueMicrotask(() => {
+        const emit = eventHandlers.get(id);
+        assert.ok(emit);
+        if (prompts.length === 1) {
+          emit({ type: 'session-id', sessionId: 'external-session-1', sdkBackend: 'codex', runtime: 'cli' });
+          emit({ type: 'tool-call', toolName: 'shell', toolCallId: 'tool-1', args: { command: 'df -h /' } });
+          emit({ type: 'tool-result', toolName: 'shell', toolCallId: 'tool-1', output: '/dev/root 433G 72G 340G 18% /' });
+        } else {
+          emit({ type: 'text-delta', textDelta: '根分区使用率 18%，当前没有磁盘压力。' });
+        }
+        doneHandlers.get(id)?.();
+      });
+      return { ok: true };
+    },
+  };
+  const session: AISession = {
+    id: 'chat-tool-continuation',
+    title: 'Tool continuation',
+    agentId: 'codex',
+    scope: { type: 'global' },
+    messages: [{ id: 'assistant-initial', role: 'assistant', content: '', timestamp: 1 }],
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const ui: TurnUiCallbacks = {
+    addMessageToSession: (_sessionId, message) => session.messages.push(message),
+    updateLastMessage: (_sessionId, updater) => {
+      const index = session.messages.length - 1;
+      session.messages[index] = updater(session.messages[index]);
+    },
+    updateMessageById: (_sessionId, messageId, updater) => {
+      const index = session.messages.findIndex(message => message.id === messageId);
+      if (index >= 0) session.messages[index] = updater(session.messages[index]);
+    },
+    reportStreamError: () => {},
+    setStreamingForScope: () => {},
+    getLatestSession: () => session,
+  };
+
+  await externalSdkTurnDriver.run({
+    backend: 'external-sdk',
+    chatSessionId: session.id,
+    assistantMsgId: 'assistant-initial',
+    userText: '检查磁盘占用并给出结论',
+    signal: new AbortController().signal,
+    agentConfig: { id: 'codex', name: 'Codex', command: 'codex', enabled: true, sdkBackend: 'codex' },
+    attachedImages: [],
+    context: {
+      terminalSessions: [], providers: [], toolIntegrationMode: 'mcp',
+      selectedUserSkillSlugs: [], permissionMode: 'confirm',
+    },
+    bridge,
+    ui,
+  }, {
+    turnId: 'turn-tool-continuation', chatSessionId: session.id, sessionId: session.id,
+    backend: 'external-sdk', signal: new AbortController().signal, emit: () => {},
+    toolOutputStore: new ToolOutputStore(), toolResultDedup: new ToolResultDedup(),
+    sessionStateStore: new SessionStateStore(),
+  });
+
+  assert.equal(prompts.length, 2);
+  assert.match(prompts[1], /Give the user the final answer now/);
+  assert.match(prompts[1], /433G 72G 340G 18%/);
+  assert.ok(session.messages.some(message => message.role === 'assistant' && /使用率 18%/.test(message.content)));
+});
+
 test('accepted steering persists a user bubble and routes buffered output to a continuation', async () => {
   let onEvent: ((event: Record<string, unknown>) => void) | undefined;
   let onDone: (() => void) | undefined;
