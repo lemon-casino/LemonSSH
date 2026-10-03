@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { notify } from '../notification';
+import { useI18n } from '../i18n/I18nProvider';
+
 import {
   isPluginShortcutEditableEvent,
   normalizePluginKeyboardEvent,
@@ -27,7 +30,7 @@ import {
 } from './pluginViewScopes';
 import { usePluginContributions } from './usePluginContributions';
 
-export const OPEN_PLUGIN_VIEW_EVENT = 'netcatty:open-plugin-view';
+export const OPEN_PLUGIN_VIEW_EVENT = 'lemonssh:open-plugin-view';
 
 export interface OpenPluginViewDetail {
   viewId: string;
@@ -35,8 +38,8 @@ export interface OpenPluginViewDetail {
 }
 
 export type ResolvedPluginView = {
-  plugin: NetcattyPluginContributionSnapshot['plugins'][number];
-  view: NetcattyPluginContributionSnapshot['plugins'][number]['views'][number];
+  plugin: LemonSSHPluginContributionSnapshot['plugins'][number];
+  view: LemonSSHPluginContributionSnapshot['plugins'][number]['views'][number];
 };
 
 export function requestOpenPluginView(detail: OpenPluginViewDetail) {
@@ -55,12 +58,14 @@ export function usePluginViewLifecycle({
   keybindingContext: Record<string, unknown>;
 }) {
   const [requested, setRequested] = useState<OpenPluginViewDetail | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
+  const { t } = useI18n();
   const activeTabId = useActiveTabId();
   const pluginViewTabs = usePluginViewTabs();
   const activePluginTab = pluginViewTabs.find((tab) => tab.id === activeTabId) ?? null;
   const effectiveRequested = resolvePluginViewRequest(requested, activePluginTab);
   const viewQueryContext = useMemo(
-    () => effectiveRequested?.context ?? { 'netcatty.surface': 'view' },
+    () => effectiveRequested?.context ?? { 'lemonssh.surface': 'view' },
     [effectiveRequested?.context],
   );
   const viewQueryContextKey = useMemo(() => JSON.stringify(viewQueryContext), [viewQueryContext]);
@@ -253,6 +258,7 @@ export function usePluginViewLifecycle({
         }
       }
       if (!opened) {
+        setOpenError(null);
         const result = await openView({
           viewId: activeViewId,
           scopeId: viewScopeId,
@@ -280,8 +286,13 @@ export function usePluginViewLifecycle({
       }
       lifecycleRef.current.setCurrent(opened);
       setInstance(opened);
-    })().catch(() => {
+    })().catch((cause: unknown) => {
       if (cancelled) return;
+      // The open flow must never fail silently: report the failure to the
+      // user, then roll back the transient open state.
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setOpenError(message);
+      notify.error(t('plugins.viewOpenFailed').replace('{message}', message));
       if (activePluginTab) pluginViewTabStore.close(activePluginTab.id);
       else setRequested(null);
     }).finally(() => {
@@ -304,6 +315,7 @@ export function usePluginViewLifecycle({
     retainedViewKey,
     setViewBounds,
     setViewVisibility,
+    t,
     viewScopeId,
   ]);
 
@@ -370,10 +382,14 @@ export function usePluginViewLifecycle({
     for (const id of ids) void closeViewRef.current(id);
   }, []);
 
+  const dismissOpenError = useCallback(() => setOpenError(null), []);
+
   return {
     activeView,
     close,
     effectiveRequested,
     mountRef,
+    openError,
+    dismissOpenError,
   };
 }

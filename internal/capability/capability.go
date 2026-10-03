@@ -1,4 +1,4 @@
-// Package capability is the Go authority for the Netcatty capability
+// Package capability is the Go authority for the LemonSSH capability
 // catalog (W05, P7-01, AI-01). It mirrors electron/capabilities on stable
 // IDs, policies and surface bindings; catalog_electron_test.go pins the
 // parity per ID against a fixture dumped from the CJS source. Dispatchers
@@ -15,7 +15,7 @@ const (
 	SurfacePublic      Surface = "public"
 	SurfaceCLI         Surface = "cli"
 	SurfaceGlobal      Surface = "global"
-	SurfaceCatty       Surface = "catty"       // renderer-local sidebar tools, no MCP/CLI exposure
+	SurfaceLemonSSH    Surface = "lemonssh"    // renderer-local sidebar tools, no MCP/CLI exposure
 	SurfaceGlobalAgent Surface = "globalAgent" // renderer-local global agent tools, no MCP/CLI exposure
 )
 

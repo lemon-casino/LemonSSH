@@ -26,7 +26,7 @@ const EN: Record<string, string> = {
   "settings.system.networkProxy.description": "HTTP(S) proxy for cloud sync and AI",
   "settings.system.networkProxy.title": "Network Proxy",
   "settings.appLock.title": "App Lock",
-  "settings.appLock.description": "Require a local lock password when Netcatty opens",
+  "settings.appLock.description": "Require a local lock password when LemonSSH opens",
   "ai.safety.permissionMode": "Permission mode",
   "ai.safety.permissionMode.description": "Control tool approvals",
   "ai.safety.title": "Safety",
@@ -43,7 +43,7 @@ const ZH: Record<string, string> = {
   "settings.system.networkProxy.mode": "代理模式",
   "settings.system.networkProxy.title": "网络代理",
   "settings.appLock.title": "应用锁定",
-  "settings.appLock.description": "在 Netcatty 打开、长时间无操作或手动锁定后，要求输入本地锁定密码。",
+  "settings.appLock.description": "在 LemonSSH 打开、长时间无操作或手动锁定后，要求输入本地锁定密码。",
   "ai.safety.permissionMode": "权限模式",
 };
 

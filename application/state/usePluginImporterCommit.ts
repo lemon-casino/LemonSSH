@@ -36,7 +36,7 @@ export function usePluginImporterCommit({
   onCommitSuccess,
   t,
 }: PluginImporterCommitOptions) {
-  const buildPluginImportMerge = useCallback((preview: NetcattyPluginImporterPreview) => {
+  const buildPluginImportMerge = useCallback((preview: LemonSSHPluginImporterPreview) => {
     const drafts = normalizePluginImporterRecords(preview.records);
     return {
       drafts,
@@ -51,7 +51,7 @@ export function usePluginImporterCommit({
   }, [customGroups, hosts, identities, keys, snippets]);
 
   const handlePluginPreviewCommit = useCallback(async (
-    preview: NetcattyPluginImporterPreview,
+    preview: LemonSSHPluginImporterPreview,
     destination?: VaultImportDestination,
   ) => {
     const drafts = normalizePluginImporterRecords(preview.records);
@@ -62,7 +62,7 @@ export function usePluginImporterCommit({
     onCommitSuccess?.(addedCount);
   }, [onCommitPluginImporterData, onCommitSuccess, t]);
 
-  const getPluginPreviewAnalysis = useCallback((preview: NetcattyPluginImporterPreview) => {
+  const getPluginPreviewAnalysis = useCallback((preview: LemonSSHPluginImporterPreview) => {
     const { drafts, merged } = buildPluginImportMerge(preview);
     return {
       duplicateCount: merged.duplicateCount,

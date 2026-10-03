@@ -1,11 +1,11 @@
-/// <reference path="./types/global/netcatty-bridge-session.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-sftp.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-sync.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-files.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-ai.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-app.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-system.d.ts" />
-/// <reference path="./types/global/netcatty-bridge-script.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-session.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-sftp.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-sync.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-files.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-ai.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-app.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-system.d.ts" />
+/// <reference path="./types/global/lemonssh-bridge-script.d.ts" />
 declare module "*.cjs" {
   const value: Record<string, unknown>;
   export = value;
@@ -19,7 +19,7 @@ declare module 'react' {
 
 declare global {
   // Proxy configuration for SSH connections
-  interface NetcattyProxyConfig {
+  interface LemonSSHProxyConfig {
     type: 'http' | 'socks5' | 'command';
     host: string;
     port: number;
@@ -39,7 +39,7 @@ declare global {
   }
 
   // Jump host configuration for SSH tunneling
-  interface NetcattyJumpHost {
+  interface LemonSSHJumpHost {
     hostname: string;
     hostId?: string;
     port: number;
@@ -54,7 +54,7 @@ declare global {
     keyId?: string;
     keySource?: 'generated' | 'imported' | 'reference';
     label?: string; // Display label for UI
-    proxy?: NetcattyProxyConfig;
+    proxy?: LemonSSHProxyConfig;
     identityFilePaths?: string[];
     useSshAgent?: boolean;
     agentPublicKeys?: string[];
@@ -84,7 +84,7 @@ declare global {
 
   // Host key information for verification
   // Reserved for future host key verification UI feature
-  interface _NetcattyHostKeyInfo {
+  interface _LemonSSHHostKeyInfo {
     hostname: string;
     port: number;
     keyType: string;
@@ -92,7 +92,7 @@ declare global {
     publicKey?: string;
   }
 
-  interface NetcattySSHOptions {
+  interface LemonSSHSSHOptions {
     sessionId?: string;
     hostId?: string;
     hostLabel?: string;
@@ -122,9 +122,9 @@ declare global {
     // Environment variables to set in the remote shell
     env?: Record<string, string>;
     // Proxy configuration
-    proxy?: NetcattyProxyConfig;
+    proxy?: LemonSSHProxyConfig;
     // Jump hosts (bastion chain)
-    jumpHosts?: NetcattyJumpHost[];
+    jumpHosts?: LemonSSHJumpHost[];
     // SSH-level keepalive interval in seconds (0 = disabled)
     keepaliveInterval?: number;
     // Unanswered keepalives before ssh2 declares the connection dead
@@ -215,8 +215,8 @@ declare global {
     passphrase?: string;
     knownHosts?: import("./domain/models").KnownHost[];
     verifyHostKeys?: boolean;
-    proxy?: NetcattyProxyConfig;
-    jumpHosts?: NetcattyJumpHost[];
+    proxy?: LemonSSHProxyConfig;
+    jumpHosts?: LemonSSHJumpHost[];
     identityFilePaths?: string[];
     useSshAgent?: boolean;
     agentPublicKeys?: string[];
@@ -290,7 +290,7 @@ declare global {
         ruleId?: string;
       };
 
-  interface NetcattyWindowsPtyInfo {
+  interface LemonSSHWindowsPtyInfo {
     backend: 'conpty' | 'winpty';
     buildNumber?: number;
   }
@@ -298,12 +298,12 @@ declare global {
   type PortForwardStatusCallback = (status: 'inactive' | 'connecting' | 'active' | 'error', error?: string) => void;
   type PortForwardRuntimeEventCallback = (event: PortForwardRuntimeEvent) => void;
 
-  interface NetcattyPluginRuntimeStatus {
+  interface LemonSSHPluginRuntimeStatus {
     available: boolean;
     experimental: true;
   }
 
-  interface NetcattyInstalledPlugin {
+  interface LemonSSHInstalledPlugin {
     id: string;
     enabled: boolean;
     activeVersion: string | null;
@@ -316,87 +316,94 @@ declare global {
     };
   }
 
-  interface NetcattyExtensionProviderContribution {
+  interface LemonSSHExtensionProviderContribution {
     pluginId: string;
     pluginVersion: string;
     pluginDisplayName?: string;
-    provider: import("@netcatty/plugin-contract").ProviderContribution;
+    provider: import("@lemonssh/plugin-contract").ProviderContribution;
   }
 
-  interface NetcattyExtensionProviderRequest {
+  interface LemonSSHExtensionProviderRequest {
     providerId: string;
     kind: 'connection' | 'authentication' | 'importer';
     operation: string;
     requestId?: string;
-    payload?: import("@netcatty/plugin-contract").JsonValue;
+    payload?: import("@lemonssh/plugin-contract").JsonValue;
     deadlineMs?: number;
   }
 
-  interface NetcattyPluginConnectionStartRequest {
+  interface LemonSSHPluginConnectionStartRequest {
     requestId?: string;
     sessionId: string;
     protocol?: string;
     hostLabel?: string;
     hostname?: string;
     providerId: string;
-    configuration: import("@netcatty/plugin-contract").JsonValue;
+    configuration: import("@lemonssh/plugin-contract").JsonValue;
     columns: number;
     rows: number;
-    credential?: import("@netcatty/plugin-contract").CredentialRef | import("@netcatty/plugin-contract").SecretRef;
+    credential?: import("@lemonssh/plugin-contract").CredentialRef | import("@lemonssh/plugin-contract").SecretRef;
     authenticationProviderId?: string;
     sessionLog?: { enabled: boolean; directory: string; format: string; timestampsEnabled?: boolean };
     deadlineMs?: number;
   }
 
-  interface NetcattyPluginImporterPreview {
+  interface LemonSSHPluginImporterPreview {
     providerId: string;
-    result: import("@netcatty/plugin-contract").ImporterParseResult;
-    records: ReadonlyArray<import("@netcatty/plugin-contract").ImporterRecord>;
+    result: import("@lemonssh/plugin-contract").ImporterParseResult;
+    records: ReadonlyArray<import("@lemonssh/plugin-contract").ImporterRecord>;
   }
 
-  interface NetcattyPluginImporterProgressEvent {
+  interface LemonSSHPluginImporterProgressEvent {
     requestId: string;
     providerId: string;
-    progress: Extract<import("@netcatty/plugin-contract").ImporterRecord, { type: "progress" }>;
+    progress: Extract<import("@lemonssh/plugin-contract").ImporterRecord, { type: "progress" }>;
   }
 
-  interface NetcattyPluginAuthenticationChallengeOpenEvent {
+  interface LemonSSHPluginAuthenticationChallengeOpenEvent {
     requestId: string;
     challengeRequestId: string;
-    challenge: import("@netcatty/plugin-contract").AuthenticationChallenge;
+    challenge: import("@lemonssh/plugin-contract").AuthenticationChallenge;
   }
 
-  interface NetcattyPluginAuthenticationChallengeCancelEvent {
+  interface LemonSSHPluginAuthenticationChallengeCancelEvent {
     requestId: string;
     challengeRequestId: string;
     challengeId?: string;
     cancelled: true;
   }
 
-  type NetcattyPluginAuthenticationChallengeEvent =
-    | NetcattyPluginAuthenticationChallengeOpenEvent
-    | NetcattyPluginAuthenticationChallengeCancelEvent;
+  type LemonSSHPluginAuthenticationChallengeEvent =
+    | LemonSSHPluginAuthenticationChallengeOpenEvent
+    | LemonSSHPluginAuthenticationChallengeCancelEvent;
 
-  interface NetcattyBridge {
-    getPluginRuntimeStatus?(): Promise<NetcattyPluginRuntimeStatus>;
-    listPlugins?(): Promise<NetcattyInstalledPlugin[]>;
-    installPluginPackage?(archivePath: string, options?: { enable?: boolean }): Promise<NetcattyInstalledPlugin>;
-    setPluginEnabled?(pluginId: string, enabled: boolean): Promise<NetcattyInstalledPlugin>;
-    restartPlugin?(pluginId: string): Promise<NetcattyInstalledPlugin>;
+  interface LemonSSHBridge {
+    getPluginRuntimeStatus?(): Promise<LemonSSHPluginRuntimeStatus>;
+    listPlugins?(): Promise<LemonSSHInstalledPlugin[]>;
+    installPluginPackage?(archivePath: string, options?: { enable?: boolean }): Promise<LemonSSHInstalledPlugin>;
+    setPluginEnabled?(pluginId: string, enabled: boolean): Promise<LemonSSHInstalledPlugin>;
+    restartPlugin?(pluginId: string): Promise<LemonSSHInstalledPlugin>;
     uninstallPlugin?(pluginId: string): Promise<boolean>;
-    getPluginContributions?(options?: NetcattyPluginContributionQuery): Promise<NetcattyPluginContributionSnapshot>;
-    getPluginContributionIcon?(pluginId: string, icon: Extract<NetcattyPluginIconReference, { kind: 'package' }>): Promise<{ light: string; dark?: string }>;
+    getPluginContributions?(options?: LemonSSHPluginContributionQuery): Promise<LemonSSHPluginContributionSnapshot>;
+    getPluginContributionIcon?(pluginId: string, icon: Extract<LemonSSHPluginIconReference, { kind: 'package' }>): Promise<{ light: string; dark?: string }>;
     executePluginCommand?(command: string, args?: unknown, context?: Record<string, unknown>): Promise<unknown>;
+    /**
+     * Pulls one declarative view's ViewDef.Bindings data from an enabled
+     * plugin through the lemonssh-wasm-abi v1 dispatch channel ("view.data");
+     * declared non-secret settings values are the fallback and the base layer
+     * of the merged result. See docs/plugin-platform/ui-contributions.md.
+     */
+    getPluginViewData?(pluginId: string, viewId: string, bindings: ReadonlyArray<string>): Promise<{ source: 'plugin' | 'settings'; data: Record<string, unknown> }>;
     updatePluginSetting?(pluginId: string, settingId: string, value: unknown, scopeId?: string): Promise<{ restartRequired: boolean }>;
     resetPluginSetting?(pluginId: string, settingId: string, scopeId?: string): Promise<{ restartRequired: boolean }>;
-    setPluginEnvironment?(environment: NetcattyPluginEnvironment): Promise<void>;
-    listPluginTerminalProviders?(options: NetcattyTerminalProviderQuery): Promise<ReadonlyArray<NetcattyTerminalProviderContribution>>;
-    providePluginTerminal?(request: NetcattyTerminalProviderRequest): Promise<ReadonlyArray<NetcattyTerminalProviderResult>>;
+    setPluginEnvironment?(environment: LemonSSHPluginEnvironment): Promise<void>;
+    listPluginTerminalProviders?(options: LemonSSHTerminalProviderQuery): Promise<ReadonlyArray<LemonSSHTerminalProviderContribution>>;
+    providePluginTerminal?(request: LemonSSHTerminalProviderRequest): Promise<ReadonlyArray<LemonSSHTerminalProviderResult>>;
     cancelPluginTerminalRequest?(requestId: string): Promise<boolean>;
-    publishPluginTerminalSessionEvent?(event: NetcattyTerminalSessionEvent): Promise<ReadonlyArray<{ pluginId: string; delivered: boolean }>>;
-    listPluginExtensionProviders?(options: { kind: 'connection' | 'authentication' | 'importer' | 'sync'; locale?: string }): Promise<ReadonlyArray<NetcattyExtensionProviderContribution>>;
+    publishPluginTerminalSessionEvent?(event: LemonSSHTerminalSessionEvent): Promise<ReadonlyArray<{ pluginId: string; delivered: boolean }>>;
+    listPluginExtensionProviders?(options: { kind: 'connection' | 'authentication' | 'importer' | 'sync'; locale?: string }): Promise<ReadonlyArray<LemonSSHExtensionProviderContribution>>;
     updatePluginCredentialCatalog?(entries: ReadonlyArray<{ id: string; ciphertext: string }>): Promise<number>;
-    invokePluginExtensionProvider?(request: NetcattyExtensionProviderRequest): Promise<import("@netcatty/plugin-contract").JsonValue>;
+    invokePluginExtensionProvider?(request: LemonSSHExtensionProviderRequest): Promise<import("@lemonssh/plugin-contract").JsonValue>;
     cancelPluginExtensionRequest?(requestId: string): Promise<boolean>;
     pluginSyncConnect?(request: {
       requestId?: string;
@@ -488,14 +495,14 @@ declare global {
     collectPluginSyncSidecars?(): Promise<unknown>;
     applyPluginSyncSidecars?(bundle: unknown): Promise<{ applied: boolean; count?: number; entries?: unknown }>;
     pluginHostReady?(): boolean;
-    startPluginConnection?(request: NetcattyPluginConnectionStartRequest): Promise<{ sessionId: string; providerId: string; status: 'connecting' | 'connected'; diagnostics: ReadonlyArray<import("@netcatty/plugin-contract").ProviderValidationIssue> }>;
+    startPluginConnection?(request: LemonSSHPluginConnectionStartRequest): Promise<{ sessionId: string; providerId: string; status: 'connecting' | 'connected'; diagnostics: ReadonlyArray<import("@lemonssh/plugin-contract").ProviderValidationIssue> }>;
     writePluginConnection?(sessionId: string, data: Uint8Array): Promise<void>;
     controlPluginConnection?(sessionId: string, operation: 'resize' | 'signal' | 'reconnect' | 'close' | 'getStatus', payload?: Record<string, unknown>): Promise<unknown>;
-    detectPluginImporter?(request: { providerId: string; sample: Uint8Array; fileName?: string; mediaType?: string; deadlineMs?: number }): Promise<import("@netcatty/plugin-contract").ImporterDetectResult>;
+    detectPluginImporter?(request: { providerId: string; sample: Uint8Array; fileName?: string; mediaType?: string; deadlineMs?: number }): Promise<import("@lemonssh/plugin-contract").ImporterDetectResult>;
     selectPluginImporterFile?(): Promise<{ selectionToken: string; fileName: string; sample: Uint8Array } | null>;
     releasePluginImporterFile?(selectionToken: string): Promise<boolean>;
-    parsePluginImporterFile?(request: { requestId?: string; providerId: string; selectionToken: string; mediaType?: string; options?: import("@netcatty/plugin-contract").JsonValue; deadlineMs?: number }): Promise<NetcattyPluginImporterPreview>;
-    onPluginImporterProgress?(callback: (event: NetcattyPluginImporterProgressEvent) => void): () => void;
+    parsePluginImporterFile?(request: { requestId?: string; providerId: string; selectionToken: string; mediaType?: string; options?: import("@lemonssh/plugin-contract").JsonValue; deadlineMs?: number }): Promise<LemonSSHPluginImporterPreview>;
+    onPluginImporterProgress?(callback: (event: LemonSSHPluginImporterProgressEvent) => void): () => void;
     respondPluginAuthenticationChallenge?(response: {
       requestId: string;
       challengeRequestId: string;
@@ -503,30 +510,30 @@ declare global {
       response?: string | boolean | ReadonlyArray<string>;
       cancelled?: boolean;
     }): Promise<void>;
-    onPluginAuthenticationChallenge?(callback: (event: NetcattyPluginAuthenticationChallengeEvent) => void): () => void;
+    onPluginAuthenticationChallenge?(callback: (event: LemonSSHPluginAuthenticationChallengeEvent) => void): () => void;
     onPluginConnectionData?(callback: (event: { sessionId: string; data: Uint8Array }) => void): () => void;
     onPluginConnectionClosed?(callback: (event: { sessionId: string; reason: string }) => void): () => void;
-    openPluginView?(payload: NetcattyPluginViewOpenRequest): Promise<{ instanceId: string }>;
+    openPluginView?(payload: LemonSSHPluginViewOpenRequest): Promise<{ instanceId: string }>;
     closePluginView?(instanceId: string): Promise<void>;
     setPluginViewBounds?(instanceId: string, bounds: { x: number; y: number; width: number; height: number }): Promise<void>;
     setPluginViewVisibility?(instanceId: string, visible: boolean): Promise<void>;
     postPluginViewMessage?(instanceId: string, message: unknown): Promise<void>;
     onPluginContributionsChanged?(callback: (event: { reason: string; pluginId: string | null; revision: number }) => void): () => void;
     onPluginViewMessage?(callback: (event: { pluginId: string; viewId: string; message: unknown }) => void): () => void;
-    onPluginViewClosed?(callback: (event: NetcattyPluginViewClosedEvent) => void): () => void;
-    getPluginScopeCatalog?(): Promise<NetcattyPluginScopeCatalog>;
-    setPluginScopeCatalog?(catalog: NetcattyPluginScopeCatalog): Promise<void>;
-    onPluginScopeCatalogChanged?(callback: (catalog: NetcattyPluginScopeCatalog) => void): () => void;
+    onPluginViewClosed?(callback: (event: LemonSSHPluginViewClosedEvent) => void): () => void;
+    getPluginScopeCatalog?(): Promise<LemonSSHPluginScopeCatalog>;
+    setPluginScopeCatalog?(catalog: LemonSSHPluginScopeCatalog): Promise<void>;
+    onPluginScopeCatalogChanged?(callback: (catalog: LemonSSHPluginScopeCatalog) => void): () => void;
   }
 
-  interface NetcattyPluginContributionQuery {
+  interface LemonSSHPluginContributionQuery {
     locale?: string;
     context?: Record<string, unknown>;
     menuContexts?: Partial<Record<string, Record<string, unknown>>>;
     scopeIds?: Partial<Record<'workspace' | 'host' | 'session' | 'device', string>>;
   }
 
-  interface NetcattyPluginSettingContribution {
+  interface LemonSSHPluginSettingContribution {
     id: string;
     label: string;
     description?: string;
@@ -548,18 +555,18 @@ declare global {
     valueSchema?: unknown;
   }
 
-  type NetcattyPluginIconReference =
+  type LemonSSHPluginIconReference =
     | { kind: 'theme'; name: string }
     | { kind: 'package'; light: string; dark?: string };
 
-  interface NetcattyPluginContributionSnapshot {
+  interface LemonSSHPluginContributionSnapshot {
     locale: string;
     plugins: ReadonlyArray<{
       id: string;
       version: string;
       displayName: string;
       description: string;
-      commands: ReadonlyArray<{ id: string; title: string; category?: string; description?: string; icon?: NetcattyPluginIconReference; enabled: boolean }>;
+      commands: ReadonlyArray<{ id: string; title: string; category?: string; description?: string; icon?: LemonSSHPluginIconReference; enabled: boolean }>;
       keybindings: ReadonlyArray<{ command: string; key: string; mac?: string; linux?: string; windows?: string; args?: unknown; enabled: boolean }>;
       menus: ReadonlyArray<{
         id: string;
@@ -574,14 +581,14 @@ declare global {
         group?: string;
         shortcut?: string;
         showKeybinding?: boolean;
-        icon?: NetcattyPluginIconReference;
+        icon?: LemonSSHPluginIconReference;
       }>;
-      settings: ReadonlyArray<NetcattyPluginSettingContribution>;
-      views: ReadonlyArray<{ id: string; title: string; location: string; entry: string; icon?: NetcattyPluginIconReference; order?: number; visible: boolean; retainContextWhenHidden?: boolean }>;
+      settings: ReadonlyArray<LemonSSHPluginSettingContribution>;
+      views: ReadonlyArray<{ id: string; title: string; location: string; entry: string; icon?: LemonSSHPluginIconReference; order?: number; visible: boolean; retainContextWhenHidden?: boolean }>;
     }>;
   }
 
-  interface NetcattyPluginEnvironment {
+  interface LemonSSHPluginEnvironment {
     locale: string;
     theme: string;
     reducedMotion: boolean;
@@ -589,7 +596,7 @@ declare global {
     themeTokens?: Record<string, string>;
   }
 
-  type NetcattyTerminalProviderKind =
+  type LemonSSHTerminalProviderKind =
     | 'terminal.completion'
     | 'terminal.decoration'
     | 'terminal.link'
@@ -600,7 +607,7 @@ declare global {
     | 'terminal.background'
     | 'terminal.theme';
 
-  interface NetcattyTerminalProviderContribution {
+  interface LemonSSHTerminalProviderContribution {
     pluginId: string;
     pluginVersion: string;
     runtimeId?: string;
@@ -609,19 +616,19 @@ declare global {
       id: string;
       label: string;
       description?: string;
-      kind: NetcattyTerminalProviderKind;
+      kind: LemonSSHTerminalProviderKind;
       capabilities?: ReadonlyArray<string>;
       configurationSchema?: unknown;
     };
   }
 
-  interface NetcattyTerminalProviderQuery {
-    kind: NetcattyTerminalProviderKind;
+  interface LemonSSHTerminalProviderQuery {
+    kind: LemonSSHTerminalProviderKind;
     locale?: string;
     preferredProviderIds?: ReadonlyArray<string>;
   }
 
-  interface NetcattyTerminalSessionSnapshot {
+  interface LemonSSHTerminalSessionSnapshot {
     sessionId: string;
     hostId?: string;
     workspaceId?: string;
@@ -635,7 +642,7 @@ declare global {
     alternateScreen?: boolean;
   }
 
-  interface NetcattyTerminalSessionEvent {
+  interface LemonSSHTerminalSessionEvent {
     type:
       | 'snapshot'
       | 'created'
@@ -649,27 +656,27 @@ declare global {
       | 'commandCompleted'
       | 'disconnected'
       | 'disposed';
-    session: NetcattyTerminalSessionSnapshot;
+    session: LemonSSHTerminalSessionSnapshot;
     exitCode?: number;
   }
 
-  interface NetcattyTerminalProviderRequest {
+  interface LemonSSHTerminalProviderRequest {
     requestId: string;
-    kind: NetcattyTerminalProviderKind;
+    kind: LemonSSHTerminalProviderKind;
     operation: string;
-    session: NetcattyTerminalSessionSnapshot;
+    session: LemonSSHTerminalSessionSnapshot;
     payload?: unknown;
     locale?: string;
     preferredProviderIds?: ReadonlyArray<string>;
     deadlineMs?: number;
   }
 
-  type NetcattyTerminalProviderResult = {
+  type LemonSSHTerminalProviderResult = {
     pluginId: string;
     pluginVersion: string;
     runtimeId?: string;
     providerId: string;
-    kind: NetcattyTerminalProviderKind;
+    kind: LemonSSHTerminalProviderKind;
     requestId: string;
     status: 'ok';
     result: unknown;
@@ -678,20 +685,20 @@ declare global {
     pluginVersion: string;
     runtimeId?: string;
     providerId: string;
-    kind: NetcattyTerminalProviderKind;
+    kind: LemonSSHTerminalProviderKind;
     requestId: string;
     status: 'cancelled';
   } | {
     pluginId: string;
     pluginVersion: string;
     providerId: string;
-    kind: NetcattyTerminalProviderKind;
+    kind: LemonSSHTerminalProviderKind;
     requestId: string;
     status: 'failed';
     error: { code: number; message: string; data?: unknown };
   };
 
-  interface NetcattyPluginViewOpenRequest {
+  interface LemonSSHPluginViewOpenRequest {
     viewId: string;
     instanceId?: string;
     scopeId: string;
@@ -699,22 +706,22 @@ declare global {
     context?: Record<string, unknown>;
   }
 
-  interface NetcattyPluginViewClosedEvent {
+  interface LemonSSHPluginViewClosedEvent {
     instanceId: string;
     pluginId: string;
     viewId: string;
     reason: string;
   }
 
-  type NetcattyPluginSettingScopeKind = 'workspace' | 'host' | 'session' | 'device';
+  type LemonSSHPluginSettingScopeKind = 'workspace' | 'host' | 'session' | 'device';
 
-  type NetcattyPluginScopeCatalog = Record<
-    NetcattyPluginSettingScopeKind,
+  type LemonSSHPluginScopeCatalog = Record<
+    LemonSSHPluginSettingScopeKind,
     ReadonlyArray<{ id: string; label: string }>
   >;
 
   interface Window {
-    netcatty?: NetcattyBridge;
+    lemonssh?: LemonSSHBridge;
   }
 
 }

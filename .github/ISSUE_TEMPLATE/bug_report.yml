@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a reproducible problem in Netcatty
+description: Report a reproducible problem in LemonSSH
 title: "[Bug] "
 labels: ["bug", "triage"]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report a bug. Incomplete reports may be closed automatically.
-        Please search [existing issues](https://github.com/binaricat/Netcatty/issues) first.
+        Please search [existing issues](https://github.com/binaricat/LemonSSH/issues) first.
 
   - type: dropdown
     id: platform
@@ -23,8 +23,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Netcatty version
-      description: Find it in Settings > Application, or on the [latest release](https://github.com/binaricat/Netcatty/releases/latest) page.
+      label: LemonSSH version
+      description: Find it in Settings > Application, or on the [latest release](https://github.com/binaricat/LemonSSH/releases/latest) page.
       placeholder: "e.g. 1.2.3"
     validations:
       required: true
@@ -32,7 +32,7 @@ body:
   - type: dropdown
     id: install_source
     attributes:
-      label: How did you install Netcatty?
+      label: How did you install LemonSSH?
       options:
         - GitHub Release (.dmg / .exe / .AppImage / .deb / .rpm / .pacman)
         - Homebrew
@@ -78,7 +78,7 @@ body:
       label: Steps to reproduce
       description: Numbered steps so we can follow exactly.
       placeholder: |
-        1. Open Netcatty and connect to host X
+        1. Open LemonSSH and connect to host X
         2. Click SFTP tab
         3. ...
     validations:

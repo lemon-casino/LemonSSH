@@ -1,10 +1,10 @@
-import { netcattyBridge } from "../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../infrastructure/services/lemonsshBridge";
 
 export type AgentInteractionBridge = Pick<
-  NetcattyBridge,
+  LemonSSHBridge,
   "onAgentInteraction" | "onAgentInteractionCleared" | "agentPendingInteractions" | "agentRespondInteraction"
 >;
 
 export function getAgentInteractionBridge(): AgentInteractionBridge | undefined {
-  return netcattyBridge.get();
+  return lemonsshBridge.get();
 }

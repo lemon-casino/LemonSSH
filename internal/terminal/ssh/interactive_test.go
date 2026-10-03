@@ -106,7 +106,7 @@ func TestBuildDialConfigJumpAndProxy(t *testing.T) {
 			Username: "bastion",
 			Password: "jpw",
 		}},
-	}, policy, nil)
+	}, policy, DialInteractive{})
 	if config.ProxyURL != "socks5://127.0.0.1:1080" || config.Hostname != "target" {
 		t.Fatalf("target hop: %+v", config)
 	}
@@ -115,5 +115,39 @@ func TestBuildDialConfigJumpAndProxy(t *testing.T) {
 	}
 	if config.HostKeyPolicy == nil || config.JumpHosts[0].HostKeyPolicy == nil {
 		t.Fatal("every hop must carry a host-key policy")
+	}
+}
+
+func TestBuildDialConfigMapsAgentForwardingPerHop(t *testing.T) {
+	policy := StrictPolicy(NewKnownHosts(t.TempDir() + "/known_hosts"))
+	config, err := BuildDialConfigErr(ConnectInput{
+		Hostname:        "target",
+		Port:            22,
+		Username:        "root",
+		Password:        "pw",
+		AgentForwarding: true,
+		JumpHosts: []ConnectInput{
+			{Hostname: "jump-on", Port: 2222, Username: "bastion", Password: "jpw", AgentForwarding: true},
+			{Hostname: "jump-off", Port: 2223, Username: "bastion", Password: "jpw"},
+		},
+	}, policy, DialInteractive{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !config.ForwardAgent {
+		t.Fatalf("target hop must carry ForwardAgent: %+v", config)
+	}
+	if len(config.JumpHosts) != 2 {
+		t.Fatalf("jump hops: %+v", config.JumpHosts)
+	}
+	if !config.JumpHosts[0].ForwardAgent {
+		t.Fatalf("enabled hop must carry ForwardAgent: %+v", config.JumpHosts[0])
+	}
+	if config.JumpHosts[1].ForwardAgent {
+		t.Fatalf("disabled hop must not carry ForwardAgent: %+v", config.JumpHosts[1])
+	}
+	off := BuildDialConfig(ConnectInput{Hostname: "target", Username: "root", Password: "pw"}, policy, DialInteractive{})
+	if off.ForwardAgent {
+		t.Fatalf("default must leave ForwardAgent off: %+v", off)
 	}
 }

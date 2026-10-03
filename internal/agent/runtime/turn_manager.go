@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/app/contracts"
+	"github.com/binaricat/lemonssh/internal/app/contracts"
 )
 
 // LeaseTTL bounds how long a prepared reservation holds the chat slot

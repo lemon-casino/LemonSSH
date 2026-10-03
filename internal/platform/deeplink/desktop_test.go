@@ -14,7 +14,7 @@ func TestDesktopEntryEscapesExecutable(t *testing.T) {
 	if !strings.Contains(entry, `Exec="/opt/Lemon SSH/100%%/lemon\\\"ssh" %u`) {
 		t.Fatalf("unsafe Exec: %s", entry)
 	}
-	if !strings.Contains(entry, "MimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/netcatty;") {
+	if !strings.Contains(entry, "MimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/lemonssh;x-scheme-handler/netcatty;") {
 		t.Fatal(entry)
 	}
 	for _, path := range []string{"", "relative/path", "/tmp/app\nHidden=true"} {

@@ -6,6 +6,7 @@ import {
   STORAGE_KEY_AUTO_UPDATE_ENABLED,
   STORAGE_KEY_CUSTOM_CSS,
   STORAGE_KEY_CUSTOM_KEY_BINDINGS,
+  STORAGE_KEY_CUSTOM_THEMES,
   STORAGE_KEY_EDITOR_WORD_WRAP,
   STORAGE_KEY_GLOBAL_HOTKEY_ENABLED,
   STORAGE_KEY_HOTKEY_SCHEME,
@@ -56,6 +57,7 @@ import {
 } from '../../infrastructure/config/storageKeys';
 import { hostStorageAdapter, hasHostProfileClient } from '../../infrastructure/persistence/hostStorageAdapter';
 import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from '../../infrastructure/persistence/localStorageAdapter';
+import { customThemeStore } from './customThemeStore';
 import { resolveAppearanceStorageEvent } from './appearanceSync';
 import {
   isValidUiFontId,
@@ -283,6 +285,13 @@ export function useSettingsStorageSync({
         if (e.newValue !== s.terminalThemeId) {
           setTerminalThemeId(e.newValue);
         }
+      }
+      // Sync custom terminal themes from other windows. customThemeStore has
+      // no live bridge channel in the Wails shell — this manifest entry is
+      // its cross-window transport: the store reloads when the stored list
+      // changes here or in another window (adapter event / storage event).
+      if (e.key === STORAGE_KEY_CUSTOM_THEMES) {
+        customThemeStore.loadFromStorage();
       }
       // Sync per-mode follow terminal themes from other windows
       if (e.key === STORAGE_KEY_TERM_THEME_DARK && e.newValue) {

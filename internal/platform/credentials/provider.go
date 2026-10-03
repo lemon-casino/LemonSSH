@@ -19,12 +19,13 @@ import (
 )
 
 const (
-	EnvelopeVersion = 1
-	ProviderVersion = 1
-	ProviderName    = "os-keyring-aes-gcm"
-	MaxPlaintext    = 128 << 10
-	MaxEnvelope     = 256 << 10
-	keyringService  = "Netcatty"
+	EnvelopeVersion      = 1
+	ProviderVersion      = 1
+	ProviderName         = "os-keyring-aes-gcm"
+	MaxPlaintext         = 128 << 10
+	MaxEnvelope          = 256 << 10
+	keyringService       = "LemonSSH"
+	legacyKeyringService = "Netcatty"
 )
 
 var (
@@ -189,15 +190,37 @@ func (p *ProviderImpl) keyForPurpose(purpose string, create bool) ([]byte, error
 	defer p.mu.Unlock()
 	digest := sha256.Sum256([]byte(purpose))
 	user := fmt.Sprintf("credential-purpose-%x", digest[:])
+
+	// New service name first. Only ErrNotFound counts as a miss; every other
+	// Get failure (unavailable keyring, macOS Keychain ACL denial after the
+	// bundle-id change, locked Linux Secret Service) must fail closed so a
+	// broken keyring can never mint a replacement key that would silently
+	// make existing ciphertext undecryptable.
 	encoded, err := p.keyring.Get(keyringService, user)
 	if err == nil {
-		key, decodeErr := base64.RawStdEncoding.Strict().DecodeString(encoded)
-		if decodeErr != nil || len(key) != 32 {
-			zero(key)
-			return nil, ErrUnavailable
+		return decodePurposeKey(encoded)
+	}
+	if !IsKeyringNotFound(err) {
+		return nil, ErrUnavailable
+	}
+
+	// Legacy service name fallback: keys written by previous releases.
+	legacyEncoded, legacyErr := p.keyring.Get(legacyKeyringService, user)
+	if legacyErr == nil {
+		key, err := decodePurposeKey(legacyEncoded)
+		if err != nil {
+			return nil, err
 		}
+		// Best-effort upgrade copy to the new service name. The legacy entry
+		// is never deleted; a rejected copy only defers the upgrade to the
+		// next run and must not block this read.
+		_ = p.keyring.Set(keyringService, user, legacyEncoded)
 		return key, nil
 	}
+	if !IsKeyringNotFound(legacyErr) {
+		return nil, ErrUnavailable
+	}
+
 	if !create {
 		return nil, ErrUnavailable
 	}
@@ -207,6 +230,16 @@ func (p *ProviderImpl) keyForPurpose(purpose string, create bool) ([]byte, error
 		return nil, ErrUnavailable
 	}
 	if err := p.keyring.Set(keyringService, user, base64.RawStdEncoding.EncodeToString(key)); err != nil {
+		zero(key)
+		return nil, ErrUnavailable
+	}
+	return key, nil
+}
+
+// decodePurposeKey validates and decodes one stored purpose key.
+func decodePurposeKey(encoded string) ([]byte, error) {
+	key, err := base64.RawStdEncoding.Strict().DecodeString(encoded)
+	if err != nil || len(key) != 32 {
 		zero(key)
 		return nil, ErrUnavailable
 	}

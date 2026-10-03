@@ -88,10 +88,10 @@ interface TerminalHostTreeToolbarProps {
 }
 
 const iconButtonClass =
-  'netcatty-tab h-6 w-6 shrink-0 rounded-md p-0 shadow-none border-none hover:bg-transparent';
+  'lemonssh-tab h-6 w-6 shrink-0 rounded-md p-0 shadow-none border-none hover:bg-transparent';
 /** Local shell uses the borderless Terminal glyph (not TerminalSquare). */
 const localShellButtonClass =
-  'netcatty-tab h-6 w-6 shrink-0 rounded-none p-0 shadow-none border-none bg-transparent hover:bg-transparent';
+  'lemonssh-tab h-6 w-6 shrink-0 rounded-none p-0 shadow-none border-none bg-transparent hover:bg-transparent';
 const overflowMenuItemClass =
   'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50';
 

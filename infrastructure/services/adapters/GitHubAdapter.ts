@@ -19,7 +19,7 @@ import {
   type GitHubDeviceCodeResponse,
 } from '../../../domain/sync';
 import { resolveOAuthClientId } from '../cloudSync/oauthClientIds';
-import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
+import { cloudSyncBridge as lemonsshBridge } from '../cloudSync/cloudSyncFacade';
 
 // ============================================================================
 // Types
@@ -54,6 +54,18 @@ export interface GitHubGist {
     committed_at: string;
   }>;
 }
+
+/**
+ * compat#5: prefer the renamed sync file, falling back to the legacy
+ * netcatty-vault.json file inside the same gist (create/update always write
+ * the new name onto whatever gist was found).
+ */
+const findSyncGistFile = (gist: GitHubGist): GitHubGistFile | undefined =>
+  gist.files[SYNC_CONSTANTS.SYNC_FILE_NAME] ?? gist.files[SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME];
+
+const isSyncGistDescription = (description: string): boolean =>
+  description === SYNC_CONSTANTS.GIST_DESCRIPTION
+  || description === SYNC_CONSTANTS.LEGACY_GIST_DESCRIPTION;
 
 export interface DeviceFlowState {
   deviceCode: string;
@@ -121,7 +133,7 @@ export const startDeviceFlow = async (): Promise<DeviceFlowState> => {
   console.log('[GitHub] Starting device flow...');
   console.log('[GitHub] Client ID:', resolveOAuthClientId('github'));
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubStartDeviceFlow) {
     return bridge.githubStartDeviceFlow({
       clientId: resolveOAuthClientId('github'),
@@ -178,7 +190,7 @@ export const pollForToken = async (
   signal?: AbortSignal
 ): Promise<OAuthTokens | null> => {
   let pollInterval = Math.max(interval, 5) * 1000; // Minimum 5 seconds
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
 
   while (Date.now() < expiresAt) {
     await delayWithSignal(pollInterval, signal);
@@ -281,7 +293,7 @@ export const getUserInfo = async (
   accessToken: string,
   signal?: AbortSignal
 ): Promise<ProviderAccount> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubGetUserInfo) {
     throwIfAborted(signal);
     const user = await bridge.githubGetUserInfo({ accessToken });
@@ -315,7 +327,7 @@ export const getUserInfo = async (
  */
 export const validateToken = async (accessToken: string): Promise<boolean> => {
   try {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.githubGetUserInfo) { await bridge.githubGetUserInfo({ accessToken }); return true; }
     const response = await fetch(`${SYNC_CONSTANTS.GITHUB_API_BASE}/user`, {
       headers: {
@@ -334,13 +346,13 @@ export const validateToken = async (accessToken: string): Promise<boolean> => {
 // ============================================================================
 
 /**
- * Find existing Netcatty sync gist
+ * Find existing LemonSSH sync gist
  */
 export const findSyncGist = async (
   accessToken: string,
   signal?: AbortSignal
 ): Promise<string | null> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubFindSyncFile) {
     throwIfAborted(signal);
     const result = await bridge.githubFindSyncFile({ accessToken });
@@ -361,10 +373,9 @@ export const findSyncGist = async (
   }
 
   const gists: GitHubGist[] = await response.json();
-  
-  const syncGist = gists.find(g => 
-    g.description === SYNC_CONSTANTS.GIST_DESCRIPTION &&
-    g.files[SYNC_CONSTANTS.SYNC_FILE_NAME]
+
+  const syncGist = gists.find(g =>
+    isSyncGistDescription(g.description) && Boolean(findSyncGistFile(g))
   );
 
   return syncGist?.id || null;
@@ -377,7 +388,7 @@ export const createSyncGist = async (
   accessToken: string,
   syncedFile: SyncedFile
 ): Promise<string> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubUploadSyncFile) {
     const result = await bridge.githubUploadSyncFile({ accessToken, syncedFile });
     if (!result.fileId) throw new Error('GitHub did not return a gist ID');
@@ -417,7 +428,7 @@ export const updateSyncGist = async (
   gistId: string,
   syncedFile: SyncedFile
 ): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubUploadSyncFile) {
     await bridge.githubUploadSyncFile({ accessToken, fileId: gistId, syncedFile });
     return;
@@ -452,7 +463,7 @@ const fetchGistRawContent = async (
   accessToken: string,
   rawUrl: string,
 ): Promise<string> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubDownloadGistRawContent) {
     return bridge.githubDownloadGistRawContent({ accessToken, rawUrl });
   }
@@ -525,7 +536,7 @@ export const downloadSyncGist = async (
   accessToken: string,
   gistId: string
 ): Promise<SyncedFile | null> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubDownloadSyncFile) return (await bridge.githubDownloadSyncFile({ accessToken, fileId: gistId })).syncedFile;
   const response = await fetch(`${SYNC_CONSTANTS.GITHUB_API_BASE}/gists/${gistId}`, {
     headers: {
@@ -542,7 +553,7 @@ export const downloadSyncGist = async (
   }
 
   const gist: GitHubGist = await response.json();
-  return parseSyncedFileFromGistFile(accessToken, gist.files[SYNC_CONSTANTS.SYNC_FILE_NAME]);
+  return parseSyncedFileFromGistFile(accessToken, findSyncGistFile(gist));
 };
 
 /**
@@ -552,7 +563,7 @@ export const deleteSyncGist = async (
   accessToken: string,
   gistId: string
 ): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubDeleteSyncFile) { await bridge.githubDeleteSyncFile({ accessToken, fileId: gistId }); return; }
   const response = await fetch(`${SYNC_CONSTANTS.GITHUB_API_BASE}/gists/${gistId}`, {
     method: 'DELETE',
@@ -574,7 +585,7 @@ export const getGistHistory = async (
   accessToken: string,
   gistId: string
 ): Promise<Array<{ version: string; date: Date }>> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubGetGistHistory) {
     return (await bridge.githubGetGistHistory({ accessToken, fileId: gistId })).map(h => ({ version: h.version, date: new Date(h.date) }));
   }
@@ -608,7 +619,7 @@ export const downloadGistRevision = async (
   gistId: string,
   sha: string,
 ): Promise<SyncedFile | null> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.githubDownloadSyncFile) return (await bridge.githubDownloadSyncFile({ accessToken, fileId: gistId, revision: sha })).syncedFile;
   const response = await fetch(
     `${SYNC_CONSTANTS.GITHUB_API_BASE}/gists/${gistId}/${sha}`,
@@ -626,7 +637,7 @@ export const downloadGistRevision = async (
   }
 
   const gist: GitHubGist = await response.json();
-  return parseSyncedFileFromGistFile(accessToken, gist.files[SYNC_CONSTANTS.SYNC_FILE_NAME]);
+  return parseSyncedFileFromGistFile(accessToken, findSyncGistFile(gist));
 };
 
 // ============================================================================

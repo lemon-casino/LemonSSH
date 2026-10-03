@@ -1,4 +1,4 @@
-export const USER_SKILLS_STATUS_CHANGED_EVENT = 'netcatty:user-skills-status-changed';
+export const USER_SKILLS_STATUS_CHANGED_EVENT = 'lemonssh:user-skills-status-changed';
 const USER_SKILLS_STATUS_CHANGED_KEY = 'ai:user-skills-status-changed';
 
 type SettingsBridge = {
@@ -7,7 +7,7 @@ type SettingsBridge = {
 };
 
 function getSettingsBridge(): SettingsBridge | undefined {
-  return (window as unknown as { netcatty?: SettingsBridge }).netcatty;
+  return (window as unknown as { lemonssh?: SettingsBridge }).lemonssh;
 }
 
 export function notifyUserSkillsStatusChanged() {

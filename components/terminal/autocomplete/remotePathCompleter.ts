@@ -4,7 +4,7 @@
  * when the user types commands that expect path arguments.
  */
 
-import { netcattyBridge } from '../../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../../infrastructure/services/lemonsshBridge';
 import type { CompletionContext } from "./completionEngine";
 import type { FigArg } from "./figSpecLoader";
 import type { AutocompleteCwdSource } from "./terminalAutocompleteLayout";
@@ -37,7 +37,7 @@ interface PathBridge {
 }
 
 function getBridge(): PathBridge | undefined {
-  return netcattyBridge.get();
+  return lemonsshBridge.get();
 }
 
 // Cache directory listings for 5 seconds. Full-directory cache is shared between

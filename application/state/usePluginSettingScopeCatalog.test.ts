@@ -6,7 +6,7 @@ import {
   resolvePluginSettingScopeSelection,
 } from './usePluginSettingScopeCatalog.ts';
 
-const catalog: NetcattyPluginScopeCatalog = {
+const catalog: LemonSSHPluginScopeCatalog = {
   workspace: [{ id: 'workspace-1', label: 'Workspace 1' }],
   host: [{ id: 'host-1', label: 'Host 1' }, { id: 'host-2', label: 'Host 2' }],
   session: [],

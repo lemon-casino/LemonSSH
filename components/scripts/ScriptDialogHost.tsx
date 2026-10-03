@@ -20,14 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
 import type {
   ScriptDialogCondition,
   ScriptDialogField,
   ScriptDialogForm,
   ScriptDialogFormValue,
   ScriptDialogRequest,
-} from '@/types/global/netcatty-bridge-script.d.ts';
+} from '@/types/global/lemonssh-bridge-script.d.ts';
 
 type FormValues = Record<string, ScriptDialogFormValue>;
 type FormErrors = Record<string, string>;
@@ -431,7 +431,7 @@ export function ScriptDialogHost() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    const dispose = netcattyBridge.get()?.onScriptDialogRequest?.((payload) => {
+    const dispose = lemonsshBridge.get()?.onScriptDialogRequest?.((payload) => {
       setRequest(payload);
       setPromptValue(payload.defaultValue ?? '');
       setFormValues(getInitialFormValues(payload));
@@ -442,7 +442,7 @@ export function ScriptDialogHost() {
 
   const respond = useCallback(async (value?: unknown, cancelled = false) => {
     if (!request) return;
-    await netcattyBridge.get()?.scriptDialogResponse?.(request.requestId, value, cancelled);
+    await lemonsshBridge.get()?.scriptDialogResponse?.(request.requestId, value, cancelled);
     setRequest(null);
   }, [request]);
 

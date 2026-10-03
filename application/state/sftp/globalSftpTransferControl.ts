@@ -8,7 +8,7 @@
  */
 
 import type { TransferTask } from "../../../domain/models";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { globalSftpTransferScheduler } from "./globalTransferScheduler";
 import {
   allPauseResultsDeadTransfer,
@@ -553,10 +553,10 @@ export async function softResumeTransfer(
   return { handled: true };
 }
 
-/** Default bridge accessor for Electron / tests with window.netcatty. */
+/** Default bridge accessor for Electron / tests with window.lemonssh. */
 export function defaultTransferControlBridge(): TransferControlBridge | undefined {
   try {
-    return netcattyBridge.get() as TransferControlBridge | undefined;
+    return lemonsshBridge.get() as TransferControlBridge | undefined;
   } catch {
     return undefined;
   }

@@ -7,23 +7,30 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
 )
 
 // SSHConnectRequest is the shell-facing SSH dial payload. JumpHosts nest;
 // proxyCommand carries OpenSSH ProxyCommand semantics (%h/%p tokens).
+// SessionID/BootEpoch carry the renderer session correlation echoed back on
+// interactive prompts (passphrase, host-key confirmation); KeyPath labels the
+// private key in passphrase prompts.
 type SSHConnectRequest struct {
-	Hostname          string              `json:"hostname"`
-	Port              uint16              `json:"port"`
-	Username          string              `json:"username"`
-	Password          string              `json:"password"`
-	PrivateKey        string              `json:"privateKey"`
-	Passphrase        string              `json:"passphrase"`
-	Certificate       string              `json:"certificate"`
-	ProxyURL          string              `json:"proxyUrl"`
-	ProxyCommand      string              `json:"proxyCommand"`
-	EnableMFA         bool                `json:"enableMfa"`
-	UseAgent          bool                `json:"useAgent"`
+	Hostname     string `json:"hostname"`
+	Port         uint16 `json:"port"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	PrivateKey   string `json:"privateKey"`
+	Passphrase   string `json:"passphrase"`
+	Certificate  string `json:"certificate"`
+	ProxyURL     string `json:"proxyUrl"`
+	ProxyCommand string `json:"proxyCommand"`
+	EnableMFA    bool   `json:"enableMfa"`
+	UseAgent     bool   `json:"useAgent"`
+	// AgentForwarding exposes the local SSH agent to the remote host
+	// (OpenSSH ForwardAgent yes). Each hop carries its own flag.
+	AgentForwarding   bool                `json:"agentForwarding"`
 	IdentityFilePaths []string            `json:"identityFilePaths"`
 	Cols              uint16              `json:"cols"`
 	Rows              uint16              `json:"rows"`
@@ -33,7 +40,13 @@ type SSHConnectRequest struct {
 	KeepaliveCountMax *int                `json:"keepaliveCountMax"`
 	ForwardX11        bool                `json:"forwardX11"`
 	X11Display        string              `json:"x11Display"`
+	SessionID         string              `json:"sessionId,omitempty"`
+	BootEpoch         int                 `json:"bootEpoch,omitempty"`
+	KeyPath           string              `json:"keyPath,omitempty"`
 	JumpHosts         []SSHConnectRequest `json:"jumpHosts"`
+	// SSHDebugLogs carries the renderer's SSH debug log setting so each dial
+	// syncs the process-global ssh-debug.log toggle.
+	SSHDebugLogs bool `json:"sshDebugLogs,omitempty"`
 }
 
 func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
@@ -44,11 +57,13 @@ func sshConnectToInput(request SSHConnectRequest) ssh.ConnectInput {
 		Password:          request.Password,
 		PrivateKey:        request.PrivateKey,
 		Passphrase:        request.Passphrase,
+		KeyPath:           request.KeyPath,
 		Certificate:       request.Certificate,
 		ProxyURL:          request.ProxyURL,
 		ProxyCommand:      request.ProxyCommand,
 		EnableMFA:         request.EnableMFA,
 		UseAgent:          request.UseAgent,
+		AgentForwarding:   request.AgentForwarding,
 		IdentityFilePaths: request.IdentityFilePaths,
 	}
 	if len(request.JumpHosts) > 0 {
@@ -76,13 +91,34 @@ func (s *Service) Connect(request SSHConnectRequest) (string, error) {
 	if request.Rows == 0 {
 		request.Rows = 24
 	}
-	config, err := terminalSSHDialConfig(request, s.knownHosts, s.interactive.Handler(request.Hostname))
+	config, err := terminalSSHDialConfig(request, s.knownHosts, s.DialInteractive(context.Background(), request))
 	if err != nil {
 		return "", err
 	}
+	// The renderer's settings toggle rides every dial: sync the process-global
+	// debug state so the log trail starts with this connection.
+	sshdebug.SetEnabled(request.SSHDebugLogs)
+	sshdebug.Logf("ssh dial start host=%s port=%d jumpHosts=%d", request.Hostname, request.Port, len(request.JumpHosts))
 	transport, err := ssh.Dial(context.Background(), config)
 	if err != nil {
+		s.notifyPassphraseRejected(err)
+		sshdebug.LogError("ssh dial failed host=%s port=%d err=%v", request.Hostname, request.Port, err)
 		return "", fmt.Errorf("ssh dial %s:%d: %w", request.Hostname, request.Port, err)
+	}
+	sshdebug.Logf("ssh transport established host=%s port=%d", request.Hostname, request.Port)
+
+	// Agent forwarding has two halves (see ssh.ForwardAgentToClient): wire the
+	// local agent onto the client transport, then request forwarding on the
+	// session before the shell starts. A missing local agent degrades the
+	// session to "no forwarding" instead of failing the dial — OpenSSH parity;
+	// the host editor's agent check surfaces availability to the user.
+	agentForwarded := false
+	if config.ForwardAgent {
+		if err := ssh.ForwardAgentToClient(transport.Client, ""); err != nil {
+			sshdebug.LogError("ssh agent forwarding unavailable host=%s err=%v", request.Hostname, err)
+		} else {
+			agentForwarded = true
+		}
 	}
 
 	sshSession, err := transport.Client.NewSession()
@@ -123,6 +159,12 @@ func (s *Service) Connect(request SSHConnectRequest) (string, error) {
 			return "", fmt.Errorf("X11 forwarding: %w", xerr)
 		}
 	}
+	// auth-agent-req@openssh.com must precede the shell request to take effect.
+	if agentForwarded {
+		if err := ssh.RequestAgentForwarding(sshSession); err != nil {
+			sshdebug.LogError("ssh agent forwarding request failed host=%s err=%v", request.Hostname, err)
+		}
+	}
 	if err := sshSession.Shell(); err != nil {
 		if x11 != nil {
 			x11.Close()
@@ -145,9 +187,10 @@ func (s *Service) Connect(request SSHConnectRequest) (string, error) {
 
 	s.mu.Lock()
 	s.counter++
-	term := &terminalSession{x11: x11, transport: transport, session: sshSession, stdin: stdin, bootstrap: bootstrap}
+	term := &terminalSession{x11: x11, transport: transport, session: sshSession, stdin: stdin, bootstrap: bootstrap, uiID: request.SessionID}
 	s.sessions[sessionID] = term
 	s.mu.Unlock()
+	sshdebug.Logf("ssh session open session=%s host=%s", sessionID, request.Hostname)
 
 	// Pump SSH stdout → data plane. The controller admits frames against the
 	// renderer's credit, so the pump never needs its own backpressure.
@@ -169,6 +212,8 @@ func (s *Service) Connect(request SSHConnectRequest) (string, error) {
 	// When the remote side closes the shell, tear the session down.
 	go func() {
 		status := terminalWaitExit(sessionID, sshSession.Wait())
+		sshdebug.Logf("ssh session exit session=%s reason=%s exitCodeSet=%t err=%s",
+			sessionID, status.Reason, status.ExitCode != nil, status.Error)
 		_ = s.closeWithStatus(sessionID, status)
 	}()
 

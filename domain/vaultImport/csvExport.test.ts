@@ -106,7 +106,7 @@ test("CSV reversibly guards key paths that spreadsheets treat as formulas", () =
   const hosts: Host[] = [
     "-relative-key",
     "'-literal-key",
-    "__netcatty_csv_keypath_v1__:literal",
+    "__lemonssh_csv_keypath_v1__:literal",
   ].map((keyPath, index) => ({
     id: `host-${index}`,
     label: `Host ${index}`,
@@ -123,7 +123,7 @@ test("CSV reversibly guards key paths that spreadsheets treat as formulas", () =
   assert.deepEqual(imported.hosts.map((host) => host.identityFilePaths?.[0]), [
     "-relative-key",
     "'-literal-key",
-    "__netcatty_csv_keypath_v1__:literal",
+    "__lemonssh_csv_keypath_v1__:literal",
   ]);
 });
 

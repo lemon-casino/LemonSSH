@@ -1,7 +1,7 @@
 import type { RemoteFile } from "../../../domain/models/workspace";
 
-type TreeOptions = Parameters<NonNullable<NetcattyBridge["listLocalTree"]>>[1];
-type TreeEntry = Awaited<ReturnType<NonNullable<NetcattyBridge["listLocalTree"]>>>[number];
+type TreeOptions = Parameters<NonNullable<LemonSSHBridge["listLocalTree"]>>[1];
+type TreeEntry = Awaited<ReturnType<NonNullable<LemonSSHBridge["listLocalTree"]>>>[number];
 
 // Reuse native directory reads; no file contents cross the renderer during scanning.
 export async function readLocalTree(

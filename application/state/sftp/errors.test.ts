@@ -16,7 +16,7 @@ test("isMissingStatError treats Electron-wrapped SFTP absence as missing", () =>
   // New-file uploads lstat the destination first; this is the toast users see.
   assert.equal(
     isMissingStatError(
-      new Error("Error invoking remote method 'netcatty:sftp:lstat': Error: No such file"),
+      new Error("Error invoking remote method 'lemonssh:sftp:lstat': Error: No such file"),
     ),
     true,
   );
@@ -44,7 +44,7 @@ test("isMissingStatError rejects unsupported LSTAT and other failures", () => {
   assert.equal(isMissingStatError(new Error("channel closed")), false);
   assert.equal(
     isMissingStatError(
-      new Error("Error invoking remote method 'netcatty:sftp:lstat': Error: Permission denied"),
+      new Error("Error invoking remote method 'lemonssh:sftp:lstat': Error: Permission denied"),
     ),
     false,
   );
@@ -58,7 +58,7 @@ test("isMissingStatError rejects unsupported LSTAT and other failures", () => {
   assert.equal(
     isMissingStatError(
       new Error(
-        "Error invoking remote method 'netcatty:sftp:lstat': Error: EACCES: permission denied, lstat '/private/enoent/report.txt'",
+        "Error invoking remote method 'lemonssh:sftp:lstat': Error: EACCES: permission denied, lstat '/private/enoent/report.txt'",
       ),
     ),
     false,

@@ -114,7 +114,7 @@ interface NoteFolderNode {
 
 type NotesToolbarPanel = "search" | null;
 
-const toolbarIconButtonClass = "netcatty-tab h-6 w-6 shrink-0 rounded-md p-0 hover:bg-transparent";
+const toolbarIconButtonClass = "lemonssh-tab h-6 w-6 shrink-0 rounded-md p-0 hover:bg-transparent";
 const menuItemClass = "flex h-8 w-full items-center rounded-md px-3 text-left text-sm hover:bg-secondary";
 const noteMetadataPillClass = "inline-flex h-5 items-center gap-1 rounded-md bg-muted/70 px-2 text-[11px] font-medium leading-none";
 const noteMetadataLabelClass = "translate-y-px";
@@ -122,8 +122,8 @@ const NOTES_TREE_DEFAULT_WIDTH = 300;
 /** Narrow enough for nested folders + ellipsis; toolbar scrolls if needed. */
 const NOTES_TREE_MIN_WIDTH = 160;
 const NOTES_TREE_MAX_WIDTH = 520;
-const NOTE_DRAG_TYPE = "application/x-netcatty-note-id";
-const NOTE_GROUP_DRAG_TYPE = "application/x-netcatty-note-group-path";
+const NOTE_DRAG_TYPE = "application/x-lemonssh-note-id";
+const NOTE_GROUP_DRAG_TYPE = "application/x-lemonssh-note-group-path";
 
 export function clampNotesTreeWidth(value: number): number {
   return Math.max(NOTES_TREE_MIN_WIDTH, Math.min(NOTES_TREE_MAX_WIDTH, value));
@@ -909,7 +909,7 @@ export const NotesManager: React.FC<NotesManagerProps> = ({
 
       const blob = buildTextFilesZipBlob(files);
       const safeName = sanitizeNoteExportFileNamePart(fileNamePart, "notes");
-      downloadNotesBlob(blob, `netcatty-notes-${safeName}.zip`);
+      downloadNotesBlob(blob, `lemonssh-notes-${safeName}.zip`);
       toast.success(t("notes.export.toast.success", { count: files.length }));
     } catch (err) {
       logger.error("Failed to export notes:", err);

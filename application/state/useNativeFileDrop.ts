@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, type RefObject } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../lib/logger";
 
 export function isNativeFileDrop(data: Pick<DataTransfer, "types">): boolean {
-  return data.types.includes("Files") && !!netcattyBridge.get()?.onFilesDropped;
+  return data.types.includes("Files") && !!lemonsshBridge.get()?.onFilesDropped;
 }
 
 // Wails resolves real paths after the DOM drop bubbles to its runtime listener.
@@ -17,7 +17,7 @@ export function useNativeFileDrop(
   onDropRef.current = onDrop;
   useEffect(() => {
     const container = containerRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!ownerKey || !container || !bridge?.onFilesDropped) return;
     container.setAttribute("data-file-drop-target", targetId);
     const unsubscribe = bridge.onFilesDropped((payload) => {

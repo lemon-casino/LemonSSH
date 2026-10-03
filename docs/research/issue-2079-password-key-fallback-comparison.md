@@ -4,7 +4,7 @@ Research date: 2026-07-13
 
 Source revisions:
 
-- Netcatty PR #2153 head: `f10bbc70d02fca70427852568ab47636e93282f5`
+- LemonSSH PR #2153 head: `f10bbc70d02fca70427852568ab47636e93282f5`
 - Tabby: `18fa6959bd95f24b72403c8f22a4eb002b53adcf` (v1.0.234)
 - Electerm: `e473f5d172daf08ca82d7bdc9ebe14690820ca23`
 - PuTTY manual: 0.83
@@ -12,13 +12,13 @@ Source revisions:
 
 ## Conclusion
 
-PR #2153 is a reasonable change **if Netcatty's “Password” choice means an explicit authentication mode**. Tabby follows exactly that contract: Auto may try keys, the system agent, password, and interactive prompts, while selecting Password excludes file-key and agent methods. PuTTY reaches the same outcome through a separate control: agent use is enabled by default, but its manual tells users to disable it when they need to force password authentication.
+PR #2153 is a reasonable change **if LemonSSH's “Password” choice means an explicit authentication mode**. Tabby follows exactly that contract: Auto may try keys, the system agent, password, and interactive prompts, while selecting Password excludes file-key and agent methods. PuTTY reaches the same outcome through a separate control: agent use is enabled by default, but its manual tells users to disable it when they need to force password authentication.
 
 It is not accurate to present the change as matching OpenSSH's default behavior. OpenSSH defaults to automatic negotiation, prefers public-key authentication before password, searches standard `~/.ssh/id_*` files, and may use agent identities. A strict password-only OpenSSH invocation requires explicit configuration, such as disabling public-key authentication or restricting the preferred method list.
 
 Electerm demonstrates the other defensible product choice: a supplied password is attempted first, but its separately enabled SSH-agent option remains eligible afterward. Therefore there is no universal competitor convention. The important contract is that “Auto” and “Password only” are distinguishable and that terminal, jump-host, and SFTP paths implement the same contract.
 
-For Netcatty, the strongest follow-up would be to make the UI wording unambiguous: either rename the existing choice to “Password only,” or add an explicit “Automatic” mode for users who want OpenSSH-like fallback. PR #2153 itself correctly removes the surprising inconsistency where direct terminal login could hide a stale password while jump-host and SFTP login exposed it.
+For LemonSSH, the strongest follow-up would be to make the UI wording unambiguous: either rename the existing choice to “Password only,” or add an explicit “Automatic” mode for users who want OpenSSH-like fallback. PR #2153 itself correctly removes the surprising inconsistency where direct terminal login could hide a stale password while jump-host and SFTP login exposed it.
 
 ## Behavior comparison
 
@@ -29,7 +29,7 @@ For Netcatty, the strongest follow-up would be to make the UI wording unambiguou
 | PuTTY default | Yes for Pageant; agent authentication is enabled by default. | Disable “Attempt authentication using Pageant”; the manual says this may be needed to force password authentication. | PuTTY-family tools expose the same agent control as a saved-session setting. |
 | WinSCP default | Yes. Its documented order puts agent and configured-file public keys before keyboard-interactive and password. | Disable “Attempt Authentication Using Agent”; the official page says this may be needed to force password. | This is WinSCP's SFTP/SCP SSH authentication policy, so file transfer itself uses the broad automatic order. |
 | Electerm default bookmark | Usually yes for the agent. A supplied password is first, then an explicit key if present, then the enabled agent. Its bookmark default enables agent use. | Disable the bookmark's SSH-agent switch. | The same connection options and ordered authentication handler are used by its SSH session implementation. |
-| Netcatty after #2153, password-only predicate | No automatic standard `~/.ssh/id_*` or implicit system-agent fallback. Password and keyboard-interactive remain. An explicitly configured key/agent makes the connection no longer password-only. | This is the effective behavior of a password with no configured key, certificate, or agent. | The PR aligns direct terminal with the existing jump-host/SFTP helper behavior. |
+| LemonSSH after #2153, password-only predicate | No automatic standard `~/.ssh/id_*` or implicit system-agent fallback. Password and keyboard-interactive remain. An explicitly configured key/agent makes the connection no longer password-only. | This is the effective behavior of a password with no configured key, certificate, or agent. | The PR aligns direct terminal with the existing jump-host/SFTP helper behavior. |
 
 ## OpenSSH: automatic by default, strict only when requested
 
@@ -45,7 +45,7 @@ ProxyJump makes an independent SSH connection to the jump host and then opens fo
 
 Tabby's profile default leaves the authentication selector unset, which represents Auto ([profile defaults](https://github.com/Eugeny/tabby/blob/18fa6959bd95f24b72403c8f22a4eb002b53adcf/tabby-ssh/src/profiles.ts#L15-L48)). In Auto, its session initialization adds configured or automatically located private keys, targeted and full-agent attempts, a saved password if available, and interactive password methods ([authentication construction](https://github.com/Eugeny/tabby/blob/18fa6959bd95f24b72403c8f22a4eb002b53adcf/tabby-ssh/src/session/ssh.ts#L152-L260)).
 
-The conditions in that same source are explicit: file keys are added only for Auto or `publicKey`, agent methods only for Auto or `agent`, and password methods only for Auto or `password`. Selecting Password therefore does not silently use local keys or the system agent. This is the closest primary-source analogue to the semantics introduced by Netcatty PR #2153.
+The conditions in that same source are explicit: file keys are added only for Auto or `publicKey`, agent methods only for Auto or `agent`, and password methods only for Auto or `password`. Selecting Password therefore does not silently use local keys or the system agent. This is the closest primary-source analogue to the semantics introduced by LemonSSH PR #2153.
 
 Tabby's agent behavior is more careful than a raw scan: where configured key paths exist, it first reads matching public `.pub` files and asks the agent to try those identities, then adds a full-agent fallback ([source](https://github.com/Eugeny/tabby/blob/18fa6959bd95f24b72403c8f22a4eb002b53adcf/tabby-ssh/src/session/ssh.ts#L203-L245)). This is relevant only to Auto/Agent modes; it does not weaken explicit Password mode.
 
@@ -59,29 +59,29 @@ If a specific private/public key is configured while Pageant is running, PuTTY f
 
 Electerm's ordered handler adds `password` when supplied, then `publickey` when a key is supplied, then `agent` when agent use is enabled, followed by keyboard-interactive ([source](https://github.com/electerm/electerm/blob/e473f5d172daf08ca82d7bdc9ebe14690820ca23/src/app/server/session-ssh.js#L58-L80)). Its bookmark form enables SSH-agent use by default ([source](https://github.com/electerm/electerm/blob/e473f5d172daf08ca82d7bdc9ebe14690820ca23/src/client/components/bookmark-form/config/ssh.js#L10-L31)), using a bookmark socket or `SSH_AUTH_SOCK` ([source](https://github.com/electerm/electerm/blob/e473f5d172daf08ca82d7bdc9ebe14690820ca23/src/app/server/session-ssh.js#L53-L56)).
 
-Thus a wrong saved password can still be followed by a successful agent attempt unless the user disables agent use. Electerm does not establish that Netcatty's old behavior was wrong in all products; it establishes that credential selection and agent enablement can be separate controls. Unlike Netcatty's old direct path, this policy is represented in Electerm's bookmark setting rather than being an unexposed local-default-key fallback.
+Thus a wrong saved password can still be followed by a successful agent attempt unless the user disables agent use. Electerm does not establish that LemonSSH's old behavior was wrong in all products; it establishes that credential selection and agent enablement can be separate controls. Unlike LemonSSH's old direct path, this policy is represented in Electerm's bookmark setting rather than being an unexposed local-default-key fallback.
 
 ## WinSCP: SFTP also defaults to automatic negotiation
 
 WinSCP documents its actual SSH authentication order as GSSAPI, public key via the agent, public key via a configured file, keyboard-interactive, then password ([official SSH overview](https://winscp.net/eng/docs/ssh#authentication)). Its SFTP/SCP site settings enable “Attempt Authentication Using Agent” by default, while exposing a switch to turn it off specifically when a user needs to force a non-public-key method such as password ([official authentication settings](https://winscp.net/eng/docs/ui_login_authentication#authentication_options)).
 
-This is useful corroboration because WinSCP is primarily a file-transfer client: broad key-first behavior is not limited to interactive terminals. It also shows why Netcatty's old inconsistency was the real defect. Either automatic negotiation or password-only can be defensible, but a terminal and an SFTP view for the same saved host should not silently apply different policies.
+This is useful corroboration because WinSCP is primarily a file-transfer client: broad key-first behavior is not limited to interactive terminals. It also shows why LemonSSH's old inconsistency was the real defect. Either automatic negotiation or password-only can be defensible, but a terminal and an SFTP view for the same saved host should not silently apply different policies.
 
 ## Implications for PR #2153
 
-The PR defines password-only as a provided password with no user key, certificate, or configured agent, then suppresses automatic default-key discovery and implicit agent fallback for that case ([direct-session implementation](https://github.com/binaricat/Netcatty/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L759-L838), [shared jump/SFTP helper](https://github.com/binaricat/Netcatty/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshAuthHelper.cjs#L838-L922)). Its regression tests preserve default keys when no credential is configured and preserve fallback when the user configures both a key and password ([PR files](https://github.com/binaricat/Netcatty/pull/2153/files)).
+The PR defines password-only as a provided password with no user key, certificate, or configured agent, then suppresses automatic default-key discovery and implicit agent fallback for that case ([direct-session implementation](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L759-L838), [shared jump/SFTP helper](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshAuthHelper.cjs#L838-L922)). Its regression tests preserve default keys when no credential is configured and preserve fallback when the user configures both a key and password ([PR files](https://github.com/binaricat/LemonSSH/pull/2153/files)).
 
 That scope is sound:
 
-1. It respects Netcatty's existing explicit Password/Key selection model rather than treating every host as OpenSSH Auto.
+1. It respects LemonSSH's existing explicit Password/Key selection model rather than treating every host as OpenSSH Auto.
 2. It prevents stale passwords from being masked by unrelated local machine state.
 3. It makes direct terminal, jump-host, and SFTP diagnostics consistent.
 4. It does not remove key convenience globally: hosts without explicit credentials still try the system agent/default keys, and explicit agent/key configurations remain eligible.
 
 Two nuances should remain visible in product decisions:
 
-- The change is a **strict-mode product decision**, not an OpenSSH-default compatibility fix. If users expect OpenSSH Auto, Netcatty should expose Auto explicitly rather than overloading Password.
-- The PR deliberately keeps already-unlocked encrypted keys eligible on a retry path after the user has entered a key passphrase ([source](https://github.com/binaricat/Netcatty/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L899-L925)). That is no longer a silent fallback, but it means the internal predicate is not an absolute guarantee that only password packets can ever be sent during the entire retry lifecycle.
+- The change is a **strict-mode product decision**, not an OpenSSH-default compatibility fix. If users expect OpenSSH Auto, LemonSSH should expose Auto explicitly rather than overloading Password.
+- The PR deliberately keeps already-unlocked encrypted keys eligible on a retry path after the user has entered a key passphrase ([source](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L899-L925)). That is no longer a silent fallback, but it means the internal predicate is not an absolute guarantee that only password packets can ever be sent during the entire retry lifecycle.
 
 ## Recommended product wording
 

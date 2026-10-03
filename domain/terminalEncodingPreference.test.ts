@@ -81,7 +81,7 @@ test("syncs SSH encoding on attach and leaves unrelated sessions alone", () => {
 });
 
 test("creates isolated terminal encoding storage keys per host", () => {
-  const prefix = "netcatty_terminal_encoding_by_host_v1:";
+  const prefix = "lemonssh_terminal_encoding_by_host_v1:";
   const first = createTerminalEncodingStorageKey(prefix, {
     id: "host-a",
     protocol: "ssh",
@@ -103,7 +103,7 @@ test("creates isolated terminal encoding storage keys per host", () => {
 });
 
 test("falls back to a connection fingerprint when a host id is unavailable", () => {
-  const prefix = "netcatty_terminal_encoding_by_host_v1:";
+  const prefix = "lemonssh_terminal_encoding_by_host_v1:";
   assert.equal(
     createTerminalEncodingStorageKey(prefix, {
       protocol: "ssh",

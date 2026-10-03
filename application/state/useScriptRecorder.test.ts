@@ -32,7 +32,7 @@ test("oversized unsubmitted recording input stops explicitly and preserves earli
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   let stopCalls = 0;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => ({ ok: true }),
       scriptRecordingStop: async () => {
         stopCalls += 1;
@@ -87,7 +87,7 @@ test("automatic stop remains closed across an elapsed-time rerender and ignores 
   const appended: Array<{ type: string; value?: unknown }> = [];
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => ({ ok: true }),
       scriptRecordingStop: () => {
         stopCalls += 1;
@@ -149,7 +149,7 @@ test("repeated oversized input issues only one automatic stop", async (t) => {
   let stopCalls = 0;
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => ({ ok: true }),
       scriptRecordingStop: () => {
         stopCalls += 1;
@@ -207,7 +207,7 @@ test("automatic stop failure stays stopped and a later recording can start", asy
   const limitEvents: Array<{ steps: unknown[]; code: string }> = [];
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => {
         startCalls += 1;
         return { ok: true };
@@ -261,7 +261,7 @@ test("restart waits for an in-flight automatic stop and is not closed by its com
   let startCalls = 0;
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => {
         startCalls += 1;
         return { ok: true };
@@ -310,7 +310,7 @@ test("manual stop still returns its recording and permits a clean restart", asyn
   let stopCalls = 0;
   const eventTarget = new EventTarget() as EventTarget & Record<string, unknown>;
   Object.assign(eventTarget, {
-    netcatty: {
+    lemonssh: {
       scriptRecordingStart: async () => {
         startCalls += 1;
         return { ok: true };

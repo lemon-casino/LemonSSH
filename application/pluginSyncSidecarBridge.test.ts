@@ -41,7 +41,7 @@ test.beforeEach(() => {
 
 test('isPluginSidecarHostReady follows pluginHostReady probe when present', () => {
   (globalThis as { window: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       pluginHostReady: () => true,
       async collectPluginSyncSidecars() {
         return { version: 1, entries: [] };
@@ -51,7 +51,7 @@ test('isPluginSidecarHostReady follows pluginHostReady probe when present', () =
   assert.equal(isPluginSidecarHostReady(), true);
 
   (globalThis as { window: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       pluginHostReady: () => false,
       async collectPluginSyncSidecars() {
         return null;
@@ -73,7 +73,7 @@ test('collect defers empty last-known until commit (empty-vault guard ignores la
     }],
   });
   (globalThis as { window: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       async collectPluginSyncSidecars() {
         return { version: 1, entries: [] };
       },
@@ -122,7 +122,7 @@ test('liveOnly collect returns null instead of last-known when host is gated off
     }],
   });
   (globalThis as { window: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       async collectPluginSyncSidecars() {
         return null;
       },
@@ -146,7 +146,7 @@ test('liveOnly collect omits pending remote when replay cannot apply', async () 
     }],
   });
   (globalThis as { window: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       async collectPluginSyncSidecars() {
         return { version: 1, entries: [] };
       },

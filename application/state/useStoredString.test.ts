@@ -58,7 +58,7 @@ test("stored string sync handlers refresh from same-window and browser storage e
   const env = installLocalStorage();
   t.after(() => env.restore());
 
-  const storageKey = "netcatty:test-mode";
+  const storageKey = "lemonssh:test-mode";
   const syncedValues: TestMode[] = [];
   const handlers = createStoredStringSyncHandlers<TestMode>({
     storageKey,
@@ -84,7 +84,7 @@ test("stored string helpers read fallback and resolve updater-style toggles", (t
   const env = installLocalStorage();
   t.after(() => env.restore());
 
-  const storageKey = "netcatty:test-mode";
+  const storageKey = "lemonssh:test-mode";
   assert.equal(readStoredStringValue(storageKey, "edit", isTestMode), "edit");
   assert.equal(readOptionalStoredStringValue(storageKey, isTestMode), null);
 
@@ -109,7 +109,7 @@ test("stored string helpers work with default validator when isAllowedValue is o
   const env = installLocalStorage();
   t.after(() => env.restore());
 
-  const storageKey = "netcatty:test-font";
+  const storageKey = "lemonssh:test-font";
   assert.equal(readStoredStringValue(storageKey, "default-font"), "default-font");
   assert.equal(readOptionalStoredStringValue(storageKey), null);
 

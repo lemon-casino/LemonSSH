@@ -1,13 +1,13 @@
 import type { MiddleClickBehavior, RightClickBehavior, TerminalSettings } from "../../../domain/models";
 
 type MiddleClickSettings = Partial<Pick<TerminalSettings, "middleClickBehavior" | "middleClickPaste">>;
-const MIDDLE_CONTEXT_MENU_EVENT_KEY = "__netcattyMiddleContextMenu";
+const MIDDLE_CONTEXT_MENU_EVENT_KEY = "__lemonsshMiddleContextMenu";
 
 type MiddleClickContextMenuEvent = MouseEvent & {
   [MIDDLE_CONTEXT_MENU_EVENT_KEY]?: boolean;
 };
 
-const SHIFT_SELECTION_REPLAY_EVENT_KEY = "__netcattyShiftSelectionReplay";
+const SHIFT_SELECTION_REPLAY_EVENT_KEY = "__lemonsshShiftSelectionReplay";
 
 type ShiftSelectionReplayMouseEvent = MouseEvent & {
   [SHIFT_SELECTION_REPLAY_EVENT_KEY]?: boolean;
@@ -145,7 +145,7 @@ export const shouldStopShiftRightClickMouseTrackingMouseDown = ({
   && event.button === 2
   && (event.shiftKey || forcesMenuOverMouseTracking({ rightClickBehavior, forceMenuInAlternateScreen }));
 
-// Pair mouseup with mousedown ownership. When Netcatty claims the press
+// Pair mouseup with mousedown ownership. When LemonSSH claims the press
 // (Shift / fullscreen-apps menu), also swallow the release so xterm never
 // reports a lone button-up. When the TUI owns the press (Herdr, tmux menus,
 // vim, ...), the release must reach xterm too - otherwise the app stays stuck

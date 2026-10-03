@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { useCloudSync } from './useCloudSync';
 import { useI18n } from '../i18n/I18nProvider';
 import { getCloudSyncManager } from '../../infrastructure/services/CloudSyncManager';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   findSyncPayloadEncryptedCredentialPaths,
   healPoisonedSecretsForMerge,
@@ -228,7 +228,7 @@ export const useAutoSync = (config: AutoSyncConfig) => {
   // are the renderer signal that sidecar-backed values may have changed.
   const [pluginSidecarsVersion, setPluginSidecarsVersion] = useState(0);
   useEffect(() => {
-    const bridge = netcattyBridge.get() as {
+    const bridge = lemonsshBridge.get() as {
       onPluginContributionsChanged?: (callback: () => void) => () => void;
     } | null | undefined;
     const unsubscribe = bridge?.onPluginContributionsChanged?.(() => {
@@ -397,7 +397,7 @@ export const useAutoSync = (config: AutoSyncConfig) => {
 
       // If another window unlocked, reuse the in-memory session password from main process.
       if (state.securityState !== 'UNLOCKED') {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const sessionPassword = await bridge?.cloudSyncGetSessionPassword?.();
         if (sessionPassword) {
           const ok = await sync.unlock(sessionPassword);

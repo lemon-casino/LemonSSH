@@ -63,7 +63,7 @@ func TestAgentEventSequenceSurvivesUint64Max(t *testing.T) {
 		TurnID:        NewTurnID(),
 		Sequence:      "18446744073709551615",
 		Type:          "turn_end",
-		Backend:       "go-catty",
+		Backend:       "go-lemonssh",
 		TimestampMS:   1726473600000,
 	}
 	encoded, err := Encode(envelope)
@@ -83,7 +83,7 @@ func TestAgentEventSequenceSurvivesUint64Max(t *testing.T) {
 }
 
 func TestAgentEventRejectsUnknownField(t *testing.T) {
-	raw := []byte(`{"schemaVersion":1,"instanceId":"x","chatSessionId":"y","turnId":"z","sequence":"1","type":"turn_start","backend":"go-catty","timestampMs":0,"vendorSecret":"nope"}`)
+	raw := []byte(`{"schemaVersion":1,"instanceId":"x","chatSessionId":"y","turnId":"z","sequence":"1","type":"turn_start","backend":"go-lemonssh","timestampMs":0,"vendorSecret":"nope"}`)
 	var envelope AgentEventEnvelope
 	if err := Decode(raw, &envelope); err == nil {
 		t.Fatal("unknown envelope field must be rejected")
@@ -173,7 +173,7 @@ func TestAgentGoldenFixturesStable(t *testing.T) {
 			TurnID:        turn,
 			Sequence:      "1",
 			Type:          "turn_start",
-			Backend:       "go-catty",
+			Backend:       "go-lemonssh",
 			TimestampMS:   1726473600000,
 		},
 	}

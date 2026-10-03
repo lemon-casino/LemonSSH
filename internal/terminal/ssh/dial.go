@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
+
+	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
 )
 
 // DialConfig is one authenticated dial attempt. JumpHosts nest: hops are
@@ -127,8 +129,17 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 	if handshakeTimeout == 0 {
 		handshakeTimeout = 30 * time.Second
 	}
+	sshdebug.Logf("hop dial start host=%s port=%d user=%s viaJump=%t proxy=%s proxyCommand=%t",
+		config.Hostname, portOrDefault(config.Port), config.Username, via != nil,
+		func() string {
+			if config.ProxyURL != "" {
+				return "url"
+			}
+			return ""
+		}(), config.ProxyCommand != "")
 	authMethods, err := buildAuthMethods(ctx, config.Auth)
 	if err != nil {
+		sshdebug.LogError("hop auth build failed host=%s port=%d err=%v", config.Hostname, portOrDefault(config.Port), err)
 		return nil, err
 	}
 	address := net.JoinHostPort(config.Hostname, fmt.Sprintf("%d", portOrDefault(config.Port)))
@@ -186,8 +197,10 @@ func dialOne(ctx context.Context, config DialConfig, via *ssh.Client) (*ssh.Clie
 	}
 	if handshakeErr != nil {
 		_ = connection.Close()
+		sshdebug.LogError("hop handshake failed host=%s err=%v", config.Hostname, handshakeErr)
 		return nil, fmt.Errorf("ssh handshake %s: %w", address, handshakeErr)
 	}
+	sshdebug.Logf("hop connected host=%s serverVersion=%s", config.Hostname, string(clientConn.ServerVersion()))
 	return ssh.NewClient(clientConn, channels, requests), nil
 }
 

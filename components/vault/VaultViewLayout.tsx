@@ -29,7 +29,7 @@ type VaultViewLayoutContext = Record<string, any>;
 
 const VaultSectionLoading = () => (
   <div
-    className="netcatty-lazy-fade-in min-h-[320px] flex-1"
+    className="lemonssh-lazy-fade-in min-h-[320px] flex-1"
     aria-hidden="true"
   />
 );

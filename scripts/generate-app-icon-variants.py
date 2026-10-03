@@ -48,7 +48,7 @@ DETAIL_COLORS = [
 ]
 
 RAINBOW_GRADIENT = """
-    <linearGradient id="netcatty-rainbow" x1="180" y1="1020" x2="1080" y2="260" gradientUnits="userSpaceOnUse">
+    <linearGradient id="lemonssh-rainbow" x1="180" y1="1020" x2="1080" y2="260" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#EF4444"/>
       <stop offset="16%" stop-color="#F97316"/>
       <stop offset="33%" stop-color="#EAB308"/>
@@ -159,7 +159,7 @@ def set_viewbox(svg: str, viewbox: str) -> str:
 
 
 def inject_rainbow_gradient(svg: str) -> str:
-    if "id=\"netcatty-rainbow\"" in svg:
+    if "id=\"lemonssh-rainbow\"" in svg:
         return svg
     return svg.replace("<defs>", f"<defs>{RAINBOW_GRADIENT}", 1)
 
@@ -185,7 +185,7 @@ def apply_solid_variant(svg: str, spec: dict[str, str]) -> str:
 def apply_rainbow_variant(svg: str, spec: dict[str, str]) -> str:
     out = inject_rainbow_gradient(svg)
     out = out.replace('fill="#002551"', f'fill="{spec["bg"]}"', 1)
-    rainbow_fill = 'fill="url(#netcatty-rainbow)"'
+    rainbow_fill = 'fill="url(#lemonssh-rainbow)"'
     out = out.replace('fill="#f9f9f9"', rainbow_fill)
     out = out.replace('fill="#f8f8f9"', rainbow_fill)
     face_color = spec.get("detail", WHITE_CAT_FACE)

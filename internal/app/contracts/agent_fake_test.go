@@ -67,7 +67,7 @@ func (d *FakeTurnDriver) Start(turnID TurnID) (*EventPage, error) {
 		TurnID:        turnID,
 		Sequence:      fmt.Sprint(state.sequence),
 		Type:          "turn_start",
-		Backend:       "go-catty",
+		Backend:       "go-lemonssh",
 	})
 	return d.pageLocked(state), nil
 }
@@ -91,7 +91,7 @@ func (d *FakeTurnDriver) Stop(turnID TurnID, reason string) (*EventPage, error) 
 		TurnID:        turnID,
 		Sequence:      fmt.Sprint(state.sequence),
 		Type:          "turn_end",
-		Backend:       "go-catty",
+		Backend:       "go-lemonssh",
 	})
 	return d.pageLocked(state), nil
 }

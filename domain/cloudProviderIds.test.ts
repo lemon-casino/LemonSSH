@@ -5,6 +5,7 @@ import {
   assertCloudProviderId,
   isBuiltinCloudProvider,
   isPluginCloudProviderId,
+  legacyProviderConnectionStorageKey,
   providerConnectionStorageKey,
 } from './cloudProviderIds';
 
@@ -13,7 +14,10 @@ describe('cloudProviderIds', () => {
     for (const id of BUILTIN_CLOUD_PROVIDERS) {
       assert.equal(isBuiltinCloudProvider(id), true);
       assert.equal(isPluginCloudProviderId(id), false);
-      assert.equal(providerConnectionStorageKey(id), `netcatty_provider_${id}_v1`);
+      // Writes target the renamed key...
+      assert.equal(providerConnectionStorageKey(id), `lemonssh_provider_${id}_v1`);
+      // ...while reads keep the pre-rename key as a fallback.
+      assert.equal(legacyProviderConnectionStorageKey(id), `netcatty_provider_${id}_v1`);
     }
   });
 
@@ -21,7 +25,8 @@ describe('cloudProviderIds', () => {
     const id = 'com.example.backup.sync';
     assert.equal(isPluginCloudProviderId(id), true);
     assert.equal(isBuiltinCloudProvider(id), false);
-    assert.equal(providerConnectionStorageKey(id), `netcatty_provider_plugin_v1:${id}`);
+    assert.equal(providerConnectionStorageKey(id), `lemonssh_provider_plugin_v1:${id}`);
+    assert.equal(legacyProviderConnectionStorageKey(id), `netcatty_provider_plugin_v1:${id}`);
     assert.equal(assertCloudProviderId(id), id);
   });
 

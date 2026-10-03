@@ -107,7 +107,7 @@ test("resume without an owner uses a live backend transfer session when availabl
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async (id: string) => {
           resumeCalls.push(id);
           return { success: true };
@@ -144,7 +144,7 @@ test("resume soft-controls without panel when canAdopt is false", async (t) => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async (id: string) => {
           resumeCalls.push(id);
           return { success: true };
@@ -608,7 +608,7 @@ test("orphan pause with a live walk latches paused without cancel/demote", async
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         // No pauseTransfer → falls to no-bridge branch.
         cancelTransfer: async (id: string) => {
           cancelCalls.push(id);
@@ -673,7 +673,7 @@ test("orphan resume clears full latch tree so walk is not blocked", async (t) =>
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async () => ({ success: false, reason: "Transfer is no longer active" }),
       },
     },
@@ -1317,7 +1317,7 @@ test("pause after terminal close works without any React owner", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           pauseCalls.push(id);
           return { success: true, checkpointBytes: 1 };
@@ -1358,7 +1358,7 @@ test("soft pause checkpoint and source fingerprint persist before pause returns"
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async () => ({
           success: true,
           checkpointBytes: 7,
@@ -1507,7 +1507,7 @@ test("orphan pause retries while the backend stream is still arming", async (t) 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           pauseCalls.push(id);
           return pauseCalls.length === 1
@@ -1545,7 +1545,7 @@ test("orphan compressed upload pause uses the compression job and reports deferr
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseCompressedUpload: async (id: string) => {
           compressedCalls.push(id);
           return { success: true, deferred: true };
@@ -1585,7 +1585,7 @@ test("orphan compressed upload resume and cancel keep using the compression job"
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeCompressedUpload: async (id: string) => {
           calls.push(`resume:${id}`);
           return { success: true };
@@ -1916,7 +1916,7 @@ test("force-quit continue skips dead soft-resume and uses dedicated handler", as
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         clearPendingTransferCancel: async () => ({ success: true }),
         resumeTransfer: async () => {
           softResumeCalls += 1;
@@ -1968,7 +1968,7 @@ test("restart resume waits for the dedicated handler to become ready and keeps p
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         clearPendingTransferCancel: async () => ({ success: true }),
         resumeTransfer: async () => ({ success: false, reason: "Transfer is no longer active" }),
       },
@@ -2139,7 +2139,7 @@ test("dedicated directory resume after soft-pause winds down then startFresh (no
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         cancelTransfer: async (id: string) => {
           cancelCalls.push(id);
           // Sticky latch when not active (real bridge behavior for missing handle).
@@ -2276,7 +2276,7 @@ test("orphan soft-resume with a live walk does not start dedicated resume", asyn
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         // Between files: no active child streams — bridge resume misses.
         resumeTransfer: async (id: string) => {
           resumeCalls.push(id);
@@ -2324,7 +2324,7 @@ test("async single-file soft-drain does not re-pause after immediate resume", as
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           if (id === "file-slow") return filePauseGate;
           return { success: true, checkpointBytes: 1 };
@@ -2383,7 +2383,7 @@ test("async folder soft-drain does not re-pause after immediate resume", async (
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           if (id === "child-slow") return childPauseGate;
           return { success: true, checkpointBytes: 1 };
@@ -2444,7 +2444,7 @@ test("orphan directory pause stays latched even when some children hard-miss pau
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           pauseCalls.push(id);
           if (id === "c-ok") return { success: true, checkpointBytes: 4 };
@@ -2576,7 +2576,7 @@ test("resume marks orphaned tasks pending while reconnecting", async (t) => {
     configurable: true,
     value: {
       dispatchEvent: () => true,
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async () => ({ success: false }),
       },
     },
@@ -2924,7 +2924,7 @@ test("soft-resume transient bridge miss stays paused without dedicated rehome", 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async () => ({
           success: false,
           reason: "The current file is still finishing. Try resume again.",
@@ -2975,7 +2975,7 @@ test("soft-resume failure demotes and uses dedicated handler even with a live ow
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         resumeTransfer: async () => ({ success: false, reason: "not active" }),
         clearPendingTransferCancel: async () => {},
       },
@@ -3041,7 +3041,7 @@ test("single-file soft-resume bridge-fail with live walk goes hard reconnect (no
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async () => ({ success: true, checkpointBytes: 10, lifecycleEpoch: 1 }),
         resumeTransfer: async () => ({ success: false, reason: "not active" }),
         clearPendingTransferCancel: async () => {},
@@ -3095,7 +3095,7 @@ test("ingestBackgroundEvent progress advances after soft pause then soft resume 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async () => {
           // First pause bumps; second already-paused returns same epoch (bridge behavior).
           if (bridgeEpoch === 0) bridgeEpoch = 1;
@@ -3171,7 +3171,7 @@ test("directory soft resume then new/queued child progress at bridge epoch 0 adv
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         pauseTransfer: async (id: string) => {
           if (id === "live-child") {
             liveEpoch = Math.max(liveEpoch, 1);

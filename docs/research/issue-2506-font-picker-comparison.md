@@ -9,9 +9,9 @@ Source revisions:
 
 ## Conclusion
 
-[Issue #2506](https://github.com/binaricat/Netcatty/issues/2506) proposes a mature, scoped improvement: searchable font pickers. Tabby and Electerm both avoid growing a hard-coded built-in font catalog. Their shared pattern is: enumerate local fonts, support name search, and keep free-text entry so a failed or incomplete system font scan does not lock the user out.
+[Issue #2506](https://github.com/binaricat/LemonSSH/issues/2506) proposes a mature, scoped improvement: searchable font pickers. Tabby and Electerm both avoid growing a hard-coded built-in font catalog. Their shared pattern is: enumerate local fonts, support name search, and keep free-text entry so a failed or incomplete system font scan does not lock the user out.
 
-They differ on fallback fonts. Tabby uses a clear "main font + one fallback font" model, which is closest to Netcatty's existing shape. Electerm lets users order an arbitrary font chain, which is more flexible but easier to misconfigure. For #2506, keep Netcatty's main-font / CJK-font split, make the UI font and terminal main-font pickers searchable, and do not introduce an arbitrary font-chain editor.
+They differ on fallback fonts. Tabby uses a clear "main font + one fallback font" model, which is closest to LemonSSH's existing shape. Electerm lets users order an arbitrary font chain, which is more flexible but easier to misconfigure. For #2506, keep LemonSSH's main-font / CJK-font split, make the UI font and terminal main-font pickers searchable, and do not introduce an arbitrary font-chain editor.
 
 ## Comparison
 
@@ -23,7 +23,7 @@ They differ on fallback fonts. Tabby uses a clear "main font + one fallback font
 | Fallback / CJK font | Has a dedicated fallback font field whose copy says it covers glyphs missing from the main font; it also has local-font autocomplete ([source](https://github.com/Eugeny/tabby/blob/14e2d60b9b6dee84a53c37f05eefeb803787de04/tabby-terminal/src/components/appearanceSettingsTab.component.pug#L151-L160)). Final order is main font, user fallback, built-in fallbacks, then system monospace fonts ([source](https://github.com/Eugeny/tabby/blob/14e2d60b9b6dee84a53c37f05eefeb803787de04/tabby-core/src/utils.ts#L20-L28)). It is not labeled "CJK font", but a Chinese font can be entered there. | No separate CJK / fallback field. Users add multiple font tags; save concatenates them into one font stack ([save logic](https://github.com/electerm/electerm/blob/7dfb33ed19352430f0303ca14e379d9b2387f390/src/client/components/setting-panel/setting-terminal.jsx#L89-L94), [UI](https://github.com/electerm/electerm/blob/7dfb33ed19352430f0303ca14e379d9b2387f390/src/client/components/setting-panel/setting-terminal.jsx#L432-L439)) and hands that stack to the terminal ([source](https://github.com/electerm/electerm/blob/7dfb33ed19352430f0303ca14e379d9b2387f390/src/client/components/terminal/terminal.jsx#L1288-L1293)). A Chinese font can be placed in a later tag. |
 | Preview and per-connection override | No per-row candidate preview; main and fallback share the same simple autocomplete model. | Each candidate name is rendered in its own family for a light preview ([source](https://github.com/electerm/electerm/blob/7dfb33ed19352430f0303ca14e379d9b2387f390/src/client/components/common/font-select.jsx#L14-L25)). Per-connection font overrides remain plain text fields and do not reuse the global searchable picker ([source](https://github.com/electerm/electerm/blob/7dfb33ed19352430f0303ca14e379d9b2387f390/src/client/components/bookmark-form/config/common-fields.js#L170-L175)). |
 
-## Recommendations for Netcatty
+## Recommendations for LemonSSH
 
 1. Give UI font and terminal main font the same searchable picker UX: case-insensitive name substring match, with each candidate rendered in its own family.
 2. Keep reading local fonts instead of expanding a built-in catalog. Prefer monospace families for the terminal main font so proportional fonts do not break column alignment.
@@ -53,7 +53,7 @@ These 8 fonts are for accepting #2506; they are not a quantified popularity rank
 | [LXGW WenKai GB](https://github.com/lxgw/LxgwWenkaiGB) | [`font-lxgw-wenkai-gb`](https://formulae.brew.sh/cask/font-lxgw-wenkai-gb) | Install includes both `LXGW WenKai Mono GB` and proportional versions; Simplified Chinese | No | Checks that search distinguishes Mono vs regular, and that Chinese style differences remain visible. |
 | [Noto Sans Mono CJK SC](https://github.com/notofonts/noto-cjk/tree/main/Sans) | [`font-noto-sans-mono-cjk-sc`](https://formulae.brew.sh/cask/font-noto-sans-mono-cjk-sc) | Half-width ASCII + full-width Simplified Chinese; suited to terminal 2:1 layout | No | Neutral baseline for Chinese column width and fallback behavior. |
 
-Install all 8 casks once, restart Netcatty, then test search, keyboard selection, main + CJK combinations, and rendering of `A中B文 0O1lI -> !=` plus Powerline / Nerd Font icons:
+Install all 8 casks once, restart LemonSSH, then test search, keyboard selection, main + CJK combinations, and rendering of `A中B文 0O1lI -> !=` plus Powerline / Nerd Font icons:
 
 ```sh
 brew install --cask font-jetbrains-mono font-fira-code font-cascadia-code font-iosevka font-maple-mono-nf-cn font-sarasa-gothic font-lxgw-wenkai-gb font-noto-sans-mono-cjk-sc
@@ -63,4 +63,4 @@ Base JetBrains Mono and Fira Code include a few Powerline symbols but are not fu
 
 ## Scope note
 
-The Tabby and Electerm settings reviewed above target terminal fonts. The checked official settings sources do not expose a separate picker that fully matches Netcatty's "UI font" control. They therefore evidence shared patterns for search, system font enumeration, free-text entry, and fallback chains, not a required product model for UI fonts.
+The Tabby and Electerm settings reviewed above target terminal fonts. The checked official settings sources do not expose a separate picker that fully matches LemonSSH's "UI font" control. They therefore evidence shared patterns for search, system font enumeration, free-text entry, and fallback chains, not a required product model for UI fonts.

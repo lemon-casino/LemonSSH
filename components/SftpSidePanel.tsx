@@ -433,8 +433,8 @@ const SftpSidePanelInner: React.FC<SftpSidePanelProps> = ({
       });
       void drain();
     };
-    window.addEventListener("netcatty:prepare-sftp-transfer-resume", handler);
-    return () => window.removeEventListener("netcatty:prepare-sftp-transfer-resume", handler);
+    window.addEventListener("lemonssh:prepare-sftp-transfer-resume", handler);
+    return () => window.removeEventListener("lemonssh:prepare-sftp-transfer-resume", handler);
   }, [hosts, transferOwnerId]);
 
   useReportSftpTransferOwnerActivity({
@@ -1142,7 +1142,7 @@ const SftpSidePanelInteractiveBody: React.FC<SftpSidePanelInteractiveBodyProps> 
       const target = event.target as Node | null;
       const elementTarget = target instanceof Element ? target : null;
       const isPortalInteraction = !!elementTarget?.closest(
-        '#netcatty-context-menu-root, [role="dialog"], [data-radix-popper-content-wrapper]',
+        '#lemonssh-context-menu-root, [role="dialog"], [data-radix-popper-content-wrapper]',
       );
       if (isPortalInteraction) {
         return;

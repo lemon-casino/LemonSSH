@@ -32,16 +32,16 @@ func globalDecision(method string, mode PermissionMode, params map[string]any) D
 // TestBuiltinApprovalSet ports the CJS builtin approval-set expectations.
 func TestBuiltinApprovalSet(t *testing.T) {
 	approvals := Default().ApprovalRPCMethods(SurfaceBuiltin)
-	if approvals["netcatty/jobStop"] {
+	if approvals["lemonssh/jobStop"] {
 		t.Errorf("jobStop must not require approval")
 	}
-	if approvals["netcatty/setCancelled"] {
+	if approvals["lemonssh/setCancelled"] {
 		t.Errorf("setCancelled must not require approval")
 	}
-	if !approvals["netcatty/exec"] {
+	if !approvals["lemonssh/exec"] {
 		t.Errorf("exec must require approval")
 	}
-	if !approvals["netcatty/sftp/write"] {
+	if !approvals["lemonssh/sftp/write"] {
 		t.Errorf("sftp/write must require approval")
 	}
 }
@@ -65,7 +65,7 @@ func TestVaultManagementWritesUseStandardPolicy(t *testing.T) {
 }
 
 func TestObserverModeBlocksWritesAllowsPoll(t *testing.T) {
-	denied := builtinDecision("netcatty/exec", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, false)
+	denied := builtinDecision("lemonssh/exec", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, false)
 	if denied.Allowed {
 		t.Errorf("observer must deny exec")
 	}
@@ -73,19 +73,19 @@ func TestObserverModeBlocksWritesAllowsPoll(t *testing.T) {
 		t.Errorf("observer deny message: got %q", denied.Error)
 	}
 
-	allowed := builtinDecision("netcatty/jobPoll", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, false)
+	allowed := builtinDecision("lemonssh/jobPoll", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, false)
 	if !allowed.Allowed || allowed.RequiresApproval {
 		t.Errorf("observer must allow jobPoll without approval, got %+v", allowed)
 	}
 }
 
 func TestConfirmModeRequiresApprovalForWrites(t *testing.T) {
-	writeDecision := builtinDecision("netcatty/sftp/write", ModeConfirm, map[string]any{"chatSessionId": "chat-1"}, false)
+	writeDecision := builtinDecision("lemonssh/sftp/write", ModeConfirm, map[string]any{"chatSessionId": "chat-1"}, false)
 	if !writeDecision.Allowed || !writeDecision.RequiresApproval {
 		t.Errorf("confirm must approve sftp/write, got %+v", writeDecision)
 	}
 
-	readDecision := builtinDecision("netcatty/sftp/list", ModeConfirm, map[string]any{"chatSessionId": "chat-1"}, false)
+	readDecision := builtinDecision("lemonssh/sftp/list", ModeConfirm, map[string]any{"chatSessionId": "chat-1"}, false)
 	if !readDecision.Allowed || readDecision.RequiresApproval {
 		t.Errorf("builtin sftp/list must not require approval, got %+v", readDecision)
 	}
@@ -102,7 +102,7 @@ func TestPublicSurfaceGatesSensitiveReads(t *testing.T) {
 }
 
 func TestBuiltinWritesRequireChatSessionID(t *testing.T) {
-	decision := builtinDecision("netcatty/exec", ModeAuto, nil, false)
+	decision := builtinDecision("lemonssh/exec", ModeAuto, nil, false)
 	if decision.Allowed {
 		t.Errorf("exec without chatSessionId must be denied")
 	}
@@ -112,7 +112,7 @@ func TestBuiltinWritesRequireChatSessionID(t *testing.T) {
 }
 
 func TestCancelledChatBlocksWritesAllowsReads(t *testing.T) {
-	for _, method := range []string{"netcatty/exec", "netcatty/sftp/write"} {
+	for _, method := range []string{"lemonssh/exec", "lemonssh/sftp/write"} {
 		decision := builtinDecision(method, ModeAuto, map[string]any{"chatSessionId": "chat-1"}, true)
 		if decision.Allowed {
 			t.Errorf("%s must be denied when chat session is cancelled", method)
@@ -122,14 +122,14 @@ func TestCancelledChatBlocksWritesAllowsReads(t *testing.T) {
 		}
 	}
 
-	read := builtinDecision("netcatty/sftp/list", ModeAuto, map[string]any{"chatSessionId": "chat-1"}, true)
+	read := builtinDecision("lemonssh/sftp/list", ModeAuto, map[string]any{"chatSessionId": "chat-1"}, true)
 	if !read.Allowed {
 		t.Errorf("sftp/list must stay allowed when chat session is cancelled")
 	}
 }
 
 func TestJobStopBypassesObserverAndCancel(t *testing.T) {
-	decision := builtinDecision("netcatty/jobStop", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, true)
+	decision := builtinDecision("lemonssh/jobStop", ModeObserver, map[string]any{"chatSessionId": "chat-1"}, true)
 	if !decision.Allowed {
 		t.Errorf("jobStop must bypass observer and cancelled chat checks, got %+v", decision)
 	}
@@ -166,7 +166,7 @@ func TestConfirmModeApprovalsForGlobalWrites(t *testing.T) {
 
 func execWithGrants(command string, grants []Grant) Decision {
 	return Default().EvaluateWithGrants(Request{
-		RPCMethod:      "netcatty/exec",
+		RPCMethod:      "lemonssh/exec",
 		PermissionMode: ModeConfirm,
 		Params: map[string]any{
 			"chatSessionId": "chat-1",
@@ -266,7 +266,7 @@ func TestArgsPatternGrantWithoutCommand(t *testing.T) {
 		CreatedAt:      1,
 	}}
 	decision := Default().EvaluateWithGrants(Request{
-		RPCMethod:      "netcatty/jobStart",
+		RPCMethod:      "lemonssh/jobStart",
 		PermissionMode: ModeConfirm,
 		Params:         map[string]any{"chatSessionId": "chat-1", "sessionId": "session-9"},
 	}, grants)
@@ -275,7 +275,7 @@ func TestArgsPatternGrantWithoutCommand(t *testing.T) {
 	}
 
 	mismatch := Default().EvaluateWithGrants(Request{
-		RPCMethod:      "netcatty/jobStart",
+		RPCMethod:      "lemonssh/jobStart",
 		PermissionMode: ModeConfirm,
 		Params:         map[string]any{"chatSessionId": "chat-1", "sessionId": "other-9"},
 	}, grants)

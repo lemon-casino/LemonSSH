@@ -38,12 +38,12 @@ const CATTY_PASTE = `---
 test("centered README hero blocks wrap in div align=center", () => {
   const html = `
     <p align="center">
-      <img src="https://example.com/icon.png" alt="Netcatty" width="128" height="128">
+      <img src="https://example.com/icon.png" alt="LemonSSH" width="128" height="128">
     </p>
-    <h1 align="center">Netcatty</h1>
+    <h1 align="center">LemonSSH</h1>
     <p align="center">
       <strong>🔥 AI-Powered SSH Client</strong><br/>
-      <a href="https://netcatty.app">netcatty.app</a>
+      <a href="https://lemonssh.app">lemonssh.app</a>
     </p>
   `;
   const md = convertClipboardHtmlToMarkdown(html);
@@ -51,30 +51,30 @@ test("centered README hero blocks wrap in div align=center", () => {
   assert.match(md, /<\/div>/);
   assert.match(md, /width="128"/);
   assert.match(md, /height="128"/);
-  assert.match(md, /# Netcatty/);
-  assert.match(md, /netcatty\.app/);
+  assert.match(md, /# LemonSSH/);
+  assert.match(md, /lemonssh\.app/);
   const centerIdx = md.indexOf('<div align="center">');
-  const logoIdx = md.search(/icon\.png|# Netcatty/);
+  const logoIdx = md.search(/icon\.png|# LemonSSH/);
   assert.ok(centerIdx >= 0 && logoIdx >= 0 && centerIdx < logoIdx);
 });
 
 test("island conversion keeps center on p align=center with image", () => {
   const plain = `
 <p align="center">
-  <img src="https://example.com/icon.png" alt="Netcatty" width="128" height="128">
+  <img src="https://example.com/icon.png" alt="LemonSSH" width="128" height="128">
 </p>
 
-<h1 align="center">Netcatty</h1>
+<h1 align="center">LemonSSH</h1>
 `;
   const md = convertHtmlIslandsInMarkdown(plain);
   assert.match(md, /<div align="center">/);
   assert.match(md, /width="128"/);
-  assert.match(md, /Netcatty/);
+  assert.match(md, /LemonSSH/);
 });
 
 test("relative public/ image paths map to Vite site root (not dropped)", () => {
   const md = convertHtmlIslandsInMarkdown(
-    '<p align="center"><img src="public/icon.png" alt="Netcatty" width="128" height="128"></p>',
+    '<p align="center"><img src="public/icon.png" alt="LemonSSH" width="128" height="128"></p>',
   );
   // Vite serves public/ at / — store /icon.png so the browser does not request /public/...
   assert.match(md, /src="\/icon\.png"/);
@@ -178,7 +178,7 @@ test("serializeSafeHtmlImage keeps relative paths; rejects data/javascript", () 
 
 test("linked badge images stay as images (tight single-line / a>img), not text-only", () => {
   const source = [
-    "[![GitHub Release](https://img.shields.io/github/v/release/binaricat/Netcatty)](https://github.com/binaricat/Netcatty/releases/latest)",
+    "[![GitHub Release](https://img.shields.io/github/v/release/binaricat/LemonSSH)](https://github.com/binaricat/LemonSSH/releases/latest)",
     "",
     "[ ",
     "![Platform](https://img.shields.io/badge/Platform-macOS-blue)",
@@ -195,7 +195,7 @@ test("linked badge images stay as images (tight single-line / a>img), not text-o
   // Markdown linked image kept (with image src), not reduced to text-only [GitHub Release](url).
   assert.match(
     md,
-    /\[!\[GitHub Release\]\(https:\/\/img\.shields\.io\/github\/v\/release\/binaricat\/Netcatty\)\]\(https:\/\/github\.com\/binaricat\/Netcatty\/releases\/latest\)/,
+    /\[!\[GitHub Release\]\(https:\/\/img\.shields\.io\/github\/v\/release\/binaricat\/LemonSSH\)\]\(https:\/\/github\.com\/binaricat\/LemonSSH\/releases\/latest\)/,
   );
   assert.match(md, /\[!\[Platform\]\(https:\/\/img\.shields\.io\/badge\/Platform-macOS-blue\)\]\(#\)/);
   // HTML img with width inside link → <a><img width></a>
@@ -209,7 +209,7 @@ test("linked badge images stay as images (tight single-line / a>img), not text-o
   // Not text-only badge (must keep image syntax).
   assert.doesNotMatch(
     md,
-    /(?<!!)\[GitHub Release\]\(https:\/\/github\.com\/binaricat\/Netcatty\/releases\/latest\)/,
+    /(?<!!)\[GitHub Release\]\(https:\/\/github\.com\/binaricat\/LemonSSH\/releases\/latest\)/,
   );
 });
 
@@ -510,15 +510,15 @@ test("maskCodeRegions does not hide nested list tasks as indented code", () => {
 
 test("maskCodeRegions sentinels do not collide with user-authored tokens", () => {
   const source = [
-    "keep @@NETCATTY_MD_CODE_0@@ literal",
+    "keep @@LEMONSSH_MD_CODE_0@@ literal",
     "",
     "```",
     "code body",
     "```",
   ].join("\n");
   const mask = maskCodeRegions(source);
-  assert.match(mask.text, /keep @@NETCATTY_MD_CODE_0@@ literal/);
-  assert.notEqual(mask.sentinel, "@@NETCATTY_MD_CODE_");
+  assert.match(mask.text, /keep @@LEMONSSH_MD_CODE_0@@ literal/);
+  assert.notEqual(mask.sentinel, "@@LEMONSSH_MD_CODE_");
   const restored = unmaskCodeRegions(mask.text, mask.slots, mask.sentinel);
   assert.equal(restored, source);
 });

@@ -27,7 +27,7 @@ func TestParseCertificateSignerRoundTrip(t *testing.T) {
 		Key:             userSigner.PublicKey(),
 		Serial:          1,
 		CertType:        gossh.UserCert,
-		KeyId:           "netcatty-cert",
+		KeyId:           "lemonssh-cert",
 		ValidPrincipals: []string{"root"},
 		ValidAfter:      uint64(time.Now().Add(-time.Minute).Unix()),
 		ValidBefore:     uint64(time.Now().Add(time.Hour).Unix()),

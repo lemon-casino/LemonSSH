@@ -10,7 +10,7 @@ import (
 )
 
 func TestPTYExitHelper(t *testing.T) {
-	if os.Getenv("NETCATTY_PTY_EXIT_TEST") == "1" {
+	if os.Getenv("LEMONSSH_PTY_EXIT_TEST") == "1" {
 		os.Exit(23)
 	}
 }
@@ -22,7 +22,7 @@ func TestPlatformWaitReportsProcessExit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := NewSession(Config{Shell: path, Args: []string{"-test.run=^TestPTYExitHelper$"}, Env: append(os.Environ(), "NETCATTY_PTY_EXIT_TEST=1")})
+	s := NewSession(Config{Shell: path, Args: []string{"-test.run=^TestPTYExitHelper$"}, Env: append(os.Environ(), "LEMONSSH_PTY_EXIT_TEST=1")})
 	if err = s.Start(ctx, NewPlatformBackend()); err != nil {
 		t.Fatal(err)
 	}

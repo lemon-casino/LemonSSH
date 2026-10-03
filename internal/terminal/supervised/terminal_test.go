@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
 )
 
 type terminalProcess struct {

@@ -7,7 +7,7 @@ export interface RuntimeClient extends RuntimePorts {
    * Aggregate bridge retained for callers that have not moved to a narrower
    * domain port yet.
    */
-  readonly transitionBridge: NetcattyBridge;
+  readonly transitionBridge: LemonSSHBridge;
 }
 
 let activeClient: RuntimeClient | undefined;

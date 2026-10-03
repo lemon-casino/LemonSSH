@@ -8,6 +8,7 @@ import { getActiveRuntimeClient, setActiveRuntimeClient } from "../runtimeClient
 import { useSftpExternalOperations } from "../../../application/state/sftp/useSftpExternalOperations";
 import { sftpTransferCenterStore } from "../../../application/state/sftpTransferCenterStore";
 import type { SftpPane } from "../../../application/state/sftp/types";
+import type { AppLockSettings } from "../../../domain/appLock";
 import { hostStorageAdapter } from "../../persistence/hostStorageAdapter";
 import { createWailsRuntimeClient } from "./wailsRuntimeClient";
 import type { WailsBindingDeps } from "./wailsRuntimeClient";
@@ -138,7 +139,7 @@ test("clipboard image bridge uses managed native files and exact terminal aliase
   const bindings = stubBindings();
   const opened: string[] = [];
   bindings.sftp.OpenForTerminal = async id => { opened.push(id); return `sftp-${id}`; };
-  const image = { path: "C:\\Netcatty\\temp\\shot.png", name: "shot.png", mediaType: "image/png", size: 123 };
+  const image = { path: "C:\\LemonSSH\\temp\\shot.png", name: "shot.png", mediaType: "image/png", size: 123 };
   bindings.filesystem = { ReadClipboardImage: async () => image };
   const bridge = createWailsRuntimeClient(bindings).transitionBridge;
   await bridge.startSSHSession({ sessionId: "ui-image", hostname: "host", username: "user" });
@@ -180,6 +181,133 @@ test("system unlock keeps unavailable native status and rejected authentication 
   bindings.appLock.UnlockWithBiometrics = async () => ({success:true});
   assert.deepEqual(await bridge.requestAppLockSystemUnlock!(), {ok:true});
   assert.deepEqual(await createWailsRuntimeClient(stubBindings()).transitionBridge.requestAppLockSystemUnlock!(), {ok:false,error:"unsupported"});
+});
+
+test("app lock lock/timeout calls and cross-window event subscriptions map onto the Go services", async () => {
+  const calls: string[] = [];
+  const subscribers: Array<{ name: string; cb: (event: { data?: unknown }) => void }> = [];
+  const bindings = stubBindings();
+  bindings.events = {
+    On: (name, cb) => {
+      subscribers.push({ name, cb });
+      return () => { calls.push(`unsubscribe:${name}`); };
+    },
+  };
+  bindings.appLock = {
+    GetRuntimeState: async () => ({initialized:true,locked:false,reason:null,version:1,lastLockedAt:null,lastUnlockedAt:null,lastActivityAt:null}),
+    SetRuntimeLocked: async (reason: string) => {
+      calls.push(`lock:${reason}`);
+      return {initialized:true,locked:true,reason,version:2,lastLockedAt:1,lastUnlockedAt:null,lastActivityAt:null};
+    },
+    SetTimeoutMinutes: async (minutes: number) => {
+      calls.push(`timeout:${minutes}`);
+      return { enabled: true, timeoutMinutes: minutes, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null };
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  const locked = await bridge.setAppLockRuntimeLocked!("manual");
+  assert.equal(locked.locked, true);
+  assert.equal(locked.reason, "manual");
+  assert.deepEqual(await bridge.setAppLockTimeoutMinutes!(30), {
+    enabled: true, timeoutMinutes: 30, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null,
+  });
+  assert.deepEqual(calls, ["lock:manual", "timeout:30"]);
+
+  const received: unknown[] = [];
+  const unsubscribers = [
+    bridge.onAppLockRuntimeStateChanged!((state) => received.push(state)),
+    bridge.onAppLockSettingsChanged!((settings) => received.push(settings)),
+    bridge.onAppLockReopen!(() => received.push("reopen")),
+    bridge.onVaultBackupsChanged!(() => received.push("backups")),
+  ];
+  assert.deepEqual(subscribers.map((subscriber) => subscriber.name), [
+    "app-lock:runtime-state-changed",
+    "app-lock:settings-changed",
+    "app-lock:reopen",
+    "vault-backups:changed",
+  ]);
+  subscribers[0].cb({ data: { locked: true, reason: "idle" } });
+  subscribers[1].cb({ data: { timeoutMinutes: 30 } });
+  subscribers[2].cb({});
+  subscribers[3].cb({ data: null });
+  assert.deepEqual(received, [
+    { locked: true, reason: "idle" },
+    { timeoutMinutes: 30 },
+    "reopen",
+    "backups",
+  ]);
+  unsubscribers.forEach((unsubscribe) => unsubscribe());
+  assert.deepEqual(calls, [
+    "lock:manual",
+    "timeout:30",
+    "unsubscribe:app-lock:runtime-state-changed",
+    "unsubscribe:app-lock:settings-changed",
+    "unsubscribe:app-lock:reopen",
+    "unsubscribe:vault-backups:changed",
+  ]);
+});
+
+test("app lock timeout setting fails closed without the Go method", async () => {
+  const bridge = createWailsRuntimeClient(stubBindings()).transitionBridge;
+  await assert.rejects(bridge.setAppLockTimeoutMinutes!(5), /App lock timeout setting unavailable/);
+});
+
+test("app lock reset maps onto Go Reset and reports authoritative settings", async () => {
+  const seen: string[] = [];
+  const disabledSettings: AppLockSettings = { enabled: false, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null };
+  const bindings = stubBindings();
+  bindings.appLock = {
+    GetRuntimeState: async () => ({ initialized: true, locked: true, reason: "startup", version: 1, lastLockedAt: 1, lastUnlockedAt: null, lastActivityAt: null }),
+    Reset: async (password: string) => {
+      seen.push(`reset:${password}`);
+      if (password === "") throw new Error("empty-current");
+      if (password !== "secret") throw new Error("incorrect");
+      return { initialized: true, locked: false, reason: null, version: 2, lastLockedAt: null, lastUnlockedAt: 5, lastActivityAt: 5 };
+    },
+    GetSettings: async () => {
+      seen.push("settings");
+      return disabledSettings;
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  assert.deepEqual(await bridge.requestAppLockReset!("secret"), disabledSettings);
+  assert.deepEqual(seen, ["reset:secret", "settings"]);
+  assert.deepEqual(await bridge.requestAppLockReset!(""), { ok: false, error: "empty-current" });
+  assert.deepEqual(await bridge.requestAppLockReset!("wrong"), { ok: false, error: "incorrect" });
+
+  // Without the Go Reset binding the mapping fails closed with a typed code.
+  const degraded = createWailsRuntimeClient(stubBindings()).transitionBridge;
+  assert.deepEqual(await degraded.requestAppLockReset!("secret"), { ok: false, error: "incorrect" });
+});
+
+test("app lock enable maps onto Go Enable with the new password", async () => {
+  const seen: string[] = [];
+  const enabledSettings: AppLockSettings = { enabled: true, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: { version: 1, algorithm: "PBKDF2-SHA256", iterations: 210000, salt: "s", hash: "h" } };
+  const bindings = stubBindings();
+  bindings.appLock = {
+    GetRuntimeState: async () => ({ initialized: true, locked: false, reason: null, version: 1, lastLockedAt: null, lastUnlockedAt: 1, lastActivityAt: 1 }),
+    Enable: async (password: string) => {
+      seen.push(`enable:${password}`);
+      if (password === "short") throw new Error("app lock: password too short: 5 < 4");
+      return { initialized: true, locked: true, reason: "password", version: 2, lastLockedAt: 5, lastUnlockedAt: null, lastActivityAt: null };
+    },
+    GetSettings: async () => {
+      seen.push("settings");
+      return enabledSettings;
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  assert.deepEqual(await bridge.requestAppLockEnable!("new-pass"), enabledSettings);
+  assert.deepEqual(seen, ["enable:new-pass", "settings"]);
+  assert.deepEqual(await bridge.requestAppLockEnable!(""), { ok: false, error: "empty-next" });
+  assert.deepEqual(await bridge.requestAppLockEnable!("short"), { ok: false, error: "incorrect" });
+
+  // Without the Go Enable binding the mapping fails closed with a typed code.
+  const degraded = createWailsRuntimeClient(stubBindings()).transitionBridge;
+  assert.deepEqual(await degraded.requestAppLockEnable!("new-pass"), { ok: false, error: "incorrect" });
 });
 
 test("local browsing uses native paths through the bridge and fails without filesystem bindings", async () => {
@@ -329,6 +457,46 @@ test("window controls call the Wails native window API", async () => {
   assert.equal(await bridge.windowIsFullscreen?.(), false);
   await bridge.windowClose?.();
   assert.deepEqual(calls, ["minimize", "maximize", "close"]);
+});
+
+test("windowClose routes through the lifecycle quit guard when available", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.windowLifecycle = {
+    RequestClose: async (name) => {
+      calls.push(`requestClose:${name}`);
+      return { success: true, guarded: true };
+    },
+  };
+  bindings.window = {
+    Minimise: async () => { calls.push("minimize"); },
+    ToggleMaximise: async () => undefined,
+    Hide: async () => { calls.push("hide"); },
+    Close: async () => { calls.push("close"); },
+    IsMaximised: async () => false,
+    IsFullscreen: async () => false,
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.windowClose?.();
+  // Outside a browser location (Node tests) the caller resolves to the main
+  // window, which must reach the Go-side guard instead of hiding silently.
+  assert.deepEqual(calls, ["requestClose:main"]);
+});
+
+test("windowClose falls back to the legacy hide when RequestClose is missing", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings();
+  bindings.window = {
+    Minimise: async () => undefined,
+    ToggleMaximise: async () => undefined,
+    Hide: async () => { calls.push("hide"); },
+    Close: async () => { calls.push("close"); },
+    IsMaximised: async () => false,
+    IsFullscreen: async () => false,
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.windowClose?.();
+  assert.deepEqual(calls, ["hide"]);
 });
 
 test("startLocalSession attaches the data plane", async () => {
@@ -485,10 +653,10 @@ test("onFilesDropped fans the Wails drop event to listeners", async () => {
   const client = createWailsRuntimeClient(bindings);
   const seen: Array<{ filenames: string[] }> = [];
   client.transitionBridge.onFilesDropped?.((payload) => seen.push({ filenames: payload.filenames }));
-  listeners.get("netcatty:files-dropped")?.[0]({
+  listeners.get("lemonssh:files-dropped")?.[0]({
     data: { filenames: ["C:\\a.txt"], x: 1, y: 2, elementDetails: { id: "pane" } },
   });
-  listeners.get("netcatty:files-dropped")?.[0]({
+  listeners.get("lemonssh:files-dropped")?.[0]({
     data: [{ Filenames: ["C:\\b.txt"], X: 3, Y: 4 }],
   });
   assert.deepEqual(seen, [{ filenames: ["C:\\a.txt"] }, { filenames: ["C:\\b.txt"] }]);
@@ -701,6 +869,74 @@ test("extractSftpArchive calls SFTP ExtractArchive", async () => {
   assert.deepEqual(seen, ["sftp-1", "/opt/a.zip"]);
 });
 
+test("extractSftpArchive forwards the filename encoding", async () => {
+  const seen: unknown[] = [];
+  const bindings = stubBindings();
+  bindings.sftp.ExtractArchive = async (sftpID, remotePath, encoding) => {
+    seen.push(sftpID, remotePath, encoding);
+    return 1;
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.extractSftpArchive?.("sftp-1", "/opt/a.zip", "gb18030");
+  assert.equal(result?.success, true);
+  assert.deepEqual(seen, ["sftp-1", "/opt/a.zip", "gb18030"]);
+});
+
+test("listSftp forwards the filename encoding to the Go binding", async () => {
+  const seen: unknown[] = [];
+  const bindings = stubBindings();
+  bindings.sftp.List = async (sftpID, path, encoding) => {
+    seen.push(sftpID, path, encoding);
+    return [];
+  };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.listSftp?.("sftp-1", "/data", "gb18030");
+  await client.transitionBridge.listSftp?.("sftp-1", "/data");
+  assert.deepEqual(seen, ["sftp-1", "/data", "gb18030", "sftp-1", "/data", undefined]);
+});
+
+test("setSessionEncoding pins the Go input charset and swaps the live data-plane decoder", async () => {
+  const pinned: Array<{ sessionID: string; encoding: string }> = [];
+  let planeDecoder: { decode: (bytes: Uint8Array) => string } | undefined;
+  const bindings = stubBindings({
+    SetSessionEncoding: async (sessionID, encoding) => {
+      pinned.push({ sessionID, encoding });
+      return { ok: true, encoding };
+    },
+  });
+  const openDataPlane = bindings.openDataPlane!;
+  bindings.openDataPlane = (options) => {
+    planeDecoder = options.decoder;
+    return openDataPlane(options);
+  };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession?.({ sessionId: "ui-1", hostname: "h" } as never);
+  assert.ok(planeDecoder);
+  assert.equal(planeDecoder!.decode(new TextEncoder().encode("ok")), "ok");
+
+  const result = await client.transitionBridge.setSessionEncoding?.("ui-1", "gb18030");
+  assert.deepEqual(result, { ok: true, encoding: "gb18030" });
+  // The Go input charset is pinned on the native session id.
+  assert.deepEqual(pinned, [{ sessionID: "term-1", encoding: "gb18030" }]);
+  // The live plane's decoder now decodes GB18030 output.
+  assert.equal(planeDecoder!.decode(new Uint8Array([0xca, 0xfd, 0xbe, 0xdd])), "数据");
+});
+
+test("setSessionEncoding without the Go method still swaps the decoder and reports ok:false", async () => {
+  let planeDecoder: { decode: (bytes: Uint8Array) => string } | undefined;
+  const bindings = stubBindings();
+  const openDataPlane = bindings.openDataPlane!;
+  bindings.openDataPlane = (options) => {
+    planeDecoder = options.decoder;
+    return openDataPlane(options);
+  };
+  const client = createWailsRuntimeClient(bindings);
+  await client.transitionBridge.startSSHSession?.({ sessionId: "ui-2", hostname: "h" } as never);
+  const result = await client.transitionBridge.setSessionEncoding?.("ui-2", "gb18030");
+  assert.deepEqual(result, { ok: false, encoding: "gb18030" });
+  assert.equal(planeDecoder!.decode(new Uint8Array([0xca, 0xfd, 0xbe, 0xdd])), "数据");
+});
+
 test("registerGlobalHotkey reaches ShortcutService", async () => {
   const seen: string[] = [];
   const bindings = stubBindings();
@@ -880,6 +1116,112 @@ test("port forward start normalizes Go result into the renderer contract", async
   assert.equal(await client.transitionBridge.stopPortForwardByRuleId?.("rule-1").then((value) => value.stopped), 1);
 });
 
+const stubForwardRuntimeEvents = (
+  bindings: WailsBindingDeps,
+) => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const unsubscribed: string[] = [];
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => {
+        unsubscribed.push(name);
+      };
+    },
+  };
+  return {
+    listeners,
+    unsubscribed,
+    feed: (name: string) => listeners.get(name)!,
+  };
+};
+
+test("port forward runtime subscription returns the snapshot and fans ordered Go events", async () => {
+  const bindings = stubBindings();
+  const { listeners, unsubscribed, feed } = stubForwardRuntimeEvents(bindings);
+  bindings.forward = {
+    Start: async (...args: unknown[]) => ({ TunnelID: args[0], Success: true, Status: "active" }),
+    Stop: async (id: string) => ({ TunnelID: id, Success: true, Status: "inactive" }),
+    List: async () => [],
+    Snapshot: async (id: string) => ({ TunnelID: id, Success: true, Status: "inactive" }),
+    RuntimeSnapshot: async () => ({
+      epoch: "wails",
+      revision: 7,
+      records: [{ ruleId: "rule-1", tunnelId: "pf-rule-1-1", phase: "active", revision: 7, updatedAt: 1 }],
+    }),
+  };
+  const client = createWailsRuntimeClient(bindings);
+
+  // subscribePortForwardRuntime hands out the authoritative snapshot that
+  // seeds the renderer's epoch/revision tracking.
+  const snapshot = await client.transitionBridge.subscribePortForwardRuntime!();
+  assert.deepEqual(snapshot, {
+    epoch: "wails",
+    revision: 7,
+    records: [{ ruleId: "rule-1", tunnelId: "pf-rule-1-1", phase: "active", revision: 7, updatedAt: 1 }],
+  });
+
+  // onPortForwardRuntime arms exactly one native subscription and delivers
+  // the Go payloads in arrival order.
+  const seen: Array<{ epoch: string; revision: number; kind: string }> = [];
+  const unsubscribe = client.transitionBridge.onPortForwardRuntime!((event) =>
+    seen.push({ epoch: event.epoch, revision: event.revision, kind: event.kind }),
+  );
+  assert.equal(listeners.get("lemonssh:port-forward:runtime")?.length, 1);
+  feed("lemonssh:port-forward:runtime")[0]({
+    data: { epoch: "wails", revision: 8, kind: "upsert", record: { ruleId: "rule-2", tunnelId: "pf-rule-2-2", phase: "active", revision: 8, updatedAt: 2 } },
+  });
+  feed("lemonssh:port-forward:runtime")[0]({
+    data: { epoch: "wails", revision: 9, kind: "remove", tunnelId: "pf-rule-2-2", ruleId: "rule-2" },
+  });
+  assert.deepEqual(seen, [
+    { epoch: "wails", revision: 8, kind: "upsert" },
+    { epoch: "wails", revision: 9, kind: "remove" },
+  ]);
+
+  unsubscribe();
+  assert.deepEqual(unsubscribed, ["lemonssh:port-forward:runtime"]);
+  await assert.deepEqual(await client.transitionBridge.unsubscribePortForwardRuntime!(), { success: true });
+});
+
+test("onPortForwardStatus filters the runtime feed down to one tunnel", async () => {
+  const bindings = stubBindings();
+  const { feed } = stubForwardRuntimeEvents(bindings);
+  bindings.forward = {
+    Start: async (...args: unknown[]) => ({ TunnelID: args[0], Success: true, Status: "active" }),
+    Stop: async (id: string) => ({ TunnelID: id, Success: true, Status: "inactive" }),
+    List: async () => [],
+    Snapshot: async (id: string) => ({ TunnelID: id, Success: true, Status: "active" }),
+  };
+  const client = createWailsRuntimeClient(bindings);
+
+  const seen: Array<{ status: string; error?: string }> = [];
+  const unsubscribe = client.transitionBridge.onPortForwardStatus!("pf-rule-1-1", (status, error) =>
+    seen.push({ status, error }),
+  );
+  const runtime = feed("lemonssh:port-forward:runtime");
+  runtime[0]({
+    data: { epoch: "wails", revision: 2, kind: "upsert", record: { ruleId: "rule-1", tunnelId: "pf-rule-1-1", phase: "error", error: "bind failed", revision: 2, updatedAt: 2 } },
+  });
+  runtime[0]({
+    data: { epoch: "wails", revision: 3, kind: "upsert", record: { ruleId: "rule-9", tunnelId: "pf-rule-9-9", phase: "active", revision: 3, updatedAt: 3 } },
+  });
+  runtime[0]({
+    data: { epoch: "wails", revision: 4, kind: "remove", tunnelId: "pf-rule-1-1", ruleId: "rule-1" },
+  });
+  assert.deepEqual(seen, [
+    { status: "error", error: "bind failed" },
+    { status: "inactive", error: undefined },
+  ]);
+  unsubscribe();
+
+  // subscribePortForward snapshots one tunnel's current status.
+  const status = await client.transitionBridge.subscribePortForward!("pf-rule-1-1");
+  assert.deepEqual(status, { tunnelId: "pf-rule-1-1", status: "active", error: undefined });
+});
+
 test("credentials round-trip through the Go credential provider with the enc:v1 contract", async () => {
   const sealed: string[] = [];
   const bindings = stubBindings();
@@ -968,7 +1310,7 @@ test("agent interaction bridge fans events lazily and maps decisions onto the Go
   const responded: Array<[string, boolean]> = [];
   bindings.agentservice = {
     AgentPendingInteractions: async () => [
-      { interactionId: "ia_pending", capabilityId: "netcatty.exec", summary: { method: "netcatty/exec", command: "reboot" }, deadlineMs: 4102444800000 },
+      { interactionId: "ia_pending", capabilityId: "lemonssh.exec", summary: { method: "lemonssh/exec", command: "reboot" }, deadlineMs: 4102444800000 },
     ],
     AgentRespondInteraction: async (interactionID: string, approved: boolean) => {
       responded.push([interactionID, approved]);
@@ -982,19 +1324,19 @@ test("agent interaction bridge fans events lazily and maps decisions onto the Go
 
   const seen: Array<{ interactionId: string; capabilityId: string }> = [];
   const dispose = client.transitionBridge.onAgentInteraction!((payload) => seen.push({ interactionId: payload.interactionId, capabilityId: payload.capabilityId }));
-  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_1", capabilityId: "netcatty.exec", description: "Run a command", summary: { command: "reboot" }, deadlineMs: 4102444800000 } });
+  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_1", capabilityId: "lemonssh.exec", description: "Run a command", summary: { command: "reboot" }, deadlineMs: 4102444800000 } });
   // The same event without the Wails data envelope must still reach listeners.
-  listeners.get("agent:interaction")?.[0]({ interactionId: "ia_2", capabilityId: "netcatty.sftp.write" });
+  listeners.get("agent:interaction")?.[0]({ interactionId: "ia_2", capabilityId: "lemonssh.sftp.write" });
   assert.deepEqual(seen, [
-    { interactionId: "ia_1", capabilityId: "netcatty.exec" },
-    { interactionId: "ia_2", capabilityId: "netcatty.sftp.write" },
+    { interactionId: "ia_1", capabilityId: "lemonssh.exec" },
+    { interactionId: "ia_2", capabilityId: "lemonssh.sftp.write" },
   ]);
   dispose();
-  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_3", capabilityId: "netcatty.x" } });
+  listeners.get("agent:interaction")?.[0]({ data: { interactionId: "ia_3", capabilityId: "lemonssh.x" } });
   assert.deepEqual(seen.map((entry) => entry.interactionId), ["ia_1", "ia_2"]);
 
   assert.deepEqual(await client.transitionBridge.agentPendingInteractions!(), [
-    { interactionId: "ia_pending", capabilityId: "netcatty.exec", summary: { method: "netcatty/exec", command: "reboot" }, deadlineMs: 4102444800000 },
+    { interactionId: "ia_pending", capabilityId: "lemonssh.exec", summary: { method: "lemonssh/exec", command: "reboot" }, deadlineMs: 4102444800000 },
   ]);
   await client.transitionBridge.agentRespondInteraction!("ia_1", true);
   // Go's typed double-response guard rejects with its own message, untouched.
@@ -1008,4 +1350,510 @@ test("agent interaction bridge fails closed without the agent service", async ()
   const client = createWailsRuntimeClient(bindings);
   await assert.rejects(client.transitionBridge.agentPendingInteractions!(), /agentPendingInteractions is not available/);
   await assert.rejects(client.transitionBridge.agentRespondInteraction!("ia_1", true), /agentRespondInteraction is not available/);
+});
+
+test("passphrase prompts fan out and responses reach the Go broker", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const responses: Array<[string, string, boolean]> = [];
+  const bindings = stubBindings({
+    RespondPassphrase: async (requestId: string, passphrase: string, cancelled: boolean) => {
+      responses.push([requestId, passphrase, cancelled]);
+      return {};
+    },
+  });
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ requestId: string; keyPath: string; keyName: string; hostname?: string; sessionId?: string; bootEpoch?: number; passphraseInvalid?: boolean }> = [];
+  const dispose = client.transitionBridge.onPassphraseRequest!((request) => seen.push(request));
+  listeners.get("ssh:passphrase-request")?.[0]({
+    data: {
+      requestId: "pp-1",
+      keyPath: "/home/u/id_ed25519",
+      keyName: "id_ed25519",
+      hostname: "host-a",
+      sessionId: "term-1",
+      bootEpoch: 4,
+    },
+  });
+  assert.deepEqual(seen, [{
+    requestId: "pp-1",
+    keyPath: "/home/u/id_ed25519",
+    keyName: "id_ed25519",
+    hostname: "host-a",
+    sessionId: "term-1",
+    bootEpoch: 4,
+    passphraseInvalid: false,
+  }]);
+  await client.transitionBridge.respondPassphrase!("pp-1", "phrase", false);
+  assert.deepEqual(responses, [["pp-1", "phrase", false]]);
+  // Skip abandons the key: the broker sees an empty cancelled answer.
+  await client.transitionBridge.respondPassphraseSkip!("pp-1");
+  assert.deepEqual(responses[1], ["pp-1", "", true]);
+  dispose();
+  listeners.get("ssh:passphrase-request")?.[0]({ data: { requestId: "pp-2" } });
+  assert.equal(seen.length, 1);
+});
+
+test("passphrase timeout, cancel and auth-failed events map onto the bridge", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const bindings = stubBindings();
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const timedOut: string[] = [];
+  const cancelled: string[] = [];
+  const failed: Array<{ keyPaths: string[]; keyIds?: string[] }> = [];
+  client.transitionBridge.onPassphraseTimeout!((event) => timedOut.push(event.requestId));
+  client.transitionBridge.onPassphraseCancelled!((event) => cancelled.push(event.requestId));
+  client.transitionBridge.onPassphraseAuthFailed!((event) => failed.push({ keyPaths: event.keyPaths, keyIds: event.keyIds }));
+  listeners.get("ssh:passphrase-timeout")?.[0]({ data: { requestId: "pp-9" } });
+  listeners.get("ssh:passphrase-cancelled")?.[0]({ data: { requestId: "pp-8" } });
+  listeners.get("ssh:passphrase-auth-failed")?.[0]({ data: { keyPaths: ["/id"], keyIds: ["k1"] } });
+  assert.deepEqual(timedOut, ["pp-9"]);
+  assert.deepEqual(cancelled, ["pp-8"]);
+  assert.deepEqual(failed, [{ keyPaths: ["/id"], keyIds: ["k1"] }]);
+});
+
+test("host key verification events and responses reach the Go broker", async () => {
+  const listeners = new Map<string, Array<(event: { data?: unknown }) => void>>();
+  const responses: Array<[string, boolean, boolean]> = [];
+  const bindings = stubBindings({
+    RespondHostKeyVerification: async (requestId: string, accept: boolean, addToKnownHosts: boolean) => {
+      responses.push([requestId, accept, addToKnownHosts]);
+      return {};
+    },
+  });
+  bindings.events = {
+    On: (name, callback) => {
+      const set = listeners.get(name) ?? [];
+      set.push(callback);
+      listeners.set(name, set);
+      return () => undefined;
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const seen: Array<{ requestId: string; sessionId: string; hostname: string; port: number; status: string; keyType: string; fingerprint: string; knownFingerprint?: string }> = [];
+  const dispose = client.transitionBridge.onHostKeyVerification!((request) => seen.push(request));
+  listeners.get("ssh:host-key-verification")?.[0]({
+    data: {
+      requestId: "hk-1",
+      sessionId: "term-2",
+      hostname: "127.0.0.1",
+      port: 2222,
+      status: "changed",
+      keyType: "ssh-ed25519",
+      fingerprint: "SHA256:abc",
+      knownFingerprint: "SHA256:old",
+    },
+  });
+  assert.deepEqual(seen, [{
+    requestId: "hk-1",
+    sessionId: "term-2",
+    hostname: "127.0.0.1",
+    port: 2222,
+    status: "changed",
+    keyType: "ssh-ed25519",
+    fingerprint: "SHA256:abc",
+    publicKey: undefined,
+    knownFingerprint: "SHA256:old",
+    bootEpoch: undefined,
+  }]);
+  await client.transitionBridge.respondHostKeyVerification!("hk-1", true, true);
+  assert.deepEqual(responses, [["hk-1", true, true]]);
+  dispose();
+  listeners.get("ssh:host-key-verification")?.[0]({ data: { requestId: "hk-2" } });
+  assert.equal(seen.length, 1);
+});
+
+test("execCommand maps the renderer contract onto the Go one-shot exec", async () => {
+  const seen: unknown[] = [];
+  const bindings = stubBindings({
+    ExecCommand: async (request) => {
+      seen.push(request);
+      return { stdout: "out", stderr: "err", code: 3 };
+    },
+  });
+  const client = createWailsRuntimeClient(bindings);
+  const result = await client.transitionBridge.execCommand!({
+    hostname: "h",
+    username: "root",
+    port: 2222,
+    password: "pw",
+    requiresMfa: true,
+    identityFilePaths: ["/id"],
+    sessionId: "export-key:1",
+    command: "mkdir -p ~/.ssh",
+    timeout: 5000,
+  });
+  assert.deepEqual(result, { stdout: "out", stderr: "err", code: 3 });
+  assert.deepEqual(seen, [{
+    hostname: "h",
+    username: "root",
+    port: 2222,
+    password: "pw",
+    privateKey: "",
+    passphrase: "",
+    certificate: "",
+    proxyUrl: "",
+    proxyCommand: "",
+    enableMfa: true,
+    useAgent: false,
+    agentForwarding: false,
+    identityFilePaths: ["/id"],
+    cols: 80,
+    rows: 24,
+    term: "xterm-256color",
+    verifyHostKeys: true,
+    keepaliveInterval: 30,
+    keepaliveCountMax: 3,
+    forwardX11: false,
+    x11Display: "",
+    sessionId: "export-key:1",
+    bootEpoch: 0,
+    sshDebugLogs: false,
+    jumpHosts: [],
+    command: "mkdir -p ~/.ssh",
+    timeoutMs: 5000,
+  }]);
+});
+
+test("readKnownHosts surfaces the system scan content or null", async () => {
+  const bindings = stubBindings({ ReadKnownHosts: async () => "host ssh-ed25519 AAAA\n" } as Partial<WailsBindingDeps["terminal"]>);
+  bindings.knownHosts = { ReadKnownHosts: async () => "host ssh-ed25519 AAAA\n" };
+  const client = createWailsRuntimeClient(bindings);
+  assert.equal(await client.transitionBridge.readKnownHosts?.(), "host ssh-ed25519 AAAA\n");
+
+  const empty = stubBindings();
+  empty.knownHosts = { ReadKnownHosts: async () => "" };
+  const emptyClient = createWailsRuntimeClient(empty);
+  assert.equal(await emptyClient.transitionBridge.readKnownHosts?.(), null);
+
+  const missing = stubBindings();
+  const missingClient = createWailsRuntimeClient(missing);
+  await assert.rejects(missingClient.transitionBridge.readKnownHosts?.(), /readKnownHosts is not available/);
+});
+
+test("update bridge maps the Go UpdateService surface", async () => {
+  const calls: string[] = [];
+  const bindings = stubBindings() as WailsBindingDeps;
+  bindings.lemonssh = {
+    Version: async () => ({ name: "LemonSSH", version: "1.2.3", goos: "windows", goarch: "amd64", goVersion: "go1.26" }),
+  };
+  bindings.update = {
+    CheckForUpdate: async () => {
+      calls.push("check");
+      return { available: true, supported: true, version: "1.3.0", releaseNotes: "notes", releaseDate: "2026-09-01T00:00:00Z" };
+    },
+    DownloadUpdate: async () => {
+      calls.push("download");
+      return { success: true };
+    },
+    InstallUpdate: async () => { calls.push("install"); },
+    GetUpdateStatus: async () => ({ status: "ready", percent: 100, error: "", version: "1.3.0", isChecking: false }),
+    GetAutoUpdate: async () => ({ enabled: false }),
+    SetAutoUpdate: async (enabled) => {
+      calls.push(`setAutoUpdate:${enabled}`);
+      return { success: true };
+    },
+  };
+  const client = createWailsRuntimeClient(bindings);
+  const bridge = client.transitionBridge;
+
+  assert.deepEqual(await bridge.getAppInfo?.(), { name: "LemonSSH", version: "1.2.3", platform: "windows" });
+  assert.deepEqual(await bridge.checkForUpdate?.(), {
+    available: true,
+    supported: true,
+    checking: undefined,
+    ready: undefined,
+    downloading: undefined,
+    version: "1.3.0",
+    releaseNotes: "notes",
+    releaseDate: "2026-09-01T00:00:00Z",
+    error: undefined,
+  });
+  assert.deepEqual(await bridge.downloadUpdate?.(), { success: true });
+  assert.deepEqual(await bridge.getUpdateStatus?.(), { status: "ready", percent: 100, error: null, version: "1.3.0", isChecking: false });
+  assert.deepEqual(await bridge.getAutoUpdate?.(), { enabled: false });
+  await bridge.setAutoUpdate?.(true);
+  bridge.installUpdate?.();
+  assert.deepEqual(calls, ["check", "download", "setAutoUpdate:true", "install"]);
+});
+
+test("update bridge degrades without Go UpdateService", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.deepEqual(await bridge.checkForUpdate?.(), { available: false, supported: false, error: "Update bridge unavailable" });
+  assert.deepEqual(await bridge.downloadUpdate?.(), { success: false, error: "Update bridge unavailable" });
+  assert.deepEqual(await bridge.getUpdateStatus?.(), { status: "idle", percent: 0, error: null, version: null });
+  assert.deepEqual(await bridge.getAutoUpdate?.(), { enabled: true });
+  assert.deepEqual(await bridge.setAutoUpdate?.(false), { success: false });
+});
+
+test("update events subscribe to the Go update:* broadcasts", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const seen: string[] = [];
+  bindings.events = {
+    On: (name, callback) => {
+      seen.push(name);
+      callback({ data: { version: "1.3.0", error: "boom" } });
+      return () => undefined;
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  let availableVersion = "";
+  bridge.onUpdateAvailable?.((info) => { availableVersion = info.version; });
+  let errorMessage = "";
+  bridge.onUpdateError?.((payload) => { errorMessage = payload.error; });
+  let progressNotified = false;
+  bridge.onUpdateDownloadProgress?.(() => { progressNotified = true; });
+  let downloadedNotified = false;
+  bridge.onUpdateDownloaded?.(() => { downloadedNotified = true; });
+  let notAvailableNotified = false;
+  bridge.onUpdateNotAvailable?.(() => { notAvailableNotified = true; });
+
+  assert.deepEqual(seen, ["update:available", "update:error", "update:download-progress", "update:downloaded", "update:not-available"]);
+  assert.equal(availableVersion, "1.3.0");
+  assert.equal(errorMessage, "boom");
+  assert.equal(progressNotified, true);
+  assert.equal(downloadedNotified, true);
+  assert.equal(notAvailableNotified, true);
+});
+
+test("window lifecycle quit guard and focus recovery map onto the Go WindowLifecycleService", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const subscribers: Array<{ name: string; cb: (event: { data?: unknown }) => void }> = [];
+  bindings.events = {
+    On: (name, callback) => {
+      subscribers.push({ name, cb: callback });
+      return () => undefined;
+    },
+  };
+  const lifecycleCalls: string[] = [];
+  bindings.windowLifecycle = {
+    SetCloseToTray: async (enabled) => {
+      lifecycleCalls.push(`setCloseToTray:${enabled}`);
+      return { success: true, enabled };
+    },
+    IsCloseToTray: async () => {
+      lifecycleCalls.push("isCloseToTray");
+      return { success: true, enabled: true };
+    },
+    SetWindowOpacity: async (opacity) => {
+      lifecycleCalls.push(`setWindowOpacity:${opacity}`);
+      return opacity < 1;
+    },
+    ReportDirtyEditorsResult: async (hasDirty) => {
+      lifecycleCalls.push(`reportDirtyEditorsResult:${hasDirty}`);
+    },
+  };
+  let focusRequested = false;
+  bindings.window = {
+    Minimise: async () => undefined,
+    ToggleMaximise: async () => undefined,
+    Close: async () => undefined,
+    IsMaximised: async () => false,
+    IsFullscreen: async () => false,
+    Focus: async () => { focusRequested = true; },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  const shown: boolean[] = [];
+  const willHide: boolean[] = [];
+  const focusRequests: boolean[] = [];
+  const dirtyChecks: boolean[] = [];
+  bridge.onWindowShown?.(() => shown.push(true));
+  bridge.onWindowWillHide?.(() => willHide.push(true));
+  bridge.onWindowFocusRequested?.(() => focusRequests.push(true));
+  bridge.onCheckDirtyEditors?.(() => dirtyChecks.push(true));
+
+  assert.deepEqual(subscribers.map((subscriber) => subscriber.name), [
+    "window:shown",
+    "window:will-hide",
+    "window:focus-requested",
+    "window:check-dirty-editors",
+  ]);
+  subscribers.forEach((subscriber) => subscriber.cb({}));
+  assert.deepEqual(shown, [true]);
+  assert.deepEqual(willHide, [true]);
+  assert.deepEqual(focusRequests, [true]);
+  assert.deepEqual(dirtyChecks, [true]);
+
+  assert.deepEqual(await bridge.setCloseToTray?.(true), { success: true, enabled: true });
+  assert.deepEqual(await bridge.isCloseToTray?.(), { enabled: true });
+  assert.equal(await bridge.setWindowOpacity?.(0.75), true);
+  assert.equal(await bridge.setWindowOpacity?.(1), false);
+  bridge.reportDirtyEditorsResult?.(true);
+  assert.deepEqual(await bridge.windowFocus?.(), true);
+  assert.equal(focusRequested, true);
+
+  // Give the fire-and-forget report a tick to land.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(lifecycleCalls, [
+    "setCloseToTray:true",
+    "isCloseToTray",
+    "setWindowOpacity:0.75",
+    "setWindowOpacity:1",
+    "reportDirtyEditorsResult:true",
+  ]);
+});
+
+test("window lifecycle bridge degrades without the Go service", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  assert.deepEqual(await bridge.setCloseToTray?.(false), { success: false, enabled: false });
+  assert.deepEqual(await bridge.isCloseToTray?.(), { enabled: false });
+  assert.equal(await bridge.setWindowOpacity?.(0.75), false);
+  assert.equal(await bridge.windowFocus?.(), false);
+  // Must not throw without a pending Go binding.
+  bridge.reportDirtyEditorsResult?.(false);
+});
+
+test("tray menu and panel actions map onto the Go TrayService", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const trayCalls: Array<{ method: string; arg?: unknown }> = [];
+  bindings.tray = {
+    SetLanguage: async () => false,
+    Quit: async () => undefined,
+    UpdateTrayMenuData: async (data) => {
+      trayCalls.push({ method: "UpdateTrayMenuData", arg: data });
+      return { success: true };
+    },
+    JumpToSessionFromPanel: async (sessionID) => {
+      trayCalls.push({ method: "JumpToSessionFromPanel", arg: sessionID });
+      return { success: true };
+    },
+    ConnectToHost: async (hostID) => {
+      trayCalls.push({ method: "ConnectToHost", arg: hostID });
+      return { success: true };
+    },
+    CloseSessionFromPanel: async (sessionID) => {
+      trayCalls.push({ method: "CloseSessionFromPanel", arg: sessionID });
+      return { success: true };
+    },
+    OpenMainWindow: async () => {
+      trayCalls.push({ method: "OpenMainWindow" });
+      return { success: true };
+    },
+  };
+  bindings.trayPanel = {
+    Hide: async () => {
+      trayCalls.push({ method: "trayPanel.Hide" });
+      return true;
+    },
+    PaintReady: async () => {
+      trayCalls.push({ method: "trayPanel.PaintReady" });
+      return true;
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  assert.deepEqual(await bridge.updateTrayMenuData?.({ sessions: [] }), { success: true });
+  assert.deepEqual(await bridge.jumpToSessionFromTrayPanel?.("s1"), { success: true });
+  assert.deepEqual(await bridge.connectToHostFromTrayPanel?.("h1"), { success: true });
+  assert.deepEqual(await bridge.closeSessionFromTrayPanel?.("s1"), { success: true });
+  assert.deepEqual(await bridge.openMainWindow?.(), { success: true });
+  assert.deepEqual(await bridge.hideTrayPanel?.(), { success: true });
+  assert.equal(await bridge.notifyTrayPanelPaintReady?.(), true);
+
+  // Without Go bindings every call degrades to a failed result instead of throwing.
+  const bare = createWailsRuntimeClient(stubBindings() as WailsBindingDeps).transitionBridge;
+  assert.deepEqual(await bare.updateTrayMenuData?.({}), { success: false });
+  assert.deepEqual(await bare.jumpToSessionFromTrayPanel?.("s1"), { success: false });
+  assert.deepEqual(await bare.connectToHostFromTrayPanel?.("h1"), { success: false });
+  assert.deepEqual(await bare.closeSessionFromTrayPanel?.("s1"), { success: false });
+  assert.deepEqual(await bare.openMainWindow?.(), { success: false });
+  assert.deepEqual(await bare.hideTrayPanel?.(), { success: false });
+  assert.equal(await bare.notifyTrayPanelPaintReady?.(), false);
+
+  assert.deepEqual(trayCalls.map((call) => call.method), [
+    "UpdateTrayMenuData",
+    "JumpToSessionFromPanel",
+    "ConnectToHost",
+    "CloseSessionFromPanel",
+    "OpenMainWindow",
+    "trayPanel.Hide",
+    "trayPanel.PaintReady",
+  ]);
+});
+
+test("tray events subscribe to the Go tray:* broadcasts and normalize payloads", async () => {
+  const bindings = stubBindings() as WailsBindingDeps;
+  const subscribers: Array<{ name: string; cb: (event: { data?: unknown }) => void }> = [];
+  bindings.events = {
+    On: (name, callback) => {
+      subscribers.push({ name, cb: callback });
+      return () => undefined;
+    },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+
+  const focused: string[] = [];
+  bridge.onTrayFocusSession?.((sessionId) => focused.push(sessionId));
+  const toggles: Array<{ ruleId: string; start: boolean }> = [];
+  bridge.onTrayTogglePortForward?.((ruleId, start) => toggles.push({ ruleId, start }));
+  const panelJumps: string[] = [];
+  bridge.onTrayPanelJumpToSession?.((sessionId) => panelJumps.push(sessionId));
+  const panelConnects: string[] = [];
+  bridge.onTrayPanelConnectToHost?.((hostId) => panelConnects.push(hostId));
+  const panelCloses: string[] = [];
+  bridge.onTrayPanelCloseSession?.((sessionId) => panelCloses.push(sessionId));
+  let menuData: unknown;
+  bridge.onTrayPanelMenuData?.((data) => { menuData = data; });
+  let refreshed = false;
+  let closeRequested = false;
+  bridge.onTrayPanelRefresh?.(() => { refreshed = true; });
+  bridge.onTrayPanelCloseRequest?.(() => { closeRequested = true; });
+
+  assert.deepEqual(subscribers.map((subscriber) => subscriber.name), [
+    "tray:focus-session",
+    "tray:toggle-port-forward",
+    "tray:panel:jump-to-session",
+    "tray:panel:connect-to-host",
+    "tray:panel:close-session",
+    "tray:panel:menu-data",
+    "tray:panel:refresh",
+    "tray:panel:close-request",
+  ]);
+
+  subscribers[0].cb({ data: "s1" });
+  subscribers[1].cb({ data: { ruleId: "r1", start: true } });
+  subscribers[2].cb({ data: "s2" });
+  subscribers[3].cb({ data: "h1" });
+  subscribers[4].cb({ data: "s3" });
+  subscribers[5].cb({
+    data: {
+      sessions: [{ id: "s1", hostLabel: "AI Box", status: "connected" }],
+      hosts: [{ id: "h1" }],
+      portForwardRules: [{ id: "r1", type: "dynamic", localPort: 1080, status: "active" }],
+    },
+  });
+  subscribers[6].cb({});
+  subscribers[7].cb({});
+
+  assert.deepEqual(focused, ["s1"]);
+  assert.deepEqual(toggles, [{ ruleId: "r1", start: true }]);
+  assert.deepEqual(panelJumps, ["s2"]);
+  assert.deepEqual(panelConnects, ["h1"]);
+  assert.deepEqual(panelCloses, ["s3"]);
+  assert.deepEqual(menuData, {
+    sessions: [{ id: "s1", label: "", hostLabel: "AI Box", status: "connected", workspaceId: undefined, workspaceTitle: undefined }],
+    hosts: [{ id: "h1", label: undefined, hostname: undefined, group: undefined, pinned: false, lastConnectedAt: undefined, protocol: undefined }],
+    portForwardRules: [{ id: "r1", label: undefined, type: "dynamic", localPort: 1080, remoteHost: undefined, remotePort: undefined, status: "active" }],
+  });
+  assert.equal(refreshed, true);
+  assert.equal(closeRequested, true);
 });

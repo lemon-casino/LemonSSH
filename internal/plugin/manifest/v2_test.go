@@ -40,6 +40,7 @@ func TestValidateRejectsCoreFieldProblems(t *testing.T) {
 		"non-wasm entry":     func(m *Manifest) { m.Entrypoint.WASM = "main.js" },
 		"traversal entry":    func(m *Manifest) { m.Entrypoint.WASM = "../main.wasm" },
 		"short sha":          func(m *Manifest) { m.Entrypoint.SHA256 = "abc" },
+		"non-hex sha":        func(m *Manifest) { m.Entrypoint.SHA256 = strings.Repeat("g", 64) },
 		"tiny memory":        func(m *Manifest) { m.Entrypoint.MemoryMB = 8 },
 		"huge memory":        func(m *Manifest) { m.Entrypoint.MemoryMB = 4096 },
 		"unknown permission": func(m *Manifest) { m.Permissions = []Permission{{Kind: "kernel", Resource: "*", Mode: "write"}} },

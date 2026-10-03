@@ -15,7 +15,7 @@ import {
   type SecurityState,
   type SyncHistoryEntry,
 } from '../../../domain/sync';
-import { isPluginCloudProviderId } from '../../../domain/cloudProviderIds';
+import { isPluginCloudProviderId, legacyProviderConnectionStorageKey } from '../../../domain/cloudProviderIds';
 import { createPluginSyncObjectStorage } from '../adapters/pluginSyncObjectStorage';
 import {
   createPluginSyncIpcHost,
@@ -35,7 +35,7 @@ import { EncryptionService } from '../EncryptionService';
 import { createAdapter } from '../adapters';
 import { hostStorageAdapter as localStorageAdapter, flushHostProfileWrites } from '../../persistence/hostStorageAdapter';
 import { nativeCloudSyncRequired } from './cloudSyncFacade';
-import { netcattyBridge } from '../netcattyBridge';
+import { lemonsshBridge } from '../lemonsshBridge';
 import {
   decryptProviderSecrets as decryptStoredProviderSecrets,
   encryptProviderSecrets,
@@ -44,11 +44,11 @@ import type { CloudAdapter } from '../adapters';
 import type { SyncManagerState } from '../CloudSyncManager';
 import { getConvergentSyncLocalConfig } from '../convergentSyncConfig';
 
-const SYNC_HISTORY_STORAGE_KEY = 'netcatty_sync_history_v1';
+const SYNC_HISTORY_STORAGE_KEY = 'lemonssh_sync_history_v1';
 
 async function requireNativeCredentialStorage(): Promise<void> {
   if (!nativeCloudSyncRequired()) return;
-  const security = netcattyBridge.get();
+  const security = lemonsshBridge.get();
   if (!security?.credentialsEncrypt || !security.credentialsDecrypt || !await security.credentialsAvailable?.()) {
     throw new Error('Secure credential storage is unavailable; provider credentials were not saved or opened');
   }
@@ -184,7 +184,19 @@ export function loadInitialStateImpl(this: any): SyncManagerState {
 
 export function loadProviderConnectionImpl(this: any,provider: CloudProvider): ProviderConnection {
     const key = providerConnectionStorageKey(provider);
-    const stored = this.loadFromStorage<Partial<ProviderConnection>>(key);
+    // compat: pre-rename builds persisted the record under the legacy
+    // netcatty_provider_* key. Fall back only when the renamed key is truly
+    // absent — a stored JSON null is a valid (null) config, not absence.
+    // Environments without localStorage (node:test) have no raw store to
+    // probe; the manager's own load then decides.
+    let stored = this.loadFromStorage<Partial<ProviderConnection>>(key);
+    if (
+      stored === null &&
+      typeof globalThis.localStorage !== 'undefined' &&
+      localStorageAdapter.readString(key) === null
+    ) {
+      stored = this.loadFromStorage<Partial<ProviderConnection>>(legacyProviderConnectionStorageKey(provider));
+    }
 
     // Config may be a valid scalar including JSON null (schema type: "null").
     // Presence is property existence; only a missing property means absent.
@@ -638,8 +650,8 @@ export function handleStorageEventImpl(this: any, event: StorageEvent): void {
       [SYNC_STORAGE_KEYS.PROVIDER_S3]: 's3',
     };
     let provider = providerByKey[key] as CloudProvider | undefined;
-    if (!provider && key.startsWith('netcatty_provider_plugin_v1:')) {
-      provider = key.slice('netcatty_provider_plugin_v1:'.length) as CloudProvider;
+    if (!provider && key.startsWith('lemonssh_provider_plugin_v1:')) {
+      provider = key.slice('lemonssh_provider_plugin_v1:'.length) as CloudProvider;
     }
     if (provider) {
       // Dynamic plugin providers may receive their first storage event before

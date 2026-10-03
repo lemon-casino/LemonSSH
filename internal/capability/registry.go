@@ -106,7 +106,7 @@ func (r *Registry) GetByCLICommand(parts []string) *Definition {
 	return r.byCLICommand[strings.Join(parts, " ")]
 }
 
-// GetByToolName resolves a renderer-local tool name (catty/globalAgent), or nil.
+// GetByToolName resolves a renderer-local tool name (lemonssh/globalAgent), or nil.
 func (r *Registry) GetByToolName(name string) *Definition { return r.byToolName[name] }
 
 // RPCFilter narrows RPCMethodsForSurface. Fields left false are not filtered.

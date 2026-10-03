@@ -1,6 +1,6 @@
 import type { ZmodemDragDropFile } from '../../../lib/zmodemDragDrop';
 
-type ZmodemEvent = Parameters<Parameters<NonNullable<NetcattyBridge['onZmodemEvent']>>[1]>[0];
+type ZmodemEvent = Parameters<Parameters<NonNullable<LemonSSHBridge['onZmodemEvent']>>[1]>[0];
 export type ZmodemTerminalBindings = {
   SendZmodem?: (sessionID: string, filePath: string, remoteName: string, command: string) => Promise<unknown>;
   ReceiveZmodem?: (sessionID: string, destinationDir: string) => Promise<unknown>;

@@ -202,10 +202,10 @@ type TrayState struct {
 	Items   []TrayMenuItem `json:"items"`
 }
 
-// BuildTrayState generates the default Netcatty tray menu structure.
+// BuildTrayState generates the default LemonSSH tray menu structure.
 func BuildTrayState(recentHosts []string) TrayState {
 	items := []TrayMenuItem{
-		{ID: "show", Label: "Show Netcatty", Kind: "item"},
+		{ID: "show", Label: "Show LemonSSH", Kind: "item"},
 		{ID: "sep-1", Label: "", Kind: "separator"},
 	}
 	for _, host := range recentHosts {
@@ -219,5 +219,5 @@ func BuildTrayState(recentHosts []string) TrayState {
 		TrayMenuItem{ID: "sep-3", Label: "", Kind: "separator"},
 		TrayMenuItem{ID: "quit", Label: "Quit", Kind: "item"},
 	)
-	return TrayState{Tooltip: "Netcatty", Items: items}
+	return TrayState{Tooltip: "LemonSSH", Items: items}
 }

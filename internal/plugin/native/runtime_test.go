@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/plugin/permissions"
+	"github.com/binaricat/lemonssh/internal/plugin/permissions"
 )
 
 func helperBinary(t *testing.T, source string) (path, digest string) {
@@ -273,16 +273,16 @@ import (
 	"time"
 )
 func main() {
-	if os.Getenv("NETCATTY_DESCENDANT") == "1" {
+	if os.Getenv("LEMONSSH_DESCENDANT") == "1" {
 		time.Sleep(30 * time.Second)
 		return
 	}
 	child := exec.Command(os.Args[0])
-	child.Env = append(os.Environ(), "NETCATTY_DESCENDANT=1")
+	child.Env = append(os.Environ(), "LEMONSSH_DESCENDANT=1")
 	if err := child.Start(); err != nil {
 		os.Exit(1)
 	}
-	_ = os.WriteFile(filepath.Join(os.Getenv("NETCATTY_PID_FILE"), "child.pid"), []byte(strconv.Itoa(child.Process.Pid)), 0600)
+	_ = os.WriteFile(filepath.Join(os.Getenv("LEMONSSH_PID_FILE"), "child.pid"), []byte(strconv.Itoa(child.Process.Pid)), 0600)
 	time.Sleep(30 * time.Second)
 }
 `
@@ -295,7 +295,7 @@ func TestStopReapsDescendant(t *testing.T) {
 		PluginID:   "p1",
 		BinaryPath: path,
 		SHA256:     digest,
-		Env:        map[string]string{"NETCATTY_PID_FILE": pidDir},
+		Env:        map[string]string{"LEMONSSH_PID_FILE": pidDir},
 	}); err != nil {
 		t.Fatal(err)
 	}

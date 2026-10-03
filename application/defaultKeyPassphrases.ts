@@ -3,7 +3,7 @@ import { isEncryptedCredentialPlaceholder } from "../domain/credentials";
 import { STORAGE_KEY_DEFAULT_KEY_PASSPHRASES } from "../infrastructure/config/storageKeys";
 import { hostStorageAdapter as localStorageAdapter } from "../infrastructure/persistence/hostStorageAdapter";
 import { encryptField, decryptField } from "../infrastructure/persistence/secureFieldAdapter";
-import { netcattyBridge } from "../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../infrastructure/services/lemonsshBridge";
 
 function defaultKeyPassphrasePathKey(keyPath: string): string {
   const isWindowsPath = /^[A-Za-z]:[\\/]/u.test(keyPath) || /^[\\/]{2}/u.test(keyPath);
@@ -22,7 +22,7 @@ export async function resolveDefaultKeyPassphraseAliases(keyPath: string): Promi
   const normalizedKeyPath = isWindowsPath ? keyPath.replace(/\\/g, "/") : keyPath;
   aliases.add(normalizedKeyPath);
   try {
-    const homeDir = await netcattyBridge.get()?.getHomeDir?.();
+    const homeDir = await lemonsshBridge.get()?.getHomeDir?.();
     if (!homeDir) return [...aliases];
 
     const normalizedHome = homeDir.replace(/\\/g, "/").replace(/\/$/u, "");

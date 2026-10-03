@@ -20,7 +20,7 @@ const breadcrumbSource = fs.readFileSync(
 
 test("deep unix paths keep the first segment and trailing segments", () => {
   const { segments } = getSftpBreadcrumbSegments(
-    "/var/www/apps/netcatty/releases/current/public",
+    "/var/www/apps/lemonssh/releases/current/public",
   );
   const resolved = resolveSftpBreadcrumbVisibleParts({
     segments,
@@ -34,7 +34,7 @@ test("deep unix paths keep the first segment and trailing segments", () => {
   );
   assert.deepEqual(
     resolved.hiddenParts.map((part) => part.segment.label),
-    ["www", "apps", "netcatty"],
+    ["www", "apps", "lemonssh"],
   );
 
   const split = splitSftpBreadcrumbPinnedParts(resolved.visibleParts);
@@ -47,7 +47,7 @@ test("deep unix paths keep the first segment and trailing segments", () => {
 
 test("windows drive paths keep the drive letter while preferring the tail", () => {
   const { segments } = getSftpBreadcrumbSegments(
-    "C:\\Users\\alice\\projects\\netcatty\\src\\components",
+    "C:\\Users\\alice\\projects\\lemonssh\\src\\components",
   );
   const resolved = resolveSftpBreadcrumbVisibleParts({
     segments,
@@ -58,13 +58,13 @@ test("windows drive paths keep the drive letter while preferring the tail", () =
   assert.equal(resolved.visibleParts[0]?.segment.label, "C:");
   assert.deepEqual(
     resolved.visibleParts.slice(1).map((part) => part.segment.label),
-    ["netcatty", "src", "components"],
+    ["lemonssh", "src", "components"],
   );
 });
 
 test("windows UNC paths keep the share root while preferring the tail", () => {
   const { segments } = getSftpBreadcrumbSegments(
-    "\\\\wsl.localhost\\Ubuntu-22.04\\home\\alice\\projects\\netcatty\\src",
+    "\\\\wsl.localhost\\Ubuntu-22.04\\home\\alice\\projects\\lemonssh\\src",
   );
   const resolved = resolveSftpBreadcrumbVisibleParts({
     segments,
@@ -78,7 +78,7 @@ test("windows UNC paths keep the share root while preferring the tail", () => {
   );
   assert.deepEqual(
     resolved.visibleParts.slice(1).map((part) => part.segment.label),
-    ["projects", "netcatty", "src"],
+    ["projects", "lemonssh", "src"],
   );
 });
 
@@ -87,7 +87,7 @@ test("budget of one keeps the leading root and still exposes hidden segments via
   assert.equal(normalizeSftpBreadcrumbMaxVisibleParts(1.9), 1);
 
   const { segments } = getSftpBreadcrumbSegments(
-    "C:\\Users\\alice\\projects\\netcatty\\src",
+    "C:\\Users\\alice\\projects\\lemonssh\\src",
   );
   const resolved = resolveSftpBreadcrumbVisibleParts({
     segments,

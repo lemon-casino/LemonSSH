@@ -20,7 +20,7 @@ const (
 	testS3AccessKey = "AKIDEXAMPLE"
 	testS3SecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
 	testS3Region    = "us-east-1"
-	testS3Bucket    = "netcatty"
+	testS3Bucket    = "lemonssh"
 )
 
 // TestSigningKeyAWSVector pins the AWS-documented Signature V4 key-derivation
@@ -57,10 +57,10 @@ func TestCanonicalRequestKnownPut(t *testing.T) {
 	headers.Set("X-Amz-Date", "20150830T123600Z")
 	headers.Set("X-Amz-Content-Sha256", payloadHashHex)
 
-	canonical, signedHeaders := canonicalRequest("PUT", "/netcatty/snapshots/snapshot.json", "", headers, payloadHashHex)
+	canonical, signedHeaders := canonicalRequest("PUT", "/lemonssh/snapshots/snapshot.json", "", headers, payloadHashHex)
 	want := strings.Join([]string{
 		"PUT",
-		"/netcatty/snapshots/snapshot.json",
+		"/lemonssh/snapshots/snapshot.json",
 		"",
 		"host:127.0.0.1:9000",
 		"x-amz-content-sha256:" + payloadHashHex,
@@ -78,7 +78,7 @@ func TestCanonicalRequestKnownPut(t *testing.T) {
 
 	// The session token is signed too and sorts last among x-amz-* names.
 	headers.Set("X-Amz-Security-Token", "tok123")
-	_, signedTokenHeaders := canonicalRequest("PUT", "/netcatty/snapshots/snapshot.json", "", headers, payloadHashHex)
+	_, signedTokenHeaders := canonicalRequest("PUT", "/lemonssh/snapshots/snapshot.json", "", headers, payloadHashHex)
 	if signedTokenHeaders != "host;x-amz-content-sha256;x-amz-date;x-amz-security-token" {
 		t.Fatalf("signed headers with token = %q", signedTokenHeaders)
 	}
@@ -110,7 +110,7 @@ func newFakeS3() *fakeS3 {
 
 const listV2XML = `<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult>
-  <Name>netcatty</Name>
+  <Name>lemonssh</Name>
   <Prefix>snapshots/</Prefix>
   <IsTruncated>false</IsTruncated>
   <Contents><Key>snapshots/old.json</Key></Contents>
@@ -467,5 +467,38 @@ func TestS3PutRejectsOversizedSnapshot(t *testing.T) {
 	}
 	if fake.hits != 0 {
 		t.Fatalf("oversized put reached the server (%d hits)", fake.hits)
+	}
+}
+
+// TestS3AllowInsecureSkipsTLSVerify: self-signed endpoints (MinIO on a LAN,
+// for example) fail closed by default and succeed with AllowInsecure.
+func TestS3AllowInsecureSkipsTLSVerify(t *testing.T) {
+	fake := newFakeS3()
+	server := httptest.NewTLSServer(fake.handler())
+	defer server.Close()
+	ctx := context.Background()
+
+	newClient := func(insecure bool) *S3Client {
+		return NewS3Client(S3Config{
+			Endpoint:        server.URL,
+			Region:          testS3Region,
+			Bucket:          testS3Bucket,
+			AccessKeyID:     testS3AccessKey,
+			SecretAccessKey: testS3SecretKey,
+			UsePathStyle:    true,
+			AllowInsecure:   insecure,
+		})
+	}
+
+	strict := newClient(false)
+	if _, err := strict.HeadObject(ctx, "k"); err == nil {
+		t.Fatal("expected certificate verification to fail without allowInsecure")
+	} else if errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected a TLS failure, got %v", err)
+	}
+
+	lenient := newClient(true)
+	if _, err := lenient.HeadObject(ctx, "k"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected insecure client to reach the bucket (ErrNotFound), got %v", err)
 	}
 }

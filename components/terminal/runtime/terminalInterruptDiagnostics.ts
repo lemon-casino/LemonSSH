@@ -1,8 +1,8 @@
 import type { TerminalInputPrioritySnapshot } from "./terminalOutputPipeline";
 
 const DEBUG_KEYS = [
-  "NETCATTY_CTRL_C_DEBUG",
-  "NETCATTY_TERMINAL_DEBUG",
+  "LEMONSSH_CTRL_C_DEBUG",
+  "LEMONSSH_TERMINAL_DEBUG",
 ];
 
 function isDebugEnabled(): boolean {
@@ -26,7 +26,7 @@ export function createTerminalInterruptTrace(options: {
   status: string;
   hasSelection: boolean;
   priority?: TerminalInputPrioritySnapshot;
-}): NetcattyTerminalInterruptTrace {
+}): LemonSSHTerminalInterruptTrace {
   const debug = isDebugEnabled();
   return {
     debug,
@@ -43,13 +43,13 @@ export function createTerminalInterruptTrace(options: {
 
 export function logTerminalInterruptTrace(
   event: string,
-  trace: NetcattyTerminalInterruptTrace | undefined,
+  trace: LemonSSHTerminalInterruptTrace | undefined,
   details: Record<string, unknown> = {},
 ): void {
   if (!trace?.debug) return;
   const now = Date.now();
   try {
-    console.info("[Netcatty Ctrl+C]", {
+    console.info("[LemonSSH Ctrl+C]", {
       event,
       traceId: trace.traceId,
       sessionId: trace.sessionId,

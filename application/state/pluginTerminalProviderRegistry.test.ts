@@ -8,7 +8,7 @@ import {
   PluginTerminalProviderRegistry,
 } from './pluginTerminalProviderRegistry.ts';
 
-const session: NetcattyTerminalSessionSnapshot = {
+const session: LemonSSHTerminalSessionSnapshot = {
   sessionId: 'session-1',
   protocol: 'ssh',
   status: 'connected',
@@ -32,7 +32,7 @@ test('terminal Provider availability fails closed before or after failed enumera
 });
 
 test('terminal Provider availability ignores an older enumeration that finishes last', async () => {
-  let resolveOlder: ((providers: NetcattyTerminalProviderContribution[]) => void) | undefined;
+  let resolveOlder: ((providers: LemonSSHTerminalProviderContribution[]) => void) | undefined;
   const olderRegistry = new PluginTerminalProviderRegistry({
     listPluginTerminalProviders() {
       return new Promise((resolve) => { resolveOlder = resolve; });
@@ -73,7 +73,7 @@ test('terminal Provider availability ignores an older enumeration that finishes 
 test('terminal Provider registry coalesces immutable enumeration until contributions change', async () => {
   let changed: (() => void) | undefined;
   let listCalls = 0;
-  const resolvers: Array<(providers: NetcattyTerminalProviderContribution[]) => void> = [];
+  const resolvers: Array<(providers: LemonSSHTerminalProviderContribution[]) => void> = [];
   const registry = new PluginTerminalProviderRegistry({
     listPluginTerminalProviders() {
       listCalls += 1;
@@ -143,7 +143,7 @@ test('terminal Provider registry suppresses repeated lifecycle RPC after the bri
 
 test('terminal Provider registry cancels superseded requests and suppresses stale results', async () => {
   const cancellations: string[] = [];
-  const resolvers: Array<(value: ReadonlyArray<NetcattyTerminalProviderResult>) => void> = [];
+  const resolvers: Array<(value: ReadonlyArray<LemonSSHTerminalProviderResult>) => void> = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     providePluginTerminal() {
@@ -178,7 +178,7 @@ test('terminal Provider registry cancels superseded requests and suppresses stal
 
 test('terminal Provider registry aborts an in-flight bridge request and settles stale', async () => {
   const cancellations: string[] = [];
-  const requests: NetcattyTerminalProviderRequest[] = [];
+  const requests: LemonSSHTerminalProviderRequest[] = [];
   const controller = new AbortController();
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
@@ -209,7 +209,7 @@ test('terminal Provider registry aborts an in-flight bridge request and settles 
 
 test('terminal Provider registry scopes link supersession per buffer line', async () => {
   const cancellations: string[] = [];
-  const resolvers: Array<(value: ReadonlyArray<NetcattyTerminalProviderResult>) => void> = [];
+  const resolvers: Array<(value: ReadonlyArray<LemonSSHTerminalProviderResult>) => void> = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     providePluginTerminal() { return new Promise((resolve) => resolvers.push(resolve)); },
@@ -246,7 +246,7 @@ test('terminal Provider registry scopes link supersession per buffer line', asyn
 
 test('terminal Provider registry returns a stale response when a superseded bridge request rejects', async () => {
   const resolvers: Array<{
-    resolve: (value: ReadonlyArray<NetcattyTerminalProviderResult>) => void;
+    resolve: (value: ReadonlyArray<LemonSSHTerminalProviderResult>) => void;
     reject: (error: Error) => void;
   }> = [];
   const registry = new PluginTerminalProviderRegistry({
@@ -301,7 +301,7 @@ test('terminal Provider registry freezes enumeration and cancels all session req
 });
 
 test('terminal Provider registry publishes metadata-only lifecycle snapshots', async () => {
-  const events: NetcattyTerminalSessionEvent[] = [];
+  const events: LemonSSHTerminalSessionEvent[] = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     async providePluginTerminal() { return []; },
@@ -322,8 +322,8 @@ test('terminal Provider registry publishes metadata-only lifecycle snapshots', a
 });
 
 test('terminal Provider lifecycle clears optional fields instead of retaining stale metadata', async () => {
-  const events: NetcattyTerminalSessionEvent[] = [];
-  const requests: NetcattyTerminalProviderRequest[] = [];
+  const events: LemonSSHTerminalSessionEvent[] = [];
+  const requests: LemonSSHTerminalProviderRequest[] = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     async providePluginTerminal(request) { requests.push(request); return []; },
@@ -350,8 +350,8 @@ test('terminal Provider lifecycle clears optional fields instead of retaining st
 });
 
 test('terminal Provider reconnect lifecycle clears omitted connection-scoped metadata', async () => {
-  const events: NetcattyTerminalSessionEvent[] = [];
-  const requests: NetcattyTerminalProviderRequest[] = [];
+  const events: LemonSSHTerminalSessionEvent[] = [];
+  const requests: LemonSSHTerminalProviderRequest[] = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     async providePluginTerminal(request) { requests.push(request); return []; },
@@ -377,7 +377,7 @@ test('terminal Provider reconnect lifecycle clears omitted connection-scoped met
 });
 
 test('terminal Provider requests merge the latest lifecycle snapshot before invocation', async () => {
-  const requests: NetcattyTerminalProviderRequest[] = [];
+  const requests: LemonSSHTerminalProviderRequest[] = [];
   const registry = new PluginTerminalProviderRegistry({
     async listPluginTerminalProviders() { return []; },
     async providePluginTerminal(request) { requests.push(request); return []; },

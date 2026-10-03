@@ -8,7 +8,7 @@ type PluginVaultImporterOptions = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPluginPreviewCommit: (
-    preview: NetcattyPluginImporterPreview,
+    preview: LemonSSHPluginImporterPreview,
     destination?: VaultImportDestination,
   ) => Promise<void> | void;
   destination?: VaultImportDestination | null;
@@ -16,7 +16,7 @@ type PluginVaultImporterOptions = {
 };
 
 const localizeProviderLabel = (
-  provider: NetcattyExtensionProviderContribution,
+  provider: LemonSSHExtensionProviderContribution,
   locale = typeof navigator === "undefined" ? "en" : navigator.language,
 ): string => {
   const label = provider.provider.label;
@@ -24,7 +24,7 @@ const localizeProviderLabel = (
   return label[locale] ?? label[locale.split("-")[0]] ?? label.en ?? provider.provider.id;
 };
 
-const summarizePluginImporterPreview = (preview: NetcattyPluginImporterPreview | null): string | null => {
+const summarizePluginImporterPreview = (preview: LemonSSHPluginImporterPreview | null): string | null => {
   if (!preview) return null;
   const drafts = preview.records.filter((record) => record.type === "draft");
   const byKind = drafts.reduce<Record<string, number>>((counts, record) => {
@@ -43,11 +43,11 @@ export function usePluginVaultImporter({
 }: PluginVaultImporterOptions) {
   const activePluginImportRequestRef = useRef<string | null>(null);
   const pluginImportGenerationRef = useRef(0);
-  const [pluginProviders, setPluginProviders] = useState<ReadonlyArray<NetcattyExtensionProviderContribution>>([]);
-  const [pluginPreview, setPluginPreview] = useState<NetcattyPluginImporterPreview | null>(null);
+  const [pluginProviders, setPluginProviders] = useState<ReadonlyArray<LemonSSHExtensionProviderContribution>>([]);
+  const [pluginPreview, setPluginPreview] = useState<LemonSSHPluginImporterPreview | null>(null);
   const [pluginBusy, setPluginBusy] = useState(false);
   const [pluginError, setPluginError] = useState<string | null>(null);
-  const [pluginProgress, setPluginProgress] = useState<NetcattyPluginImporterProgressEvent["progress"] | null>(null);
+  const [pluginProgress, setPluginProgress] = useState<LemonSSHPluginImporterProgressEvent["progress"] | null>(null);
 
   useEffect(() => pluginExtensionBridge.onImporterProgress((event) => {
     if (event.requestId === activePluginImportRequestRef.current) setPluginProgress(event.progress);
@@ -80,7 +80,7 @@ export function usePluginVaultImporter({
     onOpenChange(newOpen);
   }, [onOpenChange, resetPluginImporterState]);
 
-  const pickPluginFile = useCallback((provider: NetcattyExtensionProviderContribution) => {
+  const pickPluginFile = useCallback((provider: LemonSSHExtensionProviderContribution) => {
     if (pluginBusy) return;
     const generation = ++pluginImportGenerationRef.current;
     const isCurrent = () => pluginImportGenerationRef.current === generation;

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
+	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
 )
 
 type recordingDial struct {
@@ -16,18 +16,18 @@ type recordingDial struct {
 	calls int32
 }
 
-func (d *recordingDial) dial(ctx context.Context, config netcattyssh.DialConfig) (*netcattyssh.Transport, error) {
+func (d *recordingDial) dial(ctx context.Context, config lemonsshssh.DialConfig) (*lemonsshssh.Transport, error) {
 	atomic.AddInt32(&d.calls, 1)
-	return &netcattyssh.Transport{}, nil
+	return &lemonsshssh.Transport{}, nil
 }
 func (d *recordingDial) count() int { return int(atomic.LoadInt32(&d.calls)) }
 
-func baseConfig() netcattyssh.DialConfig {
-	return netcattyssh.DialConfig{
+func baseConfig() lemonsshssh.DialConfig {
+	return lemonsshssh.DialConfig{
 		Hostname: "host1",
 		Port:     22,
 		Username: "user",
-		Auth:     netcattyssh.AuthMethod{Password: "secret"},
+		Auth:     lemonsshssh.AuthMethod{Password: "secret"},
 	}
 }
 
@@ -59,7 +59,7 @@ func TestCompatibilityKeySensitivity(t *testing.T) {
 		t.Fatal("different host must not share a key")
 	}
 	jumped := baseConfig()
-	jumped.JumpHosts = []netcattyssh.DialConfig{changedHost}
+	jumped.JumpHosts = []lemonsshssh.DialConfig{changedHost}
 	fifth, _ := CompatibilityKey(jumped)
 	if fifth == first {
 		t.Fatal("jump chain must change the key")

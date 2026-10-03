@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/binaricat/netcatty/internal/platform/credentials"
-	"github.com/binaricat/netcatty/internal/plugin/manifest"
-	"github.com/binaricat/netcatty/internal/plugin/permissions"
-	"github.com/binaricat/netcatty/internal/plugin/store"
-	"github.com/binaricat/netcatty/internal/plugin/ui"
+	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/binaricat/lemonssh/internal/plugin/manifest"
+	"github.com/binaricat/lemonssh/internal/plugin/permissions"
+	"github.com/binaricat/lemonssh/internal/plugin/store"
+	"github.com/binaricat/lemonssh/internal/plugin/ui"
 )
 
 type Host struct {
@@ -39,6 +39,50 @@ func (h Host) UI(id string) (*ui.Schema, error) {
 		return &ui.Schema{}, nil
 	}
 	return m.UI, nil
+}
+
+// UIContributions aggregates the declarative views, menus and keybindings of
+// every enabled plugin. Only enabled plugins contribute (the manifest gate in
+// Manifest already enforces that), and menu/keybinding entries are filtered to
+// commands the plugin actually declares so a manifest that predates the
+// cross-validation cannot surface dead entries.
+func (h Host) UIContributions() (*ui.Contributions, error) {
+	out := &ui.Contributions{}
+	for _, record := range h.Store.List() {
+		if record == nil || record.State != store.StateEnabled {
+			continue
+		}
+		m, err := h.Manifest(record.PluginID)
+		if err != nil {
+			// An enabled record that no longer validates is skipped, not
+			// fatal: one broken plugin must not blank every contribution.
+			continue
+		}
+		if m.UI == nil {
+			continue
+		}
+		collected := ui.CollectContributions(record.PluginID, *m.UI)
+		declared := make(map[string]bool, len(m.Contributions))
+		for _, contribution := range m.Contributions {
+			if contribution.Type == "command" {
+				declared[contribution.ID] = true
+			}
+		}
+		for _, view := range collected.Views {
+			out.Views = append(out.Views, view)
+		}
+		for _, menu := range collected.Menus {
+			if declared[menu.Command] && (menu.Alt == "" || declared[menu.Alt]) {
+				out.Menus = append(out.Menus, menu)
+			}
+		}
+		for _, binding := range collected.Keybindings {
+			if declared[binding.Command] {
+				out.Keybindings = append(out.Keybindings, binding)
+			}
+		}
+	}
+	return out, nil
 }
 
 func (h Host) Settings(id string) (map[string]any, error) {

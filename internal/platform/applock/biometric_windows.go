@@ -24,7 +24,7 @@ func AuthenticateBiometric() error {
 	if err != nil {
 		return fmt.Errorf("Windows Hello authentication failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
-	if strings.TrimSpace(string(out)) != "NETCATTY_HELLO_AUTHENTICATED" {
+	if strings.TrimSpace(string(out)) != "LEMONSSH_HELLO_AUTHENTICATED" {
 		return fmt.Errorf("Windows Hello returned no authenticated result")
 	}
 	return nil
@@ -74,5 +74,5 @@ if ($result.Status.ToString() -ne 'Success') { throw ('Windows Hello credential:
 $challenge = [Windows.Security.Cryptography.CryptographicBuffer]::GenerateRandom(32)
 $signed = Await ($result.Credential.RequestSignAsync($challenge)) ([Windows.Security.Credentials.KeyCredentialOperationResult])
 if ($signed.Status.ToString() -ne 'Success' -or $signed.Result.Length -eq 0) { throw ('Windows Hello signature rejected: '+$signed.Status) }
-Write-Output 'NETCATTY_HELLO_AUTHENTICATED'
+Write-Output 'LEMONSSH_HELLO_AUTHENTICATED'
 `

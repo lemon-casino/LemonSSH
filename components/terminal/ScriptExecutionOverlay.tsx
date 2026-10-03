@@ -1,7 +1,7 @@
 import { Check, Loader2, Pause, Play, Square, X } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useI18n } from '@/application/i18n/I18nProvider';
-import type { ScriptRun } from '@/types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRun } from '@/types/global/lemonssh-bridge-script.d.ts';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils.ts';
 

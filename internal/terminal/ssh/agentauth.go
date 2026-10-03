@@ -171,6 +171,13 @@ func ForwardAgentToClient(client *ssh.Client, agentAddr string) error {
 	return agent.ForwardToAgent(client, agent.NewClient(connection))
 }
 
+// RequestAgentForwarding sends auth-agent-req@openssh.com on the session so
+// the server may open the agent channel wired by ForwardAgentToClient. Call
+// after ForwardAgentToClient and before serving the session (Shell/Exec).
+func RequestAgentForwarding(session *ssh.Session) error {
+	return agent.RequestAgentForwarding(session)
+}
+
 // ProxyDial returns a proxy dial func for the given proxy URL
 // (socks5://host:port or http://host:port). nil, nil means direct dial.
 func ProxyDial(ctx context.Context, proxyURL string) (func(context.Context, string, string) (net.Conn, error), error) {

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/zmodem"
+	"github.com/binaricat/lemonssh/internal/terminal/zmodem"
 )
 
 type terminalZmodemStream struct {

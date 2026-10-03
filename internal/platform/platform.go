@@ -1,4 +1,4 @@
-// Package platform holds platform-specific adapters for Netcatty.
+// Package platform holds platform-specific adapters for LemonSSH.
 //
 // During P1-02 this is intentionally minimal: it reports the platform facts
 // the shell-neutral application layer is allowed to see. Wails-specific

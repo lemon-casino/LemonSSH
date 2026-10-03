@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { DeclarativePluginUI } from '@netcatty/plugin-contract';
+import type { DeclarativePluginUI } from '@lemonssh/plugin-contract';
 import { useI18n } from '../../application/i18n/I18nProvider';
 
 type Value = string | number | boolean;
@@ -118,7 +118,8 @@ export function DeclarativePluginHost({
             </table>
           ) : (
             <dl>{(view.bindings ?? []).map(binding => (
-              <React.Fragment key={binding}><dt>{binding}</dt><dd>{text(saved[binding] ?? data[binding])}</dd></React.Fragment>
+              // Plugin dispatch data wins; the declared settings value is the fallback.
+              <React.Fragment key={binding}><dt>{binding}</dt><dd>{text(data[binding] ?? saved[binding])}</dd></React.Fragment>
             ))}</dl>
           )}
         </section>

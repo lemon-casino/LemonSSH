@@ -44,7 +44,7 @@ import {
 import { STORAGE_KEY_RESTORE_PREVIOUS_SESSION } from '../../infrastructure/config/storageKeys';
 import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from '../../infrastructure/persistence/localStorageAdapter';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { sessionRestoreStorage } from './sessionRestoreStorage';
 import {
   buildAndWriteSessionRestorePayload,
@@ -269,7 +269,7 @@ export const useSessionState = ({
     };
 
     window.addEventListener(LOCAL_STORAGE_ADAPTER_CHANGED_EVENT, handleLocalStorageAdapterChanged);
-    const unsubscribeSettingsSync = netcattyBridge.get()?.onSettingsChanged?.((payload) => {
+    const unsubscribeSettingsSync = lemonsshBridge.get()?.onSettingsChanged?.((payload) => {
       handleRestorePreviousSessionChanged(payload?.key);
     });
     return () => {

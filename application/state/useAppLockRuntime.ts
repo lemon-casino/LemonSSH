@@ -48,7 +48,7 @@ export function selectPreferredRuntimeAppLockState(
 
 export function useAppLockRuntime(
   bridge: Pick<
-    NonNullable<NetcattyBridge>,
+    NonNullable<LemonSSHBridge>,
     'getAppLockRuntimeState' | 'onAppLockRuntimeStateChanged'
   > | null | undefined,
 ) {

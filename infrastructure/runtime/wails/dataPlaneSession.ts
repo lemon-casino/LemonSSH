@@ -17,6 +17,38 @@ import {
 } from "./terminalRoute";
 import type { WailsRouteBootstrap } from "./terminalRoute";
 
+/**
+ * Charset-aware streaming decoder for data-plane output. Remote sessions can
+ * speak legacy charsets (GB18030 network devices); decoding must be stateful
+ * ({stream:true}) because a multi-byte sequence can split across WebSocket
+ * frames, and swapping the encoding resets the state so the switch applies to
+ * the next frame. Unknown labels fall back to UTF-8.
+ */
+export class StreamingTextDecoder {
+  private readonly decoder: TextDecoder;
+
+  constructor(label: string) {
+    this.decoder = new TextDecoder(label);
+  }
+
+  decode(input: Uint8Array): string {
+    return this.decoder.decode(input, { stream: true });
+  }
+}
+
+export function createDataPlaneDecoder(encoding?: string): StreamingTextDecoder {
+  const normalized = (encoding ?? "").trim().toLowerCase();
+  const label = !normalized || normalized === "utf-8" || normalized === "utf8" || normalized === "auto"
+    ? "utf-8"
+    : normalized;
+  try {
+    return new StreamingTextDecoder(label);
+  } catch {
+    // Unsupported label in this webview: never break the data plane.
+    return new StreamingTextDecoder("utf-8");
+  }
+}
+
 export interface DataPlaneSocket {
   binaryType: string;
   onopen: ((event: unknown) => void) | null;

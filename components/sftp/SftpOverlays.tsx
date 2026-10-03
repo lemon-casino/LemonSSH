@@ -26,7 +26,7 @@ const TextEditorModalLoading: React.FC<{
   <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
     <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
       <DialogTitle className="sr-only">{fileName || "Text editor"}</DialogTitle>
-      <div className="netcatty-lazy-fade-in h-full min-h-0" aria-hidden="true" />
+      <div className="lemonssh-lazy-fade-in h-full min-h-0" aria-hidden="true" />
     </DialogContent>
   </Dialog>
 );

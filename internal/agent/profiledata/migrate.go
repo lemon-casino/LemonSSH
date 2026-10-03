@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/profile/store"
+	"github.com/binaricat/lemonssh/internal/profile/store"
 )
 
 // AISchemaMarker stamps a promoted snapshot as AI-canonical v1.

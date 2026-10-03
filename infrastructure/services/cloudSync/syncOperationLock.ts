@@ -3,7 +3,7 @@ import { flushHostProfileWrites, hostStorageAdapter, refreshHostProfile } from '
 import { nativeCloudSyncRequired } from './cloudSyncFacade';
 
 const pending = new WeakMap<object, Promise<unknown>>();
-const LOCK_NAME = 'netcatty-cloud-sync';
+const LOCK_NAME = 'lemonssh-cloud-sync';
 
 interface SyncOwner {
   getState(): { masterKeyConfig: MasterKeyConfig | null };

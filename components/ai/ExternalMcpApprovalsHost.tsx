@@ -6,6 +6,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { ToolCall } from '../ai-elements/tool-call';
+import { ApprovalOverlayStack } from './ApprovalOverlayStack';
 import {
   onApprovalCleared,
   onApprovalRequest,
@@ -83,10 +84,7 @@ export const ExternalMcpApprovalsHost: React.FC = () => {
   if (entries.length === 0) return null;
 
   return (
-    <div
-      className="pointer-events-auto fixed bottom-4 right-4 z-[80] flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2"
-      data-testid="external-mcp-approvals-host"
-    >
+    <ApprovalOverlayStack stackId="external-mcp-approvals-host">
       <div className="rounded-lg border border-border/60 bg-background/95 p-3 shadow-lg backdrop-blur-sm">
         <div className="mb-2 text-xs font-medium text-muted-foreground">
           {t('ai.externalMcp.title')}
@@ -108,6 +106,6 @@ export const ExternalMcpApprovalsHost: React.FC = () => {
           ))}
         </div>
       </div>
-    </div>
+    </ApprovalOverlayStack>
   );
 };

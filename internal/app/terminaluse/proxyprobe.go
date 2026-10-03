@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
 )
 
 // ProxyProbeRequest describes a proxy reachability probe without opening a session.

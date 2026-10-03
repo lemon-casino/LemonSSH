@@ -18,7 +18,7 @@ export type PluginTerminalRuntimeLifecycleEventType =
 export function publishPluginTerminalRuntimeLifecycleEvent(
   lifecycle: PluginTerminalRuntimeLifecycleSink,
   type: PluginTerminalRuntimeLifecycleEventType,
-  details: Partial<NetcattyTerminalSessionSnapshot> = {},
+  details: Partial<LemonSSHTerminalSessionSnapshot> = {},
 ): void {
   switch (type) {
     case 'commandSubmitted':

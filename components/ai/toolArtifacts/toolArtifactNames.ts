@@ -91,7 +91,9 @@ export function inferArtifactToolNameFromCliArgs(
   if (!command) return undefined;
 
   const unwrapped = unwrapShellCommand(command);
-  const cliMatch = unwrapped.match(/(?:^|\s|["'])(?:\S*\/)?netcatty-tool-cli(?:\.(?:cjs|cmd))?(?=["'\s]|$)([\s\S]*)$/);
+  // Agents may invoke the current lemonssh-tool-cli or a pre-rename
+  // netcatty-tool-cli (replayed history); both unwrap identically.
+  const cliMatch = unwrapped.match(/(?:^|\s|["'])(?:\S*\/)?(?:lemonssh|netcatty)-tool-cli(?:\.(?:cjs|cmd))?(?=["'\s]|$)([\s\S]*)$/);
   if (!cliMatch) return undefined;
 
   const afterCli = stripWrappingQuote(cliMatch[1] ?? '').replace(/^["']?\s*/, '');

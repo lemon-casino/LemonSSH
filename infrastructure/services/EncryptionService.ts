@@ -177,6 +177,26 @@ export const verifyPassword = async (
 // ============================================================================
 
 /**
+ * The only KDF this build implements for sync files. Legacy files that omit
+ * `kdf` were written with PBKDF2; anything else must fail loudly instead of
+ * silently deriving with the wrong KDF and surfacing a misleading GCM
+ * authentication failure.
+ */
+const SUPPORTED_KDF = 'PBKDF2' as const;
+
+/**
+ * Reject sync files encrypted with an unsupported key derivation function.
+ * Files without a kdf field predate the field and are always PBKDF2.
+ */
+const assertSupportedKdf = (kdf: string | undefined | null): void => {
+  if (kdf && kdf !== SUPPORTED_KDF) {
+    throw new Error(
+      `Unsupported sync encryption KDF: ${kdf}. This file cannot be decrypted by this version of LemonSSH (expected ${SUPPORTED_KDF}).`
+    );
+  }
+};
+
+/**
  * Encrypt plaintext using AES-256-GCM
  * 
  * @param plaintext - Data to encrypt (as string)
@@ -224,6 +244,7 @@ export const decrypt = async (
   input: DecryptionInput,
   key: CryptoKey
 ): Promise<string> => {
+  assertSupportedKdf(input.kdf);
   const plaintextBuffer = await crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
@@ -308,7 +329,11 @@ export const decryptPayload = async (
   password: string
 ): Promise<SyncPayload> => {
   const { meta, payload } = syncedFile;
-  
+
+  // Fail on unsupported KDFs before deriving (a wrong-KDF key would otherwise
+  // surface as an opaque GCM authentication failure).
+  assertSupportedKdf(meta.kdf);
+
   // Decode Base64 values
   const salt = base64ToUint8Array(meta.salt);
   const iv = base64ToUint8Array(meta.iv);

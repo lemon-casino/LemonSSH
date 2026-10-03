@@ -1,12 +1,14 @@
 {
-  "name": "@netcatty/plugin-cli",
+  "name": "@lemonssh/plugin-cli",
   "version": "0.1.0-internal",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bin": {
-    "netcatty-plugin": "./dist/cli.js"
+    "lemonssh-plugin": "./dist/cli.js"
   },
   "exports": {
     ".": {
@@ -18,11 +20,12 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@netcatty/plugin-contract": "0.1.0-internal",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "semver": "^7.7.3",
-    "yauzl": "^3.2.0"
+    "wabt": "^1.0.39",
+    "yauzl": "^3.2.0",
+    "@lemonssh/plugin-contract": "0.1.0-internal"
   },
   "devDependencies": {
     "@types/semver": "^7.7.1",

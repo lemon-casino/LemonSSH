@@ -12,9 +12,9 @@ func TestGetCLIRPCMethodResolvesCommands(t *testing.T) {
 		command []string
 		want    string
 	}{
-		{[]string{"exec"}, "netcatty/exec"},
-		{[]string{"attachment", "read"}, "netcatty/readAttachment"},
-		{[]string{"sftp", "list"}, "netcatty/sftp/list"},
+		{[]string{"exec"}, "lemonssh/exec"},
+		{[]string{"attachment", "read"}, "lemonssh/readAttachment"},
+		{[]string{"sftp", "list"}, "lemonssh/sftp/list"},
 		{[]string{"vault", "host", "get"}, "vault/host/get"},
 		{[]string{"portforward", "rules", "list"}, "portforward/rules/list"},
 		{[]string{"capabilities"}, ""},

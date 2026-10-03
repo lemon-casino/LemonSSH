@@ -21,7 +21,7 @@ import { HostDetailsSection } from '../host-details';
 import { Button } from '../ui/button';
 import { Combobox } from '../ui/combobox';
 
-const CONNECT_QUEUE_DRAG_TYPE = 'application/x-netcatty-connect-script-id';
+const CONNECT_QUEUE_DRAG_TYPE = 'application/x-lemonssh-connect-script-id';
 
 export interface HostDetailsScriptsSectionProps {
   host: Host;

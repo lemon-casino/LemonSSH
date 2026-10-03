@@ -11,7 +11,7 @@ const click = {
   shiftKey: false,
 } as MouseEvent;
 
-test("OSC 8 links use the Netcatty external browser bridge", async () => {
+test("OSC 8 links use the LemonSSH external browser bridge", async () => {
   const opened: string[] = [];
   const confirmed: string[] = [];
   const handler = createTerminalLinkHandler({

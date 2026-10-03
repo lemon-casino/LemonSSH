@@ -9,11 +9,11 @@ const {
   isGitHubUserAttachment,
 } = require("./spam-comment-filter.cjs");
 
-test("flags the fake Netcatty patch spam pattern", () => {
+test("flags the fake LemonSSH patch spam pattern", () => {
   const result = detectSpamComment({
     authorAssociation: "NONE",
     userType: "User",
-    body: "[netcatty_patch.zip](https://example.com/netcatty_patch.zip)\n\nMan, that terminal rendering bug is such a pain. It looks like the sftp module is tripping over the encoding when it tries to sync the current path. I found a quick patch that fixes the character mapping in the backend so those black boxes finally disappear.",
+    body: "[lemonssh_patch.zip](https://example.com/lemonssh_patch.zip)\n\nMan, that terminal rendering bug is such a pain. It looks like the sftp module is tripping over the encoding when it tries to sync the current path. I found a quick patch that fixes the character mapping in the backend so those black boxes finally disappear.",
   });
 
   assert.equal(result.spam, true);
@@ -68,7 +68,7 @@ test("does not flag trusted maintainers even when sharing zip archives", () => {
   const result = detectSpamComment({
     authorAssociation: "OWNER",
     userType: "User",
-    body: "Try this temporary netcatty_patch.zip while I prepare the signed release. It fixes the rendering issue.",
+    body: "Try this temporary lemonssh_patch.zip while I prepare the signed release. It fixes the rendering issue.",
   });
 
   assert.equal(result.spam, false);
@@ -107,8 +107,8 @@ test("extracts risky file names from markdown links and plain text", () => {
 
 test("identifies GitHub user attachment URLs", () => {
   assert.equal(
-    isGitHubUserAttachment("https://github.com/user-attachments/files/29784176/netcatty_fix.zip"),
+    isGitHubUserAttachment("https://github.com/user-attachments/files/29784176/lemonssh_fix.zip"),
     true
   );
-  assert.equal(isGitHubUserAttachment("https://example.com/netcatty_fix.zip"), false);
+  assert.equal(isGitHubUserAttachment("https://example.com/lemonssh_fix.zip"), false);
 });

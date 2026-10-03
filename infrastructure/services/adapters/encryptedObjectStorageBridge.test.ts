@@ -285,7 +285,7 @@ describe('encryptedObjectStorageBridge', () => {
 
     await adapter.upload(makeSyncedFile(2, 'next'));
     assert.ok(
-      ops.some((op) => op === 'write:netcatty-vault.json:rev-1'),
+      ops.some((op) => op === 'write:lemonssh-vault.json:rev-1'),
       `expected conditional write with rev-1, got ${JSON.stringify(ops)}`,
     );
 
@@ -298,7 +298,7 @@ describe('encryptedObjectStorageBridge', () => {
     assert.equal(await adapter2.download(), null);
     await adapter2.upload(makeSyncedFile(3, 'fresh'));
     assert.ok(
-      ops.some((op) => op === 'write:netcatty-vault.json:null'),
+      ops.some((op) => op === 'write:lemonssh-vault.json:null'),
       `expected must-not-exist write, got ${JSON.stringify(ops)}`,
     );
   });
@@ -412,6 +412,6 @@ describe('encryptedObjectStorageBridge', () => {
       [],
       'assumeVerifiedWrites must not re-read after write',
     );
-    assert.ok(ops.includes('write:netcatty-vault.json'));
+    assert.ok(ops.includes('write:lemonssh-vault.json'));
   });
 });

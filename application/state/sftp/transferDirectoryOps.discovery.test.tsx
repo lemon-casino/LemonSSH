@@ -91,7 +91,7 @@ test("directory transfer discovers each directory once with bounded listing conc
   };
 
   (globalThis as { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       mkdirLocal: async () => undefined,
       statLocal: async () => ({ type: "directory" }),
       realpathSftp: async (_sftpId: string, remotePath: string) => (
@@ -177,7 +177,7 @@ test("live directory download rejects a Windows backslash traversal entry", asyn
     transfersRef.current = tasks;
   };
   (globalThis as { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       mkdirLocal: async () => undefined,
       statLocal: async () => ({ type: "directory" }),
     },

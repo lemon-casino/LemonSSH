@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { isProxyCommandConfig, resolveProxyConfigAuth } from '../../domain/proxyProfiles';
 import type { Identity, ProxyConfig } from '../../types';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 export type ProxyConnectivityStatus = 'idle' | 'testing' | 'ok' | 'error';
 
@@ -24,7 +24,7 @@ export function useProxyConnectivityTest(identities: Identity[] = []) {
     const kind = isProxyCommandConfig(resolved) ? 'command' : resolved.type;
     setState({ status: 'testing' });
     try {
-      const result = await netcattyBridge.require().testProxy?.({
+      const result = await lemonsshBridge.require().testProxy?.({
         kind,
         host: resolved.host,
         port: resolved.port,

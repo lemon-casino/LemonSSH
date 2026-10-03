@@ -11,6 +11,7 @@ package terminaluse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -18,13 +19,13 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
-	"github.com/binaricat/netcatty/internal/terminal/pty"
-	"github.com/binaricat/netcatty/internal/terminal/serialport"
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
-	"github.com/binaricat/netcatty/internal/terminal/supervised"
-	"github.com/binaricat/netcatty/internal/terminal/telnet"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/serialport"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/supervised"
+	"github.com/binaricat/lemonssh/internal/terminal/telnet"
 )
 
 // Service owns terminal sessions end-to-end: SSH dial → auth → PTY channel →
@@ -32,19 +33,25 @@ import (
 // bootstrap (generation + one-use tokens) that the shell exchanges for the
 // loopback data/urgent WebSocket connections.
 type Service struct {
-	mu            sync.Mutex
-	sessions      map[string]*terminalSession
-	exitStatuses  map[string]TerminalExitStatus
-	exitOrder     []string
-	controller    *dataplane.RouteController
-	dp            *dataplane.Server
-	knownHosts    *ssh.KnownHosts
-	interactive   *ssh.InteractiveBroker
-	emitChallenge func(ssh.KeyboardChallenge)
-	emitEvent     func(name string, payload any)
-	observeOutput func(sessionID string, data []byte)
-	counter       int
-	helperTemp    *filesystem.TempService
+	mu                sync.Mutex
+	sessions          map[string]*terminalSession
+	exitStatuses      map[string]TerminalExitStatus
+	exitOrder         []string
+	pendingSnapshots  map[string]*pendingAttachReply[SnapshotResult]
+	pendingApplies    map[string]*pendingAttachReply[bool]
+	controller        *dataplane.RouteController
+	dp                *dataplane.Server
+	knownHosts        *ssh.KnownHosts
+	interactive       *ssh.InteractiveBroker
+	passphrase        *ssh.PassphraseBroker
+	hostKeyConfirm    *ssh.HostKeyBroker
+	emitChallenge     func(ssh.KeyboardChallenge)
+	emitPassphrase    func(ssh.PassphraseRequest)
+	emitHostKeyVerify func(ssh.HostKeyVerificationRequest)
+	emitEvent         func(name string, payload any)
+	observeOutput     func(sessionID string, data []byte)
+	counter           int
+	helperTemp        *filesystem.TempService
 }
 
 type terminalSession struct {
@@ -67,9 +74,30 @@ type terminalSession struct {
 	helper             *supervised.Terminal
 	helperFactory      supervised.TerminalFactory
 	helperState        HelperSessionState
-	stdin              io.WriteCloser
-	bootstrap          dataplane.RouteBootstrap
+	// pluginHooks marks a plugin-protocol connection session (see
+	// plugin_session.go); Write falls through to the stdin adapter, while
+	// Resize/Signal/close route through the hooks.
+	pluginHooks *PluginSessionHooks
+	stdin       io.WriteCloser
+	bootstrap   dataplane.RouteBootstrap
+	// uiID is the renderer session alias (SSHConnectRequest.SessionID) so
+	// attach flows can address sessions the way the UI does.
+	uiID string
+	// encoding pins the terminal input charset ("utf-8" unless the renderer
+	// switched the session, e.g. GB18030 devices); see encoding.go.
+	encoding string
+	// Attach (popup observe) state. flowPaused holds renderer-bound output in
+	// flowBuffer instead of publishing it, so no live bytes fall into the gap
+	// between the home renderer's snapshot and the popup route handoff.
+	flowLeases          map[string]bool
+	flowPaused          bool
+	flowBuffer          []byte
+	attachAuthorization string
+	attachRebound       bool
+	attachClosePrepared bool
 }
+
+const maxFlowPauseBufferBytes = 8 << 20
 
 // New wires the route controller, transport and known-hosts store together.
 // The urgent channel (Ctrl-C et al.) is handled in-process by writing the
@@ -86,6 +114,18 @@ func New(controller *dataplane.RouteController, dp *dataplane.Server, knownHosts
 			service.emitChallenge(challenge)
 		}
 	}, 2*time.Minute)
+	service.passphrase = ssh.NewPassphraseBroker(func(request ssh.PassphraseRequest) {
+		if service.emitPassphrase != nil {
+			service.emitPassphrase(request)
+		}
+	}, func(name string, payload any) {
+		service.emit(name, payload)
+	}, 2*time.Minute)
+	service.hostKeyConfirm = ssh.NewHostKeyBroker(func(request ssh.HostKeyVerificationRequest) {
+		if service.emitHostKeyVerify != nil {
+			service.emitHostKeyVerify(request)
+		}
+	}, 2*time.Minute)
 	dp.SetUrgentHandler(service.handleUrgent)
 	return service
 }
@@ -93,6 +133,57 @@ func New(controller *dataplane.RouteController, dp *dataplane.Server, knownHosts
 // SetChallengeEmitter wires the keyboard-interactive challenge callback.
 func (s *Service) SetChallengeEmitter(emit func(ssh.KeyboardChallenge)) {
 	s.emitChallenge = emit
+}
+
+// SetPassphraseEmitter wires the encrypted-key passphrase prompt callback.
+func (s *Service) SetPassphraseEmitter(emit func(ssh.PassphraseRequest)) {
+	s.emitPassphrase = emit
+}
+
+// SetHostKeyVerificationEmitter wires the changed host-key prompt callback.
+func (s *Service) SetHostKeyVerificationEmitter(emit func(ssh.HostKeyVerificationRequest)) {
+	s.emitHostKeyVerify = emit
+}
+
+// RespondPassphrase completes or cancels a pending passphrase prompt.
+func (s *Service) RespondPassphrase(requestID, passphrase string, cancelled bool) error {
+	return s.passphrase.Respond(requestID, passphrase, cancelled)
+}
+
+// RespondHostKeyVerification completes or rejects a pending changed host-key
+// confirmation. accept+store rotates the pinned key; accept without store
+// allows exactly this connection.
+func (s *Service) RespondHostKeyVerification(requestID string, accept, store bool) error {
+	return s.hostKeyConfirm.Respond(requestID, accept, store)
+}
+
+// DialInteractive bundles the renderer callbacks for one dial: the MFA
+// challenge factory (per-hop hostnames, bound to ctx so cancelled dials cancel
+// pending prompts), passphrase prompts bound to the request's session
+// correlation, and the changed host-key confirmer.
+func (s *Service) DialInteractive(ctx context.Context, request SSHConnectRequest) ssh.DialInteractive {
+	interactive := ssh.DialInteractive{
+		Passphrase:     s.passphrase.Requester(request.SessionID, request.BootEpoch),
+		ConfirmHostKey: s.hostKeyConfirm.Confirmer(request.SessionID, request.BootEpoch),
+	}
+	if request.EnableMFA {
+		interactive.Challenge = func(hostname string) func(string, string, []string, []bool) ([]string, error) {
+			return s.interactive.HandlerContext(ctx, hostname)
+		}
+	}
+	return interactive
+}
+
+// notifyPassphraseRejected surfaces exhausted passphrase attempts so the
+// renderer can clear remembered passphrases for the key.
+func (s *Service) notifyPassphraseRejected(err error) {
+	var rejected *ssh.PassphraseRejectedError
+	if !errors.As(err, &rejected) {
+		return
+	}
+	s.emit(ssh.EventPassphraseRejected, map[string]any{
+		"keyPaths": []string{rejected.KeyPath},
+	})
 }
 
 // SetEventEmitter wires session-visible events (telnet echo mode, auto-login
@@ -128,10 +219,27 @@ func (s *Service) publishOutput(sessionID string, data []byte) bool {
 
 func (s *Service) publishTerminalBytes(sessionID string, data []byte) bool {
 	s.mu.Lock()
-	if term := s.sessions[sessionID]; term != nil {
+	term := s.sessions[sessionID]
+	if term != nil {
 		term.cwd.feed(data)
 	}
 	observe := s.observeOutput
+	if term != nil && term.flowPaused {
+		term.flowBuffer = append(term.flowBuffer, data...)
+		overflow := len(term.flowBuffer) > maxFlowPauseBufferBytes
+		s.mu.Unlock()
+		// Script runner / session log observers keep seeing the bytes even
+		// while the renderer display is paused.
+		if observe != nil {
+			observe(sessionID, data)
+		}
+		// Overflow guard: a vanished attach popup must never pin the session's
+		// output forever — release the pause so the session keeps flowing.
+		if overflow {
+			s.forceReleaseFlowPause(sessionID)
+		}
+		return true
+	}
 	s.mu.Unlock()
 	if observe != nil {
 		observe(sessionID, data)
@@ -168,6 +276,11 @@ func (s *Service) Bootstrap(sessionID string) (dataplane.RouteBootstrap, error) 
 	return term.bootstrap, nil
 }
 
+// errRouteHandedOff is returned by Reconnect while an attach popup owns the
+// display route: the previous owner must suspend its reconnect loop instead of
+// stealing the route back.
+var errRouteHandedOff = fmt.Errorf("terminal route handed off to another window")
+
 // Reconnect rotates only the renderer route. Native Mosh/ET processes retain
 // their protocol keys and roaming state; no new remote server is bootstrapped.
 func (s *Service) Reconnect(sessionID string) (dataplane.RouteBootstrap, error) {
@@ -175,7 +288,19 @@ func (s *Service) Reconnect(sessionID string) (dataplane.RouteBootstrap, error) 
 	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
 	if !ok || term.closing {
+		for id, candidate := range s.sessions {
+			if candidate.uiID != "" && candidate.uiID == sessionID && !candidate.closing {
+				term, ok = candidate, true
+				sessionID = id
+				break
+			}
+		}
+	}
+	if !ok || term.closing {
 		return dataplane.RouteBootstrap{}, fmt.Errorf("session not found")
+	}
+	if term.attachRebound {
+		return dataplane.RouteBootstrap{}, errRouteHandedOff
 	}
 	bootstrap, err := s.controller.Open(sessionID)
 	if err != nil {
@@ -188,11 +313,16 @@ func (s *Service) Reconnect(sessionID string) (dataplane.RouteBootstrap, error) 
 // ListenAddr exposes the bound loopback data plane address (host:port).
 func (s *Service) ListenAddr() string { return s.dp.Addr() }
 
-// Write sends raw stdin bytes to the remote shell.
+// Write sends raw stdin bytes to the remote shell. The payload arrives as
+// UTF-8 from the renderer and is transcoded when the session uses a legacy
+// input charset (SetSessionEncoding).
 func (s *Service) Write(sessionID string, data []byte) (int, error) {
 	term, ok := s.lookup(sessionID)
 	if !ok {
 		return 0, fmt.Errorf("session %q not found", sessionID)
+	}
+	if term.encoding != "" {
+		data = encodeInput(data, term.encoding)
 	}
 	if term.helper != nil {
 		return term.helper.Write(data)
@@ -225,6 +355,12 @@ func (s *Service) Resize(sessionID string, cols, rows uint16) error {
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
 	}
+	if term.pluginHooks != nil {
+		if term.pluginHooks.Resize == nil {
+			return nil
+		}
+		return term.pluginHooks.Resize(cols, rows)
+	}
 	if term.helper != nil {
 		return term.helper.Resize(cols, rows)
 	}
@@ -242,6 +378,12 @@ func (s *Service) Signal(sessionID, signal string) error {
 	term, ok := s.lookup(sessionID)
 	if !ok {
 		return fmt.Errorf("session %q not found", sessionID)
+	}
+	if term.pluginHooks != nil {
+		if term.pluginHooks.Signal == nil {
+			return nil
+		}
+		return term.pluginHooks.Signal(signal)
 	}
 	if term.helper != nil {
 		_, err := term.helper.Write([]byte{3})
@@ -300,6 +442,14 @@ func (s *Service) beginSessionClose(sessionID string, status TerminalExitStatus,
 }
 
 func (s *Service) finishSessionClose(sessionID string, term *terminalSession, status TerminalExitStatus) error {
+	// An attached popup must tear its observe route down first; tell it to
+	// prepare for close before the route disappears.
+	if term.attachAuthorization != "" || term.attachClosePrepared {
+		s.emit("terminal:popup-prepare-close", map[string]any{
+			"sessionId":     attachEventSessionID(term, sessionID),
+			"authorization": term.attachAuthorization,
+		})
+	}
 	if term.helper != nil {
 		_ = term.helper.Close()
 	}
@@ -317,6 +467,12 @@ func (s *Service) finishSessionClose(sessionID string, term *terminalSession, st
 	}
 	if term.serialYmodemCancel != nil {
 		term.serialYmodemCancel()
+	}
+	// Plugin-protocol connections tear their plugin-side state down through
+	// the hook; it must be idempotent (plugin-initiated closes already ran
+	// it) and bounded (the plugin host caps every dispatch).
+	if term.pluginHooks != nil && term.pluginHooks.Close != nil {
+		term.pluginHooks.Close(status.Reason)
 	}
 	if term.runner != nil {
 		_ = term.runner.Stop()
@@ -344,6 +500,29 @@ func (s *Service) lookup(sessionID string) (*terminalSession, bool) {
 	defer s.mu.Unlock()
 	term, ok := s.sessions[sessionID]
 	return term, ok && !term.closing
+}
+
+// resolveSessionID maps a native or renderer session id to the live native id.
+func (s *Service) resolveSessionID(idOrAlias string) (string, *terminalSession, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if term, ok := s.sessions[idOrAlias]; ok && !term.closing {
+		return idOrAlias, term, true
+	}
+	for id, term := range s.sessions {
+		if term.uiID != "" && term.uiID == idOrAlias && !term.closing {
+			return id, term, true
+		}
+	}
+	return "", nil, false
+}
+
+// attachEventSessionID picks the id the renderer knows the session by.
+func attachEventSessionID(term *terminalSession, nativeID string) string {
+	if term != nil && term.uiID != "" {
+		return term.uiID
+	}
+	return nativeID
 }
 
 // handleUrgent writes urgent payloads (Ctrl-C et al.) straight to stdin.

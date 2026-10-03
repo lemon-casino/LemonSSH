@@ -1,5 +1,5 @@
 // Package deeplink owns deep-link intent parsing and the pre-ready intent
-// queue (P4-04, SYS-03): netcatty://ssh/user@host:port?key=value URLs are
+// queue (P4-04, SYS-03): lemonssh://ssh/user@host:port?key=value URLs are
 // parsed strictly, queued exactly once per launch, and delivered only after
 // the app is unlocked/ready. Malformed intents fail closed.
 package deeplink
@@ -31,7 +31,8 @@ type Action struct {
 //
 //	ssh://[user@]host[:port]
 //	telnet://host[:port]
-//	netcatty://[ssh|telnet/][user@]host[:port]?params
+//	lemonssh://[ssh|telnet/][user@]host[:port]?params
+//	netcatty://[ssh|telnet/][user@]host[:port]?params  (legacy scheme)
 func Parse(rawURL string) (*Action, error) {
 	if strings.TrimSpace(rawURL) == "" {
 		return nil, ErrMalformedIntent
@@ -50,15 +51,16 @@ func Parse(rawURL string) (*Action, error) {
 	}
 	kind := "ssh"
 	switch scheme {
-	case "netcatty":
+	case "lemonssh", "netcatty":
 	case "ssh":
 	case "telnet":
 		kind = "telnet"
 	default:
 		return nil, ErrUnsupportedScheme
 	}
-	// netcatty://ssh/user@host:port — an explicit kind path segment wins.
-	if scheme == "netcatty" {
+	// lemonssh://ssh/user@host:port (legacy netcatty:// the same way) — an
+	// explicit kind path segment wins.
+	if scheme == "lemonssh" || scheme == "netcatty" {
 		if slash := strings.Index(rest, "/"); slash >= 0 {
 			segment := strings.ToLower(rest[:slash])
 			if segment == "ssh" || segment == "telnet" {

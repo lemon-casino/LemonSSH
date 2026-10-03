@@ -1,4 +1,4 @@
-export const WORKSPACE_SESSION_DRAG_TYPE = 'application/x-netcatty-workspace-session';
+export const WORKSPACE_SESSION_DRAG_TYPE = 'application/x-lemonssh-workspace-session';
 
 type DataTransferLike = {
   types: DOMStringList | readonly string[];

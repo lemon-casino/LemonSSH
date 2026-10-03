@@ -101,25 +101,25 @@ test("localStorageAdapter skips unchanged writes and notifications", async (t) =
   const env = installLocalStorageEnvironment();
   t.after(() => env.restore());
 
-  assert.equal(localStorageAdapter.writeString("netcatty:test", "one"), true);
+  assert.equal(localStorageAdapter.writeString("lemonssh:test", "one"), true);
   await waitForAdapterEvents();
 
-  assert.deepEqual(env.events, ["netcatty:test"]);
+  assert.deepEqual(env.events, ["lemonssh:test"]);
   assert.equal(env.setCalls, 1);
 
-  assert.equal(localStorageAdapter.writeString("netcatty:test", "one"), true);
+  assert.equal(localStorageAdapter.writeString("lemonssh:test", "one"), true);
   await waitForAdapterEvents();
 
-  assert.deepEqual(env.events, ["netcatty:test"]);
+  assert.deepEqual(env.events, ["lemonssh:test"]);
   assert.equal(env.setCalls, 1);
 
-  assert.equal(localStorageAdapter.write("netcatty:json", { ok: true }), true);
+  assert.equal(localStorageAdapter.write("lemonssh:json", { ok: true }), true);
   await waitForAdapterEvents();
 
-  assert.equal(localStorageAdapter.write("netcatty:json", { ok: true }), true);
+  assert.equal(localStorageAdapter.write("lemonssh:json", { ok: true }), true);
   await waitForAdapterEvents();
 
-  assert.deepEqual(env.events, ["netcatty:test", "netcatty:json"]);
+  assert.deepEqual(env.events, ["lemonssh:test", "lemonssh:json"]);
   assert.equal(env.setCalls, 2);
 });
 
@@ -127,17 +127,17 @@ test("localStorageAdapter skips missing removes and notifications", async (t) =>
   const env = installLocalStorageEnvironment();
   t.after(() => env.restore());
 
-  localStorageAdapter.remove("netcatty:missing");
+  localStorageAdapter.remove("lemonssh:missing");
   await waitForAdapterEvents();
 
   assert.deepEqual(env.events, []);
   assert.equal(env.removeCalls, 0);
 
-  assert.equal(localStorageAdapter.writeString("netcatty:test", "one"), true);
+  assert.equal(localStorageAdapter.writeString("lemonssh:test", "one"), true);
   await waitForAdapterEvents();
-  localStorageAdapter.remove("netcatty:test");
+  localStorageAdapter.remove("lemonssh:test");
   await waitForAdapterEvents();
 
-  assert.deepEqual(env.events, ["netcatty:test", "netcatty:test"]);
+  assert.deepEqual(env.events, ["lemonssh:test", "lemonssh:test"]);
   assert.equal(env.removeCalls, 1);
 });

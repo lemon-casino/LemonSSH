@@ -103,7 +103,7 @@ test("buildTransferPoolKey separates every transport security identity", async (
       fingerprint: "a",
       discoveredAt: 0,
     }],
-  } as unknown as NetcattySSHOptions;
+  } as unknown as LemonSSHSSHOptions;
   const base = {
     hostId: "h1",
     hostname: "target.example",
@@ -112,11 +112,11 @@ test("buildTransferPoolKey separates every transport security identity", async (
     connectionOptions,
   };
   const key = await buildTransferPoolKey(base);
-  const variant = (overrides: Partial<NetcattySSHOptions>): NetcattySSHOptions => ({
+  const variant = (overrides: Partial<LemonSSHSSHOptions>): LemonSSHSSHOptions => ({
     ...connectionOptions,
     ...overrides,
   });
-  const variants: NetcattySSHOptions[] = [
+  const variants: LemonSSHSSHOptions[] = [
     variant({ password: "secret-b" }),
     variant({ keepaliveInterval: 60 }),
     variant({ algorithmOverrides: { kex: ["diffie-hellman-group14-sha256"] } }),

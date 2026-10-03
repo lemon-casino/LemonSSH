@@ -5,7 +5,7 @@ Status: Approved (design) — pending spec review
 
 ## Summary
 
-Three small terminal UX improvements for Netcatty:
+Three small terminal UX improvements for LemonSSH:
 
 1. **One-click clone tab** — the existing tab right-click "Copy Tab" should also
    inherit the source tab's current working directory.
@@ -35,7 +35,7 @@ one new shared cwd-inheritance helper.
   `startLocalSession`). `initialCwd` (`Terminal.tsx:2001`) only feeds
   plugin-lifecycle metadata, not the spawn.
 - SSH cwd resolution: `getSessionPwd` (`sshBridge/sessionOps.cjs:238`) reads
-  `/proc/<pid>/cwd`; wired renderer→main as `netcatty:ssh:pwd`, exposed to the
+  `/proc/<pid>/cwd`; wired renderer→main as `lemonssh:ssh:pwd`, exposed to the
   renderer via `useTerminalBackend.getSessionPwd`. Local terminals have **no**
   backend cwd probe — local cwd is known only from OSC 7 output.
 - SSH "start at a directory" primitive: `resolveRestoreCwdIntent`

@@ -1,5 +1,5 @@
 /**
- * PromptInput - Adapted from Vercel AI Elements prompt-input for netcatty.
+ * PromptInput - Adapted from Vercel AI Elements prompt-input for LemonSSH.
  *
  * Simplified: no file attachments, screenshots, drag-drop, command palette,
  * hover cards, referenced sources, or tabs. Core input + footer + submit.

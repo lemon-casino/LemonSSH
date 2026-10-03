@@ -141,7 +141,7 @@ export interface FetchBridge {
   aiAllowlistAddHost?: (baseURL: string) => Promise<{ ok: boolean }>;
 }
 
-export interface NetcattyAiBridge {
+export interface LemonSSHAiBridge {
   aiDiscoverAgents?: (options?: { refreshShellEnv?: boolean; apiKeyPresent?: boolean }) => Promise<Array<AgentPathInfo & { command: string }>>;
   aiPrewarmShellEnv?: () => Promise<{ ok: boolean; error?: string }>;
   aiCodexGetIntegration?: (options?: { refreshShellEnv?: boolean; validateChatGptAuth?: boolean; codexPath?: string }) => Promise<CodexIntegrationStatus>;
@@ -220,17 +220,17 @@ export const AGENT_DEFAULTS: Record<string, Omit<ExternalAgentConfig, "id" | "co
 // Bridge helpers
 // ---------------------------------------------------------------------------
 
-export function getBridge(): NetcattyAiBridge | undefined {
-  return (window as unknown as { netcatty?: NetcattyAiBridge }).netcatty;
+export function getBridge(): LemonSSHAiBridge | undefined {
+  return (window as unknown as { lemonssh?: LemonSSHAiBridge }).lemonssh;
 }
 
 export function getFetchBridge(): FetchBridge | undefined {
-  return (window as unknown as { netcatty?: FetchBridge }).netcatty;
+  return (window as unknown as { lemonssh?: FetchBridge }).lemonssh;
 }
 
 export function normalizeCodexBridgeError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (message.includes("No handler registered for 'netcatty:ai:codex:")) {
+  if (message.includes("No handler registered for 'lemonssh:ai:codex:")) {
     return "Codex native handlers are not loaded yet. Fully restart the desktop app, or restart the Wails dev process, then try again.";
   }
   return message;

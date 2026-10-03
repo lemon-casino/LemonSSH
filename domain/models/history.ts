@@ -27,7 +27,7 @@ export interface ShellHistoryEntry {
 // Remote Shell History - commands parsed from a remote host's own shell
 // history file (~/.bash_history, ~/.zsh_history, fish_history), read on
 // demand through the SSH/ET exec channel. Distinct from ShellHistoryEntry,
-// which records commands typed inside Netcatty's own terminal sessions.
+// which records commands typed inside LemonSSH's own terminal sessions.
 export type RemoteHistorySource = 'bash' | 'zsh' | 'fish';
 
 export interface RemoteHistoryEntry {

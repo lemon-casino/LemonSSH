@@ -2,7 +2,9 @@ import type { Snippet } from "./models";
 import { normalizeVaultOrder } from "./vaultOrder";
 import { normalizeGroupTargetPaths } from "./hostGroupPathMutations";
 
-export const SNIPPET_EXPORT_KIND = "netcatty.snippets" as const;
+export const SNIPPET_EXPORT_KIND = "lemonssh.snippets" as const;
+// Pre-rename export files carry the netcatty kind; imports keep accepting both.
+export const SNIPPET_EXPORT_KIND_LEGACY = "netcatty.snippets" as const;
 export const SNIPPET_EXPORT_VERSION = 2 as const;
 export const SNIPPET_EXPORT_VERSION_LEGACY = 1 as const;
 
@@ -181,7 +183,7 @@ const sanitizeImportItem = (value: unknown): SnippetExportItem | null => {
 
 const parseSnippetImportObject = (parsed: Record<string, unknown>): SnippetExportPayload => {
   const version = parsed.version;
-  if (parsed.kind !== SNIPPET_EXPORT_KIND) {
+  if (parsed.kind !== SNIPPET_EXPORT_KIND && parsed.kind !== SNIPPET_EXPORT_KIND_LEGACY) {
     throw new Error("Unsupported snippet import file.");
   }
   if (version !== SNIPPET_EXPORT_VERSION && version !== SNIPPET_EXPORT_VERSION_LEGACY) {

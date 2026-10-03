@@ -4,42 +4,49 @@
 // results.
 
 import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
-import * as netcattyService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/netcattyservice";
-import * as agentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentservice";
-import * as agentCLIServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/agentcliservice";
-import * as externalAgentServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/externalagentservice";
-import * as userSkillsServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/userskillsservice";
+import * as lemonsshService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/lemonsshservice";
+import * as agentServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/agentservice";
+import * as agentCLIServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/agentcliservice";
+import * as externalAgentServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/externalagentservice";
+import * as userSkillsServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/userskillsservice";
 import type {
   EventPage as AgentEventPage,
   PrepareTurnRequest as AgentPrepareTurnRequest,
   PreparedTurn as AgentPreparedTurn,
   TurnCommand as AgentTurnCommand,
   TurnSnapshot as AgentTurnSnapshot,
-} from "./bindings/github.com/binaricat/netcatty/internal/app/contracts/models";
-import * as terminalService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/terminalservice";
-import * as sftpService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sftpservice";
-import * as settingsWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/settingswindowservice";
-import * as forwardService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/forwardservice";
-import * as appLockService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/applockservice";
-import * as credentialService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/credentialservice";
-import * as pluginService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/pluginservice";
-import * as deepLinkService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/deeplinkservice";
-import * as filesystemService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/filesystemservice";
-import * as transferService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/transferservice";
-import * as popupWindowService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/popupwindowservice";
-import * as shortcutService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/shortcutservice";
-import * as scriptService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/scriptservice";
-import * as diagnosticLogService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/diagnosticlogservice";
-import * as sessionLogServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/sessionlogservice";
-import * as httpNetworkProxyServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/httpnetworkproxyservice";
-import * as syncServiceBinding from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/syncservice";
-import * as providerFetchService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/providerfetchservice";
-import * as trayService from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/trayservice";
+} from "./bindings/github.com/binaricat/lemonssh/internal/app/contracts/models";
+import * as terminalService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/terminalservice";
+import * as knownHostsServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/knownhostsservice";
+import * as sftpService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sftpservice";
+import * as settingsWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/settingswindowservice";
+import * as forwardService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/forwardservice";
+import * as appLockService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/applockservice";
+import * as credentialService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/credentialservice";
+import * as pluginService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/pluginservice";
+import * as deepLinkService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/deeplinkservice";
+import * as filesystemService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/filesystemservice";
+import * as transferService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/transferservice";
+import * as popupWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/popupwindowservice";
+import * as sessionWindowServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sessionwindowservice";
+import * as shortcutService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/shortcutservice";
+import * as scriptService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/scriptservice";
+import * as diagnosticLogService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/diagnosticlogservice";
+import * as sessionLogServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sessionlogservice";
+import * as httpNetworkProxyServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/httpnetworkproxyservice";
+import * as syncServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/syncservice";
+import * as providerFetchService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/providerfetchservice";
+import * as trayService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/trayservice";
+import * as trayPanelWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/traypanelwindowservice";
+import * as windowLifecycleService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/windowlifecycleservice";
+import * as lemonsshCoreService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/lemonsshservice";
+import * as updateServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/updateservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
   entryToRemoteFile,
   pickSSHConnectArgs,
+  callerWindowName,
   statToSftpStatResult,
   terminalSocketSubprotocols,
 } from "./terminalRoute";
@@ -51,7 +58,8 @@ import type {
 import { setActiveRuntimeClient } from "../runtimeClient";
 import type { RuntimeClient } from "../runtimeClient";
 import type { RemoteFile } from "../../../domain/models/workspace";
-import { openDataPlaneSession } from "./dataPlaneSession";
+import type { SftpFilenameEncoding } from "../../../domain/models/sftp";
+import { createDataPlaneDecoder, openDataPlaneSession } from "./dataPlaneSession";
 import type { DataPlaneSessionHandle } from "./dataPlaneSession";
 import { createLocalShellBridge, type NativeLocalShellBindings } from './localShellBridge';
 import { createCloudOAuthFacade, type CloudOAuthBindings } from '../../services/cloudSync/cloudSyncFacade';
@@ -59,9 +67,9 @@ import { createMonitoringBridge, type MonitoringBindings } from './monitoringBri
 import { readLocalTree } from "./localTree";
 import { createTransferBridge, type TransferBindings } from "./transferBridge";
 import { createNativeFileActions, type NativeFileBindings } from "./nativeFileActions";
-import * as profileBindings from "./bindings/github.com/binaricat/netcatty/cmd/netcatty/profileservice";
+import * as profileBindings from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/profileservice";
 import { createZmodemBridge } from './zmodemBridge';
-import { subscribePopupConfig } from './popupConfigSubscription';
+import { subscribePopupConfig, type LeaseParams } from './popupConfigSubscription';
 import { configureProfileBindings } from "../profile/profileClient";
 import { createAgentToolBridge, type NativeAgentToolBindings } from './agentToolBridge';
 import { createAgentCliBridge, type NativeAgentCLIBindings } from './agentCliBridge';
@@ -92,8 +100,99 @@ function portWith<T extends object>(portName: string, implemented: object): T {
 
 function missingBridgeMethod(property: string | symbol): never {
   throw new Error(
-    `Netcatty bridge method ${String(property)} is not available under the Wails runtime yet`,
+    `LemonSSH bridge method ${String(property)} is not available under the Wails runtime yet`,
   );
+}
+
+// Wails event names broadcast by the Go services. These must stay in sync
+// with the constants in cmd/lemonssh/appLockService.go,
+// cmd/lemonssh/vaultBackupService.go and internal/app/updateuse/service.go.
+const appLockRuntimeStateChangedEvent = "app-lock:runtime-state-changed";
+const appLockSettingsChangedEvent = "app-lock:settings-changed";
+const appLockReopenEvent = "app-lock:reopen";
+const vaultBackupsChangedEvent = "vault-backups:changed";
+const updateAvailableEvent = "update:available";
+const updateNotAvailableEvent = "update:not-available";
+const updateDownloadProgressEvent = "update:download-progress";
+const updateDownloadedEvent = "update:downloaded";
+const updateErrorEvent = "update:error";
+// FileWatchService (cmd/lemonssh/fileWatchService.go) — external-editor
+// auto-sync events. Keep in sync with the constants there.
+const fileWatchSyncedEvent = "lemonssh:filewatch:synced";
+const fileWatchErrorEvent = "lemonssh:filewatch:error";
+const fileWatchStoppedEvent = "lemonssh:filewatch:stopped";
+// WindowLifecycleService (cmd/lemonssh/windowLifecycleService.go) — main-window
+// close semantics (quit guard / close-to-tray) and the focus-recovery events.
+// Keep in sync with the constants there.
+const windowShownEvent = "window:shown";
+const windowWillHideEvent = "window:will-hide";
+const windowFocusRequestedEvent = "window:focus-requested";
+const windowCheckDirtyEditorsEvent = "window:check-dirty-editors";
+// ForwardService (cmd/lemonssh/forwardService.go) — ordered tunnel-table
+// events for the renderer's port-forward runtime subscription. Keep in sync
+// with the constant there.
+const portForwardRuntimeEvent = "lemonssh:port-forward:runtime";
+// TrayService (cmd/lemonssh/trayService.go) — tray menu / tray panel actions.
+// Main-window-directed events carry the session/host/rule id payload; the
+// panel events target the #/tray window. Keep in sync with the constants
+// there.
+const trayFocusSessionEvent = "tray:focus-session";
+const trayToggleForwardEvent = "tray:toggle-port-forward";
+const trayPanelJumpSessionEvent = "tray:panel:jump-to-session";
+const trayPanelConnectHostEvent = "tray:panel:connect-to-host";
+const trayPanelCloseSessionEvent = "tray:panel:close-session";
+const trayPanelMenuDataEvent = "tray:panel:menu-data";
+const trayPanelRefreshEvent = "tray:panel:refresh";
+const trayPanelCloseRequestEvent = "tray:panel:close-request";
+// SessionWindowService (cmd/lemonssh/sessionWindowService.go) — peer session
+// windows (#/session-window) carry their identity in these URL parameters.
+// Keep in sync with sessionWindowURL there and callerWindowName in
+// terminalRoute.ts.
+const SESSION_WINDOW_LEASE_PARAMS: LeaseParams = { id: 'sessionWindowId', token: 'sessionWindowToken' };
+
+/** Listener + payload extracted from the bridge's onTrayPanelMenuData contract. */
+type TrayPanelMenuDataListener = NonNullable<LemonSSHBridge["onTrayPanelMenuData"]>;
+type TrayPanelMenuDataPayload = Parameters<Parameters<TrayPanelMenuDataListener>[0]>[0];
+
+/** Raw renderer-pushed tray menu payload (LemonSSHBridge.updateTrayMenuData). */
+interface NativeTrayMenuData {
+  sessions?: Array<{ id?: unknown; label?: unknown; hostLabel?: unknown; status?: unknown; workspaceId?: unknown; workspaceTitle?: unknown }>;
+  hosts?: Array<{ id?: unknown; label?: unknown; hostname?: unknown; group?: unknown; pinned?: unknown; lastConnectedAt?: unknown; protocol?: unknown }>;
+  portForwardRules?: Array<{ id?: unknown; label?: unknown; type?: unknown; localPort?: unknown; remoteHost?: unknown; remotePort?: unknown; status?: unknown }>;
+}
+
+/** Normalizes the Go-pushed tray panel snapshot onto the bridge contract. */
+function normalizeTrayPanelMenuData(payload: unknown): TrayPanelMenuDataPayload {
+  const data = (payload ?? {}) as NativeTrayMenuData;
+  const text = (value: unknown): string => (typeof value === "string" ? value : "");
+  return {
+    sessions: (data.sessions ?? []).map((session) => ({
+      id: text(session.id),
+      label: text(session.label),
+      hostLabel: text(session.hostLabel),
+      status: (text(session.status) || "disconnected") as "connecting" | "connected" | "disconnected",
+      workspaceId: text(session.workspaceId) || undefined,
+      workspaceTitle: text(session.workspaceTitle) || undefined,
+    })),
+    hosts: (data.hosts ?? []).map((host) => ({
+      id: text(host.id),
+      label: text(host.label) || undefined,
+      hostname: text(host.hostname) || undefined,
+      group: text(host.group) || undefined,
+      pinned: host.pinned === true,
+      lastConnectedAt: typeof host.lastConnectedAt === "number" ? host.lastConnectedAt : undefined,
+      protocol: text(host.protocol) || undefined,
+    })),
+    portForwardRules: (data.portForwardRules ?? []).map((rule) => ({
+      id: text(rule.id),
+      label: text(rule.label) || undefined,
+      type: (text(rule.type) || "local") as "local" | "remote" | "dynamic",
+      localPort: typeof rule.localPort === "number" ? rule.localPort : 0,
+      remoteHost: text(rule.remoteHost) || undefined,
+      remotePort: typeof rule.remotePort === "number" ? rule.remotePort : undefined,
+      status: (text(rule.status) || "inactive") as "inactive" | "connecting" | "active" | "error",
+    })),
+  };
 }
 
 function base64ToArrayBuffer(value: string): ArrayBuffer {
@@ -134,6 +233,43 @@ export interface WailsBindingDeps {
     ListAutocompleteDirectory?: (sessionID: string, directory: string, foldersOnly: boolean, prefix: string, limit: number) => Promise<{ success: boolean; entries: Array<{ name: string; type: 'file' | 'directory' | 'symlink' }>; error?: string }>;
     GetSessionPwd?: (sessionID: string, options: { allowHomeFallback: boolean; allowLoginShellFallback: boolean; timeoutMs: number }) => Promise<{ success: boolean; cwd?: string; error?: string }>;
     GetSessionRemoteInfo?: (sessionID: string) => Promise<{ success: boolean; remoteSshVersion?: string; error?: string }>;
+    GetSessionDistroInfo?: (sessionID: string) => Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }>;
+    ReadRemoteHistory?: (sessionID: string, limit: number) => Promise<{ success: boolean; pending?: boolean; error?: string; shell?: string; bash?: string; zsh?: string; fish?: string }>;
+    PtyGetChildProcesses?: (sessionID: string) => Promise<Array<{ pid: number; command: string }>>;
+    AcquireSessionFlowPauseLease?: (sessionID: string) => Promise<{ success: boolean; leaseId?: string; authorization?: string; error?: string }>;
+    WaitSessionFlowPauseLease?: (sessionID: string, leaseId: string) => Promise<{ success: boolean; error?: string }>;
+    ReleaseSessionFlowPauseLease?: (sessionID: string, leaseId: string, options?: { keepPaused?: boolean }) => Promise<{ success: boolean; error?: string }>;
+    SetSessionFlowPaused?: (sessionID: string, paused: boolean) => Promise<void>;
+    SetSessionFlowPausedAndWait?: (sessionID: string, paused: boolean) => Promise<{ success: boolean; error?: string }>;
+    RequestSessionSnapshot?: (sessionID: string, authorization: string) => Promise<{
+      success: boolean;
+      snapshot?: string;
+      kittyKeyboardModeState?: LemonSSHKittyKeyboardModeState;
+      kittyKeyboardProtocolEnabled?: boolean;
+      passwordPromptActive?: boolean;
+      cwd?: string | null;
+      title?: string | null;
+      error?: string;
+    }>;
+    RespondSessionSnapshot?: (
+      requestId: string,
+      snapshot: string,
+      kittyState: LemonSSHKittyKeyboardModeState | null,
+      kittyEnabled: boolean | null,
+      passwordPromptActive: boolean | null,
+      cwd: string | null,
+      title: string | null,
+    ) => Promise<unknown>;
+    ApplySessionSnapshot?: (sessionID: string, snapshot: string, context: unknown, authorization: string) => Promise<{ success: boolean; error?: string }>;
+    RespondApplySnapshot?: (requestId: string, accepted: boolean) => Promise<unknown>;
+    MarkAttachPopupClosePrepared?: (sessionID: string, authorization: string) => Promise<{ success: boolean; error?: string }>;
+    RebindSessionOutput?: (sessionID: string, authorization: string) => Promise<{
+      success: boolean;
+      authorization?: string;
+      route?: { sessionID: string; generation: number; dataToken: string; urgentToken: string; windowBytes: number };
+      error?: string;
+    }>;
+    RestoreSessionOutput?: (sessionID: string, authorization: string) => Promise<{ success: boolean; error?: string }>;
     Connect: (request: unknown) => Promise<string>;
     TestProxy?: (request: {
       kind: string;
@@ -146,6 +282,9 @@ export interface WailsBindingDeps {
       targetPort?: number;
     }) => Promise<{ ok: boolean; latencyMs: number; error?: string }>;
     RespondKeyboardInteractive?: (requestID: string, responses: string[], cancelled: boolean) => Promise<unknown>;
+    RespondPassphrase?: (requestID: string, passphrase: string, cancelled: boolean) => Promise<unknown>;
+    RespondHostKeyVerification?: (requestID: string, accept: boolean, addToKnownHosts: boolean) => Promise<unknown>;
+    ExecCommand?: (request: unknown) => Promise<{ stdout: string; stderr: string; code: number | null }>;
     StartLocal?: (shell: string, cwd: string, cols: number, rows: number) => Promise<string>;
     StartTelnet?: (request: unknown) => Promise<string>;
     StartSerial?: (request: unknown) => Promise<string>;
@@ -182,7 +321,7 @@ export interface WailsBindingDeps {
       remoteEcho?: boolean;
       localEcho?: boolean;
     }>;
-    RestartHelper?: (sessionID: string) => Promise<NetcattyHelperSessionState>;
+    RestartHelper?: (sessionID: string) => Promise<LemonSSHHelperSessionState>;
     Write: (...args: unknown[]) => unknown;
     Resize: (...args: unknown[]) => unknown;
     Signal: (...args: unknown[]) => unknown;
@@ -191,31 +330,33 @@ export interface WailsBindingDeps {
     Bootstrap: (sessionID: string) => Promise<WailsRouteBootstrap>;
     Reconnect?: (sessionID: string) => Promise<WailsRouteBootstrap>;
     ListenAddr: () => Promise<string> | string;
+    SetSessionEncoding?: (sessionID: string, encoding: string) => Promise<{ ok: boolean; encoding: string }>;
+    GetSessionEncoding?: (sessionID: string) => Promise<string> | string;
   };
   sftp: {
     OpenForTerminal?: (sessionId: string) => Promise<string>;
     Open: (request: unknown) => Promise<string>;
-    Download?: (sftpID: string, remotePath: string, localPath: string) => Promise<number>;
-    Upload?: (sftpID: string, localPath: string, remotePath: string) => Promise<number>;
-    List: (sftpID: string, path: string) => Promise<WailsSftpEntry[]>;
-    Mkdir: (sftpID: string, path: string) => Promise<unknown>;
-    Remove: (sftpID: string, path: string) => Promise<unknown>;
-    Rename: (sftpID: string, oldPath: string, newPath: string) => Promise<unknown>;
-    Stat: (sftpID: string, path: string) => Promise<WailsSftpFileInfo>;
-    Lstat?: (sftpID: string, path: string) => Promise<WailsSftpFileInfo & { isSymlink?: boolean }>;
-    RealPath?: (sftpID: string, path: string) => Promise<string>;
+    Download?: (sftpID: string, remotePath: string, localPath: string, encoding?: string) => Promise<number>;
+    Upload?: (sftpID: string, localPath: string, remotePath: string, encoding?: string) => Promise<number>;
+    List: (sftpID: string, path: string, encoding?: string) => Promise<WailsSftpEntry[]>;
+    Mkdir: (sftpID: string, path: string, encoding?: string) => Promise<unknown>;
+    Remove: (sftpID: string, path: string, encoding?: string) => Promise<unknown>;
+    Rename: (sftpID: string, oldPath: string, newPath: string, encoding?: string) => Promise<unknown>;
+    Stat: (sftpID: string, path: string, encoding?: string) => Promise<WailsSftpFileInfo>;
+    Lstat?: (sftpID: string, path: string, encoding?: string) => Promise<WailsSftpFileInfo & { isSymlink?: boolean }>;
+    RealPath?: (sftpID: string, path: string, encoding?: string) => Promise<string>;
     Close: (sftpID: string) => Promise<unknown>;
     RetainTransfer?: (sftpID: string, leaseID: string) => Promise<unknown>;
     ReleaseTransfer?: (sftpID: string, leaseID: string) => Promise<unknown>;
-    CopyDirectory?: (sftpID: string, sourcePath: string, targetPath: string) => Promise<unknown>;
-    Chmod?: (sftpID: string, path: string, mode: string) => Promise<unknown>;
-    Read?: (sftpID: string, path: string) => Promise<string>;
-    ReadBinary?: (sftpID: string, path: string) => Promise<string>;
-    WriteText?: (sftpID: string, path: string, content: string) => Promise<unknown>;
-    WriteBinary?: (sftpID: string, path: string, content: string) => Promise<unknown>;
+    CopyDirectory?: (sftpID: string, sourcePath: string, targetPath: string, encoding?: string) => Promise<unknown>;
+    Chmod?: (sftpID: string, path: string, mode: string, encoding?: string) => Promise<unknown>;
+    Read?: (sftpID: string, path: string, encoding?: string) => Promise<string>;
+    ReadBinary?: (sftpID: string, path: string, encoding?: string) => Promise<string>;
+    WriteText?: (sftpID: string, path: string, content: string, encoding?: string) => Promise<unknown>;
+    WriteBinary?: (sftpID: string, path: string, content: string, encoding?: string) => Promise<unknown>;
     HomeDir?: (sftpID: string) => Promise<string>;
-    ExtractArchive?: (sftpID: string, remotePath: string) => Promise<number>;
-    UploadCompressedFolder?: (sftpID: string, localFolder: string, remoteZipPath: string) => Promise<number>;
+    ExtractArchive?: (sftpID: string, remotePath: string, encoding?: string) => Promise<number>;
+    UploadCompressedFolder?: (sftpID: string, localFolder: string, remoteZipPath: string, encoding?: string) => Promise<number>;
   };
   window?: {
     Minimise: () => Promise<void>;
@@ -224,9 +365,10 @@ export interface WailsBindingDeps {
     Close: () => Promise<void>;
     IsMaximised: () => Promise<boolean>;
     IsFullscreen: () => Promise<boolean>;
+    Focus?: () => Promise<void>;
   };
   settings?: {
-    ShowSystemNotification?: NonNullable<NetcattyBridge["showSystemNotification"]>;
+    ShowSystemNotification?: NonNullable<LemonSSHBridge["showSystemNotification"]>;
     Open: () => Promise<boolean>;
     Show?: () => Promise<unknown>;
     PaintReady?: () => Promise<boolean>;
@@ -263,11 +405,13 @@ export interface WailsBindingDeps {
     Enable?: (password: string) => Promise<unknown>;
     Unlock?: (password: string) => Promise<unknown>;
     Disable?: (password: string) => Promise<unknown>;
+    Reset?: (password: string) => Promise<unknown>;
     UnlockWithBiometrics?: () => Promise<{ success: boolean; error?: string }>;
-    GetSettings?: () => ReturnType<NonNullable<NetcattyBridge["getAppLockSettings"]>>;
-    GetSystemUnlockStatus?: () => ReturnType<NonNullable<NetcattyBridge["getAppLockSystemUnlockStatus"]>>;
+    GetSettings?: () => ReturnType<NonNullable<LemonSSHBridge["getAppLockSettings"]>>;
+    GetSystemUnlockStatus?: () => ReturnType<NonNullable<LemonSSHBridge["getAppLockSystemUnlockStatus"]>>;
     SetSystemUnlockEnabled?: (enabled: boolean, password: string, autoPrompt: boolean) => Promise<{ systemUnlockEnabled: boolean; systemUnlockAutoPromptEnabled: boolean }>;
     SetRuntimeLocked?: (reason: string) => Promise<unknown>;
+    SetTimeoutMinutes?: (minutes: number) => Promise<unknown>;
   };
   plugins?: NativePluginBindings & {
     List: () => Promise<unknown[]>;
@@ -298,6 +442,15 @@ export interface WailsBindingDeps {
     TempInfo?: () => Promise<{ path: string; fileCount: number; totalSize: number }>;
     TempFilePath?: (name: string) => Promise<string>;
     ClearTemp?: () => Promise<{ success: boolean; deletedCount: number }>;
+    // openPath accepts files AND directories (SFTP transfer reveal); the
+    // OpenWithSystemDefault binding rejects non-regular files.
+    OpenPath?: (path: string) => Promise<void>;
+    // External-editor auto-sync (FileWatchService).
+    StartFileWatch?: (localPath: string, remotePath: string, sftpId: string, encoding: string) => Promise<{ watchId: string; reused?: boolean }>;
+    StopFileWatch?: (watchId: string, cleanupTempFile: boolean) => Promise<{ success: boolean }>;
+    ListFileWatches?: () => Promise<Array<{ watchId: string; localPath: string; remotePath: string; sftpId: string }>>;
+    RegisterTempFile?: (sftpId: string, localPath: string) => Promise<{ success: boolean }>;
+    UnregisterTempFile?: (sftpId: string, localPath: string) => Promise<{ success: boolean; retained?: boolean; wasTracked?: boolean }>;
     HomeDir?: () => Promise<string>;
     ListDir?: (path: string) => Promise<RemoteFile[]>;
     ExtractArchive?: (archivePath: string, destinationRoot: string) => Promise<number>;
@@ -315,10 +468,19 @@ export interface WailsBindingDeps {
     StageBegin?: (fileName: string) => Promise<string>;
     StageAppend?: (tempPath: string, offset: number, data: string) => Promise<unknown>;
     StageDiscard?: (tempPath: string) => Promise<unknown>;
+    // Renderer tool-output spill persistence over the managed temp service
+    // (consumed by cattyTurnDriver's toolOutputTemp bridge).
+    ToolOutputPersistenceStatus?: () => Promise<{ durable: boolean; reason?: string }>;
+    WriteToolOutputTemp?: (record: unknown, content: string) => Promise<{ ok: boolean; path?: string; error?: string }>;
+    RestoreToolOutputTemp?: (handleId: string, chatSessionId: string) => Promise<{ path: string; record: unknown } | null>;
+    ReadToolOutputTemp?: (filePath: string, request?: unknown) => Promise<unknown | null>;
+    DeleteToolOutputTemp?: (filePath: string) => Promise<{ ok: boolean }>;
+    DeleteChatToolOutputsTemp?: (chatSessionId: string) => Promise<{ deletedCount: number }>;
+    DeleteTerminalToolOutputsTemp?: (chatSessionId: string, terminalSessionId: string) => Promise<{ deletedCount: number }>;
+    DeleteTerminalToolOutputsEverywhereTemp?: (terminalSessionId: string) => Promise<{ deletedCount: number }>;
   };
   sync?: {
-    CloudSyncSetSessionPassword?: (password: string) => Promise<boolean>;
-    CloudSyncGetSessionPassword?: () => Promise<{ password?: string; found?: boolean }>;
+    CloudSyncSetSessionPassword?: (password: string) => Promise<boolean>;    CloudSyncGetSessionPassword?: () => Promise<{ password?: string; found?: boolean }>;
     CloudSyncClearSessionPassword?: () => Promise<{ success?: boolean }>;
     CloudSyncResetEverything?: () => Promise<string[]>;
     GetVaultBackupCapabilities?: () => Promise<{ encryptionAvailable?: boolean }>;
@@ -345,6 +507,9 @@ export interface WailsBindingDeps {
     CloudSyncS3Download?: (config: unknown) => Promise<{ syncedFile: unknown | null }>;
     CloudSyncS3Delete?: (config: unknown) => Promise<{ ok: true }>;
   };
+  knownHosts?: {
+    ReadKnownHosts?: () => Promise<string>;
+  };
   transfer?: Partial<TransferBindings> & {
     Enqueue?: (spec: unknown) => Promise<unknown>;
   };
@@ -355,6 +520,11 @@ export interface WailsBindingDeps {
     Open: (payload: unknown) => Promise<{ success: boolean; popupId?: string; error?: string }>;
     GetConfig?: (popupId: string, token: string) => Promise<unknown>;
     Heartbeat?: (popupId: string, token: string) => Promise<unknown>;
+  };
+  sessionWindow?: {
+    Open?: (payload: unknown) => Promise<{ success: boolean; windowId?: string; error?: string }>;
+    GetConfig?: (windowId: string, token: string) => Promise<unknown>;
+    Heartbeat?: (windowId: string, token: string) => Promise<unknown>;
   };
   shortcuts?: {
     Register?: (raw: string) => Promise<{ success: boolean; enabled?: boolean; error?: string; accelerator?: string }>;
@@ -393,6 +563,7 @@ export interface WailsBindingDeps {
     OpenCrashLogsDir?: () => Promise<{ success: boolean; error?: string }>;
     GetSshDebugLogInfo?: () => Promise<{ enabled: boolean; path: string; exists: boolean; size: number }>;
     OpenSshDebugLogDir?: () => Promise<{ success: boolean; error?: string }>;
+    SetSshDebugLogEnabled?: (enabled: boolean) => Promise<{ enabled: boolean; path: string; exists: boolean; size: number }>;
   };
   httpNetworkProxy?: {
     Set?: (settings: { mode: string; url: string; bypass: string }) => Promise<{ success?: boolean; settings: { mode: string; url: string; bypass: string }; error?: string }>;
@@ -408,6 +579,49 @@ export interface WailsBindingDeps {
   tray?: {
     SetLanguage?: (language: string) => Promise<boolean>;
     Quit?: () => Promise<void>;
+    UpdateTrayMenuData?: (data: unknown) => Promise<{ success: boolean }>;
+    CurrentTrayMenuData?: () => Promise<unknown>;
+    FocusSession?: (sessionID: string) => Promise<{ success: boolean }>;
+    JumpToSessionFromPanel?: (sessionID: string) => Promise<{ success: boolean }>;
+    ConnectToHost?: (hostID: string) => Promise<{ success: boolean }>;
+    CloseSessionFromPanel?: (sessionID: string) => Promise<{ success: boolean }>;
+    TogglePortForward?: (ruleID: string) => Promise<{ success: boolean; running: boolean }>;
+    OpenMainWindow?: () => Promise<{ success: boolean }>;
+  };
+  trayPanel?: {
+    Open?: () => Promise<boolean>;
+    PaintReady?: () => Promise<boolean>;
+    Hide?: () => Promise<boolean>;
+  };
+  windowLifecycle?: {
+    SetCloseToTray?: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean }>;
+    IsCloseToTray?: () => Promise<{ success: boolean; enabled: boolean }>;
+    SetWindowOpacity?: (opacity: number) => Promise<boolean>;
+    ReportDirtyEditorsResult?: (hasDirty: boolean) => Promise<void>;
+    RequestClose?: (window: string) => Promise<{ success: boolean; guarded?: boolean }>;
+  };
+  lemonssh?: {
+    Health?: () => Promise<unknown>;
+    Version?: () => Promise<{ name: string; version: string; goos: string; goarch: string; goVersion: string }>;
+    ResolveWindowRole?: (role: string) => Promise<unknown>;
+  };
+  update?: {
+    CheckForUpdate?: () => Promise<{
+      available: boolean;
+      supported?: boolean;
+      checking?: boolean;
+      ready?: boolean;
+      downloading?: boolean;
+      version?: string;
+      releaseNotes?: string;
+      releaseDate?: string;
+      error?: string;
+    }>;
+    DownloadUpdate?: () => Promise<{ success: boolean; error?: string }>;
+    InstallUpdate?: () => Promise<void>;
+    GetUpdateStatus?: () => Promise<{ status: string; percent: number; error: string; version: string; isChecking: boolean }>;
+    GetAutoUpdate?: () => Promise<{ enabled: boolean }>;
+    SetAutoUpdate?: (enabled: boolean) => Promise<{ success: boolean }>;
   };
   clipboard?: { SetText: (text: string) => Promise<boolean>; Text: () => Promise<string> };
   openDataPlane?: typeof openDataPlaneSession;
@@ -449,23 +663,29 @@ export interface WailsBindingDeps {
     filesystem: filesystemService as unknown as WailsBindingDeps["filesystem"],
     transfer: transferService as unknown as WailsBindingDeps["transfer"],
     popup: popupWindowService as unknown as WailsBindingDeps["popup"],
+    sessionWindow: sessionWindowServiceBinding as unknown as WailsBindingDeps["sessionWindow"],
     shortcuts: shortcutService as unknown as WailsBindingDeps["shortcuts"],
     script: scriptService as unknown as WailsBindingDeps["script"],
     diagnosticLog: diagnosticLogService as unknown as WailsBindingDeps["diagnosticLog"],
     sessionLog: sessionLogServiceBinding as unknown as WailsBindingDeps["sessionLog"],
     httpNetworkProxy: httpNetworkProxyServiceBinding as unknown as WailsBindingDeps["httpNetworkProxy"],
     tray: trayService as unknown as WailsBindingDeps["tray"],
+    trayPanel: trayPanelWindowService as unknown as WailsBindingDeps["trayPanel"],
+    windowLifecycle: windowLifecycleService as unknown as WailsBindingDeps["windowLifecycle"],
+    lemonssh: lemonsshCoreService as unknown as WailsBindingDeps["lemonssh"],
+    update: updateServiceBinding as unknown as WailsBindingDeps["update"],
     sync: syncServiceBinding as unknown as WailsBindingDeps["sync"],
+    knownHosts: knownHostsServiceBinding as unknown as WailsBindingDeps["knownHosts"],
     agentservice: agentServiceBinding as unknown as WailsBindingDeps["agentservice"],
     agentcli: agentCLIServiceBinding as unknown as NativeAgentCLIBindings,
     externalAgent: externalAgentServiceBinding as unknown as NonNullable<WailsBindingDeps["externalAgent"]>,
     userSkills: userSkillsServiceBinding as unknown as NativeUserSkillsBindings,
   };
 
-type SessionDataCallback = Parameters<NetcattyBridge["onSessionData"]>[1];
+type SessionDataCallback = Parameters<LemonSSHBridge["onSessionData"]>[1];
 type SessionExitEvent = { sessionId: string; exitCode?: number; reason?: "exited" | "error" | "closed" | "timeout"; error?: string; intentional?: boolean };
 type SessionExitCallback = (evt: SessionExitEvent) => void;
-type HelperLifecycleCallback = Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1];
+type HelperLifecycleCallback = Parameters<NonNullable<LemonSSHBridge["onHelperLifecycle"]>>[1];
 
 /** Go turn runtime methods (W12). The Go side is the single authoritative
  *  state owner; this port only relays the W03 wire DTOs. */
@@ -516,6 +736,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   // (no double encryption, migration) behaves identically.
   const CREDENTIAL_ENC_PREFIX = "enc:v1:";
   const CREDENTIAL_PURPOSE = "cloud-sync-credentials";
+  // Subscribes to a Go-side Wails event and unwraps the standard
+  // { data: payload } envelope; the listener receives the bare payload.
+  const subscribeNativeEvent = (eventName: string, cb: (payload: unknown) => void): () => void => {
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return () => undefined;
+    return eventsOn(eventName, (event) => cb((event as { data?: unknown } | undefined)?.data ?? event));
+  };
   const credentialsAvailable = async () => bindings.credential?.Available?.() ?? false;
   const credentialsEncrypt = async (plaintext: string) => {
     if (!bindings.credential?.Seal) missingBridgeMethod("credentialsEncrypt");
@@ -538,6 +765,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     /Win/i.test(platform) ? 'win32' : /Mac/i.test(platform) ? 'darwin' : 'linux');
   const sessionAliases = new Map<string, string>();
   const nativeSessionId = (id: string) => sessionAliases.get(id) ?? id;
+  // Per-session output decoders for the data plane (terminal encoding switch).
+  // The holder indirection lets setSessionEncoding swap the charset without
+  // tearing down the live WebSocket; frames decode with whichever decoder is
+  // current when they arrive.
+  const sessionDecoders = new Map<string, { current: ReturnType<typeof createDataPlaneDecoder> }>();
+  const decoderHolderFor = (sessionID: string) => {
+    let holder = sessionDecoders.get(sessionID);
+    if (!holder) {
+      holder = { current: createDataPlaneDecoder("utf-8") };
+      sessionDecoders.set(sessionID, holder);
+    }
+    return holder;
+  };
   const monitoring = createMonitoringBridge(bindings.terminal, nativeSessionId);
   // Cloud OAuth facade: maps the generated PascalCase sync bindings onto the
   // camelCase bridge surface the cloud sync adapters and UI already call.
@@ -545,50 +785,50 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const cloudSyncSetSessionPassword = (async (password: string) => {
     if (!bindings.sync?.CloudSyncSetSessionPassword) missingBridgeMethod("cloudSyncSetSessionPassword");
     return bindings.sync.CloudSyncSetSessionPassword(password);
-  }) as unknown as NetcattyBridge["cloudSyncSetSessionPassword"];
+  }) as unknown as LemonSSHBridge["cloudSyncSetSessionPassword"];
   const cloudSyncGetSessionPassword = (async () => {
     const result = await bindings.sync?.CloudSyncGetSessionPassword?.();
     return result?.password ?? null;
-  }) as unknown as NetcattyBridge["cloudSyncGetSessionPassword"];
+  }) as unknown as LemonSSHBridge["cloudSyncGetSessionPassword"];
   const cloudSyncClearSessionPassword = (async () => {
     return (await bindings.sync?.CloudSyncClearSessionPassword?.()) ?? { success: false };
-  }) as unknown as NetcattyBridge["cloudSyncClearSessionPassword"];
+  }) as unknown as LemonSSHBridge["cloudSyncClearSessionPassword"];
   const cloudSyncResetEverything = (async () => {
     if (!bindings.sync?.CloudSyncResetEverything) missingBridgeMethod("cloudSyncResetEverything");
     // Wails wraps the []string return as { removedKeys: string[] }.
     const result = await bindings.sync.CloudSyncResetEverything();
     return result?.removedKeys ?? [];
-  }) as unknown as NetcattyBridge["cloudSyncResetEverything"];
+  }) as unknown as LemonSSHBridge["cloudSyncResetEverything"];
   const getVaultBackupCapabilities = (async () => {
     if (!bindings.sync?.GetVaultBackupCapabilities) missingBridgeMethod("getVaultBackupCapabilities");
     const result = await bindings.sync.GetVaultBackupCapabilities();
     return { encryptionAvailable: Boolean(result?.encryptionAvailable) };
-  }) as unknown as NetcattyBridge["getVaultBackupCapabilities"];
+  }) as unknown as LemonSSHBridge["getVaultBackupCapabilities"];
   const createVaultBackup = (async (payload) => {
     if (!bindings.sync?.CreateVaultBackup) missingBridgeMethod("createVaultBackup");
     return bindings.sync.CreateVaultBackup(payload);
-  }) as unknown as NetcattyBridge["createVaultBackup"];
+  }) as unknown as LemonSSHBridge["createVaultBackup"];
   const listVaultBackups = (async () => {
     if (!bindings.sync?.ListVaultBackups) missingBridgeMethod("listVaultBackups");
     const result = await bindings.sync.ListVaultBackups();
     return Array.isArray(result) ? result : result?.backups ?? [];
-  }) as unknown as NetcattyBridge["listVaultBackups"];
+  }) as unknown as LemonSSHBridge["listVaultBackups"];
   const readVaultBackup = (async (payload) => {
     if (!bindings.sync?.ReadVaultBackup) missingBridgeMethod("readVaultBackup");
     return bindings.sync.ReadVaultBackup(payload);
-  }) as unknown as NetcattyBridge["readVaultBackup"];
+  }) as unknown as LemonSSHBridge["readVaultBackup"];
   const trimVaultBackups = (async (payload) => {
     if (!bindings.sync?.TrimVaultBackups) missingBridgeMethod("trimVaultBackups");
     return bindings.sync.TrimVaultBackups(payload);
-  }) as unknown as NetcattyBridge["trimVaultBackups"];
+  }) as unknown as LemonSSHBridge["trimVaultBackups"];
   const openVaultBackupDir = (async () => {
     if (!bindings.sync?.OpenVaultBackupDir) missingBridgeMethod("openVaultBackupDir");
     return bindings.sync.OpenVaultBackupDir();
-  }) as unknown as NetcattyBridge["openVaultBackupDir"];
+  }) as unknown as LemonSSHBridge["openVaultBackupDir"];
   const openProviderConsole = (async (provider: 'github' | 'google' | 'onedrive') => {
     if (!bindings.sync?.OpenProviderConsole) missingBridgeMethod("openProviderConsole");
     await bindings.sync.OpenProviderConsole(provider);
-  }) as unknown as NetcattyBridge["openProviderConsole"];
+  }) as unknown as LemonSSHBridge["openProviderConsole"];
   const rememberSession = (uiId: string | undefined, nativeId: string) => {
     if (uiId) sessionAliases.set(uiId, nativeId);
   };
@@ -598,7 +838,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
     return nativeId;
   };
-  const getSessionPwd = async (id: string, options?: Parameters<NonNullable<NetcattyBridge["getSessionPwd"]>>[1]) => {
+  const getSessionPwd = async (id: string, options?: Parameters<NonNullable<LemonSSHBridge["getSessionPwd"]>>[1]) => {
     try {
       return await bindings.terminal.GetSessionPwd?.(nativeSessionId(id), {
         allowHomeFallback: options?.allowHomeFallback ?? true,
@@ -639,13 +879,99 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
   }
 
-  const showSystemNotification: NonNullable<NetcattyBridge["showSystemNotification"]> = async payload => {
+  const showSystemNotification: NonNullable<LemonSSHBridge["showSystemNotification"]> = async payload => {
     try {
       return await bindings.settings?.ShowSystemNotification?.(payload) ?? { shown: false, reason: "Native notifications unavailable" };
     } catch (error) { return { shown: false, reason: String(error) }; }
   };
 
-  async function attachDataPlane(sessionID: string, reconnect = false): Promise<void> {
+  // Attach (popup observe) route handoff. Go broadcasts handoff phases; the
+  // window that lost the route suspends its reconnect loop and re-arms on the
+  // restore phase with the freshly rotated tokens. A window that initiated the
+  // rebind/restore RPC never reacts to its own broadcast: the initiator marker
+  // is set before the RPC resolves, so the async event cannot precede it.
+  const routeHandoffSuspended = new Set<string>();
+  const rebindInitiations = new Set<string>();
+  const isRouteHandedOffError = (error: unknown): boolean =>
+    error instanceof Error && /handed off to another window/i.test(error.message);
+  type RouteHandoffPayload = {
+    sessionId?: string;
+    phase?: string;
+    generation?: number;
+    route?: { sessionID?: string; generation?: number; dataToken?: string; urgentToken?: string; windowBytes?: number };
+  };
+  // Generation of the plane this window currently holds per session, so the
+  // detached handoff can tell a stale plane (previous owner) from the fresh
+  // route the rebind initiator attached moments ago — event and RPC delivery
+  // cannot be ordered against each other across the bridge.
+  const planeGenerations = new Map<string, number>();
+  let routeHandoffSubscribed = false;
+  const subscribeRouteHandoff = () => {
+    if (routeHandoffSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    routeHandoffSubscribed = true;
+    eventsOn("terminal:route-handoff", (event) => {
+      const payload = ((event as { data?: unknown })?.data ?? event) as RouteHandoffPayload | null;
+      if (!payload || typeof payload.sessionId !== "string" || payload.sessionId === "") return;
+      const sessionID = nativeSessionId(payload.sessionId);
+      if (payload.phase === "detached") {
+        // The rebind initiator attaches its own route right after; only the
+        // previous display owner (the home window) suspends here.
+        if (rebindInitiations.delete(sessionID)) return;
+        // A window already holding a plane at/after the handoff generation is
+        // the new owner — never tear its fresh route down.
+        const currentGeneration = planeGenerations.get(sessionID);
+        if (typeof payload.generation === "number" && typeof currentGeneration === "number" && currentGeneration >= payload.generation) {
+          return;
+        }
+        routeHandoffSuspended.add(sessionID);
+        const state = routeStates.get(sessionID);
+        if (state) {
+          state.closed = true;
+          if (state.timer) {
+            clearTimeout(state.timer);
+            state.timer = undefined;
+          }
+        }
+        planeGenerations.delete(sessionID);
+        planes.get(sessionID)?.dispose();
+        planes.delete(sessionID);
+        return;
+      }
+      if (payload.phase === "restored") {
+        // Only the window that lost the route earlier re-arms; the closing
+        // popup must not compete for the restored bootstrap.
+        if (!routeHandoffSuspended.delete(sessionID)) return;
+        const route = payload.route;
+        if (!route || typeof route.generation !== "number" || typeof route.dataToken !== "string" || typeof route.urgentToken !== "string") {
+          return;
+        }
+        // Re-arm the route state the detached phase closed.
+        const state = routeStates.get(sessionID);
+        if (state) {
+          state.closed = false;
+          state.retries = 0;
+          if (state.timer) {
+            clearTimeout(state.timer);
+            state.timer = undefined;
+          }
+        }
+        void attachDataPlane(sessionID, false, {
+          SessionID: typeof route.sessionID === "string" && route.sessionID !== "" ? route.sessionID : sessionID,
+          Generation: route.generation,
+          DataToken: route.dataToken,
+          UrgentToken: route.urgentToken,
+          WindowBytes: typeof route.windowBytes === "number" && route.windowBytes > 0 ? route.windowBytes : 1048576,
+        }).catch((error) => {
+          console.error("Terminal route restore attach failed", error);
+        });
+      }
+    });
+  };
+
+  async function attachDataPlane(sessionID: string, reconnect = false, providedBootstrap?: WailsRouteBootstrap): Promise<void> {
+    subscribeRouteHandoff();
     let state = routeStates.get(sessionID);
     if (!state) {
       state = { version: 0, retries: 0, closed: false };
@@ -655,13 +981,31 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const version = ++owner.version;
     const current = () => !owner.closed && routeStates.get(sessionID) === owner && owner.version === version;
     planes.get(sessionID)?.dispose();
-    const [bootstrap, listenAddr] = await Promise.all([
-      reconnect
-        ? (bindings.terminal.Reconnect ? bindings.terminal.Reconnect(sessionID) : Promise.reject(new Error('Terminal route reconnect unavailable')))
-        : bindings.terminal.Bootstrap(sessionID),
-      Promise.resolve(bindings.terminal.ListenAddr()),
-    ]);
+    let bootstrap: WailsRouteBootstrap;
+    let listenAddr: string;
+    if (providedBootstrap) {
+      // Route handoff: Go already rotated the route and handed us its tokens;
+      // rotating again would race the other display owner.
+      bootstrap = providedBootstrap;
+      listenAddr = await Promise.resolve(bindings.terminal.ListenAddr());
+    } else {
+      [bootstrap, listenAddr] = await Promise.all([
+        reconnect
+          ? (bindings.terminal.Reconnect ? bindings.terminal.Reconnect(sessionID) : Promise.reject(new Error('Terminal route reconnect unavailable')))
+          : bindings.terminal.Bootstrap(sessionID),
+        Promise.resolve(bindings.terminal.ListenAddr()),
+      ]);
+    }
     if (!current()) return;
+    // Sessions may already pin a charset (switched before an attach, popup
+    // windows): seed the decoder from the Go state before the first frame.
+    // A concurrent setSessionEncoding wins — only seed when still unset.
+    if (!sessionDecoders.has(sessionID) && bindings.terminal.GetSessionEncoding) {
+      const encoding = await Promise.resolve(bindings.terminal.GetSessionEncoding(sessionID)).catch(() => "");
+      if (current() && !sessionDecoders.has(sessionID)) {
+        sessionDecoders.set(sessionID, { current: createDataPlaneDecoder(encoding) });
+      }
+    }
     const retry = () => {
       if (!current() || owner.timer) return;
       // Invalidate old callbacks before replacing the route. A dropped socket
@@ -673,7 +1017,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         if (owner.retries >= 6) {
           owner.closed = true;
           console.error('Terminal transport reconnect exhausted', sessionID);
-          emitData(sessionID, '\r\n[Netcatty] Terminal connection could not be restored. Please reconnect.\r\n');
+          emitData(sessionID, '\r\n[LemonSSH] Terminal connection could not be restored. Please reconnect.\r\n');
           emitExit(sessionID, { sessionId: sessionID, reason: "error", error: "Terminal transport reconnect exhausted" });
           return;
         }
@@ -682,15 +1026,25 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
           owner.timer = undefined;
           void attachDataPlane(sessionID, true).catch(error => {
             console.error('Terminal route reconnect failed', error);
+            // An attach popup owns the route: suspend this window's reconnect
+            // loop instead of spinning (Go refuses the rotation while the
+            // handoff is active) — the restored handoff re-arms it.
+            if (isRouteHandedOffError(error)) {
+              routeHandoffSuspended.add(sessionID);
+              return;
+            }
             schedule();
           });
         }, delay);
       };
       schedule();
     };
+    planeGenerations.set(sessionID, bootstrap.Generation);
     planes.set(sessionID, (bindings.openDataPlane ?? openDataPlaneSession)({
       listenAddr,
       bootstrap,
+      // Charset-aware streaming decode (UTF-8 default, GB18030 switchable).
+      decoder: { decode: (bytes) => decoderHolderFor(sessionID).current.decode(bytes) },
       onData: (chunk) => { if (current()) { owner.retries = 0; emitData(sessionID, chunk); } },
       onComplete: () => {
         if (!current()) return;
@@ -711,7 +1065,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }));
   }
 
-  const testProxy = (async (options: Parameters<NonNullable<NetcattyBridge["testProxy"]>>[0]) => {
+  const testProxy = (async (options: Parameters<NonNullable<LemonSSHBridge["testProxy"]>>[0]) => {
     if (!bindings.terminal.TestProxy) missingBridgeMethod("testProxy");
     return bindings.terminal.TestProxy({
       kind: options.kind,
@@ -723,8 +1077,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       targetHost: options.targetHost ?? "",
       targetPort: options.targetPort ?? 0,
     });
-  }) as NonNullable<NetcattyBridge["testProxy"]>;
-  const startSSHSession = (options: Parameters<NetcattyBridge["startSSHSession"]>[0]) => {
+  }) as NonNullable<LemonSSHBridge["testProxy"]>;
+  const startSSHSession = (options: Parameters<LemonSSHBridge["startSSHSession"]>[0]) => {
     const args = pickSSHConnectArgs(options);
     return bindings.terminal.Connect(args).then(async (sessionID) => {
       rememberSession(options.sessionId, sessionID);
@@ -799,6 +1153,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   };
   const writeToSession = (sessionID: string, data: string) =>
     bindings.terminal.Write(nativeSessionId(sessionID), bytesToBase64(new TextEncoder().encode(data))) as unknown as void;
+  // Terminal encoding switch (UTF-8 ↔ GB18030). Output decoding swaps the
+  // data-plane decoder immediately; the Go side pins the input charset so
+  // keystrokes are encoded back to the same charset. Either side failing
+  // still reports through the bridge contract.
+  const setSessionEncoding = async (sessionID: string, encoding: string) => {
+    const native = nativeSessionId(sessionID);
+    decoderHolderFor(native).current = createDataPlaneDecoder(encoding);
+    if (!bindings.terminal.SetSessionEncoding) {
+      return { ok: false, encoding };
+    }
+    try {
+      return await bindings.terminal.SetSessionEncoding(native, encoding);
+    } catch {
+      return { ok: false, encoding };
+    }
+  };
   const resizeSession = (sessionID: string, cols: number, rows: number) =>
     bindings.terminal.Resize(nativeSessionId(sessionID), cols, rows) as unknown as void;
   const interruptSession = (sessionID: string) =>
@@ -808,6 +1178,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     for (const [alias, nativeId] of sessionAliases) {
       if (nativeId === sessionID) sessionAliases.delete(alias);
     }
+    routeHandoffSuspended.delete(sessionID);
+    planeGenerations.delete(sessionID);
+    sessionDecoders.delete(sessionID);
     const route = routeStates.get(sessionID);
     if (route) {
       route.closed = true;
@@ -846,23 +1219,26 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     };
   };
 
-  const openSftp = (options: Parameters<NetcattyBridge["openSftp"]>[0]) => {
+  const openSftp = (options: Parameters<LemonSSHBridge["openSftp"]>[0]) => {
     const args = pickSSHConnectArgs(options);
     return bindings.sftp.Open({ ...args, sudo: options.sudo ?? false });
   };
-  const listSftp = async (sftpID: string, path: string): Promise<RemoteFile[]> => {
-    const entries = await bindings.sftp.List(sftpID, path);
+  // The optional filename-encoding argument (auto / utf-8 / gb18030) flows to
+  // the Go service, which transcodes names before they cross the JSON channel
+  // — invalid UTF-8 bytes would otherwise be replaced with U+FFFD.
+  const listSftp = async (sftpID: string, path: string, encoding?: SftpFilenameEncoding): Promise<RemoteFile[]> => {
+    const entries = await bindings.sftp.List(sftpID, path, encoding);
     return entries.map(entryToRemoteFile);
   };
-  const mkdirSftp = (sftpID: string, path: string) =>
-    bindings.sftp.Mkdir(sftpID, path) as Promise<void>;
-  const deleteSftp = (sftpID: string, path: string) =>
-    bindings.sftp.Remove(sftpID, path) as Promise<void>;
-  const renameSftp = (sftpID: string, oldPath: string, newPath: string) =>
-    bindings.sftp.Rename(sftpID, oldPath, newPath) as Promise<void>;
-  const statSftp = async (sftpID: string, path: string) => {
+  const mkdirSftp = (sftpID: string, path: string, encoding?: SftpFilenameEncoding) =>
+    bindings.sftp.Mkdir(sftpID, path, encoding) as Promise<void>;
+  const deleteSftp = (sftpID: string, path: string, encoding?: SftpFilenameEncoding) =>
+    bindings.sftp.Remove(sftpID, path, encoding) as Promise<void>;
+  const renameSftp = (sftpID: string, oldPath: string, newPath: string, encoding?: SftpFilenameEncoding) =>
+    bindings.sftp.Rename(sftpID, oldPath, newPath, encoding) as Promise<void>;
+  const statSftp = async (sftpID: string, path: string, encoding?: SftpFilenameEncoding) => {
     try {
-      const stat = await bindings.sftp.Stat(sftpID, path);
+      const stat = await bindings.sftp.Stat(sftpID, path, encoding);
       return statToSftpStatResult(stat);
     } catch (error) {
       // Conflict detection stats a not-yet-existing upload target; the
@@ -877,25 +1253,25 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await bindings.sftp.Close(sftpID);
     return { success: true };
   };
-  const readSftp = (sftpID: string, path: string) => bindings.sftp.Read?.(sftpID, path) as Promise<string>;
-  const readSftpBinary = async (sftpID: string, path: string) => {
+  const readSftp = (sftpID: string, path: string, encoding?: SftpFilenameEncoding) => bindings.sftp.Read?.(sftpID, path, encoding) as Promise<string>;
+  const readSftpBinary = async (sftpID: string, path: string, encoding?: SftpFilenameEncoding) => {
     if (!bindings.sftp.ReadBinary) missingBridgeMethod("readSftpBinary");
-    return base64ToArrayBuffer(await bindings.sftp.ReadBinary(sftpID, path));
+    return base64ToArrayBuffer(await bindings.sftp.ReadBinary(sftpID, path, encoding));
   };
-  const writeSftp = (sftpID: string, path: string, content: string) => bindings.sftp.WriteText?.(sftpID, path, content) as Promise<void>;
-  const writeSftpBinary = async (sftpID: string, path: string, content: ArrayBuffer) => {
+  const writeSftp = (sftpID: string, path: string, content: string, encoding?: SftpFilenameEncoding) => bindings.sftp.WriteText?.(sftpID, path, content, encoding) as Promise<void>;
+  const writeSftpBinary = async (sftpID: string, path: string, content: ArrayBuffer, encoding?: SftpFilenameEncoding) => {
     if (!bindings.sftp.WriteBinary) missingBridgeMethod("writeSftpBinary");
-    await bindings.sftp.WriteBinary(sftpID, path, bytesToBase64(new Uint8Array(content)));
+    await bindings.sftp.WriteBinary(sftpID, path, bytesToBase64(new Uint8Array(content)), encoding);
   };
-  const realpathSftp = async (sftpID: string, path: string) => {
+  const realpathSftp = async (sftpID: string, path: string, encoding?: SftpFilenameEncoding) => {
     if (!bindings.sftp.RealPath) missingBridgeMethod("realpathSftp");
-    return bindings.sftp.RealPath(sftpID, path);
+    return bindings.sftp.RealPath(sftpID, path, encoding);
   };
-  const lstatSftp = async (sftpID: string, path: string) => {
+  const lstatSftp = async (sftpID: string, path: string, encoding?: SftpFilenameEncoding) => {
     try {
       const stat = bindings.sftp.Lstat
-        ? await bindings.sftp.Lstat(sftpID, path)
-        : await bindings.sftp.Stat(sftpID, path);
+        ? await bindings.sftp.Lstat(sftpID, path, encoding)
+        : await bindings.sftp.Stat(sftpID, path, encoding);
       return { ...statToSftpStatResult(stat), type: stat.isSymlink ? "symlink" as const : stat.isDir ? "directory" as const : "file" as const };
     } catch (error) {
       if (error instanceof Error && /does not exist|no such file/i.test(error.message)) return null;
@@ -912,9 +1288,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await bindings.sftp.ReleaseTransfer(sftpID, leaseID);
     return { success: true };
   };
-  const sameHostCopyDirectory = async (sftpID: string, sourcePath: string, targetPath: string) => {
+  const sameHostCopyDirectory = async (sftpID: string, sourcePath: string, targetPath: string, encoding?: SftpFilenameEncoding) => {
     if (!bindings.sftp.CopyDirectory) return { success: false };
-    await bindings.sftp.CopyDirectory(sftpID, sourcePath, targetPath);
+    await bindings.sftp.CopyDirectory(sftpID, sourcePath, targetPath, encoding);
     return { success: true };
   };
   const getSftpHomeDir = (sftpID: string) => bindings.sftp.HomeDir?.(sftpID) as Promise<string>;
@@ -924,9 +1300,37 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await bindings.window?.ToggleMaximise();
     return bindings.window?.IsMaximised() ?? false;
   };
-  const windowClose = () => bindings.window?.Hide?.() ?? bindings.window?.Close();
+  // Dispatch by caller window: the main window routes through the Go-side
+  // quit guard (close-to-tray / dirty-editor confirmation); any other window
+  // closes itself, keeping its own WindowClosing hook policy (settings hides).
+  // Terminal popups keep their legacy hide-self contract — the window stays
+  // warm for the next open, and the attach close handshake already ran in the
+  // page before close(). Shells without the binding keep the legacy path too.
+  const windowClose = () => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const requestClose = bindings.windowLifecycle?.RequestClose;
+    if (!hash.startsWith('#/terminal-popup') && requestClose) {
+      // Drop the routing result: windowClose's contract is fire-and-close.
+      // Peer session windows resolve to their own window name (URL identity)
+      // so closing one never runs the main window's quit guard.
+      return requestClose(callerWindowName(hash, search)).then(() => undefined);
+    }
+    return bindings.window?.Hide?.() ?? bindings.window?.Close();
+  };
   const windowIsMaximized = () => bindings.window?.IsMaximised() ?? Promise.resolve(false);
   const windowIsFullscreen = () => bindings.window?.IsFullscreen() ?? Promise.resolve(false);
+  // Input-focus recovery (#760/#1714/#1722): refocus the current OS window so
+  // keystrokes land in the app after show/hide or foreground transitions.
+  const windowFocus = async (): Promise<boolean> => {
+    if (!bindings.window?.Focus) return false;
+    try {
+      await bindings.window.Focus();
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const openSettingsWindow = () => bindings.settings?.Open() ?? Promise.resolve(false);
   const notifySettingsPainted = () => bindings.settings?.PaintReady?.();
   const closeSettingsWindow = () => bindings.settings?.Close();
@@ -946,7 +1350,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     return `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title><style>body{background:#101318;color:#e5e7eb;font:14px/1.5 ui-monospace,monospace;padding:24px}pre{white-space:pre-wrap}</style></head><body><pre>${escaped}</pre></body></html>`;
   };
   const joinNativePath = (directory: string, name: string) => `${directory.replace(/[\\/]+$/, '')}${navigator.platform.startsWith('Win') ? '\\' : '/'}${name}`;
-  const exportSessionLog: NonNullable<NetcattyBridge['exportSessionLog']> = async payload => {
+  const exportSessionLog: NonNullable<LemonSSHBridge['exportSessionLog']> = async payload => {
     if (!bindings.filesystem?.WriteFile) return { success: false };
     const fileName = safeLogName(payload.hostLabel || payload.hostname, payload.startTime, payload.format);
     const filePath = await showSaveDialog(fileName, [{ name: payload.format.toUpperCase(), extensions: [payload.format] }]);
@@ -954,7 +1358,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     await bindings.filesystem.WriteFile(filePath, encodeUtf8(formatSessionLog(payload.terminalData, payload.format, payload.hostLabel || payload.hostname)));
     return { success: true, filePath };
   };
-  const autoSaveSessionLog: NonNullable<NetcattyBridge['autoSaveSessionLog']> = async payload => {
+  const autoSaveSessionLog: NonNullable<LemonSSHBridge['autoSaveSessionLog']> = async payload => {
     try {
       if (!bindings.filesystem?.WriteFile) throw new Error('Session log writer unavailable');
       const filePath = joinNativePath(payload.directory, safeLogName(payload.hostLabel || payload.hostname, payload.startTime, payload.format));
@@ -965,7 +1369,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
   };
   const manualLogSelections = new Map<string, string>();
-  const chooseManualSessionLogPath: NonNullable<NetcattyBridge['chooseManualSessionLogPath']> = async payload => {
+  const chooseManualSessionLogPath: NonNullable<LemonSSHBridge['chooseManualSessionLogPath']> = async payload => {
     const format = payload.format ?? 'txt';
     const fileName = safeLogName(payload.sessionName || 'session', Date.now(), format);
     const defaultPath = payload.preferredDirectory ? joinNativePath(payload.preferredDirectory, fileName) : fileName;
@@ -975,7 +1379,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     manualLogSelections.set(selectionToken, filePath);
     return { success: true, selectionToken, filePath, format };
   };
-  const startManualSessionLog: NonNullable<NetcattyBridge['startManualSessionLog']> = async payload => {
+  const startManualSessionLog: NonNullable<LemonSSHBridge['startManualSessionLog']> = async payload => {
     if (!bindings.sessionLog?.Start) return { success: false, started: false, error: 'Session log service unavailable' };
     const filePath = payload.selectionToken ? manualLogSelections.get(payload.selectionToken) : undefined;
     if (payload.selectionToken) manualLogSelections.delete(payload.selectionToken);
@@ -983,19 +1387,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const result = await bindings.sessionLog.Start(nativeSessionId(payload.sessionId), filePath, payload.initialLine ?? '');
     return { success: result.success, started: Boolean(result.started), error: result.error, filePath: result.filePath };
   };
-  const stopManualSessionLog: NonNullable<NetcattyBridge['stopManualSessionLog']> = async payload => {
+  const stopManualSessionLog: NonNullable<LemonSSHBridge['stopManualSessionLog']> = async payload => {
     if (!bindings.sessionLog?.Stop) return { success: false, stopped: false, error: 'Session log service unavailable' };
     const result = await bindings.sessionLog.Stop(nativeSessionId(payload.sessionId));
     return { success: result.success, stopped: Boolean(result.stopped), error: result.error, filePath: result.filePath };
   };
-  const getManualSessionLogStatus: NonNullable<NetcattyBridge['getManualSessionLogStatus']> = async payload => {
+  const getManualSessionLogStatus: NonNullable<LemonSSHBridge['getManualSessionLogStatus']> = async payload => {
     if (!bindings.sessionLog?.Status) return { success: false, isLogging: false, error: 'Session log service unavailable' };
     const result = await bindings.sessionLog.Status(nativeSessionId(payload.sessionId));
     return { success: result.success, isLogging: Boolean(result.isLogging), error: result.error };
   };
   const startPortForward = async (options: PortForwardOptions): Promise<PortForwardResult> => {
     if (!bindings.forward?.Start) missingBridgeMethod("startPortForward");
-    const request = pickSSHConnectArgs(options as Parameters<NetcattyBridge["startSSHSession"]>[0]);
+    const request = pickSSHConnectArgs(options as Parameters<LemonSSHBridge["startSSHSession"]>[0]);
     const result = await bindings.forward.Start(
       options.tunnelId,
       options.type,
@@ -1047,17 +1451,78 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }));
     return { epoch: "wails", revision: 0, records };
   };
+  // Ordered tunnel-table events pushed by ForwardService.setEventEmitter
+  // (cmd/lemonssh/forwardService.go). The runtime feed fans out through one
+  // shared native subscription; per-tunnel status callbacks filter the same
+  // feed, so both stay strictly ordered by the Go-side revision.
+  const portForwardRuntimeListeners = new Set<PortForwardRuntimeEventCallback>();
+  let portForwardRuntimeNativeUnsubscribe: (() => void) | undefined;
+  const dispatchPortForwardRuntimeEvent = (payload: unknown) => {
+    const event = payload as PortForwardRuntimeEvent;
+    for (const listener of [...portForwardRuntimeListeners]) {
+      try {
+        listener(event);
+      } catch {
+        // One broken listener must not starve the others.
+      }
+    }
+  };
+  const ensurePortForwardRuntimeNativeSubscription = () => {
+    if (portForwardRuntimeNativeUnsubscribe) return;
+    portForwardRuntimeNativeUnsubscribe = subscribeNativeEvent(portForwardRuntimeEvent, dispatchPortForwardRuntimeEvent);
+  };
+  const onPortForwardRuntime: NonNullable<LemonSSHBridge["onPortForwardRuntime"]> = (cb) => {
+    portForwardRuntimeListeners.add(cb);
+    ensurePortForwardRuntimeNativeSubscription();
+    return () => {
+      portForwardRuntimeListeners.delete(cb);
+      if (portForwardRuntimeListeners.size === 0) {
+        portForwardRuntimeNativeUnsubscribe?.();
+        portForwardRuntimeNativeUnsubscribe = undefined;
+      }
+    };
+  };
+  const unsubscribePortForwardRuntime: NonNullable<LemonSSHBridge["unsubscribePortForwardRuntime"]> = async () => {
+    portForwardRuntimeListeners.clear();
+    portForwardRuntimeNativeUnsubscribe?.();
+    portForwardRuntimeNativeUnsubscribe = undefined;
+    return { success: true };
+  };
+  // The snapshot call of the runtime subscription protocol: the ordered
+  // events plus this snapshot give the renderer gap-free state.
+  const subscribePortForwardRuntime: NonNullable<LemonSSHBridge["subscribePortForwardRuntime"]> = async () =>
+    getPortForwardSnapshot();
+  const subscribePortForward: NonNullable<LemonSSHBridge["subscribePortForward"]> = async (tunnelId) => {
+    const status = await getPortForwardStatus(tunnelId);
+    return { tunnelId: status.tunnelId, status: status.status, error: status.error };
+  };
+  const resolvePortForwardPhase = (phase: string): PortForwardStatusResult["status"] => {
+    if (phase === "active" || phase === "inactive" || phase === "error") return phase;
+    return "connecting";
+  };
+  const onPortForwardStatus: NonNullable<LemonSSHBridge["onPortForwardStatus"]> = (tunnelId, cb) => {
+    return subscribeNativeEvent(portForwardRuntimeEvent, (payload) => {
+      const event = payload as PortForwardRuntimeEvent;
+      if (event.kind === "upsert") {
+        if (event.record?.tunnelId !== tunnelId) return;
+        cb(resolvePortForwardPhase(event.record.phase), event.record.error);
+        return;
+      }
+      if (event.tunnelId !== tunnelId) return;
+      cb("inactive");
+    });
+  };
   const statLocalPath = (path: string) =>
     bindings.filesystem?.StatPath?.(path) as Promise<{ name: string; isDir: boolean; size: number }>;
-  const readLocalFile: NonNullable<NetcattyBridge["readLocalFile"]> = async (path, options) => {
+  const readLocalFile: NonNullable<LemonSSHBridge["readLocalFile"]> = async (path, options) => {
     if (!bindings.filesystem?.ReadFile) missingBridgeMethod("readLocalFile");
     return base64ToArrayBuffer(await bindings.filesystem.ReadFile(path, options?.maxBytes ?? 0));
   };
-  const writeLocalFile: NonNullable<NetcattyBridge["writeLocalFile"]> = async (path, content) => {
+  const writeLocalFile: NonNullable<LemonSSHBridge["writeLocalFile"]> = async (path, content) => {
     if (!bindings.filesystem?.WriteFile) missingBridgeMethod("writeLocalFile");
     await bindings.filesystem.WriteFile(path, bytesToBase64(new Uint8Array(content)));
   };
-  const deleteLocalFile: NonNullable<NetcattyBridge["deleteLocalFile"]> = async (path, expectedType) => {
+  const deleteLocalFile: NonNullable<LemonSSHBridge["deleteLocalFile"]> = async (path, expectedType) => {
     if (!bindings.filesystem?.DeletePath) missingBridgeMethod("deleteLocalFile");
     await bindings.filesystem.DeletePath(path, expectedType ?? "");
   };
@@ -1094,7 +1559,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     return bindings.filesystem.ListDir(path);
   };
   const localTreeScans = new Map<string, AbortController>();
-  const listLocalTree: NonNullable<NetcattyBridge["listLocalTree"]> = async (path, options = {}) => {
+  const listLocalTree: NonNullable<LemonSSHBridge["listLocalTree"]> = async (path, options = {}) => {
     const scanId = options.scanId ?? crypto.randomUUID();
     if (localTreeScans.has(scanId)) throw new Error("Local tree scan already running");
     const controller = new AbortController();
@@ -1150,7 +1615,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const eventsOn = bindings.events?.On ?? Events.On;
     if (typeof eventsOn !== "function") return;
     filesDroppedSubscribed = true;
-    eventsOn("netcatty:files-dropped", (event) => {
+    eventsOn("lemonssh:files-dropped", (event) => {
       const payload = normalizeFilesDroppedPayload(event);
       if (!payload) return;
       for (const listener of filesDroppedListeners) listener(payload);
@@ -1163,7 +1628,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       filesDroppedListeners.delete(cb);
     };
   };
-  type KeyboardInteractiveCallback = Parameters<NonNullable<NetcattyBridge["onKeyboardInteractive"]>>[0];
+  type KeyboardInteractiveCallback = Parameters<NonNullable<LemonSSHBridge["onKeyboardInteractive"]>>[0];
   const keyboardListeners = new Set<KeyboardInteractiveCallback>();
   let keyboardSubscribed = false;
   const subscribeKeyboardEvents = () => {
@@ -1207,9 +1672,131 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     }
   };
 
-  type TelnetEchoCallback = Parameters<NonNullable<NetcattyBridge["onTelnetEchoMode"]>>[1];
-  type TelnetLoginCallback = Parameters<NonNullable<NetcattyBridge["onTelnetAutoLoginComplete"]>>[1];
-  type MoshReadyCallback = Parameters<NonNullable<NetcattyBridge["onMoshSessionReady"]>>[1];
+  // SSH interactive auth prompts (passphrase + changed host-key). The Go
+  // terminal service emits the raw payloads; this adapter normalizes them to
+  // the renderer bridge contract and routes the responses back.
+  type PassphraseRequestCallback = Parameters<NonNullable<LemonSSHBridge["onPassphraseRequest"]>>[0];
+  type PassphraseTimeoutCallback = Parameters<NonNullable<LemonSSHBridge["onPassphraseTimeout"]>>[0];
+  type PassphraseCancelledCallback = Parameters<NonNullable<LemonSSHBridge["onPassphraseCancelled"]>>[0];
+  type PassphraseAuthFailedCallback = Parameters<NonNullable<LemonSSHBridge["onPassphraseAuthFailed"]>>[0];
+  type HostKeyVerificationCallback = Parameters<NonNullable<LemonSSHBridge["onHostKeyVerification"]>>[0];
+  const passphraseListeners = new Set<PassphraseRequestCallback>();
+  const passphraseTimeoutListeners = new Set<PassphraseTimeoutCallback>();
+  const passphraseCancelledListeners = new Set<PassphraseCancelledCallback>();
+  const passphraseAuthFailedListeners = new Set<PassphraseAuthFailedCallback>();
+  const hostKeyVerificationListeners = new Set<HostKeyVerificationCallback>();
+  let sshInteractiveEventsSubscribed = false;
+  const subscribeSSHInteractiveEvents = () => {
+    if (sshInteractiveEventsSubscribed) return;
+    const eventsOn = bindings.events?.On ?? Events.On;
+    if (typeof eventsOn !== "function") return;
+    sshInteractiveEventsSubscribed = true;
+    eventsOn("ssh:passphrase-request", (event) => {
+      const payload = (event?.data ?? event) as Record<string, unknown> | null;
+      if (!payload || typeof payload.requestId !== "string") return;
+      const request = {
+        requestId: payload.requestId,
+        keyPath: typeof payload.keyPath === "string" ? payload.keyPath : "",
+        keyName: typeof payload.keyName === "string" ? payload.keyName : "",
+        hostname: typeof payload.hostname === "string" ? payload.hostname : undefined,
+        passphraseInvalid: Boolean(payload.passphraseInvalid),
+        sessionId: typeof payload.sessionId === "string" ? payload.sessionId : undefined,
+        bootEpoch: typeof payload.bootEpoch === "number" && Number.isFinite(payload.bootEpoch) ? payload.bootEpoch : undefined,
+      };
+      for (const listener of passphraseListeners) listener(request);
+    });
+    eventsOn("ssh:passphrase-timeout", (event) => {
+      const payload = (event?.data ?? event) as { requestId?: string } | null;
+      for (const listener of passphraseTimeoutListeners) listener({ requestId: String(payload?.requestId ?? "") });
+    });
+    eventsOn("ssh:passphrase-cancelled", (event) => {
+      const payload = (event?.data ?? event) as { requestId?: string } | null;
+      for (const listener of passphraseCancelledListeners) listener({ requestId: String(payload?.requestId ?? "") });
+    });
+    eventsOn("ssh:passphrase-auth-failed", (event) => {
+      const payload = (event?.data ?? event) as { keyPaths?: string[]; keyIds?: string[] } | null;
+      for (const listener of passphraseAuthFailedListeners) {
+        listener({ keyPaths: Array.isArray(payload?.keyPaths) ? payload.keyPaths : [], keyIds: Array.isArray(payload?.keyIds) ? payload.keyIds : undefined });
+      }
+    });
+    eventsOn("ssh:host-key-verification", (event) => {
+      const payload = (event?.data ?? event) as Record<string, unknown> | null;
+      if (!payload || typeof payload.requestId !== "string") return;
+      const request = {
+        requestId: payload.requestId,
+        sessionId: typeof payload.sessionId === "string" ? payload.sessionId : "",
+        hostname: String(payload.hostname ?? ""),
+        port: typeof payload.port === "number" && Number.isFinite(payload.port) ? payload.port : 22,
+        status: payload.status === "unknown" ? "unknown" as const : "changed" as const,
+        keyType: String(payload.keyType ?? ""),
+        fingerprint: String(payload.fingerprint ?? ""),
+        publicKey: typeof payload.publicKey === "string" ? payload.publicKey : undefined,
+        knownFingerprint: typeof payload.knownFingerprint === "string" ? payload.knownFingerprint : undefined,
+        bootEpoch: typeof payload.bootEpoch === "number" && Number.isFinite(payload.bootEpoch) ? payload.bootEpoch : undefined,
+      };
+      for (const listener of hostKeyVerificationListeners) listener(request);
+    });
+  };
+  const onPassphraseRequest = (cb: PassphraseRequestCallback) => {
+    subscribeSSHInteractiveEvents();
+    passphraseListeners.add(cb);
+    return () => {
+      passphraseListeners.delete(cb);
+    };
+  };
+  const respondPassphrase = async (requestId: string, passphrase: string, cancelled?: boolean) => {
+    try {
+      await bindings.terminal.RespondPassphrase?.(requestId, passphrase, Boolean(cancelled));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+  const respondPassphraseSkip = async (requestId: string) => {
+    // Skipping abandons the key: without a decrypted key the dial cannot use
+    // it, so the Go broker treats this like a cancel of the prompt.
+    return respondPassphrase(requestId, "", true);
+  };
+  const onPassphraseTimeout = (cb: PassphraseTimeoutCallback) => {
+    subscribeSSHInteractiveEvents();
+    passphraseTimeoutListeners.add(cb);
+    return () => {
+      passphraseTimeoutListeners.delete(cb);
+    };
+  };
+  const onPassphraseCancelled = (cb: PassphraseCancelledCallback) => {
+    subscribeSSHInteractiveEvents();
+    passphraseCancelledListeners.add(cb);
+    return () => {
+      passphraseCancelledListeners.delete(cb);
+    };
+  };
+  const onPassphraseAuthFailed = (cb: PassphraseAuthFailedCallback) => {
+    subscribeSSHInteractiveEvents();
+    passphraseAuthFailedListeners.add(cb);
+    return () => {
+      passphraseAuthFailedListeners.delete(cb);
+    };
+  };
+  const onHostKeyVerification = (cb: HostKeyVerificationCallback) => {
+    subscribeSSHInteractiveEvents();
+    hostKeyVerificationListeners.add(cb);
+    return () => {
+      hostKeyVerificationListeners.delete(cb);
+    };
+  };
+  const respondHostKeyVerification = async (requestId: string, accept: boolean, addToKnownHosts?: boolean) => {
+    try {
+      await bindings.terminal.RespondHostKeyVerification?.(requestId, Boolean(accept), Boolean(addToKnownHosts));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  type TelnetEchoCallback = Parameters<NonNullable<LemonSSHBridge["onTelnetEchoMode"]>>[1];
+  type TelnetLoginCallback = Parameters<NonNullable<LemonSSHBridge["onTelnetAutoLoginComplete"]>>[1];
+  type MoshReadyCallback = Parameters<NonNullable<LemonSSHBridge["onMoshSessionReady"]>>[1];
   const telnetEchoListeners = new Map<string, Set<TelnetEchoCallback>>();
   const telnetLoginListeners = new Map<string, Set<TelnetLoginCallback>>();
   const telnetCancelListeners = new Map<string, Set<TelnetLoginCallback>>();
@@ -1253,7 +1840,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     // renderer alias mapped to it (mirrors writeToSession/closeSession).
     for (const name of ["mosh:lifecycle", "et:lifecycle"]) {
       eventsOn(name, (event) => {
-        const payload = (event?.data ?? event) as NetcattyHelperSessionState | null;
+        const payload = (event?.data ?? event) as LemonSSHHelperSessionState | null;
         if (!payload || typeof payload.sessionId !== "string") return;
         const ids = new Set([payload.sessionId]);
         for (const [alias, native] of sessionAliases) {
@@ -1271,28 +1858,28 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     set.add(cb);
     telnetEchoListeners.set(sessionId, set);
     return () => set.delete(cb);
-  }) as unknown as NetcattyBridge["onTelnetEchoMode"];
+  }) as unknown as LemonSSHBridge["onTelnetEchoMode"];
   const onTelnetAutoLoginComplete = ((sessionId: string, cb: TelnetLoginCallback) => {
     subscribeTerminalEvents();
     const set = telnetLoginListeners.get(sessionId) ?? new Set();
     set.add(cb);
     telnetLoginListeners.set(sessionId, set);
     return () => set.delete(cb);
-  }) as unknown as NetcattyBridge["onTelnetAutoLoginComplete"];
+  }) as unknown as LemonSSHBridge["onTelnetAutoLoginComplete"];
   const onTelnetAutoLoginCancelled = ((sessionId: string, cb: TelnetLoginCallback) => {
     subscribeTerminalEvents();
     const set = telnetCancelListeners.get(sessionId) ?? new Set();
     set.add(cb);
     telnetCancelListeners.set(sessionId, set);
     return () => set.delete(cb);
-  }) as unknown as NetcattyBridge["onTelnetAutoLoginCancelled"];
+  }) as unknown as LemonSSHBridge["onTelnetAutoLoginCancelled"];
   const onMoshSessionReady = ((sessionId: string, cb: MoshReadyCallback) => {
     subscribeTerminalEvents();
     const set = moshReadyListeners.get(sessionId) ?? new Set();
     set.add(cb);
     moshReadyListeners.set(sessionId, set);
     return () => set.delete(cb);
-  }) as unknown as NetcattyBridge["onMoshSessionReady"];
+  }) as unknown as LemonSSHBridge["onMoshSessionReady"];
   const onHelperLifecycle = ((sessionId: string, cb: HelperLifecycleCallback) => {
     subscribeTerminalEvents();
     const set = helperLifecycleListeners.get(sessionId) ?? new Set();
@@ -1302,7 +1889,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       set.delete(cb);
       if (set.size === 0) helperLifecycleListeners.delete(sessionId);
     };
-  }) as unknown as NetcattyBridge["onHelperLifecycle"];
+  }) as unknown as LemonSSHBridge["onHelperLifecycle"];
   const restartHelperSession = (async (sessionId: string) => {
     if (!bindings.terminal.RestartHelper) {
       return { success: false, error: "restartHelperSession unavailable" };
@@ -1313,7 +1900,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
-  }) as unknown as NetcattyBridge["restartHelperSession"];
+  }) as unknown as LemonSSHBridge["restartHelperSession"];
 
   const scriptRecordingStart = async (sessionId: string) => {
     if (!bindings.script?.StartRecording) missingBridgeMethod("scriptRecordingStart");
@@ -1329,7 +1916,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   const scriptRecordingAppendStep = (async (sessionId: string, step: unknown) => {
     if (!bindings.script?.AppendRecordingStep) missingBridgeMethod("scriptRecordingAppendStep");
     return bindings.script.AppendRecordingStep(nativeSessionId(sessionId), step);
-  }) as unknown as NetcattyBridge["scriptRecordingAppendStep"];
+  }) as unknown as LemonSSHBridge["scriptRecordingAppendStep"];
   const scriptRun = (async (params: {
     runId?: string;
     scriptId?: string;
@@ -1351,7 +1938,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     if (result?.error) throw new Error(result.error);
     const runId = result?.runId || "";
     return { runId, runIds: result?.runIds ?? (runId ? [runId] : []) };
-  }) as unknown as NetcattyBridge["scriptRun"];
+  }) as unknown as LemonSSHBridge["scriptRun"];
   const scriptStop = async (runId: string) => {
     if (!bindings.script?.Stop) missingBridgeMethod("scriptStop");
     const result = await bindings.script.Stop(runId);
@@ -1393,12 +1980,12 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     const eventsOn = bindings.events?.On ?? Events.On;
     if (typeof eventsOn !== "function") return;
     scriptEventsSubscribed = true;
-    eventsOn("netcatty:script:runs-updated", (event) => {
+    eventsOn("lemonssh:script:runs-updated", (event) => {
       const payload = ((event as { data?: unknown })?.data ?? event) as { runs?: unknown[] };
       const runs = Array.isArray(payload?.runs) ? payload.runs : [];
       for (const listener of scriptRunsUpdatedListeners) listener({ runs });
     });
-    eventsOn("netcatty:script:dialog-request", (event) => {
+    eventsOn("lemonssh:script:dialog-request", (event) => {
       const payload = ((event as { data?: unknown })?.data ?? event) as {
         requestId?: string;
         type?: string;
@@ -1419,14 +2006,14 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       for (const listener of scriptDialogRequestListeners) listener(request);
     });
   };
-  const onScriptRunsUpdated = (cb: Parameters<NonNullable<NetcattyBridge["onScriptRunsUpdated"]>>[0]) => {
+  const onScriptRunsUpdated = (cb: Parameters<NonNullable<LemonSSHBridge["onScriptRunsUpdated"]>>[0]) => {
     subscribeScriptEvents();
     scriptRunsUpdatedListeners.add(cb);
     return () => {
       scriptRunsUpdatedListeners.delete(cb);
     };
   };
-  const onScriptDialogRequest = (cb: Parameters<NonNullable<NetcattyBridge["onScriptDialogRequest"]>>[0]) => {
+  const onScriptDialogRequest = (cb: Parameters<NonNullable<LemonSSHBridge["onScriptDialogRequest"]>>[0]) => {
     subscribeScriptEvents();
     scriptDialogRequestListeners.add(cb);
     return () => {
@@ -1450,7 +2037,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
   // the renderer responds, the deadline lapses or the turn cancels. Lazy
   // single subscription + Set fan-out, like subscribeScriptEvents, so every
   // mounted approval host (App shell + settings window) sees the prompt.
-  type AgentInteractionCallback = Parameters<NonNullable<NetcattyBridge["onAgentInteraction"]>>[0];
+  type AgentInteractionCallback = Parameters<NonNullable<LemonSSHBridge["onAgentInteraction"]>>[0];
   const agentInteractionListeners = new Set<AgentInteractionCallback>();
   let agentInteractionSubscribed = false;
   const subscribeAgentInteractionEvents = () => {
@@ -1469,19 +2056,19 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     return () => {
       agentInteractionListeners.delete(cb);
     };
-  }) as unknown as NetcattyBridge["onAgentInteraction"];
+  }) as unknown as LemonSSHBridge["onAgentInteraction"];
   const agentPendingInteractions = (async () => {
     if (!bindings.agentservice?.AgentPendingInteractions) missingBridgeMethod("agentPendingInteractions");
     return bindings.agentservice.AgentPendingInteractions();
-  }) as unknown as NetcattyBridge["agentPendingInteractions"];
+  }) as unknown as LemonSSHBridge["agentPendingInteractions"];
   // Errors propagate untouched: the caller distinguishes typed
   // "not pending"/"already resolved" outcomes from transport failures.
   const agentRespondInteraction = (async (interactionId: string, approved: boolean) => {
     if (!bindings.agentservice?.AgentRespondInteraction) missingBridgeMethod("agentRespondInteraction");
     await bindings.agentservice.AgentRespondInteraction(interactionId, approved);
-  }) as unknown as NetcattyBridge["agentRespondInteraction"];
+  }) as unknown as LemonSSHBridge["agentRespondInteraction"];
 
-  const implementedBridge: Partial<NetcattyBridge> = {
+  const implementedBridge: Partial<LemonSSHBridge> = {
     ...createAgentToolBridge(bindings.agentservice, bindings.events?.On ?? Events.On, nativeSessionId),
     ...createAgentCliBridge(bindings.agentcli),
     ...createUserSkillsBridge(bindings.userSkills),
@@ -1522,6 +2109,212 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     validatePath,
     getSessionPwd,
     getSessionRemoteInfo,
+    // Distro probe: reuses the session transport on the Go side (no new SSH
+    // connection), mapping the /etc/os-release output the renderer expects.
+    getSessionDistroInfo: (async (sessionId: string) => {
+      const probe = bindings.terminal.GetSessionDistroInfo;
+      if (!probe) return { success: false as const, error: "getSessionDistroInfo unavailable" };
+      try {
+        return await probe(nativeSessionId(sessionId));
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as LemonSSHBridge["getSessionDistroInfo"],
+    // Remote shell history for the History side panel: one exec channel on the
+    // session's existing transport detects the login shell and tails the files.
+    readRemoteHistory: (async (sessionId: string, limit?: number) => {
+      const read = bindings.terminal.ReadRemoteHistory;
+      if (!read) return { success: false as const, error: "readRemoteHistory unavailable" };
+      try {
+        return await read(nativeSessionId(sessionId), typeof limit === "number" && limit > 0 ? limit : 1000);
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as LemonSSHBridge["readRemoteHistory"],
+    // Busy-close confirmation: direct children of a local session's shell.
+    ptyGetChildProcesses: (async (sessionId: string) => {
+      try {
+        return (await bindings.terminal.PtyGetChildProcesses?.(nativeSessionId(sessionId))) ?? [];
+      } catch {
+        return [];
+      }
+    }) as unknown as LemonSSHBridge["ptyGetChildProcesses"],
+    // The busy-terminal confirm dialog is renderer-side under Wails (the
+    // Electron shell used a native main-process dialog); window.confirm keeps
+    // the i18n'd title/message and the same boolean contract.
+    confirmCloseBusy: (async (payload) => {
+      if (typeof window === "undefined" || typeof window.confirm !== "function") return false;
+      const title = payload.title ? `${payload.title}\n\n` : "";
+      return window.confirm(`${title}${payload.message ?? payload.command}`);
+    }) as LemonSSHBridge["confirmCloseBusy"],
+    // SSH debug log toggle (settings > system): applies the process-global
+    // logger state in Go so ssh-debug.log actually receives events.
+    setSshDebugLogsEnabled: (async (enabled: boolean) => {
+      if (!bindings.diagnosticLog?.SetSshDebugLogEnabled) {
+        return { enabled: Boolean(enabled), path: "", exists: false, size: 0 };
+      }
+      return bindings.diagnosticLog.SetSshDebugLogEnabled(enabled);
+    }) as LemonSSHBridge["setSshDebugLogsEnabled"],
+    // --- Attach (popup observe) primitives ---
+    setSessionFlowPaused: ((sessionId: string, paused: boolean) => {
+      void bindings.terminal.SetSessionFlowPaused?.(nativeSessionId(sessionId), paused);
+    }) as unknown as LemonSSHBridge["setSessionFlowPaused"],
+    setSessionFlowPausedAndWait: (async (sessionId: string, paused: boolean) => {
+      const wait = bindings.terminal.SetSessionFlowPausedAndWait;
+      if (!wait) return { success: false as const, error: "Output drain unavailable" };
+      try {
+        return await wait(nativeSessionId(sessionId), paused);
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["setSessionFlowPausedAndWait"],
+    acquireSessionFlowPauseLease: (async (sessionId: string) => {
+      const acquire = bindings.terminal.AcquireSessionFlowPauseLease;
+      if (!acquire) return { success: false as const, error: "Terminal flow pause leases unavailable" };
+      try {
+        return await acquire(nativeSessionId(sessionId));
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["acquireSessionFlowPauseLease"],
+    waitSessionFlowPauseLease: (async (sessionId: string, leaseId: string) => {
+      const wait = bindings.terminal.WaitSessionFlowPauseLease;
+      if (!wait) return { success: false as const, error: "Output drain unavailable" };
+      try {
+        return await wait(nativeSessionId(sessionId), leaseId);
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["waitSessionFlowPauseLease"],
+    releaseSessionFlowPauseLease: (async (sessionId: string, leaseId: string, options?: { keepPaused?: boolean }) => {
+      const release = bindings.terminal.ReleaseSessionFlowPauseLease;
+      if (!release) return { success: false as const, error: "Terminal flow pause leases unavailable" };
+      try {
+        return await release(nativeSessionId(sessionId), leaseId, options);
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["releaseSessionFlowPauseLease"],
+    requestTerminalSessionSnapshot: (async (sessionId: string, authorization: string) => {
+      const request = bindings.terminal.RequestSessionSnapshot;
+      if (!request) return { success: false as const, error: "requestTerminalSessionSnapshot unavailable" };
+      try {
+        return await request(nativeSessionId(sessionId), authorization ?? "");
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["requestTerminalSessionSnapshot"],
+    respondTerminalSessionSnapshot: ((requestId: string, snapshot: string, kittyKeyboardModeState?: LemonSSHKittyKeyboardModeState, kittyKeyboardProtocolEnabled?: boolean, passwordPromptActive?: boolean, cwd?: string | null, title?: string | null) => {
+      void bindings.terminal.RespondSessionSnapshot?.(
+        requestId,
+        snapshot ?? "",
+        kittyKeyboardModeState ?? null,
+        typeof kittyKeyboardProtocolEnabled === "boolean" ? kittyKeyboardProtocolEnabled : null,
+        typeof passwordPromptActive === "boolean" ? passwordPromptActive : null,
+        cwd ?? null,
+        title ?? null,
+      );
+    }) as unknown as LemonSSHBridge["respondTerminalSessionSnapshot"],
+    onTerminalSessionSnapshotRequest: ((cb: (payload: { sessionId: string; requestId: string }) => void) => {
+      return subscribeNativeEvent("terminal:session-snapshot-request", payload => cb(payload as { sessionId: string; requestId: string }));
+    }) as unknown as LemonSSHBridge["onTerminalSessionSnapshotRequest"],
+    applyTerminalSessionSnapshot: (async (sessionId: string, snapshot: string, context: {
+      contextSnapshot: string;
+      contextViewportSnapshot: string;
+      contextScrollbackSnapshot: string;
+      alternateScreen: boolean;
+      kittyKeyboardModeState?: LemonSSHKittyKeyboardModeState;
+      kittyKeyboardProtocolEnabled?: boolean;
+      passwordPromptActive?: boolean;
+      cwd?: string | null;
+      title?: string | null;
+    }, authorization: string) => {
+      const apply = bindings.terminal.ApplySessionSnapshot;
+      if (!apply) return { success: false as const, error: "applyTerminalSessionSnapshot unavailable" };
+      try {
+        return await apply(nativeSessionId(sessionId), snapshot, context, authorization ?? "");
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["applyTerminalSessionSnapshot"],
+    onTerminalSessionApplySnapshot: ((cb: (payload: {
+      sessionId: string;
+      snapshot: string;
+      contextSnapshot: string;
+      contextViewportSnapshot: string;
+      contextScrollbackSnapshot: string;
+      alternateScreen: boolean;
+      kittyKeyboardModeState?: LemonSSHKittyKeyboardModeState;
+      kittyKeyboardProtocolEnabled?: boolean;
+      passwordPromptActive?: boolean;
+      cwd?: string | null;
+      title?: string | null;
+      requestId: string;
+    }) => boolean | Promise<boolean>) => {
+      return subscribeNativeEvent("terminal:session-apply-snapshot", (payload) => {
+        const record = (payload ?? {}) as { requestId?: string };
+        void Promise.resolve(cb(payload as Parameters<typeof cb>[0])).then((accepted) => {
+          if (typeof record.requestId === "string" && record.requestId !== "") {
+            bindings.terminal.RespondApplySnapshot?.(record.requestId, accepted === true)?.catch(() => undefined);
+          }
+        }).catch(() => undefined);
+      });
+    }) as unknown as LemonSSHBridge["onTerminalSessionApplySnapshot"],
+    markAttachPopupClosePrepared: (async (sessionId: string, authorization: string) => {
+      const mark = bindings.terminal.MarkAttachPopupClosePrepared;
+      if (!mark) return { success: false as const, error: "markAttachPopupClosePrepared unavailable" };
+      try {
+        return await mark(nativeSessionId(sessionId), authorization ?? "");
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["markAttachPopupClosePrepared"],
+    onTerminalPopupPrepareClose: ((cb: (payload: { sessionId: string; authorization: string }) => void) => {
+      return subscribeNativeEvent("terminal:popup-prepare-close", payload => cb(payload as { sessionId: string; authorization: string }));
+    }) as unknown as LemonSSHBridge["onTerminalPopupPrepareClose"],
+    // Rebind moves the display route to THIS renderer: Go rotates the route and
+    // kicks the previous owner's socket; here we attach the new route so live
+    // bytes land in this window immediately after the lease is released.
+    rebindTerminalSessionOutput: (async (sessionId: string, authorization: string) => {
+      const rebind = bindings.terminal.RebindSessionOutput;
+      if (!rebind) return { success: false as const, error: "rebindTerminalSessionOutput unavailable" };
+      const nativeId = nativeSessionId(sessionId);
+      // Flag before the RPC: this window must ignore its own detached broadcast.
+      rebindInitiations.add(nativeId);
+      try {
+        const result = await rebind(nativeId, authorization ?? "");
+        if (!result?.success) {
+          return { success: false as const, error: result?.error || "Failed to rebind terminal output" };
+        }
+        const route = result.route;
+        if (route) {
+          await attachDataPlane(nativeId, false, {
+            SessionID: typeof route.sessionID === "string" && route.sessionID !== "" ? route.sessionID : nativeId,
+            Generation: route.generation,
+            DataToken: route.dataToken,
+            UrgentToken: route.urgentToken,
+            WindowBytes: typeof route.windowBytes === "number" && route.windowBytes > 0 ? route.windowBytes : 1048576,
+          });
+        }
+        return { success: true as const, previousWebContentsId: null };
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      } finally {
+        rebindInitiations.delete(nativeId);
+      }
+    }) as unknown as LemonSSHBridge["rebindTerminalSessionOutput"],
+    restoreTerminalSessionOutput: (async (sessionId: string, _webContentsId?: number | null, authorization?: string) => {
+      const restore = bindings.terminal.RestoreSessionOutput;
+      if (!restore) return { success: false as const, error: "restoreTerminalSessionOutput unavailable" };
+      try {
+        const result = await restore(nativeSessionId(sessionId), authorization ?? "");
+        return result?.success
+          ? { success: true as const, restored: true }
+          : { success: false as const, error: result?.error || "Failed to restore terminal output" };
+      } catch (error) {
+        return { success: false as const, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["restoreTerminalSessionOutput"],
     showSystemNotification,
     writeClipboardText,
     readClipboardText,
@@ -1529,13 +2322,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     generateKeyPair: (async options => {
       if (!bindings.terminal.GenerateKeyPair) return { success: false, error: 'generateKeyPair unavailable' };
       return bindings.terminal.GenerateKeyPair(options);
-    }) as NetcattyBridge['generateKeyPair'],
+    }) as LemonSSHBridge['generateKeyPair'],
     checkSshAgent: (async options => {
       if (!bindings.terminal.CheckSshAgent) return { running: false, startupType: null, error: 'checkSshAgent unavailable' };
       const result = await bindings.terminal.CheckSshAgent(options ?? {});
       return { running: result.running, startupType: result.startupType ?? null, error: result.error ?? null };
-    }) as NetcattyBridge['checkSshAgent'],
-    getDefaultKeys: (async () => bindings.terminal.GetDefaultKeys?.() ?? []) as NetcattyBridge['getDefaultKeys'],
+    }) as LemonSSHBridge['checkSshAgent'],
+    getDefaultKeys: (async () => bindings.terminal.GetDefaultKeys?.() ?? []) as LemonSSHBridge['getDefaultKeys'],
     startSSHSession,
     testProxy,
     startLocalSession,
@@ -1546,8 +2339,9 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     resizeSession,
     interruptSession,
     closeSession,
-    onSessionData: onSessionData as NetcattyBridge["onSessionData"],
-    onSessionExit: onSessionExit as NetcattyBridge["onSessionExit"],
+    setSessionEncoding,
+    onSessionData: onSessionData as LemonSSHBridge["onSessionData"],
+    onSessionExit: onSessionExit as LemonSSHBridge["onSessionExit"],
     onTelnetEchoMode,
     onTelnetAutoLoginComplete,
     onTelnetAutoLoginCancelled,
@@ -1574,14 +2368,14 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     // The Go bindings return Wails-native shapes; cast until the shared
     // port types gain Wails-specific variants.
     getSftpHomeDir: ((sftpID: string) =>
-      bindings.sftp.HomeDir?.(sftpID).then((homeDir) => ({ success: true, homeDir }))) as unknown as NetcattyBridge["getSftpHomeDir"],
+      bindings.sftp.HomeDir?.(sftpID).then((homeDir) => ({ success: true, homeDir }))) as unknown as LemonSSHBridge["getSftpHomeDir"],
     getPathForFile: (() => {
       // WebView2 File.path points at the dropped file but os.Open rejects it
       // with PATH_NOT_FOUND on some hosts while os.Stat succeeds. Return
       // undefined so the upload pipeline stages the File content instead.
       return undefined;
-    }) as unknown as NetcattyBridge["getPathForFile"],
-    statLocalPath: statLocalPath as unknown as NetcattyBridge["statLocalPath"],
+    }) as unknown as LemonSSHBridge["getPathForFile"],
+    statLocalPath: statLocalPath as unknown as LemonSSHBridge["statLocalPath"],
     getHomeDir,
     listDrives,
     getSystemInfo,
@@ -1600,22 +2394,22 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       const result = await bindings.filesystem.StageFromLocalPath(path);
       if (Array.isArray(result)) return { stagedPath: result[0], name: path.split(/[\\/]/).pop() || path, size: result[1] };
       return result;
-    }) as NetcattyBridge["stageFromLocalPath"],
-    appendDiagnosticLog: appendDiagnosticLog as unknown as NetcattyBridge["appendDiagnosticLog"],
-    getCrashLogs: (() => bindings.diagnosticLog?.GetCrashLogs?.() ?? Promise.resolve([])) as NetcattyBridge['getCrashLogs'],
-    readCrashLog: ((fileName: string) => bindings.diagnosticLog?.ReadCrashLog?.(fileName) ?? Promise.resolve([])) as NetcattyBridge['readCrashLog'],
-    clearCrashLogs: (() => bindings.diagnosticLog?.ClearCrashLogs?.() ?? Promise.resolve({ deletedCount: 0 })) as NetcattyBridge['clearCrashLogs'],
-    openCrashLogsDir: (() => bindings.diagnosticLog?.OpenCrashLogsDir?.() ?? Promise.resolve({ success: false })) as NetcattyBridge['openCrashLogsDir'],
-    getSshDebugLogInfo: (() => bindings.diagnosticLog?.GetSshDebugLogInfo?.() ?? Promise.resolve({ enabled: false, path: '', exists: false, size: 0 })) as NetcattyBridge['getSshDebugLogInfo'],
-    openSshDebugLogDir: (() => bindings.diagnosticLog?.OpenSshDebugLogDir?.() ?? Promise.resolve({ success: false })) as NetcattyBridge['openSshDebugLogDir'],
+    }) as LemonSSHBridge["stageFromLocalPath"],
+    appendDiagnosticLog: appendDiagnosticLog as unknown as LemonSSHBridge["appendDiagnosticLog"],
+    getCrashLogs: (() => bindings.diagnosticLog?.GetCrashLogs?.() ?? Promise.resolve([])) as LemonSSHBridge['getCrashLogs'],
+    readCrashLog: ((fileName: string) => bindings.diagnosticLog?.ReadCrashLog?.(fileName) ?? Promise.resolve([])) as LemonSSHBridge['readCrashLog'],
+    clearCrashLogs: (() => bindings.diagnosticLog?.ClearCrashLogs?.() ?? Promise.resolve({ deletedCount: 0 })) as LemonSSHBridge['clearCrashLogs'],
+    openCrashLogsDir: (() => bindings.diagnosticLog?.OpenCrashLogsDir?.() ?? Promise.resolve({ success: false })) as LemonSSHBridge['openCrashLogsDir'],
+    getSshDebugLogInfo: (() => bindings.diagnosticLog?.GetSshDebugLogInfo?.() ?? Promise.resolve({ enabled: false, path: '', exists: false, size: 0 })) as LemonSSHBridge['getSshDebugLogInfo'],
+    openSshDebugLogDir: (() => bindings.diagnosticLog?.OpenSshDebugLogDir?.() ?? Promise.resolve({ success: false })) as LemonSSHBridge['openSshDebugLogDir'],
     exportSessionLog,
     autoSaveSessionLog,
     selectSessionLogsDir: (async () => {
       const directory = await selectDirectory('Select session log directory');
       return directory ? { success: true, directory } : { success: false, canceled: true };
-    }) as NetcattyBridge['selectSessionLogsDir'],
-    openSessionLogsDir: (async (directory: string) => bindings.sessionLog?.OpenDirectory?.(directory) ?? { success: false, error: 'Session log service unavailable' }) as NetcattyBridge['openSessionLogsDir'],
-    clearSessionLogsDir: (async (directory: string) => bindings.sessionLog?.ClearDirectory?.(directory) ?? { success: false, deletedCount: 0, failedCount: 0, error: 'Session log service unavailable' }) as NetcattyBridge['clearSessionLogsDir'],
+    }) as LemonSSHBridge['selectSessionLogsDir'],
+    openSessionLogsDir: (async (directory: string) => bindings.sessionLog?.OpenDirectory?.(directory) ?? { success: false, error: 'Session log service unavailable' }) as LemonSSHBridge['openSessionLogsDir'],
+    clearSessionLogsDir: (async (directory: string) => bindings.sessionLog?.ClearDirectory?.(directory) ?? { success: false, deletedCount: 0, failedCount: 0, error: 'Session log service unavailable' }) as LemonSSHBridge['clearSessionLogsDir'],
     chooseManualSessionLogPath,
     startManualSessionLog,
     stopManualSessionLog,
@@ -1637,8 +2431,49 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         await bindings.filesystem.StageDiscard(tempPath).catch(() => undefined);
         throw error;
       }
-    }) as unknown as NetcattyBridge["stageUploadFile"],
+    }) as unknown as LemonSSHBridge["stageUploadFile"],
     ...nativeFileActions,
+    // openPath differs from openWithSystemDefault: the SFTP transfer queue
+    // reveals a completed download by opening its parent DIRECTORY, which
+    // OpenWithSystemDefault (regular-files-only) rejects. The Go OpenPath
+    // binding accepts both shapes.
+    openPath: (async (path: string) => {
+      try {
+        if (!bindings.filesystem?.OpenPath) throw new Error("openPath unavailable");
+        await bindings.filesystem.OpenPath(path);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }) as unknown as LemonSSHBridge["openPath"],
+    // External-editor auto-sync: maps the renderer's file-watch contract onto
+    // the Go FileWatchService (register temp downloads, watch managed-temp
+    // saves, stream them back to the remote source, report synced/error).
+    startFileWatch: (async (localPath: string, remotePath: string, sftpId: string, encoding?: SftpFilenameEncoding) => {
+      if (!bindings.filesystem?.StartFileWatch) missingBridgeMethod("startFileWatch");
+      return bindings.filesystem.StartFileWatch(localPath, remotePath, sftpId, encoding ?? "");
+    }) as unknown as LemonSSHBridge["startFileWatch"],
+    stopFileWatch: (async (watchId: string, cleanupTempFile?: boolean) => {
+      if (!bindings.filesystem?.StopFileWatch) missingBridgeMethod("stopFileWatch");
+      return bindings.filesystem.StopFileWatch(watchId, Boolean(cleanupTempFile));
+    }) as unknown as LemonSSHBridge["stopFileWatch"],
+    listFileWatches: (async () => {
+      return (await bindings.filesystem?.ListFileWatches?.()) ?? [];
+    }) as unknown as LemonSSHBridge["listFileWatches"],
+    registerTempFile: (async (sftpId: string, localPath: string) => {
+      if (!bindings.filesystem?.RegisterTempFile) missingBridgeMethod("registerTempFile");
+      return bindings.filesystem.RegisterTempFile(sftpId, localPath);
+    }) as unknown as LemonSSHBridge["registerTempFile"],
+    unregisterTempFile: (async (sftpId: string, localPath: string) => {
+      if (!bindings.filesystem?.UnregisterTempFile) missingBridgeMethod("unregisterTempFile");
+      return bindings.filesystem.UnregisterTempFile(sftpId, localPath);
+    }) as unknown as LemonSSHBridge["unregisterTempFile"],
+    onFileWatchSynced: ((cb: Parameters<NonNullable<LemonSSHBridge["onFileWatchSynced"]>>[0]) =>
+      subscribeNativeEvent(fileWatchSyncedEvent, cb)) as unknown as LemonSSHBridge["onFileWatchSynced"],
+    onFileWatchError: ((cb: Parameters<NonNullable<LemonSSHBridge["onFileWatchError"]>>[0]) =>
+      subscribeNativeEvent(fileWatchErrorEvent, cb)) as unknown as LemonSSHBridge["onFileWatchError"],
+    onFileWatchStopped: ((cb: Parameters<NonNullable<LemonSSHBridge["onFileWatchStopped"]>>[0]) =>
+      subscribeNativeEvent(fileWatchStoppedEvent, cb)) as unknown as LemonSSHBridge["onFileWatchStopped"],
     listAutocompleteRemoteDir: async (id: string, directory: string, foldersOnly: boolean, prefix = '', limit = 100) => {
       try { return await bindings.terminal.ListAutocompleteDirectory?.(nativeSessionId(id), directory, foldersOnly, prefix, limit) ?? { success: false, entries: [] }; }
       catch { return { success: false, entries: [] }; }
@@ -1647,18 +2482,73 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       try { return await bindings.terminal.ListAutocompleteDirectory?.('', directory, foldersOnly, prefix, limit) ?? { success: false, entries: [] }; }
       catch { return { success: false, entries: [] }; }
     },
-    chmodSftp: async (sftpID: string, path: string, mode: string) => {
+    chmodSftp: async (sftpID: string, path: string, mode: string, encoding?: SftpFilenameEncoding) => {
       if (!bindings.sftp.Chmod) throw new Error('SFTP permissions unavailable');
-      await bindings.sftp.Chmod(sftpID, path, mode);
+      await bindings.sftp.Chmod(sftpID, path, mode, encoding);
     },
     onFilesDropped,
     setLanguage: (async (language: string) => {
       const changed = await bindings.tray?.SetLanguage?.(language);
       return changed ?? false;
-    }) as unknown as NetcattyBridge["setLanguage"],
+    }) as unknown as LemonSSHBridge["setLanguage"],
     quitApp: (async () => {
       await bindings.tray?.Quit?.();
-    }) as unknown as NetcattyBridge["quitApp"],
+    }) as unknown as LemonSSHBridge["quitApp"],
+    // Tray menu content: the renderer is the single content authority; the Go
+    // TrayService stores the snapshot, rebuilds the context menu and mirrors
+    // it onto the #/tray panel window.
+    updateTrayMenuData: (async (data) => {
+      const result = await bindings.tray?.UpdateTrayMenuData?.(data);
+      return result ?? { success: false };
+    }) as unknown as LemonSSHBridge["updateTrayMenuData"],
+    onTrayFocusSession: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayFocusSession"]>>[0]) =>
+      subscribeNativeEvent(trayFocusSessionEvent, (payload) => cb(String(payload ?? "")))) as unknown as LemonSSHBridge["onTrayFocusSession"],
+    onTrayTogglePortForward: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayTogglePortForward"]>>[0]) =>
+      subscribeNativeEvent(trayToggleForwardEvent, (payload) => {
+        const data = (payload ?? {}) as { ruleId?: unknown; ruleID?: unknown; start?: unknown };
+        cb(String(data.ruleId ?? data.ruleID ?? ""), data.start !== false);
+      })) as unknown as LemonSSHBridge["onTrayTogglePortForward"],
+    // Tray panel window: hide/show plus the panel-scoped action twins. The
+    // panel's jump lands on TrayService.JumpToSessionFromPanel — the same
+    // focus pipeline the tray menu session rows use — and the close-session
+    // / connect-host requests ride the main window's existing handlers.
+    hideTrayPanel: (async () => {
+      // Go TrayPanelWindowService.Hide resolves a boolean.
+      const result = await bindings.trayPanel?.Hide?.();
+      return { success: result === true };
+    }) as unknown as LemonSSHBridge["hideTrayPanel"],
+    openMainWindow: (async () => {
+      const result = await bindings.tray?.OpenMainWindow?.();
+      return result ?? { success: false };
+    }) as unknown as LemonSSHBridge["openMainWindow"],
+    jumpToSessionFromTrayPanel: (async (sessionId: string) => {
+      const result = await bindings.tray?.JumpToSessionFromPanel?.(sessionId);
+      return result ?? { success: false };
+    }) as unknown as LemonSSHBridge["jumpToSessionFromTrayPanel"],
+    connectToHostFromTrayPanel: (async (hostId: string) => {
+      const result = await bindings.tray?.ConnectToHost?.(hostId);
+      return result ?? { success: false };
+    }) as unknown as LemonSSHBridge["connectToHostFromTrayPanel"],
+    closeSessionFromTrayPanel: (async (sessionId: string) => {
+      const result = await bindings.tray?.CloseSessionFromPanel?.(sessionId);
+      return result ?? { success: false };
+    }) as unknown as LemonSSHBridge["closeSessionFromTrayPanel"],
+    notifyTrayPanelPaintReady: (async () => {
+      const result = await bindings.trayPanel?.PaintReady?.();
+      return result ?? false;
+    }) as unknown as LemonSSHBridge["notifyTrayPanelPaintReady"],
+    onTrayPanelJumpToSession: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelJumpToSession"]>>[0]) =>
+      subscribeNativeEvent(trayPanelJumpSessionEvent, (payload) => cb(String(payload ?? "")))) as unknown as LemonSSHBridge["onTrayPanelJumpToSession"],
+    onTrayPanelConnectToHost: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelConnectToHost"]>>[0]) =>
+      subscribeNativeEvent(trayPanelConnectHostEvent, (payload) => cb(String(payload ?? "")))) as unknown as LemonSSHBridge["onTrayPanelConnectToHost"],
+    onTrayPanelCloseSession: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelCloseSession"]>>[0]) =>
+      subscribeNativeEvent(trayPanelCloseSessionEvent, (payload) => cb(String(payload ?? "")))) as unknown as LemonSSHBridge["onTrayPanelCloseSession"],
+    onTrayPanelMenuData: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelMenuData"]>>[0]) =>
+      subscribeNativeEvent(trayPanelMenuDataEvent, (payload) => cb(normalizeTrayPanelMenuData(payload)))) as unknown as LemonSSHBridge["onTrayPanelMenuData"],
+    onTrayPanelRefresh: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelRefresh"]>>[0]) =>
+      subscribeNativeEvent(trayPanelRefreshEvent, () => cb())) as unknown as LemonSSHBridge["onTrayPanelRefresh"],
+    onTrayPanelCloseRequest: ((cb: Parameters<NonNullable<LemonSSHBridge["onTrayPanelCloseRequest"]>>[0]) =>
+      subscribeNativeEvent(trayPanelCloseRequestEvent, () => cb())) as unknown as LemonSSHBridge["onTrayPanelCloseRequest"],
     startStreamTransfer: transfers.startStreamTransfer,
     onGlobalSftpTransferEvent: transfers.onGlobalSftpTransferEvent,
     extractLocalArchive: (async (archivePath: string) => {
@@ -1670,20 +2560,20 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       } catch {
         return { success: false };
       }
-    }) as unknown as NetcattyBridge["extractLocalArchive"],
+    }) as unknown as LemonSSHBridge["extractLocalArchive"],
     drainDeepLinks: (async () => {
       const pending = await bindings.deepLink?.Drain?.() ?? [];
       await bindings.deepLink?.Ready?.();
       return pending;
-    }) as unknown as NetcattyBridge["drainDeepLinks"],
+    }) as unknown as LemonSSHBridge["drainDeepLinks"],
     getOSProtocolStatus: (async () => {
       const result = await bindings.deepLink?.GetOSProtocolStatus?.();
       return result ?? { success: false, registered: false, error: "getOSProtocolStatus unavailable" };
-    }) as unknown as NetcattyBridge["getOSProtocolStatus"],
+    }) as unknown as LemonSSHBridge["getOSProtocolStatus"],
     setOSProtocol: (async (enabled: boolean) => {
       const result = await bindings.deepLink?.SetOSProtocol?.(enabled);
       return result ?? { success: false, registered: false, error: "setOSProtocol unavailable" };
-    }) as unknown as NetcattyBridge["setOSProtocol"],
+    }) as unknown as LemonSSHBridge["setOSProtocol"],
     onSshDeepLink: ((cb: (payload: { url?: string }) => void) => {
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== "function") return () => undefined;
@@ -1697,7 +2587,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         const portValue = data.port ?? data.Port;
         cb({ url: `ssh://${username ? `${username}@` : ""}${host}${portValue ? `:${portValue}` : ""}` });
       });
-    }) as unknown as NetcattyBridge["onSshDeepLink"],
+    }) as unknown as LemonSSHBridge["onSshDeepLink"],
     onTelnetDeepLink: ((cb: (payload: { url?: string }) => void) => {
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== 'function') return () => undefined;
@@ -1706,7 +2596,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         const host = data.host ?? data.Host;
         cb({ url: data.url ?? data.URL ?? (host ? `telnet://${host}${(data.port ?? data.Port) ? `:${data.port ?? data.Port}` : ''}` : '') });
       });
-    }) as NetcattyBridge['onTelnetDeepLink'],
+    }) as LemonSSHBridge['onTelnetDeepLink'],
     onJmsDeepLink: ((cb: (payload: { url?: string }) => void) => {
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== 'function') return () => undefined;
@@ -1714,7 +2604,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         const data = (event?.data ?? event) as { url?: string; URL?: string };
         cb({ url: data.url ?? data.URL });
       });
-    }) as NetcattyBridge['onJmsDeepLink'],
+    }) as LemonSSHBridge['onJmsDeepLink'],
     onOpenTerminalPath: ((cb: (payload: { path?: string }) => void) => {
       const eventsOn = bindings.events?.On ?? Events.On;
       if (typeof eventsOn !== 'function') return () => undefined;
@@ -1722,34 +2612,75 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         const data = (event?.data ?? event) as { path?: string; Path?: string };
         cb({ path: data.path ?? data.Path });
       });
-    }) as NetcattyBridge['onOpenTerminalPath'],
-    setSshDeepLinkEnabled: (async enabled => bindings.deepLink?.SetSshDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as NetcattyBridge['setSshDeepLinkEnabled'],
-    getSshDeepLinkEnabled: (async () => bindings.deepLink?.GetSshDeepLinkEnabled?.() ?? false) as NetcattyBridge['getSshDeepLinkEnabled'],
-    setJmsDeepLinkEnabled: (async enabled => bindings.deepLink?.SetJmsDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as NetcattyBridge['setJmsDeepLinkEnabled'],
-    getJmsDeepLinkEnabled: (async () => bindings.deepLink?.GetJmsDeepLinkEnabled?.() ?? false) as NetcattyBridge['getJmsDeepLinkEnabled'],
-    setExplorerContextMenuEnabled: (async enabled => bindings.deepLink?.SetExplorerContextMenuEnabled?.(enabled) ?? { success: false, enabled: false, supported: false }) as NetcattyBridge['setExplorerContextMenuEnabled'],
-    getExplorerContextMenuEnabled: (async () => bindings.deepLink?.GetExplorerContextMenuEnabled?.() ?? { success: false, enabled: false, supported: false }) as NetcattyBridge['getExplorerContextMenuEnabled'],
+    }) as LemonSSHBridge['onOpenTerminalPath'],
+    setSshDeepLinkEnabled: (async enabled => bindings.deepLink?.SetSshDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as LemonSSHBridge['setSshDeepLinkEnabled'],
+    getSshDeepLinkEnabled: (async () => bindings.deepLink?.GetSshDeepLinkEnabled?.() ?? false) as LemonSSHBridge['getSshDeepLinkEnabled'],
+    setJmsDeepLinkEnabled: (async enabled => bindings.deepLink?.SetJmsDeepLinkEnabled?.(enabled) ?? { success: false, enabled: false }) as LemonSSHBridge['setJmsDeepLinkEnabled'],
+    getJmsDeepLinkEnabled: (async () => bindings.deepLink?.GetJmsDeepLinkEnabled?.() ?? false) as LemonSSHBridge['getJmsDeepLinkEnabled'],
+    setExplorerContextMenuEnabled: (async enabled => bindings.deepLink?.SetExplorerContextMenuEnabled?.(enabled) ?? { success: false, enabled: false, supported: false }) as LemonSSHBridge['setExplorerContextMenuEnabled'],
+    getExplorerContextMenuEnabled: (async () => bindings.deepLink?.GetExplorerContextMenuEnabled?.() ?? { success: false, enabled: false, supported: false }) as LemonSSHBridge['getExplorerContextMenuEnabled'],
     setHttpNetworkProxy: (async settings => {
       const result = await bindings.httpNetworkProxy?.Set?.(settings);
       if (!result) return { success: false, settings };
       if (result.error) throw new Error(result.error);
       return { success: result.success !== false, settings: result.settings as typeof settings };
-    }) as NetcattyBridge['setHttpNetworkProxy'],
+    }) as LemonSSHBridge['setHttpNetworkProxy'],
     getHttpNetworkProxy: (async () => {
       const result = await bindings.httpNetworkProxy?.Get?.();
       return { settings: (result?.settings ?? { mode: 'system', url: '', bypass: '<local>' }) as { mode: 'system' | 'direct' | 'custom'; url: string; bypass: string } };
-    }) as NetcattyBridge['getHttpNetworkProxy'],
+    }) as LemonSSHBridge['getHttpNetworkProxy'],
     openTerminalPopup: (async (payload) => {
       if (!bindings.popup?.Open) return { success: false, error: "openTerminalPopup unavailable" };
       return bindings.popup.Open(payload);
-    }) as unknown as NetcattyBridge["openTerminalPopup"],
+    }) as unknown as LemonSSHBridge["openTerminalPopup"],
     onTerminalPopupConfig: ((cb) => subscribePopupConfig(
       typeof window === 'undefined' ? '' : window.location.search,
       bindings.popup,
       config => cb(config as import("../../../domain/systemManager/types").TerminalPopupPayload),
-    )) as unknown as NetcattyBridge["onTerminalPopupConfig"],
+    )) as unknown as LemonSSHBridge["onTerminalPopupConfig"],
+    // Peer session windows (#/session-window): Open mints the window in Go
+    // (SessionWindowService), and the new window pulls its clone payload
+    // through the same lease handshake as the terminal popup. The identity
+    // lives only in that window's URL, so the main window's subscription is a
+    // no-op (no query params).
+    openSessionInNewWindow: (async (payload) => {
+      if (!bindings.sessionWindow?.Open) return { success: false, error: "openSessionInNewWindow unavailable" };
+      return bindings.sessionWindow.Open(payload);
+    }) as unknown as LemonSSHBridge["openSessionInNewWindow"],
+    onOpenSessionInNewWindow: ((cb) => subscribePopupConfig(
+      typeof window === 'undefined' ? '' : window.location.search,
+      bindings.sessionWindow,
+      config => cb(config as { title: string; sourceSession: import("../../../types").TerminalSession; localShellType?: import("../../../domain/models").TerminalSession['shellType'] }),
+      error => console.error('Session window configuration lease failed', error),
+      SESSION_WINDOW_LEASE_PARAMS,
+    )) as unknown as LemonSSHBridge["onOpenSessionInNewWindow"],
     onKeyboardInteractive,
     respondKeyboardInteractive,
+    onPassphraseRequest,
+    respondPassphrase,
+    respondPassphraseSkip,
+    onPassphraseTimeout,
+    onPassphraseCancelled,
+    onPassphraseAuthFailed,
+    onHostKeyVerification,
+    respondHostKeyVerification,
+    execCommand: (async (options: Parameters<NonNullable<LemonSSHBridge["execCommand"]>>[0]) => {
+      if (!bindings.terminal.ExecCommand) missingBridgeMethod("execCommand");
+      const args = pickSSHConnectArgs(options);
+      return await bindings.terminal.ExecCommand({
+        ...args,
+        command: options.command,
+        timeoutMs: options.timeout ?? 30000,
+      }) as unknown as { stdout: string; stderr: string; code: number | null };
+    }) as unknown as LemonSSHBridge["execCommand"],
+    readKnownHosts: (async () => {
+      const read = bindings.knownHosts?.ReadKnownHosts;
+      if (!read) missingBridgeMethod("readKnownHosts");
+      // "" from Go means "no known_hosts files" — surface as null (scan found
+      // nothing) instead of undefined (scan unavailable).
+      const content = await read();
+      return content ? content : null;
+    }) as unknown as LemonSSHBridge["readKnownHosts"],
     selectFile,
     selectDirectory,
     showSaveDialog,
@@ -1759,14 +2690,51 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     listPortForwards,
     getPortForwardStatus,
     getPortForwardSnapshot,
+    // Port-forward runtime subscription protocol (snapshot + ordered events);
+    // usePortForwardingState keeps its 4s heartbeat as the recovery fallback.
+    subscribePortForwardRuntime,
+    unsubscribePortForwardRuntime,
+    subscribePortForward,
+    onPortForwardStatus,
+    onPortForwardRuntime,
     windowMinimize,
     windowMaximize,
     windowClose,
     windowIsMaximized,
     windowIsFullscreen,
+    windowFocus: windowFocus as unknown as LemonSSHBridge["windowFocus"],
+    // WindowLifecycleService emits these from the main window's Wails
+    // events (show / hide / focus) so the renderer can dismiss transient
+    // overlays before a hide and recover input focus afterwards.
+    onWindowShown: ((cb: () => void) => subscribeNativeEvent(windowShownEvent, cb)) as unknown as LemonSSHBridge["onWindowShown"],
+    onWindowWillHide: ((cb: () => void) => subscribeNativeEvent(windowWillHideEvent, cb)) as unknown as LemonSSHBridge["onWindowWillHide"],
+    onWindowFocusRequested: ((cb: () => void) => subscribeNativeEvent(windowFocusRequestedEvent, cb)) as unknown as LemonSSHBridge["onWindowFocusRequested"],
+    // Quit guard: the Go close hook emits this, the renderer answers with
+    // reportDirtyEditorsResult (see useAppStartupEffects).
+    onCheckDirtyEditors: ((cb: () => void) => subscribeNativeEvent(windowCheckDirtyEditorsEvent, cb)) as unknown as LemonSSHBridge["onCheckDirtyEditors"],
+    reportDirtyEditorsResult: ((hasDirty: boolean) => {
+      void bindings.windowLifecycle?.ReportDirtyEditorsResult?.(hasDirty)?.catch(() => undefined);
+    }) as unknown as LemonSSHBridge["reportDirtyEditorsResult"],
+    setCloseToTray: (async (enabled: boolean) => {
+      const result = await bindings.windowLifecycle?.SetCloseToTray?.(enabled);
+      return { success: result?.success ?? false, enabled: result?.enabled ?? enabled };
+    }) as unknown as LemonSSHBridge["setCloseToTray"],
+    isCloseToTray: (async () => {
+      const result = await bindings.windowLifecycle?.IsCloseToTray?.();
+      return { enabled: result?.enabled ?? false };
+    }) as unknown as LemonSSHBridge["isCloseToTray"],
+    // False means "not applied" (unsupported platform / no main window) so
+    // callers can treat the apply as skipped instead of silently lying.
+    setWindowOpacity: (async (opacity: number) => {
+      try {
+        return (await bindings.windowLifecycle?.SetWindowOpacity?.(opacity)) ?? false;
+      } catch {
+        return false;
+      }
+    }) as unknown as LemonSSHBridge["setWindowOpacity"],
     openSettingsWindow,
     notifySettingsPainted,
-    closeSettingsWindow: closeSettingsWindow as unknown as NetcattyBridge["closeSettingsWindow"],
+    closeSettingsWindow: closeSettingsWindow as unknown as LemonSSHBridge["closeSettingsWindow"],
     getAppLockSettings: async () => {
       if (!bindings.appLock?.GetSettings) throw new Error("App lock settings unavailable");
       return bindings.appLock.GetSettings();
@@ -1795,9 +2763,27 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       }
     },
     getAppLockRuntimeState: (() =>
-      bindings.appLock?.GetRuntimeState()) as unknown as NetcattyBridge["getAppLockRuntimeState"],
+      bindings.appLock?.GetRuntimeState()) as unknown as LemonSSHBridge["getAppLockRuntimeState"],
     reportAppLockActivity: (() =>
-      bindings.appLock?.ReportActivity?.()) as unknown as NetcattyBridge["reportAppLockActivity"],
+      bindings.appLock?.ReportActivity?.()) as unknown as LemonSSHBridge["reportAppLockActivity"],
+    setAppLockRuntimeLocked: ((reason: string) =>
+      bindings.appLock?.SetRuntimeLocked?.(reason)) as unknown as LemonSSHBridge["setAppLockRuntimeLocked"],
+    setAppLockTimeoutMinutes: (async (minutes: number) => {
+      if (!bindings.appLock?.SetTimeoutMinutes) throw new Error("App lock timeout setting unavailable");
+      return await bindings.appLock.SetTimeoutMinutes(minutes);
+    }) as unknown as LemonSSHBridge["setAppLockTimeoutMinutes"],
+    onAppLockRuntimeStateChanged: ((cb: (state: unknown) => void) => {
+      return subscribeNativeEvent(appLockRuntimeStateChangedEvent, cb);
+    }) as unknown as LemonSSHBridge["onAppLockRuntimeStateChanged"],
+    onAppLockSettingsChanged: ((cb: (settings: unknown) => void) => {
+      return subscribeNativeEvent(appLockSettingsChangedEvent, cb);
+    }) as unknown as LemonSSHBridge["onAppLockSettingsChanged"],
+    onAppLockReopen: ((listener: () => void) => {
+      return subscribeNativeEvent(appLockReopenEvent, listener);
+    }) as unknown as LemonSSHBridge["onAppLockReopen"],
+    onVaultBackupsChanged: ((handler: () => void) => {
+      return subscribeNativeEvent(vaultBackupsChangedEvent, handler);
+    }) as unknown as LemonSSHBridge["onVaultBackupsChanged"],
     pluginV2: {
       list: async () => {
         if (!bindings.plugins?.List) throw new Error('Plugin service is not available');
@@ -1821,8 +2807,11 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       },
     },
     listPlugins: (() =>
-      Promise.resolve(bindings.plugins?.List() ?? [])) as unknown as NetcattyBridge["listPlugins"],
-    ...createPluginBridge(bindings.plugins),
+      Promise.resolve(bindings.plugins?.List() ?? [])) as unknown as LemonSSHBridge["listPlugins"],
+    ...createPluginBridge(bindings.plugins, {
+      subscribeEvent: subscribeNativeEvent,
+      attachDataPlane,
+    }),
     requestAppLockPasswordChange: (async (input: { currentPassword?: string; nextPassword: string }) => {
       if (!input.nextPassword) return { ok: false, error: "empty-next" };
       if (input.currentPassword) {
@@ -1839,7 +2828,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       } catch {
         return { ok: false, error: "incorrect" };
       }
-    }) as unknown as NetcattyBridge["requestAppLockPasswordChange"],
+    }) as unknown as LemonSSHBridge["requestAppLockPasswordChange"],
     requestAppLockUnlock: (async (password: string) => {
       if (!password) return { ok: false, error: "empty" };
       try {
@@ -1848,15 +2837,52 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       } catch {
         return { ok: false, error: "incorrect" };
       }
-    }) as unknown as NetcattyBridge["requestAppLockUnlock"],
+    }) as unknown as LemonSSHBridge["requestAppLockUnlock"],
     requestAppLockDisable: (async (currentPassword: string) => {
       try {
-        await bindings.appLock?.Disable?.(currentPassword);
+        if (!bindings.appLock?.Disable) throw new Error("App lock unavailable");
+        await bindings.appLock.Disable(currentPassword);
+        // Report the authoritative settings: the persisted idle timeout
+        // survives a disable, so a hardcoded default would lie in the UI.
+        if (bindings.appLock.GetSettings) return await bindings.appLock.GetSettings();
         return { enabled: false, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null };
       } catch {
         return { ok: false, error: "incorrect" };
       }
-    }) as unknown as NetcattyBridge["requestAppLockDisable"],
+    }) as unknown as LemonSSHBridge["requestAppLockDisable"],
+    // Lock-screen recovery: verifies the current password, removes the App
+    // Lock verifier plus system-unlock settings and unlocks the app. The Go
+    // Reset method answers with the typed mutation codes ("empty-current",
+    // "incorrect") this mapping relays to the renderer.
+    requestAppLockReset: (async (currentPassword: string) => {
+      try {
+        if (!bindings.appLock?.Reset) throw new Error("App lock unavailable");
+        if (!currentPassword) return { ok: false as const, error: "empty-current" as const };
+        await bindings.appLock.Reset(currentPassword);
+        if (bindings.appLock.GetSettings) return await bindings.appLock.GetSettings();
+        return { enabled: false, timeoutMinutes: 15, systemUnlockEnabled: false, systemUnlockAutoPromptEnabled: false, passwordVerifier: null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = (["empty-current", "incorrect"] as const).find((value) => message.includes(value));
+        return { ok: false as const, error: code ?? "incorrect" };
+      }
+    }) as unknown as LemonSSHBridge["requestAppLockReset"],
+    // First-time enable: creates the App Lock verifier from a new password
+    // (Go derives "enabled" from the verifier, so there is no flag-only
+    // enable). First-time setup in the settings UI goes through
+    // requestAppLockPasswordChange; this maps the standalone verb.
+    requestAppLockEnable: (async (password: string) => {
+      if (!password) return { ok: false as const, error: "empty-next" as const };
+      try {
+        if (!bindings.appLock?.Enable || !bindings.appLock.GetSettings) throw new Error("App lock unavailable");
+        await bindings.appLock.Enable(password);
+        return await bindings.appLock.GetSettings();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = (["empty-current", "incorrect"] as const).find((value) => message.includes(value));
+        return { ok: false as const, error: code ?? "incorrect" };
+      }
+    }) as unknown as LemonSSHBridge["requestAppLockEnable"],
     pauseTransfer: transfers.pauseTransfer,
     resumeTransfer: transfers.resumeTransfer,
     cancelTransfer: transfers.cancelTransfer,
@@ -1867,7 +2893,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       if (!bindings.terminal.CancelZmodem) return { success: false, error: "cancelZmodem unavailable" };
       await bindings.terminal.CancelZmodem(sessionID);
       return { success: true };
-    }) as unknown as NetcattyBridge["cancelZmodem"],
+    }) as unknown as LemonSSHBridge["cancelZmodem"],
     sendSerialYmodem: (async (sessionId: string, filePath: string) => {
       if (!bindings.terminal.SendSerialYmodem) return { success: false, error: "sendSerialYmodem unavailable" };
       try {
@@ -1876,7 +2902,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
-    }) as unknown as NetcattyBridge["sendSerialYmodem"],
+    }) as unknown as LemonSSHBridge["sendSerialYmodem"],
     receiveSerialYmodem: (async (sessionId: string, destinationDir: string) => {
       if (!bindings.terminal.ReceiveSerialYmodem) return { success: false, error: "receiveSerialYmodem unavailable" };
       try {
@@ -1894,33 +2920,140 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
-    }) as unknown as NetcattyBridge["receiveSerialYmodem"],
-    extractSftpArchive: (async (sftpId: string, remotePath: string) => {
+    }) as unknown as LemonSSHBridge["receiveSerialYmodem"],
+    extractSftpArchive: async (sftpId: string, remotePath: string, encoding?: SftpFilenameEncoding) => {
       if (!bindings.sftp.ExtractArchive) return { success: false };
-      await bindings.sftp.ExtractArchive(sftpId, remotePath);
+      await bindings.sftp.ExtractArchive(sftpId, remotePath, encoding);
       return { success: true };
-    }) as unknown as NetcattyBridge["extractSftpArchive"],
+    },
     getTempDirInfo: async () => { if (!bindings.filesystem?.TempInfo) missingBridgeMethod('getTempDirInfo'); return bindings.filesystem.TempInfo(); },
     getTempDirPath: async () => { if (!bindings.filesystem?.TempInfo) missingBridgeMethod('getTempDirPath'); return (await bindings.filesystem.TempInfo()).path; },
     clearTempDir: async () => { if (!bindings.filesystem?.ClearTemp) missingBridgeMethod('clearTempDir'); const result=await bindings.filesystem.ClearTemp(); return { deletedCount:result.deletedCount, failedCount:0 }; },
+    // Renderer tool-output spill persistence (managed temp service). These
+    // fail closed to "not durable" instead of throwing: the harness
+    // ToolOutputStore treats absence as keep-in-memory, never as success.
+    getToolOutputPersistenceStatus: (async () => {
+      if (!bindings.filesystem?.ToolOutputPersistenceStatus) {
+        return { durable: false, reason: "Tool output persistence is unavailable in this shell." };
+      }
+      return bindings.filesystem.ToolOutputPersistenceStatus();
+    }) as unknown as LemonSSHBridge["getToolOutputPersistenceStatus"],
+    writeToolOutputTemp: (async (record: unknown, content: string) => {
+      if (!bindings.filesystem?.WriteToolOutputTemp) return { ok: false, error: "unavailable" };
+      return bindings.filesystem.WriteToolOutputTemp(record, content);
+    }) as unknown as LemonSSHBridge["writeToolOutputTemp"],
+    restoreToolOutputTemp: (async (handleId: string, chatSessionId: string) => {
+      if (!bindings.filesystem?.RestoreToolOutputTemp) return null;
+      return bindings.filesystem.RestoreToolOutputTemp(handleId, chatSessionId);
+    }) as unknown as LemonSSHBridge["restoreToolOutputTemp"],
+    readToolOutputTemp: (async (filePath: string, request?: unknown) => {
+      if (!bindings.filesystem?.ReadToolOutputTemp) return null;
+      return bindings.filesystem.ReadToolOutputTemp(filePath, request);
+    }) as unknown as LemonSSHBridge["readToolOutputTemp"],
+    deleteToolOutputTemp: (async (filePath: string) => {
+      if (!bindings.filesystem?.DeleteToolOutputTemp) return { ok: false };
+      return bindings.filesystem.DeleteToolOutputTemp(filePath);
+    }) as unknown as LemonSSHBridge["deleteToolOutputTemp"],
+    deleteChatToolOutputsTemp: (async (chatSessionId: string) => {
+      if (!bindings.filesystem?.DeleteChatToolOutputsTemp) return { deletedCount: 0 };
+      return bindings.filesystem.DeleteChatToolOutputsTemp(chatSessionId);
+    }) as unknown as LemonSSHBridge["deleteChatToolOutputsTemp"],
+    deleteTerminalToolOutputsTemp: (async (chatSessionId: string, terminalSessionId: string) => {
+      if (!bindings.filesystem?.DeleteTerminalToolOutputsTemp) return { deletedCount: 0 };
+      return bindings.filesystem.DeleteTerminalToolOutputsTemp(chatSessionId, terminalSessionId);
+    }) as unknown as LemonSSHBridge["deleteTerminalToolOutputsTemp"],
+    deleteTerminalToolOutputsEverywhereTemp: (async (terminalSessionId: string) => {
+      if (!bindings.filesystem?.DeleteTerminalToolOutputsEverywhereTemp) return { deletedCount: 0 };
+      return bindings.filesystem.DeleteTerminalToolOutputsEverywhereTemp(terminalSessionId);
+    }) as unknown as LemonSSHBridge["deleteTerminalToolOutputsEverywhereTemp"],
     startCompressedUpload: transfers.startCompressedUpload,
     pauseCompressedUpload: transfers.pauseTransfer,
     resumeCompressedUpload: transfers.resumeTransfer,
     cancelCompressedUpload: async (id: string) => { await transfers.cancelTransfer(id); return { success: true }; },
-    checkCompressedUploadSupport: (async () => ({ supported: Boolean((bindings.transfer as TransferBindings | undefined)?.StartCompressed), localTar: false, remoteTar: false })) as unknown as NetcattyBridge["checkCompressedUploadSupport"],
+    checkCompressedUploadSupport: (async () => ({ supported: Boolean((bindings.transfer as TransferBindings | undefined)?.StartCompressed), localTar: false, remoteTar: false })) as unknown as LemonSSHBridge["checkCompressedUploadSupport"],
     registerGlobalHotkey: (async (hotkey: string) => {
       if (!bindings.shortcuts?.Register) return { success: false, error: "registerGlobalHotkey unavailable" };
       return bindings.shortcuts.Register(hotkey);
-    }) as unknown as NetcattyBridge["registerGlobalHotkey"],
+    }) as unknown as LemonSSHBridge["registerGlobalHotkey"],
     unregisterGlobalHotkey: (async () => {
       if (!bindings.shortcuts?.Unregister) return { success: false };
       return bindings.shortcuts.Unregister();
-    }) as unknown as NetcattyBridge["unregisterGlobalHotkey"],
+    }) as unknown as LemonSSHBridge["unregisterGlobalHotkey"],
     getGlobalHotkeyStatus: (async () => {
       if (!bindings.shortcuts?.Status) return { enabled: false, hotkey: null };
       return bindings.shortcuts.Status();
-    }) as unknown as NetcattyBridge["getGlobalHotkeyStatus"],
-    startMoshSession: (async (options: Parameters<NonNullable<NetcattyBridge["startMoshSession"]>>[0]) => {
+    }) as unknown as LemonSSHBridge["getGlobalHotkeyStatus"],
+    getAppInfo: (async () => {
+      if (!bindings.lemonssh?.Version) missingBridgeMethod("getAppInfo");
+      const info = await bindings.lemonssh.Version();
+      return { name: info.name, version: info.version, platform: info.goos };
+    }) as unknown as LemonSSHBridge["getAppInfo"],
+    checkForUpdate: (async () => {
+      if (!bindings.update?.CheckForUpdate) {
+        return { available: false, supported: false, error: "Update bridge unavailable" };
+      }
+      const result = await bindings.update.CheckForUpdate();
+      return {
+        available: result.available,
+        supported: result.supported ?? true,
+        checking: result.checking,
+        ready: result.ready,
+        downloading: result.downloading,
+        version: result.version,
+        releaseNotes: result.releaseNotes,
+        releaseDate: result.releaseDate,
+        error: result.error,
+      };
+    }) as unknown as LemonSSHBridge["checkForUpdate"],
+    downloadUpdate: (async () => {
+      if (!bindings.update?.DownloadUpdate) return { success: false, error: "Update bridge unavailable" };
+      return bindings.update.DownloadUpdate();
+    }) as unknown as LemonSSHBridge["downloadUpdate"],
+    installUpdate: (() => {
+      // Fire-and-forget on the Go side: the process swaps its binary and
+      // quits; the relaunch is scheduled by the update service.
+      void bindings.update?.InstallUpdate?.();
+    }) as unknown as LemonSSHBridge["installUpdate"],
+    getUpdateStatus: (async () => {
+      if (!bindings.update?.GetUpdateStatus) {
+        return { status: "idle", percent: 0, error: null, version: null };
+      }
+      const snapshot = await bindings.update.GetUpdateStatus();
+      return {
+        status: snapshot.status,
+        percent: snapshot.percent,
+        error: snapshot.error || null,
+        version: snapshot.version || null,
+        isChecking: snapshot.isChecking,
+      };
+    }) as unknown as LemonSSHBridge["getUpdateStatus"],
+    getAutoUpdate: (async () => {
+      if (!bindings.update?.GetAutoUpdate) return { enabled: true };
+      return bindings.update.GetAutoUpdate();
+    }) as unknown as LemonSSHBridge["getAutoUpdate"],
+    setAutoUpdate: (async (enabled: boolean) => {
+      if (!bindings.update?.SetAutoUpdate) return { success: false };
+      return bindings.update.SetAutoUpdate(enabled);
+    }) as unknown as LemonSSHBridge["setAutoUpdate"],
+    onUpdateAvailable: ((cb: (info: { version: string; releaseNotes: string; releaseDate: string | null }) => void) => {
+      return subscribeNativeEvent(updateAvailableEvent, cb);
+    }) as unknown as LemonSSHBridge["onUpdateAvailable"],
+    onUpdateNotAvailable: ((cb: () => void) => {
+      return subscribeNativeEvent(updateNotAvailableEvent, cb);
+    }) as unknown as LemonSSHBridge["onUpdateNotAvailable"],
+    onUpdateDownloadProgress: ((cb: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
+      return subscribeNativeEvent(updateDownloadProgressEvent, cb);
+    }) as unknown as LemonSSHBridge["onUpdateDownloadProgress"],
+    onUpdateDownloaded: ((cb: () => void) => {
+      return subscribeNativeEvent(updateDownloadedEvent, cb);
+    }) as unknown as LemonSSHBridge["onUpdateDownloaded"],
+    onUpdateError: ((cb: (payload: { error: string }) => void) => {
+      return subscribeNativeEvent(updateErrorEvent, cb);
+    }) as unknown as LemonSSHBridge["onUpdateError"],
+    // The Go shell cannot see renderer-side unsaved editors, so it never
+    // emits this; the surface stays available for the #1215 contract.
+    onUpdateNeedsSave: ((cb: () => void) => subscribeNativeEvent("update:needs-save", cb)) as unknown as LemonSSHBridge["onUpdateNeedsSave"],
+    startMoshSession: (async (options: Parameters<NonNullable<LemonSSHBridge["startMoshSession"]>>[0]) => {
       if (!bindings.terminal.StartMosh) missingBridgeMethod("startMoshSession");
       const ssh = pickSSHConnectArgs({
         hostname: options.hostname,
@@ -1937,6 +3070,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         jumpHosts: options.jumpHosts,
         cols: options.cols,
         rows: options.rows,
+        sessionId: options.sessionId,
+        agentForwarding: options.agentForwarding,
       });
       const sessionID = await bindings.terminal.StartMosh({
         ...ssh,
@@ -1948,8 +3083,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       rememberSession(options.sessionId, sessionID);
       await attachDataPlane(sessionID);
       return sessionID;
-    }) as unknown as NetcattyBridge["startMoshSession"],
-    startEtSession: (async (options: Parameters<NonNullable<NetcattyBridge["startEtSession"]>>[0]) => {
+    }) as unknown as LemonSSHBridge["startMoshSession"],
+    startEtSession: (async (options: Parameters<NonNullable<LemonSSHBridge["startEtSession"]>>[0]) => {
       if (!bindings.terminal.StartEt) missingBridgeMethod("startEtSession");
       const ssh = pickSSHConnectArgs({
         hostname: options.hostname,
@@ -1966,6 +3101,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         jumpHosts: options.jumpHosts,
         cols: options.cols,
         rows: options.rows,
+        sessionId: options.sessionId,
+        agentForwarding: options.agentForwarding,
       });
       const sessionID = await bindings.terminal.StartEt({
         ...ssh,
@@ -1977,13 +3114,13 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       rememberSession(options.sessionId, sessionID);
       await attachDataPlane(sessionID);
       return sessionID;
-    }) as unknown as NetcattyBridge["startEtSession"],
+    }) as unknown as LemonSSHBridge["startEtSession"],
     getTelnetEchoMode: (async (sessionId: string) => {
       if (!bindings.terminal.GetTelnetEchoMode) {
         return { success: false, error: "getTelnetEchoMode unavailable" };
       }
       return bindings.terminal.GetTelnetEchoMode(sessionId);
-    }) as unknown as NetcattyBridge["getTelnetEchoMode"],
+    }) as unknown as LemonSSHBridge["getTelnetEchoMode"],
   };
   const transitionBridge = new Proxy(implementedBridge, {
     get(target, property, receiver) {
@@ -1992,7 +3129,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       // not a throwing function. A throwing stub crashes first paint.
       return undefined;
     },
-  }) as NetcattyBridge;
+  }) as LemonSSHBridge;
 
   const client: WailsRuntimeClient = {
     app: portWith("app", {
@@ -2036,6 +3173,7 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       resizeSession,
       interruptSession,
       closeSession,
+      setSessionEncoding,
       onSessionData,
       onSessionExit,
     }),
@@ -2082,35 +3220,35 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       cloudSyncWebdavInitialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavInitialize) missingBridgeMethod("cloudSyncWebdavInitialize");
         return bindings.sync.CloudSyncWebdavInitialize(config);
-      }) as unknown as NetcattyBridge["cloudSyncWebdavInitialize"],
+      }) as unknown as LemonSSHBridge["cloudSyncWebdavInitialize"],
       cloudSyncWebdavUpload: (async (config: unknown, syncedFile: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavUpload) missingBridgeMethod("cloudSyncWebdavUpload");
         return bindings.sync.CloudSyncWebdavUpload(config, syncedFile);
-      }) as unknown as NetcattyBridge["cloudSyncWebdavUpload"],
+      }) as unknown as LemonSSHBridge["cloudSyncWebdavUpload"],
       cloudSyncWebdavDownload: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavDownload) missingBridgeMethod("cloudSyncWebdavDownload");
         return bindings.sync.CloudSyncWebdavDownload(config);
-      }) as unknown as NetcattyBridge["cloudSyncWebdavDownload"],
+      }) as unknown as LemonSSHBridge["cloudSyncWebdavDownload"],
       cloudSyncWebdavDelete: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncWebdavDelete) missingBridgeMethod("cloudSyncWebdavDelete");
         return bindings.sync.CloudSyncWebdavDelete(config);
-      }) as unknown as NetcattyBridge["cloudSyncWebdavDelete"],
+      }) as unknown as LemonSSHBridge["cloudSyncWebdavDelete"],
       cloudSyncS3Initialize: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncS3Initialize) missingBridgeMethod("cloudSyncS3Initialize");
         return bindings.sync.CloudSyncS3Initialize(config);
-      }) as unknown as NetcattyBridge["cloudSyncS3Initialize"],
+      }) as unknown as LemonSSHBridge["cloudSyncS3Initialize"],
       cloudSyncS3Upload: (async (config: unknown, syncedFile: unknown) => {
         if (!bindings.sync?.CloudSyncS3Upload) missingBridgeMethod("cloudSyncS3Upload");
         return bindings.sync.CloudSyncS3Upload(config, syncedFile);
-      }) as unknown as NetcattyBridge["cloudSyncS3Upload"],
+      }) as unknown as LemonSSHBridge["cloudSyncS3Upload"],
       cloudSyncS3Download: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncS3Download) missingBridgeMethod("cloudSyncS3Download");
         return bindings.sync.CloudSyncS3Download(config);
-      }) as unknown as NetcattyBridge["cloudSyncS3Download"],
+      }) as unknown as LemonSSHBridge["cloudSyncS3Download"],
       cloudSyncS3Delete: (async (config: unknown) => {
         if (!bindings.sync?.CloudSyncS3Delete) missingBridgeMethod("cloudSyncS3Delete");
         return bindings.sync.CloudSyncS3Delete(config);
-      }) as unknown as NetcattyBridge["cloudSyncS3Delete"],
+      }) as unknown as LemonSSHBridge["cloudSyncS3Delete"],
     }),
     system: portWith("system", monitoring),
     plugin: portWith("plugin", implementedBridge),
@@ -2154,31 +3292,31 @@ export function goTerminalSurface() {
     signal: (sessionID: string, signal: string) => terminalService.Signal(sessionID, signal),
     close: (sessionID: string) => terminalService.Close(sessionID),
     sftp: {
-      download: (sftpID: string, remotePath: string, localPath: string) =>
-        sftpService.Download(sftpID, remotePath, localPath),
-      upload: (sftpID: string, localPath: string, remotePath: string) =>
-        sftpService.Upload(sftpID, localPath, remotePath),
+      download: (sftpID: string, remotePath: string, localPath: string, encoding?: string) =>
+        sftpService.Download(sftpID, remotePath, localPath, encoding ?? ""),
+      upload: (sftpID: string, localPath: string, remotePath: string, encoding?: string) =>
+        sftpService.Upload(sftpID, localPath, remotePath, encoding ?? ""),
     },
   };
 }
 
-export { netcattyService };
+export { lemonsshService };
 
 export function installWailsRuntimeClient(): boolean {
   if (!isWailsRuntime()) return false;
   // Go alpha.63 calls this global after resolving native file paths. The npm
   // runtime only installs _wails.handlePlatformFileDrop; reuse its Window here.
   // Remove the alias once Go uses that newer entry point too.
-  const host = window as typeof window & { wails?: { Window?: typeof wailsWindow }; netcatty?: NetcattyBridge };
+  const host = window as typeof window & { wails?: { Window?: typeof wailsWindow }; lemonssh?: LemonSSHBridge };
   host.wails ??= {};
   host.wails.Window = wailsWindow;
   configureProfileBindings(profileBindings);
   const client = createWailsRuntimeClient();
-  // Legacy consumers read window.netcatty directly (getNetcattyBridge in
+  // Legacy consumers read window.lemonssh directly (getLemonSSHBridge in
   // aiChatStreamingSupport, AIChatSidePanel, the settings AI tab, ...). The
   // transition bridge is the same fail-closed surface: implemented methods
   // call Go bindings, unimplemented ones stay undefined.
-  host.netcatty ??= client.transitionBridge;
+  host.lemonssh ??= client.transitionBridge;
   setActiveRuntimeClient(client);
   return true;
 }

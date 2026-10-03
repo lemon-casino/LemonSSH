@@ -51,15 +51,15 @@ type Client struct {
 func Dial(discoveryPath string) (*Client, error) {
 	discovery, err := LoadDiscovery(discoveryPath)
 	if err != nil {
-		message := fmt.Sprintf("Netcatty is not running or discovery file is missing at %s. Start Netcatty first.", discoveryPath)
+		message := fmt.Sprintf("LemonSSH is not running or discovery file is missing at %s. Start LemonSSH first.", discoveryPath)
 		if errors.Is(err, ErrDiscoveryInvalid) {
-			message = fmt.Sprintf("Netcatty discovery file at %s is invalid.", discoveryPath)
+			message = fmt.Sprintf("LemonSSH discovery file at %s is invalid.", discoveryPath)
 		}
 		return nil, &UnavailableError{Message: message}
 	}
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", discovery.Port), DialTimeout)
 	if err != nil {
-		return nil, &UnavailableError{Message: fmt.Sprintf("Netcatty is not accepting tool connections on port %d: %v", discovery.Port, err)}
+		return nil, &UnavailableError{Message: fmt.Sprintf("LemonSSH is not accepting tool connections on port %d: %v", discovery.Port, err)}
 	}
 	return &Client{conn: conn, discovery: discovery}, nil
 }

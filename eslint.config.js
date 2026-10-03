@@ -7,7 +7,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 export default [
   js.configs.recommended,
   {
-    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", ".zcode/**", "release/**", "release-build/**", ".worktrees/**",
+    ignores: ["node_modules/**", "**/dist/**", "**/.protocol-test/**", "**/bindings/**", "scripts/**", "public/monaco/**", ".github/**", ".claude/**", ".zcode/**", ".lcode/**", "release/**", "release-build/**", ".worktrees/**",
       // Retired dist backups set aside during packaging (dist.vacate-*,
       // dist.retired-*, .retired-dist-*): minified bundles, not lintable source.
       // .tmp holds disposable plugin-smoke scratch trees.
@@ -15,7 +15,7 @@ export default [
   },
   {
     // Shell-neutral runtime boundary (P1-01): only the Wails adapter may
-    // import the Wails runtime; window.netcatty access is already restricted
+    // import the Wails runtime; window.lemonssh access is already restricted
     files: ["**/*.{ts,tsx}"],
     ignores: ["infrastructure/runtime/wails/wailsRuntimeClient.ts"],
     rules: {
@@ -141,16 +141,16 @@ export default [
         "error",
         {
           object: "window",
-          property: "netcatty",
+          property: "lemonssh",
           message:
-            "Do not access window.netcatty directly; use netcattyBridge or an application/state backend hook.",
+            "Do not access window.lemonssh directly; use lemonsshBridge or an application/state backend hook.",
         },
       ],
       "no-restricted-globals": ["error", "localStorage", "sessionStorage"],
     },
   },
   {
-    files: ["infrastructure/services/netcattyBridge.ts"],
+    files: ["infrastructure/services/lemonsshBridge.ts"],
     rules: {
       "no-restricted-properties": "off",
     },

@@ -4,7 +4,7 @@
  * - @ai-sdk/anthropic: base already includes /v1, then appends /messages, /models
  * - Custom proxies: complete SDK prefix that is not /v1 (e.g. …/anthropic → /anthropic/messages)
  *
- * Netcatty accepts Claude Code bare hosts and AI SDK /v1 bases at chat / probe
+ * LemonSSH accepts Claude Code bare hosts and AI SDK /v1 bases at chat / probe
  * boundaries. Custom non-/v1 path prefixes are left unchanged so previously
  * working proxy bases keep working.
  */

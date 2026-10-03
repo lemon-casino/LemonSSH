@@ -58,7 +58,7 @@ test("records aligned short commands when standard prompt echo lags by one chara
     { lineText: "prod.web> l", typedInput: "ls", promptText: "prod.web> " },
     { lineText: "user@host:~$ l", typedInput: "ls", promptText: "user@host:~$ " },
     { lineText: "[user@host ~]$ l", typedInput: "ls", promptText: "[user@host ~]$ " },
-    { lineText: "➜  netcatty $ l", typedInput: "ls", promptText: "➜  netcatty $ " },
+    { lineText: "➜  lemonssh $ l", typedInput: "ls", promptText: "➜  lemonssh $ " },
     { lineText: "➜  git l", typedInput: "ls", promptText: "➜  git " },
     { lineText: "➜  git np", typedInput: "npm", promptText: "➜  git " },
   ];
@@ -97,9 +97,9 @@ test("does not record themed prompt decorations when typed input is unreliable",
       expectedUserInput: " ~ git status",
     },
     {
-      lineText: "➜  netcatty git:(main) ✗ git status",
+      lineText: "➜  lemonssh git:(main) ✗ git status",
       promptText: "➜ ",
-      expectedUserInput: " netcatty git:(main) ✗ git status",
+      expectedUserInput: " lemonssh git:(main) ✗ git status",
     },
     {
       lineText: "  ~ git status",
@@ -130,8 +130,8 @@ test("records recognized themed prompts when typed input is unreliable", () => {
   const cases = [
     "➜ git status",
     " git status",
-    "➜  netcatty $ git status",
-    "➜  netcatty git:(main) ✗ $ git status",
+    "➜  lemonssh $ git status",
+    "➜  lemonssh git:(main) ✗ $ git status",
     "  ~ $ git status",
   ];
 
@@ -154,7 +154,7 @@ test("records recognized themed prompts when typed input is unreliable", () => {
 
 test("aligns themed bare directory prompts with reliable typed input", () => {
   const cases = [
-    { dir: "netcatty", typedInput: "ls" },
+    { dir: "lemonssh", typedInput: "ls" },
     { dir: "git", typedInput: "ls" },
     { dir: "git", typedInput: "npm" },
     { dir: "git", typedInput: "git status" },

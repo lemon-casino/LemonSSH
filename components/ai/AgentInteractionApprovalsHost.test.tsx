@@ -29,40 +29,40 @@ test("normalizeAgentInteraction accepts event payloads, pending entries and arra
   assert.deepEqual(
     normalizeAgentInteraction({
       interactionId: "ia_1",
-      capabilityId: "netcatty.exec",
+      capabilityId: "lemonssh.exec",
       description: "Run a command",
-      summary: { method: "netcatty/exec", command: "reboot" },
+      summary: { method: "lemonssh/exec", command: "reboot" },
       deadlineMs: 4102444800000,
     }),
     {
       interactionId: "ia_1",
-      capabilityId: "netcatty.exec",
+      capabilityId: "lemonssh.exec",
       description: "Run a command",
-      summary: { method: "netcatty/exec", command: "reboot" },
+      summary: { method: "lemonssh/exec", command: "reboot" },
       deadlineMs: 4102444800000,
     },
   );
   // Pending-list entries carry no description; array envelopes unwrap.
   assert.deepEqual(
-    normalizeAgentInteraction([{ interactionId: "ia_2", capabilityId: "netcatty.sftp.write" }]),
-    { interactionId: "ia_2", capabilityId: "netcatty.sftp.write", description: undefined, summary: undefined, deadlineMs: undefined },
+    normalizeAgentInteraction([{ interactionId: "ia_2", capabilityId: "lemonssh.sftp.write" }]),
+    { interactionId: "ia_2", capabilityId: "lemonssh.sftp.write", description: undefined, summary: undefined, deadlineMs: undefined },
   );
   const expired = normalizeAgentInteraction({
     interactionId: "ia_3",
-    capabilityId: "netcatty.host.notes.set",
-    summary: { method: "netcatty/host.notes.set", hostId: "host_9" },
+    capabilityId: "lemonssh.host.notes.set",
+    summary: { method: "lemonssh/host.notes.set", hostId: "host_9" },
     deadlineMs: -5,
   });
   assert.deepEqual(expired, {
     interactionId: "ia_3",
-    capabilityId: "netcatty.host.notes.set",
+    capabilityId: "lemonssh.host.notes.set",
     description: undefined,
-    summary: { method: "netcatty/host.notes.set", hostId: "host_9" },
+    summary: { method: "lemonssh/host.notes.set", hostId: "host_9" },
     deadlineMs: undefined,
   });
   assert.equal(normalizeAgentInteraction(null), null);
   assert.equal(normalizeAgentInteraction("ia_1"), null);
-  assert.equal(normalizeAgentInteraction({ capabilityId: "netcatty.exec" }), null);
+  assert.equal(normalizeAgentInteraction({ capabilityId: "lemonssh.exec" }), null);
   assert.equal(normalizeAgentInteraction({ interactionId: "ia_1" }), null);
   const badSummary = normalizeAgentInteraction({ interactionId: "ia_4", capabilityId: "x", summary: ["bad"] });
   assert.equal(badSummary?.summary, undefined);
@@ -84,7 +84,7 @@ test("respondAgentInteraction forwards decisions and swallows typed already-reso
           calls.push([interactionId, approved]);
           if (interactionId === "ia_gone") throw new Error('interaction "ia_gone" was already resolved');
         },
-      } as NetcattyBridge,
+      } as LemonSSHBridge,
     } as RuntimeClient);
     assert.equal(await respondAgentInteraction("ia_1", true), true);
     assert.equal(await respondAgentInteraction("ia_gone", false), false);
@@ -102,15 +102,15 @@ test("approval cards render the capability, its command and the localized title"
       requests: [
         {
           interactionId: "ia-1",
-          capabilityId: "netcatty.exec",
+          capabilityId: "lemonssh.exec",
           description: "Run a shell command on PROD",
-          summary: { method: "netcatty/exec", command: "shutdown -h now", sessionId: "sess-1" },
+          summary: { method: "lemonssh/exec", command: "shutdown -h now", sessionId: "sess-1" },
           deadlineMs: 4102444800000,
         },
         {
           interactionId: "ia-2",
-          capabilityId: "netcatty.host.notes.set",
-          summary: { method: "netcatty/host.notes.set", hostId: "host_9" },
+          capabilityId: "lemonssh.host.notes.set",
+          summary: { method: "lemonssh/host.notes.set", hostId: "host_9" },
         },
       ],
       onRespond: () => {},
@@ -120,7 +120,7 @@ test("approval cards render the capability, its command and the localized title"
   assert.match(markup, /data-testid="agent-interaction-approvals-host"/);
   assert.match(markup, /Agent approvals/);
   assert.match(markup, /shutdown -h now/);
-  assert.match(markup, /netcatty\.host\.notes\.set/);
+  assert.match(markup, /lemonssh.host.notes.set/);
   assert.match(markup, /title="Run a shell command on PROD"/);
   assert.match(markup, /border-yellow-500\/30/);
 });

@@ -62,7 +62,7 @@ type TerminalDecorationHost = {
   _decorationService?: CellDecorationService;
 };
 
-export const SEARCH_DECORATION_TRACKER_KEY = "__netcattySearchDecorationTracker";
+export const SEARCH_DECORATION_TRACKER_KEY = "__lemonsshSearchDecorationTracker";
 
 export type SearchDecorationTracker = {
   disposeAll: () => number;

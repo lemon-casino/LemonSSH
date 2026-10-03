@@ -31,7 +31,7 @@ test("buildSnippetExportPayload removes host target bindings", () => {
     exportedAt: "2026-06-23T00:00:00.000Z",
   });
 
-  assert.equal(payload.kind, "netcatty.snippets");
+  assert.equal(payload.kind, "lemonssh.snippets");
   assert.deepEqual(payload.snippetPackages, ["ops", "ops/web"]);
   assert.deepEqual(payload.snippets, [
     {
@@ -48,7 +48,7 @@ test("mergeSnippetImportPayload skips snippets with duplicate commands", () => {
     snippet({ id: "local-1", label: "Local uptime", command: "uptime", order: 1000 }),
   ];
   const payload = parseSnippetImportPayload(JSON.stringify({
-    kind: "netcatty.snippets",
+    kind: "netcatty.snippets", // pre-rename export files must keep importing
     version: 1,
     exportedAt: "2026-06-23T00:00:00.000Z",
     snippetPackages: ["ops"],
@@ -85,7 +85,7 @@ test("parseSnippetImportPayload accepts a plain JSON array of snippets", () => {
     { command: "pwd" },
   ]));
 
-  assert.equal(payload.kind, "netcatty.snippets");
+  assert.equal(payload.kind, "lemonssh.snippets");
   assert.deepEqual(payload.snippetPackages, ["basics"]);
   assert.deepEqual(payload.snippets.map((item) => [item.label, item.command, item.package]), [
     ["List files", "ls -la", "basics"],
@@ -95,7 +95,7 @@ test("parseSnippetImportPayload accepts a plain JSON array of snippets", () => {
 
 test("combineSnippetImportPayloads combines snippets and packages from multiple files", () => {
   const one = parseSnippetImportPayload(JSON.stringify({
-    kind: "netcatty.snippets",
+    kind: "netcatty.snippets", // pre-rename export files must keep importing
     version: 1,
     exportedAt: "2026-06-23T00:00:00.000Z",
     snippetPackages: ["ops"],
@@ -128,7 +128,7 @@ test("mergeSnippetImportPayload overwrites duplicate commands while preserving l
     }),
   ];
   const payload = parseSnippetImportPayload(JSON.stringify({
-    kind: "netcatty.snippets",
+    kind: "netcatty.snippets", // pre-rename export files must keep importing
     version: 1,
     exportedAt: "2026-06-23T00:00:00.000Z",
     snippetPackages: ["ops"],
@@ -261,7 +261,7 @@ test("snippet import normalizes dynamic group paths", () => {
 
 test("mergeSnippetImportPayload keeps existing empty snippet packages", () => {
   const payload = parseSnippetImportPayload(JSON.stringify({
-    kind: "netcatty.snippets",
+    kind: "netcatty.snippets", // pre-rename export files must keep importing
     version: 1,
     exportedAt: "2026-06-23T00:00:00.000Z",
     snippetPackages: ["imported/ops"],

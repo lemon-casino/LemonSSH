@@ -34,7 +34,7 @@ func TestBuildDialConfigUsesAgentFlagWithoutPanic(t *testing.T) {
 		Username:  "u",
 		UseAgent:  true,
 		EnableMFA: false,
-	}, policy, nil)
+	}, policy, DialInteractive{})
 	if !config.Auth.UseAgent {
 		t.Fatal("UseAgent must be copied onto Auth")
 	}

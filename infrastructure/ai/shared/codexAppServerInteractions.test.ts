@@ -23,7 +23,7 @@ test('Codex App Server interaction gate replays requests and forwards typed resp
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         onCodexAppServerInteractionRequest: (listener: typeof requestListener) => {
           requestListener = listener;
           return () => {};
@@ -126,7 +126,7 @@ test('Codex App Server interaction bridge is ref-counted across setup/teardown',
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         onCodexAppServerInteractionRequest: () => {
           subscribeCount += 1;
           return () => {

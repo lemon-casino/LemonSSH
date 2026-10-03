@@ -16,7 +16,7 @@ function installEmptyLocalStorage(t: test.TestContext): Map<string, string> {
   });
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: undefined },
+    value: { lemonssh: undefined },
   });
   t.after(() => {
     Reflect.deleteProperty(globalThis, "localStorage");

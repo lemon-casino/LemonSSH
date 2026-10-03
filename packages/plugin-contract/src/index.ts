@@ -1,5 +1,11 @@
 export const PLUGIN_API_VERSION = "0.1.0-internal" as const;
-export const PLUGIN_MANIFEST_FILE = "netcatty.plugin.json" as const;
+export const PLUGIN_MANIFEST_FILE = "lemonssh.plugin.json" as const;
+// Legacy manifest file names accepted for backward compatibility (mirrors the
+// Go host's three-way acceptance in cmd/lemonssh/pluginService.go).
+export const PLUGIN_LEGACY_MANIFEST_FILES = [
+  "netcatty.plugin.json",
+  "manifest.json",
+] as const;
 export const PLUGIN_PACKAGE_EXTENSION = ".ncpkg" as const;
 
 export type * from "./generated/plugin-contract.js";
@@ -22,6 +28,20 @@ export {
   PLUGIN_SYNC_MAX_REVISION_LENGTH,
   PLUGIN_TERMINAL_INTERCEPTOR_MAX_CHUNK_BYTES,
   PLUGIN_TERMINAL_INTERCEPTOR_MAX_WINDOW_BYTES,
+  PLUGIN_WASM_ABI_VERSION,
+  PLUGIN_WASM_DEFAULT_TIMEOUT_MS,
+  PLUGIN_WASM_EXPORT_ALLOC,
+  PLUGIN_WASM_EXPORT_DISPATCH,
+  PLUGIN_WASM_EXPORT_FREE,
+  PLUGIN_WASM_HOST_IMPORT_STATUS,
+  PLUGIN_WASM_HOST_MODULE,
+  PLUGIN_WASM_IMPORT_HOST_LOG,
+  PLUGIN_WASM_IMPORT_HOST_SETTING_GET,
+  PLUGIN_WASM_MAX_LOG_BYTES,
+  PLUGIN_WASM_MAX_LOG_ENTRIES,
+  PLUGIN_WASM_MAX_REQUEST_BYTES,
+  PLUGIN_WASM_MAX_RESPONSE_BYTES,
+  PLUGIN_WASM_MAX_SETTING_KEY_BYTES,
   PLUGIN_WIRE_MAX_SAFE_INTEGER,
 } from "./generated/plugin-contract-limits.js";
 export {

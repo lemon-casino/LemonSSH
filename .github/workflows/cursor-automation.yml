@@ -133,8 +133,8 @@ jobs:
         id: decide
         uses: actions/github-script@v9
         env:
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
           DISPATCH_ISSUE: ${{ inputs.issue_number || '' }}
           DISPATCH_PULL: ${{ inputs.pull_number || '' }}
           DRAIN_BACKLOG: ${{ inputs.drain_backlog || false }}
@@ -387,7 +387,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
-          TRUSTED_COMMENT_AUTHORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+          TRUSTED_COMMENT_AUTHORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -424,7 +424,7 @@ jobs:
         env:
           PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
           SOURCE_ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -542,7 +542,7 @@ jobs:
       - name: Retry handoffs fixed by this hardening pass
         uses: actions/github-script@v9
         env:
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -672,9 +672,9 @@ jobs:
           AUTO_BACKLOG_DRAIN: ${{ inputs.drain_backlog || false }}
           DAILY_LIMIT: ${{ vars.CURSOR_TRIAGE_DAILY_LIMIT || '10' }}
           FOLLOWUP_DAILY_LIMIT: ${{ vars.CURSOR_FOLLOWUP_DAILY_LIMIT || '20' }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
-          # Prefer bot PAT so labels/admission and later apply run as netcatty-bot.
+          # Prefer bot PAT so labels/admission and later apply run as lemonssh-bot.
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.RUNNER_TEMP}/cursor-automation.cjs`);
@@ -1086,7 +1086,7 @@ jobs:
           ISSUE_COMMENT_WATERMARK: ${{ steps.prepare.outputs.latest_comment_id }}
           PROCESSED_COMMENT_IDS: ${{ steps.prepare.outputs.processed_comment_ids }}
         with:
-          # Comments/labels/close as netcatty-bot (not github-actions).
+          # Comments/labels/close as lemonssh-bot (not github-actions).
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.RUNNER_TEMP}/cursor-automation.cjs`);
@@ -1106,7 +1106,7 @@ jobs:
         env:
           ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
           TRIGGER_COMMENT_ID: ${{ needs.route.outputs.trigger_comment_id }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1489,7 +1489,7 @@ jobs:
       ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
       TRIGGER_COMMENT_ID: ${{ needs.route.outputs.trigger_comment_id }}
-      ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+      ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
       FOLLOWUP_DAILY_LIMIT: ${{ vars.CURSOR_FOLLOWUP_DAILY_LIMIT || '20' }}
     steps:
       - name: Checkout current work
@@ -2102,7 +2102,7 @@ jobs:
           $GITH config --local --unset-all core.fsmonitor 2>/dev/null || true
           $GITH add -A
           $GITH reset -- .cursor-runtime >/dev/null 2>&1 || true
-          $GITH -c user.name="netcatty-bot" -c user.email="308658023+netcatty-bot@users.noreply.github.com" \
+          $GITH -c user.name="lemonssh-bot" -c user.email="308658023+lemonssh-bot@users.noreply.github.com" \
             commit -m "fix(#${ISSUE_NUMBER}): incorporate reporter follow-up" || true
           name_status="$($GITH diff --name-status -M "$BASE_SHA" HEAD)"
           node -e '
@@ -2188,7 +2188,7 @@ jobs:
           HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           PULL_WAS_DRAFT: ${{ steps.prepare.outputs.pull_was_draft }}
           PULL_WAS_CLEAN: ${{ steps.prepare.outputs.pull_was_clean }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -2330,7 +2330,7 @@ jobs:
         env:
           PENDING_IDS: ${{ steps.prepare.outputs.pending_ids }}
           HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -2592,8 +2592,8 @@ jobs:
           PUBLISH="$RUNNER_TEMP/followup-publish-tree"
           git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$PUBLISH"
           cd "$PUBLISH"
-          git -c core.hooksPath=/dev/null config user.name "netcatty-bot"
-          git -c core.hooksPath=/dev/null config user.email "308658023+netcatty-bot@users.noreply.github.com"
+          git -c core.hooksPath=/dev/null config user.name "lemonssh-bot"
+          git -c core.hooksPath=/dev/null config user.email "308658023+lemonssh-bot@users.noreply.github.com"
           git -c core.hooksPath=/dev/null fetch --depth=50 origin "$HEAD_REF"
           live_sha="$(git rev-parse FETCH_HEAD)"
           if [[ "$live_sha" != "$BASE_SHA" ]]; then
@@ -2865,7 +2865,7 @@ jobs:
         if: failure()
         uses: actions/github-script@v9
         env:
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -3378,7 +3378,7 @@ jobs:
           if [[ -n "$status" ]]; then
             $GITH add -A
             $GITH reset -- .cursor-runtime >/dev/null 2>&1 || true
-            $GITH -c user.name="netcatty-bot" -c user.email="308658023+netcatty-bot@users.noreply.github.com" \
+            $GITH -c user.name="lemonssh-bot" -c user.email="308658023+lemonssh-bot@users.noreply.github.com" \
               commit -m "fix(#${ISSUE_NUMBER}): automated Cursor CLI fix" || true
           fi
           name_status="$($GITH diff --name-status -M "${{ steps.branch.outputs.base_sha }}" HEAD)"
@@ -3608,8 +3608,8 @@ jobs:
           rm -rf "$PUBLISH"
           git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$PUBLISH"
           cd "$PUBLISH"
-          git -c core.hooksPath=/dev/null config user.name "netcatty-bot"
-          git -c core.hooksPath=/dev/null config user.email "308658023+netcatty-bot@users.noreply.github.com"
+          git -c core.hooksPath=/dev/null config user.name "lemonssh-bot"
+          git -c core.hooksPath=/dev/null config user.email "308658023+lemonssh-bot@users.noreply.github.com"
           git -c core.hooksPath=/dev/null fetch --depth=50 origin "${BASE_SHA}"
           git -c core.hooksPath=/dev/null checkout -B "$BRANCH" "$BASE_SHA"
           git -c core.hooksPath=/dev/null am --3way "$GITHUB_WORKSPACE/patch-in/implement.patch"
@@ -3684,7 +3684,7 @@ jobs:
           # GITHUB_TOKEN cannot create PRs unless the repo enables
           # "Allow GitHub Actions to create and approve pull requests".
           # Prefer TRIAGE_GITHUB_TOKEN (PAT) so implement can open draft PRs
-          # as netcatty-bot — keep this separate from @codex identity.
+          # as lemonssh-bot — keep this separate from @codex identity.
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.RUNNER_TEMP}/cursor-automation.cjs`);
@@ -3821,7 +3821,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           PULL_NUMBER: ${{ steps.openpr.outputs.pull_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
         with:
           # Prefer maintainer PAT so Codex connector sees a human identity.
           github-token: ${{ secrets.CODEX_REQUEST_GITHUB_TOKEN || secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -3974,7 +3974,7 @@ jobs:
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
       MAX_ROUNDS: ${{ vars.CURSOR_CODEX_FIX_MAX_ROUNDS || '40' }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
       # Bot PAT can convert draft + comment; default GITHUB_TOKEN often cannot.
       GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
@@ -4314,7 +4314,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+          ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
         with:
           script: |
             const auto = require(`${process.env.RUNNER_TEMP}/cursor-automation.cjs`);
@@ -4342,7 +4342,7 @@ jobs:
           GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           EXPECTED_HEAD: ${{ steps.codex.outputs.head_sha }}
           PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
         run: |
           set -euo pipefail
           trusted_comment_authors="$(jq -Rn --arg raw "$OWN_ACTORS,github-actions[bot],github-actions" '$raw | split(",") | map(ascii_downcase) | unique')"
@@ -4831,7 +4831,7 @@ jobs:
           if [[ -n "$status" ]]; then
             $GITH add -A
             $GITH reset -- .cursor-runtime >/dev/null 2>&1 || true
-            $GITH -c user.name="netcatty-bot" -c user.email="308658023+netcatty-bot@users.noreply.github.com" \
+            $GITH -c user.name="lemonssh-bot" -c user.email="308658023+lemonssh-bot@users.noreply.github.com" \
               commit -m "fix: address Codex review on PR #${PULL_NUMBER}" || true
           fi
           name_status="$($GITH diff --name-status -M "${BASE_SHA}" HEAD 2>/dev/null || true)"
@@ -5029,8 +5029,8 @@ jobs:
           rm -rf "$PUBLISH"
           git clone --no-checkout "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$PUBLISH"
           cd "$PUBLISH"
-          git -c core.hooksPath=/dev/null config user.name "netcatty-bot"
-          git -c core.hooksPath=/dev/null config user.email "308658023+netcatty-bot@users.noreply.github.com"
+          git -c core.hooksPath=/dev/null config user.name "lemonssh-bot"
+          git -c core.hooksPath=/dev/null config user.email "308658023+lemonssh-bot@users.noreply.github.com"
           git -c core.hooksPath=/dev/null fetch --depth=50 origin "$HEAD_REF"
           live_head="$(git rev-parse FETCH_HEAD)"
           if [[ "$live_head" != "$BASE_SHA" ]]; then
@@ -5113,7 +5113,7 @@ jobs:
       CODEX_REVIEW_ID: ${{ inputs.codex_review_id }}
       CODEX_HEAD_SHA: ${{ inputs.codex_head_sha }}
       CODEX_DISPATCH_ID: ${{ inputs.codex_dispatch_id }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Delete matching poll marker
         uses: actions/github-script@v9
@@ -5159,7 +5159,7 @@ jobs:
       pull-requests: write
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Checkout helpers
         uses: actions/checkout@v7
@@ -5192,7 +5192,7 @@ jobs:
       - name: Comment @codex review after human push
         uses: actions/github-script@v9
         with:
-          # Human-connected Codex identity (binaricat PAT); not netcatty-bot.
+          # Human-connected Codex identity (binaricat PAT); not lemonssh-bot.
           github-token: ${{ secrets.CODEX_REQUEST_GITHUB_TOKEN || secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.GITHUB_WORKSPACE}/scripts/cursor-automation.cjs`);
@@ -5307,7 +5307,7 @@ jobs:
       pull-requests: write
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Checkout helpers
         uses: actions/checkout@v7
@@ -5401,8 +5401,8 @@ jobs:
       pull-requests: write
       actions: write
     env:
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,netcatty-bot,github-actions[bot]' }}
-      ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'netcatty-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
       MAX_ROUNDS: ${{ vars.CURSOR_CODEX_FIX_MAX_ROUNDS || '40' }}
       GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
       DISPATCH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -5724,7 +5724,7 @@ jobs:
                   pull: pr,
                   botLogins:
                     process.env.ISSUE_BOT_LOGINS ||
-                    'netcatty-bot,github-actions[bot]',
+                    'lemonssh-bot,github-actions[bot]',
                 });
                 if (followups.pending.length) {
                   core.info(

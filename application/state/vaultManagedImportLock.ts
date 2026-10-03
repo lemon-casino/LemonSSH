@@ -17,7 +17,7 @@ export type VaultLockHandle = {
 const activeHandleByKey = new Map<string, VaultLockHandle>();
 
 function lockNameFor(key: string): string {
-  return `netcatty:vault-import:${key}`;
+  return `lemonssh:vault-import:${key}`;
 }
 
 export function isVaultImportLockHeld(key: string): boolean {

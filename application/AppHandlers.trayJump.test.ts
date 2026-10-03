@@ -46,7 +46,7 @@ test("handleTrayJumpToSessionImpl opens a terminal popup for AI silent sessions"
       setWorkspaceFocusedSession: () => {
         throw new Error("should not focus workspace for silent sessions");
       },
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openTerminalPopup: async (payload: unknown) => {
             opened.push(payload);
@@ -76,7 +76,7 @@ test("handleTrayJumpToSessionImpl still activates normal solo sessions in the ma
       setWorkspaceFocusedSession: () => {
         throw new Error("solo sessions should not use workspace focus");
       },
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openMainWindow: async () => {
             openedMain += 1;
@@ -109,7 +109,7 @@ test("handleTrayJumpToSessionImpl focuses workspace sessions without opening a p
       setWorkspaceFocusedSession: (workspaceId: string, sessionId: string) => {
         focused = { workspaceId, sessionId };
       },
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openMainWindow: async () => {
             openedMain += 1;

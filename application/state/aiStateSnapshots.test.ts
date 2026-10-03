@@ -14,7 +14,7 @@ test('orphan cleanup keeps durable Catty output while explicit deletion removes 
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         aiSdkAgentCleanup: async (chatSessionId: string) => {
           sdkCleanups.push(chatSessionId);
           return { ok: true };

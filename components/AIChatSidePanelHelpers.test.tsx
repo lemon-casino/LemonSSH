@@ -26,8 +26,8 @@ test('buildCursorListModelsAgentEnv injects cli-login auth mode for list-models'
     }),
     {
       HOME: '/Users/me',
-      NETCATTY_CURSOR_AUTH_MODE: 'cli-login',
-      NETCATTY_CURSOR_CLI_BIN: '/Users/me/.local/bin/cursor-agent',
+      LEMONSSH_CURSOR_AUTH_MODE: 'cli-login',
+      LEMONSSH_CURSOR_CLI_BIN: '/Users/me/.local/bin/cursor-agent',
     },
   );
 });
@@ -39,7 +39,7 @@ test('buildCursorListModelsAgentEnv defaults to api-key without injecting CLI bi
       env: {},
     }),
     {
-      NETCATTY_CURSOR_AUTH_MODE: 'api-key',
+      LEMONSSH_CURSOR_AUTH_MODE: 'api-key',
     },
   );
   assert.deepEqual(
@@ -48,7 +48,7 @@ test('buildCursorListModelsAgentEnv defaults to api-key without injecting CLI bi
       cursorAuthMode: 'api-key',
     }),
     {
-      NETCATTY_CURSOR_AUTH_MODE: 'api-key',
+      LEMONSSH_CURSOR_AUTH_MODE: 'api-key',
     },
   );
 });

@@ -2,7 +2,7 @@ import type { ToolApprovalConfiguration } from 'ai';
 import type { AIPermissionMode } from '../types';
 import { requestApproval as defaultRequestApproval } from '../shared/approvalGate';
 import { resolveCapabilityId } from './permissionGrants';
-import cattyToolSpecs from './generated/cattyToolSpecs.json';
+import cattyToolSpecs from './generated/lemonsshToolSpecs.json';
 
 type CattyToolPolicySpec = {
   toolName: string;

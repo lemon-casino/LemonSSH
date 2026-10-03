@@ -185,10 +185,10 @@ describe('useExternalMcpToggleState startup ready gate', () => {
     const hookSource = await import('node:fs').then((fs) =>
       fs.readFileSync(new URL('./useExternalMcpToggleState.ts', import.meta.url), 'utf8'),
     );
-    assert.match(appSource, /await syncExternalMcpStartupStateOnce\(netcattyBridge\.get\(\)\)/);
+    assert.match(appSource, /await syncExternalMcpStartupStateOnce\(lemonsshBridge\.get\(\)\)/);
     assert.match(appSource, /markExternalMcpStartupReady\(\)/);
     assert.ok(
-      appSource.indexOf('await syncExternalMcpStartupStateOnce(netcattyBridge.get())')
+      appSource.indexOf('await syncExternalMcpStartupStateOnce(lemonsshBridge.get())')
         < appSource.indexOf('markExternalMcpStartupReady()'),
       'startup ready must be marked only after await syncExternalMcpStartupStateOnce',
     );

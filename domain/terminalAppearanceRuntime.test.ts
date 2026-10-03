@@ -16,7 +16,7 @@ import {
 import type { Host } from './models';
 
 const baseSettings = {
-  terminalThemeId: 'netcatty-dark',
+  terminalThemeId: 'lemonssh-dark',
   terminalThemeDarkId: 'auto',
   terminalThemeLightId: 'auto',
   followAppTerminalTheme: true,
@@ -112,7 +112,7 @@ test('manual mode uses host override when idle', () => {
     settings: {
       ...baseSettings,
       followAppTerminalTheme: false,
-      terminalThemeDarkId: 'netcatty-dark',
+      terminalThemeDarkId: 'lemonssh-dark',
     },
     hostScope: { host, isEphemeral: false },
     customThemes: [],

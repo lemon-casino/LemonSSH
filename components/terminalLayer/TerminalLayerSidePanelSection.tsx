@@ -65,7 +65,7 @@ const MemoizedSidePanelMountedContent = memo(
 MemoizedSidePanelMountedContent.displayName = 'MemoizedSidePanelMountedContent';
 
 type SidePanelContext = Record<string, any>;
-const SIDE_PANEL_TAB_DRAG_MIME = 'application/x-netcatty-sidepanel-tab';
+const SIDE_PANEL_TAB_DRAG_MIME = 'application/x-lemonssh-sidepanel-tab';
 
 type SidePanelTabItem = {
   id: SidePanelTab;
@@ -1090,7 +1090,7 @@ function TerminalLayerSidePanelInner({ ctx }: { ctx: SidePanelContext }) {
                         data-tab-id={item.id}
                         data-tab-type="sidepanel"
                         data-state={isActive ? 'active' : 'inactive'}
-                        className="netcatty-tab relative h-7 w-7 rounded-md p-0 hover:bg-transparent"
+                        className="lemonssh-tab relative h-7 w-7 rounded-md p-0 hover:bg-transparent"
                         style={{
                           backgroundColor: isActive
                             ? `color-mix(in srgb, ${sidePanelTheme.accent} 24%, transparent)`

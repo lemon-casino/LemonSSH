@@ -121,5 +121,5 @@ export function getExportFilename(session: AISession, format: 'md' | 'json' | 't
     .replace(/^-|-$/g, '')
     .slice(0, 40);
   const date = new Date(session.createdAt).toISOString().slice(0, 10);
-  return `netcatty-${title}-${date}.${format}`;
+  return `lemonssh-${title}-${date}.${format}`;
 }

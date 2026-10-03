@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
 )
 
 func TestTerminalCwdProbeSelectsOnlyExactForegroundShell(t *testing.T) {

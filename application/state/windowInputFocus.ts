@@ -1,8 +1,8 @@
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 export const requestWindowInputFocus = (): void => {
   try {
-    const result = netcattyBridge.get()?.windowFocus?.();
+    const result = lemonsshBridge.get()?.windowFocus?.();
     void result?.catch?.(() => undefined);
   } catch {
     // Browser preview or a disposed Electron bridge.

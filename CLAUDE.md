@@ -23,12 +23,12 @@ node --test --import tsx path/to/file.test.ts
 Regenerate native bindings after changing exported Wails services:
 
 ```bash
-go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty
+go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/lemonssh
 ```
 
 ## Architecture
 
-- `cmd/netcatty/`: Wails entry point and frontend-facing Go services.
+- `cmd/lemonssh/`: Wails entry point and frontend-facing Go services.
 - `internal/`: SSH, SFTP, terminal, capability, plugin, credential, and profile implementations.
 - `domain/`: pure TypeScript models and helpers.
 - `application/` and `application/state/`: orchestration and React state hooks.

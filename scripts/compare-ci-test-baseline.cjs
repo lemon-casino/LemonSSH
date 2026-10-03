@@ -41,7 +41,7 @@ const VOLATILE_TAP_DIAG_TAG_RE = new RegExp(
     'sdk',
     'scp-it',
     'Plugins',
-    'netcatty-mcp',
+    'lemonssh-mcp',
     'DirtyEditorGuard',
     'Credentials',
     'afterPack',

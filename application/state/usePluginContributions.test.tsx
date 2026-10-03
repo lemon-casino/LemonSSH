@@ -34,7 +34,7 @@ test('plugin contribution query changes hide the prior snapshot synchronously', 
   const staleSnapshot = {
     locale: 'en',
     plugins: [{ id: 'com.example.stale' }],
-  } as NetcattyPluginContributionSnapshot;
+  } as LemonSSHPluginContributionSnapshot;
   const selected = resolvePluginContributionLoadState({
     currentQueryKey: '{"context":{"terminal.sessionId":"session-2"}}',
     loadedQueryKey: '{"context":{"terminal.sessionId":"session-1"}}',
@@ -82,7 +82,7 @@ test('owned menu rendering inherits command icons when a placement has no overri
       visible: true,
       enabled: true,
     }],
-  }] as unknown as NetcattyPluginContributionSnapshot['plugins'];
+  }] as unknown as LemonSSHPluginContributionSnapshot['plugins'];
 
   assert.deepEqual(collectOwnedPluginMenus(plugins)[0], {
     ...plugins[0].menus[0],

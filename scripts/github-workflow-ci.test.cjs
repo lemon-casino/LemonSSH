@@ -11,7 +11,7 @@ test("CI validates the Wails application", () => {
   assert.match(workflow, /go test \.\/internal\/\.\.\. \.\/cmd\/\.\.\./);
   assert.match(workflow, /npm test/);
   assert.match(workflow, /npm run build/);
-  assert.match(workflow, /go build -o \/tmp\/lemonssh-ci \.\/cmd\/netcatty/);
+  assert.match(workflow, /go build -o \/tmp\/lemonssh-ci \.\/cmd\/lemonssh/);
   assert.match(workflow, /npm run generate:capability-tools/);
   assert.doesNotMatch(workflow, /electron|migration-docs|secret-migration-probe/i);
 });

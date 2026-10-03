@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
 	gossh "golang.org/x/crypto/ssh"
 )
 

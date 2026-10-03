@@ -26,7 +26,7 @@ function upstreamAllFixedSource() {
 }
 
 function makeTmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-xterm-webgl-patch-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lemonssh-xterm-webgl-patch-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }

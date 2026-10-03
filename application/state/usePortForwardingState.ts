@@ -12,7 +12,7 @@ import {
 } from "../../infrastructure/config/storageKeys";
 import { LOCAL_STORAGE_ADAPTER_CHANGED_EVENT } from "../../infrastructure/persistence/localStorageAdapter";
 import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import {
   clearReconnectTimer,
   getActiveConnection,
@@ -316,7 +316,7 @@ const initializeStore = async () => {
 };
 
 const subscribeToPortForwardRuntime = (): (() => void) => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.subscribePortForwardRuntime || !bridge.onPortForwardRuntime) {
     return () => undefined;
   }

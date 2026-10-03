@@ -1,4 +1,4 @@
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 /**
  * Clipboard writer for components: prefers the host bridge so Wails gets the
@@ -10,7 +10,7 @@ export function useClipboardWrite(): {
 } {
   return {
     writeText: async (text) => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.writeClipboardText) {
         if (!await bridge.writeClipboardText(text)) throw new Error('Clipboard write failed');
         return;

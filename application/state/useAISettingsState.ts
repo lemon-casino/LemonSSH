@@ -35,6 +35,7 @@ import {
   normalizeResponseIdleTimeoutSeconds,
 } from '../../infrastructure/ai/types';
 import { removeProviderReferences } from './aiProviderCleanup';
+import { buildGoLiveProviderPayload } from '../../infrastructure/ai/goLiveProvider';
 import { resolveWebSearchApiHost } from '../../infrastructure/ai/shared/webSearchProviders';
 import { AI_STATE_CHANGED_EVENT, emitAIStateChanged } from './aiStateEvents';
 import { getAIBridge } from './aiStateSnapshots';
@@ -334,6 +335,31 @@ export function useAISettingsState() {
     bridge?.aiMcpSetToolIntegrationMode?.(toolIntegrationMode);
     syncNativeWebSearch(webSearchConfig);
   }, [commandBlocklist, commandTimeout, globalPermissionMode, maxIterations, toolIntegrationMode, webSearchConfig]);
+
+  // F06: push the active provider into the Go turn runtime whenever the
+  // Settings→AI selection changes, so AgentStatus.goRuntimeReady reflects
+  // the real configuration instead of requiring the env-var override. A
+  // null payload (no usable provider, or a native anthropic/google family)
+  // clears the driver — the renderer chain stays the fallback.
+  useEffect(() => {
+    const bridge = getAIBridge();
+    if (!bridge?.aiSetLiveProvider) return;
+    const payload = buildGoLiveProviderPayload({
+      providers,
+      activeProviderId,
+      activeModelId,
+      cattyProviderId: localStorageAdapter.read<Record<string, string>>(STORAGE_KEY_AI_AGENT_PROVIDER_MAP)?.catty,
+      cattyModelId: localStorageAdapter.read<Record<string, string>>(STORAGE_KEY_AI_AGENT_MODEL_MAP)?.catty,
+      maxIterations,
+    });
+    bridge.aiSetLiveProvider(payload).then((result) => {
+      if (!result.ok && result.error) {
+        console.warn('[useAISettingsState] Go live provider rejected:', result.error);
+      }
+    }).catch((error) => {
+      console.warn('[useAISettingsState] Failed to sync the Go live provider', error);
+    });
+  }, [providers, activeProviderId, activeModelId, maxIterations]);
 
   const activeProvider = providers.find((provider) => provider.id === activeProviderId) ?? null;
 

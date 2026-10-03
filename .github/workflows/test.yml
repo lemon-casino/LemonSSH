@@ -74,4 +74,4 @@ jobs:
       - name: Build Wails application
         run: |
           node scripts/wails-prepare-frontend.mjs
-          go build -o /tmp/lemonssh-ci ./cmd/netcatty
+          go build -o /tmp/lemonssh-ci ./cmd/lemonssh

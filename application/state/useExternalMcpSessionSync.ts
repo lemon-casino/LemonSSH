@@ -4,7 +4,7 @@ import { buildAITerminalSessionInfo } from '../../domain/buildAITerminalSessionI
 import { detectLocalOs } from '../../lib/localShell';
 import type { Host, PortForwardingRule, TerminalSession } from '../../types';
 import { STORAGE_KEY_AI_EXTERNAL_MCP_ENABLED } from '../../infrastructure/config/storageKeys';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { AI_STATE_CHANGED_EVENT } from './aiStateEvents';
 import { readExternalMcpStoredEnabled } from './useExternalMcpToggleState';
 
@@ -124,7 +124,7 @@ export function useExternalMcpSessionSync({
 
   useEffect(() => {
     if (!isMainAppWindow()) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.aiMcpUpdateLiveSessions) return;
     const serialized = JSON.stringify(payload);
     liveSyncRef.current ??= createLatestPayloadSync((nextPayload) => (
@@ -142,7 +142,7 @@ export function useExternalMcpSessionSync({
       externalSyncRef.current = null;
       return;
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.aiMcpUpdateSessions) return;
 
     const serialized = JSON.stringify(payload);

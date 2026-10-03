@@ -14,7 +14,7 @@ import {
   type HttpNetworkProxySettings,
 } from '../../domain/httpNetworkProxy';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import type { LayoutMode } from '../../domain/layoutMode';
 import {
   parseWindowOpacityRecord,
@@ -64,7 +64,7 @@ export function useSystemSettingsEffects({
     let cancelled = false;
     let didRegister = false;
     // Register/unregister the global hotkey in main process (needed on mount)
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.registerGlobalHotkey) {
       if (toggleWindowHotkey && globalHotkeyEnabled) {
         setHotkeyRegistrationError(null);
@@ -126,7 +126,7 @@ export function useSystemSettingsEffects({
   useEffect(() => {
     if (!enabled) return;
     // Update main process tray behavior (needed on mount)
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.setCloseToTray) {
       bridge.setCloseToTray(closeToTray).catch((err) => {
         console.warn('[SystemTray] Failed to set close-to-tray:', err);
@@ -153,7 +153,7 @@ export function useSystemSettingsEffects({
     if (!enabled) return;
     const normalized = normalizeHttpNetworkProxySettings(httpNetworkProxy);
     localStorageAdapter.write(STORAGE_KEY_HTTP_NETWORK_PROXY, normalized);
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.setHttpNetworkProxy) {
       // Apply to main process; empty custom is treated as system there.
       // Persist draft custom+empty so the URL field remains visible.
@@ -168,7 +168,7 @@ export function useSystemSettingsEffects({
   // Persist and sync window opacity
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.setWindowOpacity?.(windowOpacityRecord.opacity).catch((err) => {
       console.warn('[WindowOpacity] Failed to apply window opacity:', err);
     });
@@ -205,7 +205,7 @@ export function useSystemSettingsEffects({
   // in case localStorage was cleared or is stale.
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     void bridge?.getAutoUpdate?.().then((result) => {
       if (result && typeof result.enabled === 'boolean') {
         setAutoUpdateEnabled((prev) => {
@@ -226,7 +226,7 @@ export function useSystemSettingsEffects({
     if (!persistMountedRef.current) return;
     notifySettingsChanged(STORAGE_KEY_AUTO_UPDATE_ENABLED, autoUpdateEnabled);
     // Notify main process on user-initiated changes
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.setAutoUpdate?.(autoUpdateEnabled).catch((err: unknown) => {
       console.warn('[AutoUpdate] Failed to set auto-update:', err);
     });

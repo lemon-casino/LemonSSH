@@ -29,7 +29,7 @@ const createStore = (initial: Record<string, string> = {}): {
 test("uses the remembered YMODEM send directory as the file picker default path", () => {
   assert.equal(
     storageKeys.STORAGE_KEY_TERMINAL_YMODEM_SEND_DIR,
-    "netcatty_terminal_ymodem_send_dir_v1",
+    "lemonssh_terminal_ymodem_send_dir_v1",
   );
 
   const { store } = createStore({

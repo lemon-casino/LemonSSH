@@ -500,7 +500,7 @@ test("Electron ET retains proxy rejection", async () => {
     { setError: (value) => { error = value; } });
   await createTerminalSessionStarters(ctx as never).startEt(term as never);
   assert.equal(starts, 0);
-  assert.match(error, /does not currently support Netcatty proxy/);
+  assert.match(error, /does not currently support LemonSSH proxy/);
 });
 
 test("Wails Mosh permits SSH bootstrap jump chains while retaining UDP proxy limit", async (t) => {

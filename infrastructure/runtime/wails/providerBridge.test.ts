@@ -24,7 +24,7 @@ function fixture(t: TestContext) {
   const host = globalThis as unknown as { window?: unknown };
   const previous = host.window;
   const previousFetch = globalThis.fetch;
-  host.window = { _wails: {}, netcatty: bridge };
+  host.window = { _wails: {}, lemonssh: bridge };
   globalThis.fetch = async () => { throw new Error('WebView direct fetch must not run'); };
   t.after(() => { host.window = previous; globalThis.fetch = previousFetch; });
   return { native, bridge, emit, listeners };
@@ -136,6 +136,6 @@ test('a rejected native start cleans listeners and Wails never falls back to bro
   native.ChatStream = async () => { throw new Error('native request failed'); };
   await assert.rejects(createBridgeFetchForSDK('p')('https://fixture.test/chat', { method: 'POST', body: '{"stream":true}' }), /native request failed/);
   assert.ok([...listeners.values()].every(entries => entries.size === 0));
-  (window as unknown as { netcatty: unknown }).netcatty = { aiFetch: async () => ({}) };
+  (window as unknown as { lemonssh: unknown }).lemonssh = { aiFetch: async () => ({}) };
   await assert.rejects(createBridgeFetchForSDK('p')('https://fixture.test/chat', { method: 'POST', body: '{"stream":true}' }), /Native AI transport is unavailable/);
 });

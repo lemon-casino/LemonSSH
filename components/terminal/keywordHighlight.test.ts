@@ -107,7 +107,7 @@ test("changing or disabling rules recolors existing history from original cell c
   assert.equal(
     highlighter.serializeAddon.serialize(),
     "first ERROR\r\nsecond ERROR",
-    "saved history must never contain Netcatty's injected colors",
+    "saved history must never contain LemonSSH's injected colors",
   );
   assert.equal(cellRgb(term, 0, "ERROR"), RED);
 
@@ -649,6 +649,10 @@ test("row-sized Mosh repaint writes do not rescan the viewport for every row", a
     const highlighter = new KeywordHighlighter(term);
     highlighter.setRules(rule(), true);
     await write(term, Array.from({ length: rows }, (_, index) => `old-${index} ERROR`).join("\r\n"));
+    // Drain the deferred post-quiet catch-up first: its 480ms quiet timer can
+    // otherwise land inside the measured loop on a slow machine and count one
+    // unrelated full-buffer pass against the per-write O(N) budget.
+    await highlighter.whenSettled();
 
     const internal = highlighter as unknown as {
       recolorRange(startY: number, endY: number, refresh: boolean, force: boolean): void;
@@ -686,6 +690,9 @@ test("cursor-restoring Mosh row writes keep repaint work linear", async () => {
     const highlighter = new KeywordHighlighter(term);
     highlighter.setRules(rule(), true);
     await write(term, Array.from({ length: rows }, (_, index) => `old-${index} ERROR`).join("\r\n"));
+    // Drain the deferred post-quiet catch-up first (see the test above).
+    await highlighter.whenSettled();
+
     const internal = highlighter as unknown as {
       recolorRange(startY: number, endY: number, refresh: boolean, force: boolean): void;
     };

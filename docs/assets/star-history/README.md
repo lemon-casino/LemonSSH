@@ -17,10 +17,10 @@ repo admin/collaborator (stargazers list is no longer public).
 tmpdir=$(mktemp -d)
 git clone --depth 1 https://github.com/carsteneu/mystarhistory.git "$tmpdir/mystarhistory"
 python3 "$tmpdir/mystarhistory/mystarhistory.py" \
-  --repo binaricat/Netcatty \
+  --repo binaricat/LemonSSH \
   --output docs/assets/star-history/star-history-light.svg
 python3 "$tmpdir/mystarhistory/mystarhistory.py" \
-  --repo binaricat/Netcatty \
+  --repo binaricat/LemonSSH \
   --dark \
   --output docs/assets/star-history/star-history-dark.svg
 ```

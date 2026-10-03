@@ -27,8 +27,8 @@ async function deliverKeyboardInteractiveResponse(
   responses: string[],
   cancelled: boolean,
 ) {
-  const { netcattyBridge, t, toast } = ctx;
-  const bridge = netcattyBridge.get();
+  const { lemonsshBridge, t, toast } = ctx;
+  const bridge = lemonsshBridge.get();
   if (!bridge?.respondKeyboardInteractive) {
     toast.error(t('common.unknownError'), t('common.error'));
     return false;
@@ -83,7 +83,7 @@ export async function handleTrayJumpToSessionImpl(getCtx: AppContextGetter, sess
     sessions,
     setActiveTabId,
     setWorkspaceFocusedSession,
-    netcattyBridge,
+    lemonsshBridge,
     toast,
     t,
   } = getCtx();
@@ -98,7 +98,7 @@ export async function handleTrayJumpToSessionImpl(getCtx: AppContextGetter, sess
       setActiveTabId('vault');
     }
 
-    const bridge = netcattyBridge?.get?.();
+    const bridge = lemonsshBridge?.get?.();
     if (!bridge?.openTerminalPopup) {
       toast?.error?.(t?.('tabs.copyTabToNewWindowFailed') ?? 'Failed to open tab in a new window');
       return;
@@ -125,7 +125,7 @@ export async function handleTrayJumpToSessionImpl(getCtx: AppContextGetter, sess
   // Visible sessions still live in the main window; bring it forward now that
   // the tray jump IPC no longer auto-focuses main (silent AI sessions open a
   // popup instead and must not steal main-window focus).
-  void netcattyBridge?.get?.()?.openMainWindow?.();
+  void lemonsshBridge?.get?.()?.openMainWindow?.();
 
   if (session.workspaceId) {
     setActiveTabId(session.workspaceId);
@@ -420,9 +420,9 @@ export async function handleKeyboardInteractiveCancelImpl(getCtx: AppContextGett
 }
 
 export async function handlePassphraseSubmitImpl(getCtx: AppContextGetter, requestId: string, passphrase: string, remember: boolean) {
-  const { keysRef, netcattyBridge, passphraseQueue, rememberKeyPassphrase, setPassphraseQueue, updateKeys } = getCtx();
+  const { keysRef, lemonsshBridge, passphraseQueue, rememberKeyPassphrase, setPassphraseQueue, updateKeys } = getCtx();
 {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const request = passphraseQueue.find((r: PassphraseRequest) => r.requestId === requestId);
 
     // Save passphrase if requested
@@ -452,9 +452,9 @@ export async function handlePassphraseSubmitImpl(getCtx: AppContextGetter, reque
 }
 
 export function handlePassphraseCancelImpl(getCtx: AppContextGetter, requestId: string) {
-  const { netcattyBridge, setPassphraseQueue } = getCtx();
+  const { lemonsshBridge, setPassphraseQueue } = getCtx();
 {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.respondPassphrase) {
       // Cancel = stop the entire passphrase flow
       void bridge.respondPassphrase(requestId, '', true);
@@ -464,9 +464,9 @@ export function handlePassphraseCancelImpl(getCtx: AppContextGetter, requestId: 
 }
 
 export function handlePassphraseSkipImpl(getCtx: AppContextGetter, requestId: string) {
-  const { netcattyBridge, setPassphraseQueue } = getCtx();
+  const { lemonsshBridge, setPassphraseQueue } = getCtx();
 {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.respondPassphraseSkip) {
       // Skip = skip this key but continue asking for others
       void bridge.respondPassphraseSkip(requestId);
@@ -494,7 +494,7 @@ export function createLocalTerminalWithCurrentShellImpl(getCtx: AppContextGetter
 }
 
 async function captureCtxInheritedCwd(getCtx: AppContextGetter, sessionId: string): Promise<string | undefined> {
-  const { sessions, netcattyBridge, hostById, terminalHosts, getSessionRestoreCwd } = getCtx();
+  const { sessions, lemonsshBridge, hostById, terminalHosts, getSessionRestoreCwd } = getCtx();
   const source = sessions?.find((s: { id: string }) => s.id === sessionId);
   if (!source) return undefined;
 
@@ -503,7 +503,7 @@ async function captureCtxInheritedCwd(getCtx: AppContextGetter, sessionId: strin
   // startup snapshot). Falls through to the SSH probe / lastCwd when absent.
   const liveCwd: string | undefined = getSessionRestoreCwd?.(sessionId);
 
-  const bridge = netcattyBridge?.get?.();
+  const bridge = lemonsshBridge?.get?.();
   // hostById is a Map of SAVED hosts; ephemeral terminal hosts only appear in
   // terminalHosts. Classify the DETECTED distro (host.distro), not the
   // effective/override value, so a cosmetic Linux icon can't re-enable the
@@ -590,13 +590,13 @@ export async function copyWorkspaceWithCurrentShellImpl(getCtx: AppContextGetter
 }
 
 export async function copySessionToNewWindowWithCurrentShellImpl(getCtx: AppContextGetter, sessionId: string) {
-  const { classifyLocalShellType, discoveredShells, netcattyBridge, resolveShellSetting, sessions, terminalSettings, t, toast } = getCtx();
+  const { classifyLocalShellType, discoveredShells, lemonsshBridge, resolveShellSetting, sessions, terminalSettings, t, toast } = getCtx();
 {
     const sourceSession = sessions.find((session: { id: string }) => session.id === sessionId);
     if (!sourceSession) return false;
 
     const resolved = resolveShellSetting(terminalSettings.localShell, discoveredShells);
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.openSessionInNewWindow) {
       toast?.error?.(t?.('tabs.copyTabToNewWindowFailed') ?? 'Failed to open tab in a new window');
       return false;
@@ -620,9 +620,9 @@ export async function copySessionToNewWindowWithCurrentShellImpl(getCtx: AppCont
 }
 
 export async function confirmIfBusyLocalTerminalImpl(getCtx: AppContextGetter, sessionIds: string[]) {
-  const { netcattyBridge, sessions, t } = getCtx();
+  const { lemonsshBridge, sessions, t } = getCtx();
 {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       const localIds = sessionIds.filter((id) => {
         const s = sessions.find((x) => x.id === id);
         return s?.protocol === 'local';

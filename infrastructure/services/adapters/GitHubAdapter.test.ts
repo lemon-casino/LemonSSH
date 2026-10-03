@@ -44,7 +44,7 @@ const utf8ByteLength = (value: string): number =>
   new TextEncoder().encode(value).byteLength;
 
 test('downloadSyncGist fetches raw_url when Gist API marks the file truncated', async () => {
-  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/netcatty-vault.json';
+  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/lemonssh-vault.json';
   const { calls, restore } = installFetchMock((url) => {
     if (url.includes('/gists/') && !url.includes('raw')) {
       return new Response(
@@ -87,7 +87,7 @@ test('downloadSyncGist fetches raw_url when Gist API marks the file truncated', 
 });
 
 test('downloadSyncGist falls back to raw_url when embedded content is incomplete JSON', async () => {
-  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/netcatty-vault.json';
+  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/lemonssh-vault.json';
   const { restore } = installFetchMock((url) => {
     if (url.includes('/gists/') && !url.includes('raw')) {
       return new Response(
@@ -209,7 +209,7 @@ test('downloadSyncGist keeps embedded multibyte content without raw fetch', asyn
 });
 
 test('downloadGistRevision also recovers truncated content via raw_url', async () => {
-  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/rev/netcatty-vault.json';
+  const rawUrl = 'https://gist.githubusercontent.com/u/abc/raw/rev/lemonssh-vault.json';
   const { restore } = installFetchMock((url) => {
     if (url.includes('/gists/gist-1/deadbeef')) {
       return new Response(

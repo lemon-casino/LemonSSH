@@ -12,8 +12,8 @@ const installNotificationBridge = () => {
   const previousDocument = (globalThis as { document?: { hasFocus: () => boolean } }).document;
 
   (globalThis as { document: { hasFocus: () => boolean } }).document = { hasFocus: () => true };
-  (globalThis as { window: { netcatty: { showSystemNotification: (payload: { title: string; body: string; sessionId?: string }) => Promise<{ shown: boolean }> } } }).window = {
-    netcatty: {
+  (globalThis as { window: { lemonssh: { showSystemNotification: (payload: { title: string; body: string; sessionId?: string }) => Promise<{ shown: boolean }> } } }).window = {
+    lemonssh: {
       showSystemNotification: async (payload) => {
         calls.push(payload);
         return { shown: true };

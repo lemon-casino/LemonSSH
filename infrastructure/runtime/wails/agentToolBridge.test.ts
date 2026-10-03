@@ -17,6 +17,29 @@ test('external MCP settings reach the independent native access controller', asy
   assert.deepEqual(calls, [false, { mode: 'persistent', idleTimeoutMinutes: 12 }]);
 });
 
+test('per-client external MCP setup calls reach the Go status and merge surface', async () => {
+  const calls: string[] = [];
+  const status = { ok: true, state: 'not_configured', configPath: 'config.toml', command: 'codex mcp add lemonssh-external' };
+  const bridge = createAgentToolBridge({
+    AgentExternalMcpCodexGetStatus: async () => { calls.push('codex-status'); return { ...status, state: 'codex_not_found' }; },
+    AgentExternalMcpCodexAdd: async () => { calls.push('codex-add'); return { ...status, state: 'configured' }; },
+    AgentExternalMcpClaudeGetStatus: async () => { calls.push('claude-status'); return { ...status }; },
+    AgentExternalMcpClaudeAdd: async () => { calls.push('claude-add'); return { ...status, state: 'configured' }; },
+    AgentExternalMcpGrokGetStatus: async () => { calls.push('grok-status'); return { ...status }; },
+    AgentExternalMcpGrokAdd: async () => { calls.push('grok-add'); return { ...status, state: 'configured' }; },
+  }, on, id => id);
+  assert.deepEqual(await bridge.externalMcpCodexGetStatus!(), { ...status, state: 'codex_not_found' });
+  assert.equal((await bridge.externalMcpCodexAdd!()).state, 'configured');
+  await bridge.externalMcpClaudeGetStatus!();
+  await bridge.externalMcpClaudeAdd!();
+  await bridge.externalMcpGrokGetStatus!();
+  await bridge.externalMcpGrokAdd!();
+  assert.deepEqual(calls, ['codex-status', 'codex-add', 'claude-status', 'claude-add', 'grok-status', 'grok-add']);
+  const missing = createAgentToolBridge(undefined, on, id => id);
+  assert.throws(() => missing.externalMcpCodexGetStatus!(), /unavailable/);
+  assert.throws(() => missing.externalMcpGrokAdd!(), /unavailable/);
+});
+
 test('native tool calls retain UI scope and map session metadata to the Go transport', async () => {
   const calls: unknown[][] = [];
   const bindings: NativeAgentToolBindings = {
@@ -28,7 +51,7 @@ test('native tool calls retain UI scope and map session metadata to the Go trans
   await bridge.aiMcpUpdateSessions!(sessions, 'chat');
   assert.deepEqual(calls[0], ['chat', [{ ...sessions[0], nativeSessionId: 'go-ui' }], false]);
   const result = await bridge.aiExec!('ui', 'pwd', 'chat');
-  assert.deepEqual(calls[1], ['netcatty/exec', { sessionId: 'ui', command: 'pwd' }, 'chat']);
+  assert.deepEqual(calls[1], ['lemonssh/exec', { sessionId: 'ui', command: 'pwd' }, 'chat']);
   assert.equal(result.stdout, 'real output');
   assert.equal(result.exitCode, 7);
   await bridge.aiCapability!('vault/notes/create', { title: 'note' }, 'chat');
@@ -80,4 +103,40 @@ test('attachments retain inline content and vault events keep correlation IDs', 
   assert.deepEqual(calls[1], ['pending', { ok: true }]);
   dispose();
   assert.equal(disposed, true);
+});
+
+test('the live provider push forwards the Go wire payload and null clears it', async () => {
+  const calls: unknown[][] = [];
+  const bridge = createAgentToolBridge({
+    AgentSetLiveProvider: async (...args) => { calls.push(args); return { ok: true, active: true }; },
+  }, on, id => id);
+  const result = await bridge.aiSetLiveProvider!({
+    family: 'openai',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    apiKeyHeader: 'Authorization',
+    apiKeyValue: 'enc:v1:sealed',
+    model: 'gpt-test',
+    maxIterations: 20,
+  });
+  assert.deepEqual(result, { ok: true, active: true, error: undefined });
+  assert.deepEqual(calls[0], [{
+    family: 'openai',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    apiKeyHeader: 'Authorization',
+    apiKeyValue: 'enc:v1:sealed',
+    model: 'gpt-test',
+    maxIterations: 20,
+  }]);
+  await bridge.aiSetLiveProvider!(null);
+  assert.deepEqual(calls[1], [null]);
+});
+
+test('live provider rejections surface as errors and missing bindings fail typed', async () => {
+  const bridge = createAgentToolBridge({
+    AgentSetLiveProvider: async () => ({ ok: true, error: 'provider endpoint is not allowed by network policy' }),
+  }, on, id => id);
+  const result = await bridge.aiSetLiveProvider!({ family: 'openai', endpoint: 'http://x', apiKeyHeader: 'Authorization', apiKeyValue: 'k', model: 'm' });
+  assert.deepEqual(result, { ok: false, active: false, error: 'provider endpoint is not allowed by network policy' });
+  const missing = createAgentToolBridge(undefined, on, id => id);
+  await assert.rejects(missing.aiSetLiveProvider!(null), /unavailable/);
 });

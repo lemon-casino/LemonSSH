@@ -801,7 +801,7 @@ export const resolveSubmittedShellCommand = (
   if (!live || live === buffered) return buffered || live;
 
   // Direct send / incomplete echo: keystroke buffer is the real command even
-  // when the themed line still only shows decoration (➜  netcatty  + "ls").
+  // when the themed line still only shows decoration (➜  LemonSSH  + "ls").
   if (reconcilePromptWithExternalCommand(prompt, buffered)) {
     return buffered;
   }

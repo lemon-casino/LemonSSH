@@ -10,7 +10,7 @@ import {
 } from '../../infrastructure/config/storageKeys';
 import type { AIPermissionMode } from '../../infrastructure/ai/types';
 import { localStorageAdapter } from '../../infrastructure/persistence/localStorageAdapter';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { AI_STATE_CHANGED_EVENT, emitAIStateChanged } from './aiStateEvents';
 
 export type ExternalMcpMode = 'temporary' | 'persistent';
@@ -268,7 +268,7 @@ export function readExternalMcpStartupSyncPlan(): ExternalMcpStartupSyncPlan {
   });
 }
 
-export function syncExternalMcpConfig(bridge: ExternalMcpBridge | undefined = netcattyBridge.get()): void {
+export function syncExternalMcpConfig(bridge: ExternalMcpBridge | undefined = lemonsshBridge.get()): void {
   void bridge?.externalMcpSetConfig?.({
     mode: readExternalMcpMode(),
     idleTimeoutMinutes: readExternalMcpIdleTimeoutMinutes(),
@@ -282,7 +282,7 @@ export function syncExternalMcpConfig(bridge: ExternalMcpBridge | undefined = ne
  * so Settings remounts cannot accidentally re-enable temporary mode.
  */
 export async function syncExternalMcpStartupState(
-  bridge: ExternalMcpBridge | undefined = netcattyBridge.get(),
+  bridge: ExternalMcpBridge | undefined = lemonsshBridge.get(),
 ): Promise<ExternalMcpStartupSyncPlan> {
   // Snapshot once for config push; re-read after awaits so a concurrent top-bar
   // toggle during boot wins over a stale enable/disable decision.
@@ -334,7 +334,7 @@ let externalMcpStartupSyncPromise: Promise<ExternalMcpStartupSyncPlan> | null = 
  * the main process, which would fight the user's live toggle.
  */
 export function syncExternalMcpStartupStateOnce(
-  bridge: ExternalMcpBridge | undefined = netcattyBridge.get(),
+  bridge: ExternalMcpBridge | undefined = lemonsshBridge.get(),
 ): Promise<ExternalMcpStartupSyncPlan> {
   if (!externalMcpStartupSyncPromise) {
     externalMcpStartupSyncPromise = syncExternalMcpStartupState(bridge);
@@ -364,7 +364,7 @@ export function useExternalMcpToggleState() {
     // the main-process External MCP lifecycle.
     if (isPeerSessionWindow) return;
     externalMcpEnableGeneration += 1;
-    void netcattyBridge.get()?.externalMcpSetEnabled?.(nextEnabled);
+    void lemonsshBridge.get()?.externalMcpSetEnabled?.(nextEnabled);
   }, [isPeerSessionWindow, persistEnabled]);
 
   useEffect(() => {
@@ -402,7 +402,7 @@ export function useExternalMcpToggleState() {
         // is not mistaken for "user turned it off / idle timeout".
         await waitForExternalMcpStartupReady();
         if (cancelled) return;
-        const status = await netcattyBridge.get()?.externalMcpGetStatus?.();
+        const status = await lemonsshBridge.get()?.externalMcpGetStatus?.();
         if (cancelled) return;
         // Only clear the shared switch for an intentional runtime-off (idle /
         // explicit disable). Start failures set error and should keep preference.

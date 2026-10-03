@@ -1,12 +1,12 @@
 import { useCallback } from "react";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import type { SftpFileEntry, SftpFilenameEncoding } from "../../../domain/models";
 import { buildMockLocalFiles } from "./mockLocalFiles";
 import { formatFileSize, formatDate } from "./utils";
 
 export const useSftpDirectoryListing = () => {
   const getLocalHomeDir = useCallback(async (): Promise<string> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge) {
       return navigator.platform.toLowerCase().includes("win") ? "C:\\Users\\damao" : "/Users/damao";
     }
@@ -18,7 +18,7 @@ export const useSftpDirectoryListing = () => {
 
   const listLocalFiles = useCallback(
     async (path: string): Promise<SftpFileEntry[]> => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) return buildMockLocalFiles(path);
       if (!bridge.listLocalDir) throw new Error("listLocalDir unavailable");
       const rawFiles = await bridge.listLocalDir(path);
@@ -44,7 +44,7 @@ export const useSftpDirectoryListing = () => {
 
   const listRemoteFiles = useCallback(
     async (sftpId: string, path: string, encoding?: SftpFilenameEncoding): Promise<SftpFileEntry[]> => {
-      const rawFiles = await netcattyBridge.get()?.listSftp(sftpId, path, encoding);
+      const rawFiles = await lemonsshBridge.get()?.listSftp(sftpId, path, encoding);
       if (!rawFiles) return [];
 
       return rawFiles.map((f) => {

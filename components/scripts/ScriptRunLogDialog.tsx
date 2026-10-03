@@ -1,6 +1,6 @@
 import React from 'react';
 import { useI18n } from '@/application/i18n/I18nProvider';
-import type { ScriptRun } from '@/types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRun } from '@/types/global/lemonssh-bridge-script.d.ts';
 import {
   Dialog,
   DialogContent,

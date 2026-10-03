@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { KeyBinding, matchesKeyBinding } from "../../../domain/models";
 import { getParentPath, joinPath, resolveSftpWindowsPathOptions } from "../../../application/state/sftp/utils";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { sftpClipboardStore, SftpClipboardFile } from "../../../application/state/sftp/sftpClipboardStore";
 import { sftpFocusStore } from "../../../application/state/sftp/sftpFocusStore";
 import { sftpDialogActionStore } from "../../../application/state/sftp/sftpDialogActionStore";
@@ -66,7 +66,7 @@ const replaceSystemClipboardWithSftpPaths = async (paths: string[]) => {
   const text = paths.join("\n");
   if (!text) return;
   const writeTask = (async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     try {
       if (bridge?.writeClipboardText && await bridge.writeClipboardText(text)) return;
     } catch {
@@ -460,7 +460,7 @@ export const useSftpKeyboardShortcuts = ({
           : (sftpRef.current.getConnectionCacheKey?.(connectionId) ?? null),
       };
       const pendingClipboardWrite = pendingSftpSystemClipboardWrite;
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       const dataTransfer = e.clipboardData;
       const hasClipboardItems = (dataTransfer?.items?.length ?? 0) > 0;
       // webkitGetAsEntry must be invoked synchronously during the paste event.

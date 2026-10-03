@@ -210,6 +210,11 @@ test("aborted yield timers do not clear a replacement write queue", async () => 
 
   assert.deepEqual(order, ["old-0", "replacement-active"]);
   releaseReplacement?.();
+  // When the 10ms turn budget was exceeded while replacement-active was in
+  // flight, the released drain defers through a timer instead of chaining
+  // synchronously. A yield accepts either path; the point is that the aborted
+  // yield timer must not have cleared the replacement queue.
+  await waitForQueuedWriteYield();
   assert.deepEqual(order, ["old-0", "replacement-active", "replacement-pending"]);
 });
 

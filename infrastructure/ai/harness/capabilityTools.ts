@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { ExecutorContext, NetcattyBridge } from '../cattyAgent/executor';
+import type { ExecutorContext, LemonSSHBridge } from '../cattyAgent/executor';
 import type { TerminalContextReadRange } from '../../../domain/terminalContextRead';
 import type { AIPermissionMode } from '../types';
 import type { WebSearchConfig } from '../types';
@@ -31,7 +31,7 @@ import {
   previewToolResult,
   type ToolResultDedup,
 } from './toolResultDedup';
-import cattyToolSpecs from './generated/cattyToolSpecs.json';
+import cattyToolSpecs from './generated/lemonsshToolSpecs.json';
 import {
   cattyToolContextSchema,
   toolDepsFromContext,
@@ -80,7 +80,7 @@ function unwrap<T>(r: ToolExecResult<T>): T | { error: string } {
 }
 
 async function invokeCapabilityRpc(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   rpcMethod: string,
   params: Record<string, unknown>,
   chatSessionId?: string,
@@ -96,14 +96,14 @@ async function invokeCapabilityRpc(
 }
 
 async function tryFetchHostEnvironment(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   chatSessionId?: string,
 ): Promise<Record<string, unknown> | null> {
   if (!bridge.aiCapability || !chatSessionId) return null;
   try {
     const environment = await invokeCapabilityRpc(
       bridge,
-      'netcatty/getContext',
+      'lemonssh/getContext',
       {},
       chatSessionId,
     );
@@ -553,7 +553,7 @@ function createCatalogTool(spec: CattyToolSpec) {
             if (guarded.action === 'stop') {
               const stopResult = await invokeCapabilityRpc(
                 deps.bridge,
-                'netcatty/jobStop',
+                'lemonssh/jobStop',
                 { jobId: poll.jobId ?? args.jobId },
                 deps.chatSessionId,
               );
@@ -703,7 +703,7 @@ function createCatalogTool(spec: CattyToolSpec) {
 }
 
 export function buildCattyToolContext(input: {
-  bridge: NetcattyBridge;
+  bridge: LemonSSHBridge;
   context: ToolDeps['context'];
   commandBlocklist?: string[];
   permissionMode: AIPermissionMode;
@@ -727,7 +727,7 @@ export function buildCattyToolContext(input: {
 }
 
 export function createCattyToolsFromCatalog(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   context: ToolDeps['context'],
   commandBlocklist?: string[],
   permissionMode: AIPermissionMode = 'confirm',

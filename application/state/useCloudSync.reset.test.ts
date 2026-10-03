@@ -80,7 +80,7 @@ test('reset-init drops a mounted settings panel onto the NO_KEY master-key gate'
     });
     assert.equal(sync.securityState, 'LOCKED');
 
-    dom.window.netcatty = {
+    dom.window.lemonssh = {
       cloudSyncResetEverything: async () => {
         data.delete(`settings/${SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG}`);
         revision += 1;
@@ -175,7 +175,7 @@ test('reset-init clears saved OAuth client IDs before the new master-key gate', 
       root = create(createElement(Probe));
     });
 
-    dom.window.netcatty = {
+    dom.window.lemonssh = {
       cloudSyncResetEverything: async () => {
         data.delete(`settings/${SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG}`);
         data.delete(`settings/${STORAGE_KEY_SYNC_OAUTH_CLIENT_IDS}`);

@@ -35,7 +35,7 @@ export const HostTreeHostContextMenuContent: React.FC<
   const safeHost = sanitizeHost(host);
   const pluginContributions = usePluginContributions({
     context: {
-      'netcatty.surface': 'host/context',
+      'lemonssh.surface': 'host/context',
       'host.id': safeHost.id,
       'host.protocol': safeHost.protocol ?? 'ssh',
     },
@@ -82,7 +82,7 @@ export const HostTreeHostContextMenuContent: React.FC<
           key={menu.id}
           disabled={!menu.enabled}
           onClick={(event) => void pluginContributions.executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, { hostId: safeHost.id }, {
-            'netcatty.surface': 'host/context',
+            'lemonssh.surface': 'host/context',
             'host.id': safeHost.id,
             'host.protocol': safeHost.protocol ?? 'ssh',
           }).catch(() => {})}

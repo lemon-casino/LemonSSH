@@ -23,7 +23,7 @@ test("copySessionToNewWindowWithCurrentShellImpl asks Electron to open a peer wi
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openSessionInNewWindow: async (payload: unknown) => {
             openedPayloads.push(payload);
@@ -59,7 +59,7 @@ test("copySessionToNewWindowWithCurrentShellImpl preserves local start directory
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openSessionInNewWindow: async (payload: unknown) => {
             openedPayloads.push(payload);
@@ -89,7 +89,7 @@ test("copySessionToNewWindowWithCurrentShellImpl does nothing when the source se
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openSessionInNewWindow: async () => {
             called = true;
@@ -114,7 +114,7 @@ test("copySessionToNewWindowWithCurrentShellImpl shows an error when Electron ca
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openSessionInNewWindow: async () => ({ success: false }),
         }),
@@ -141,7 +141,7 @@ test("copySessionToNewWindowWithCurrentShellImpl shows an error when the bridge 
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({}),
       },
       resolveShellSetting: () => ({ command: "/bin/zsh" }),
@@ -166,7 +166,7 @@ test("copySessionToNewWindowWithCurrentShellImpl shows an error when the bridge 
     () => ({
       classifyLocalShellType: () => "zsh",
       discoveredShells: [],
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           openSessionInNewWindow: async () => {
             throw new Error("boom");

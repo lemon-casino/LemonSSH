@@ -15,9 +15,9 @@ import { fitTerminalExecuteResultForModel } from '../harness/terminalCompression
 
 /**
  * Bridge interface for Catty Agent to interact with the Electron main process.
- * This mirrors the AI-related subset of window.netcatty from electron/preload.cjs.
+ * This mirrors the AI-related subset of window.lemonssh from electron/preload.cjs.
  */
-export interface NetcattyBridge {
+export interface LemonSSHBridge {
   aiToolApprovalOwner?: 'host';
   aiExec(
     sessionId: string,
@@ -115,10 +115,10 @@ function toToolResult(toolCallId: string, r: ToolExecResult): ToolResult {
 
 /**
  * Create a tool executor function for the Catty Agent.
- * This bridges tool calls to the netcatty Electron IPC layer.
+ * This bridges tool calls to the LemonSSH Electron IPC layer.
  */
 export function createToolExecutor(
-  bridge: NetcattyBridge | undefined,
+  bridge: LemonSSHBridge | undefined,
   context: ExecutorContext,
   commandBlocklist?: string[],
   permissionMode: AIPermissionMode = 'confirm',
@@ -129,7 +129,7 @@ export function createToolExecutor(
     if (!bridge) {
       return {
         toolCallId: toolCall.id,
-        content: 'Netcatty bridge is not available',
+        content: 'LemonSSH bridge is not available',
         isError: true,
       };
     }

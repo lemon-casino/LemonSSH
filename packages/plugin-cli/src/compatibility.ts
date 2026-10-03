@@ -1,12 +1,10 @@
-import {
-  type PluginManifest,
-} from "@netcatty/plugin-contract";
+import { isManifestV2, type ValidatedPluginManifest } from "./manifest.js";
 import { satisfies, valid, validRange } from "semver";
 
 const DEFAULT_PLUGIN_API_VERSION = "0.1.0-internal";
 
 export interface PluginCompatibilityTarget {
-  readonly netcattyVersion: string;
+  readonly lemonsshVersion: string;
   readonly apiVersion?: string;
   readonly features?: readonly string[];
 }
@@ -40,12 +38,34 @@ function checkEngineVersion(
 }
 
 export function checkPluginCompatibility(
-  manifest: PluginManifest,
+  manifest: ValidatedPluginManifest,
   target: PluginCompatibilityTarget,
 ): PluginCompatibilityResult {
   const apiVersion = target.apiVersion ?? DEFAULT_PLUGIN_API_VERSION;
   const errors: string[] = [];
-  checkEngineVersion("Netcatty", target.netcattyVersion, manifest.engines.netcatty, errors);
+  // v2 manifests (Go host) declare no engine ranges or feature gates; the only
+  // host-compat field is the optional minHostVersion floor.
+  if (isManifestV2(manifest)) {
+    if (manifest.minHostVersion !== undefined) {
+      checkEngineVersion("LemonSSH", target.lemonsshVersion, `>=${manifest.minHostVersion}`, errors);
+    } else {
+      const normalizedHost = valid(target.lemonsshVersion);
+      if (normalizedHost === null) {
+        errors.push(`Host LemonSSH version is not valid semver: ${target.lemonsshVersion}`);
+      }
+    }
+    return {
+      compatible: errors.length === 0,
+      apiVersion: "2",
+      enabledFeatures: [],
+      missingRequiredFeatures: [],
+      errors,
+    };
+  }
+  // Schema validation already guarantees one of the two engine keys; the
+  // legacy "netcatty" key keeps pre-rename manifests compatible.
+  const lemonsshEngineRange = manifest.engines.lemonssh ?? manifest.engines.netcatty ?? "*";
+  checkEngineVersion("LemonSSH", target.lemonsshVersion, lemonsshEngineRange, errors);
   checkEngineVersion("plugin API", apiVersion, manifest.engines.api, errors);
 
   const supportedFeatures = new Set(target.features ?? []);

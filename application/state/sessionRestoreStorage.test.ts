@@ -31,7 +31,7 @@ test("session restore storage reads a valid payload", () => {
 });
 
 test("session restore storage removes invalid payloads", () => {
-  const backing = new Map<string, unknown>([["netcatty_session_restore_v1", { version: 999 }]]);
+  const backing = new Map<string, unknown>([["lemonssh_session_restore_v1", { version: 999 }]]);
   const storage = createSessionRestoreStorage({
     read: <T,>(key: string): T | null => (backing.get(key) as T) ?? null,
     write: () => true,
@@ -41,12 +41,12 @@ test("session restore storage removes invalid payloads", () => {
   });
 
   assert.equal(storage.read(), null);
-  assert.equal(backing.has("netcatty_session_restore_v1"), false);
+  assert.equal(backing.has("lemonssh_session_restore_v1"), false);
 });
 
 test("session restore storage removes malformed payloads that pass shallow checks", () => {
   const backing = new Map<string, unknown>([[
-    "netcatty_session_restore_v1",
+    "lemonssh_session_restore_v1",
     {
       version: 1,
       savedAt: 1,
@@ -65,7 +65,7 @@ test("session restore storage removes malformed payloads that pass shallow check
   });
 
   assert.equal(storage.read(), null);
-  assert.equal(backing.has("netcatty_session_restore_v1"), false);
+  assert.equal(backing.has("lemonssh_session_restore_v1"), false);
 });
 
 test("session restore storage sanitizes payloads before writing", () => {

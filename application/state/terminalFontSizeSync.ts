@@ -92,7 +92,7 @@ export function serializeTerminalFontSizeRecord(record: TerminalFontSizeRecord):
   const fontSize = clampTerminalFontSizeValue(record.fontSize);
   const version = Math.max(0, Math.floor(record.version) || 0);
   const origin = encodeURIComponent(normalizeTerminalFontSizeOrigin(record.origin));
-  // Keep the font size first so older Netcatty versions using parseInt() can
+  // Keep the font size first so older LemonSSH versions using parseInt() can
   // still read the preference after a downgrade.
   return `${fontSize}|${version}|${origin}`;
 }

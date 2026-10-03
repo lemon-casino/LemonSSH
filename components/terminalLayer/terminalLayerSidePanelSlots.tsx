@@ -331,7 +331,7 @@ function SidePanelScriptsSlotInner({
         onRunFocused={handleRunScriptFromPanel}
         onRunScriptOnWorkspace={handleRunScriptOnWorkspace}
         onStartRecording={handleStartRecordingFromPanel}
-        runs={scriptRuns as import('@/types/global/netcatty-bridge-script.d.ts').ScriptRun[]}
+        runs={scriptRuns as import('@/types/global/lemonssh-bridge-script.d.ts').ScriptRun[]}
         onStopRun={handleStopScriptRun}
         onPauseRun={handlePauseScriptRun}
         onResumeRun={handleResumeScriptRun}

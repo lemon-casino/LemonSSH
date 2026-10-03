@@ -78,6 +78,12 @@ func (q *outputQueue) isClosed() bool {
 	return q.closed
 }
 
+func (q *outputQueue) size() int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.bytes
+}
+
 func (q *outputQueue) pop() ([]byte, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -111,6 +117,61 @@ func (s *Server) DropOutput(sessionID string) {
 		queue.close()
 		delete(s.outputs, sessionID)
 	}
+}
+
+// trackConnection registers a live data-plane connection for route handoff.
+func (s *Server) trackConnection(sessionID string, connection *websocket.Conn) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.connections == nil {
+		s.connections = make(map[string]map[*websocket.Conn]struct{})
+	}
+	set, ok := s.connections[sessionID]
+	if !ok {
+		set = make(map[*websocket.Conn]struct{})
+		s.connections[sessionID] = set
+	}
+	set[connection] = struct{}{}
+}
+
+func (s *Server) untrackConnection(sessionID string, connection *websocket.Conn) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	set, ok := s.connections[sessionID]
+	if !ok {
+		return
+	}
+	delete(set, connection)
+	if len(set) == 0 {
+		delete(s.connections, sessionID)
+	}
+}
+
+// Kick forcibly closes every live data-plane connection for a session. Used by
+// the attach flow: after the route rotates, the previous owner's socket must
+// die so it cannot keep popping from the shared output queue.
+func (s *Server) Kick(sessionID string) {
+	s.mu.Lock()
+	var victims []*websocket.Conn
+	for connection := range s.connections[sessionID] {
+		victims = append(victims, connection)
+	}
+	s.mu.Unlock()
+	for _, connection := range victims {
+		connection.CloseNow()
+	}
+}
+
+// PendingBytes reports how many renderer-bound output bytes are still queued
+// for the session (0 when nothing is queued or the session is unknown).
+func (s *Server) PendingBytes(sessionID string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	queue, ok := s.outputs[sessionID]
+	if !ok {
+		return 0
+	}
+	return queue.size()
 }
 
 // SetUrgentHandler installs the urgent payload callback.
@@ -148,6 +209,8 @@ func (s *Server) handleData(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	connection.SetReadLimit(MaxFrameBytes)
+	s.trackConnection(sessionID, connection)
+	defer s.untrackConnection(sessionID, connection)
 	defer connection.Close(websocket.StatusNormalClosure, "")
 	s.writeLoop(connection, sessionID, generation, queue)
 }

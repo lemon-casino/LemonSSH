@@ -56,8 +56,8 @@ test("startup-locked gate reveals children after successful unlock", async () =>
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -90,7 +90,7 @@ test("startup-locked gate reveals children after successful unlock", async () =>
     assert.equal(bridgeHarness.getRuntimeState().locked, false);
     assert.equal(dom.document.getElementById("unlocked-content")?.textContent, "Unlocked");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -139,8 +139,8 @@ test("startup-locked gate reveals children after successful system unlock", asyn
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -157,7 +157,7 @@ test("startup-locked gate reveals children after successful system unlock", asyn
     assert.equal(bridgeHarness.getRuntimeState().locked, false);
     assert.equal(dom.document.getElementById("unlocked-content")?.textContent, "Unlocked");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -206,8 +206,8 @@ test("startup-locked gate does not automatically system unlock when auto prompt 
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -227,7 +227,7 @@ test("startup-locked gate does not automatically system unlock when auto prompt 
       .find((candidate) => /Unlock with Touch ID/i.test(candidate.textContent ?? ""));
     assert.ok(button);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -276,8 +276,8 @@ test("background-locked gate waits for reopen before automatic system unlock", a
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -303,7 +303,7 @@ test("background-locked gate waits for reopen before automatic system unlock", a
     assert.equal(bridgeHarness.getRuntimeState().locked, false);
     assert.equal(dom.document.getElementById("unlocked-content")?.textContent, "Unlocked");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -353,8 +353,8 @@ test("background-locked gate retries automatic system unlock on each reopen whil
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -388,7 +388,7 @@ test("background-locked gate retries automatic system unlock on each reopen whil
     assert.equal(bridgeHarness.getSystemUnlockCount(), 2);
     assert.equal(bridgeHarness.getRuntimeState().locked, true);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -427,8 +427,8 @@ test("startup-locked gate reveals children after hidden app lock reset", async (
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -470,7 +470,7 @@ test("startup-locked gate reveals children after hidden app lock reset", async (
     assert.equal(bridgeHarness.getRuntimeState().locked, false);
     assert.equal(dom.document.getElementById("reset-unlocked-content")?.textContent, "Unlocked");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -509,10 +509,10 @@ test("hidden app lock reset stays locked when reset bridge is unavailable", asyn
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
+  const previousWindowLemonSSH = dom.window.lemonssh;
   const bridgeWithoutReset = { ...bridgeHarness.bridge };
   delete bridgeWithoutReset.requestAppLockReset;
-  dom.window.netcatty = bridgeWithoutReset;
+  dom.window.lemonssh = bridgeWithoutReset;
 
   try {
     await renderer.render(
@@ -541,7 +541,7 @@ test("hidden app lock reset stays locked when reset bridge is unavailable", asyn
     assert.equal(bridgeHarness.getRuntimeState().locked, true);
     assert.equal(dom.document.getElementById("reset-missing-content"), null);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -583,8 +583,8 @@ test("mounted locked gate uses the latest unlock password without remounting", a
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -637,7 +637,7 @@ test("mounted locked gate uses the latest unlock password without remounting", a
     assert.equal(dom.document.querySelector('[role="dialog"]'), null);
     assert.equal(dom.document.getElementById("latest-password-content")?.textContent, "Unlocked");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -676,8 +676,8 @@ test("relocked gate marks mounted background content inert", async () => {
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -717,7 +717,7 @@ test("relocked gate marks mounted background content inert", async () => {
     assert.equal(dom.document.getElementById("background-app")?.textContent?.includes("Do work"), true);
     assert.equal(dom.document.querySelectorAll('[role="dialog"]').length, 1);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -757,8 +757,8 @@ test("runtime unlock and relock broadcasts update multiple mounted gates togethe
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -817,7 +817,7 @@ test("runtime unlock and relock broadcasts update multiple mounted gates togethe
     assert.equal(dom.document.getElementById("gate-b")?.textContent, "Gate B");
     assert.equal(dom.document.querySelectorAll('[role="dialog"]').length, 2);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -856,8 +856,8 @@ test("focus recovery resync clears stale overlay state after a missed broadcast"
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -886,7 +886,7 @@ test("focus recovery resync clears stale overlay state after a missed broadcast"
     assert.equal(dom.document.querySelector('[role="dialog"]'), null);
     assert.equal(dom.document.getElementById("stale-gate")?.textContent, "Unlocked After Resync");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -925,8 +925,8 @@ test("reopen recovery resync clears stale overlay state after a missed broadcast
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -954,7 +954,7 @@ test("reopen recovery resync clears stale overlay state after a missed broadcast
     assert.equal(dom.document.querySelector('[role="dialog"]'), null);
     assert.equal(dom.document.getElementById("reopen-gate")?.textContent, "Unlocked After Reopen");
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -993,8 +993,8 @@ test("reopen resync does not unlock a gate when runtime is still locked", async 
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -1019,7 +1019,7 @@ test("reopen resync does not unlock a gate when runtime is still locked", async 
     assert.equal(dom.document.getElementById("startup-locked-child"), null);
     assert.equal(dom.document.querySelectorAll('[role="dialog"]').length, 1);
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }
@@ -1067,8 +1067,8 @@ test("boot splash stays while lock state initializes, then fades when content mo
     useAppLockBridge,
   });
 
-  const previousWindowNetcatty = dom.window.netcatty;
-  dom.window.netcatty = bridgeHarness.bridge;
+  const previousWindowLemonSSH = dom.window.lemonssh;
+  dom.window.lemonssh = bridgeHarness.bridge;
 
   try {
     await renderer.render(
@@ -1107,7 +1107,7 @@ test("boot splash stays while lock state initializes, then fades when content mo
       "splash must be removed after the fade completes",
     );
   } finally {
-    dom.window.netcatty = previousWindowNetcatty;
+    dom.window.lemonssh = previousWindowLemonSSH;
     await renderer.unmount();
     dom.cleanup();
   }

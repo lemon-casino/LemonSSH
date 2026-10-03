@@ -6,7 +6,7 @@ import {
 } from "../app/topTabsChromeTheme";
 import { runThemeTransition } from "./themeTransition";
 import { TERMINAL_THEMES } from "../../infrastructure/config/terminalThemes";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import { resolveReadableForegroundForHsl } from "../../domain/colorContrast";
 
 function hexToHsl(hex: string): string {
@@ -146,7 +146,7 @@ export function _getChromeThemeCssCacheStatsForTests(): { size: number; keys: st
   return { size: cssCache.size, keys: [...cssCache.keys()] };
 }
 
-const STYLE_ID = "netcatty-active-chrome-theme";
+const STYLE_ID = "lemonssh-active-chrome-theme";
 /** Double-rAF window used to let layout settle after a paint. */
 export const INSTANT_THEME_SWITCH_SETTLE_FRAMES = 2;
 
@@ -236,8 +236,8 @@ function applyActiveChromeTheme(theme: TerminalTheme) {
 function refreshActiveChromeThemeSurfaces(theme: TerminalTheme) {
   const targetClass = theme.type === "dark" ? "dark" : "light";
   if (typeof window !== "undefined") {
-    netcattyBridge.get()?.setTheme?.(targetClass);
-    netcattyBridge.get()?.setBackgroundColor?.(theme.colors.background);
+    lemonsshBridge.get()?.setTheme?.(targetClass);
+    lemonsshBridge.get()?.setBackgroundColor?.(theme.colors.background);
   }
   applyTopTabsChromeThemeVars(theme);
 }

@@ -108,7 +108,7 @@ var Catalog = []Definition{
 		Description: "List scoped terminal sessions available to the agent.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/getContext", MCPTool: "get_environment"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/getContext", MCPTool: "get_environment"},
 			SurfacePublic:  {RPCMethod: "public/getEnvironment", MCPTool: "get_environment"},
 			SurfaceCLI:     {Command: []string{"env"}},
 		},
@@ -120,7 +120,7 @@ var Catalog = []Definition{
 		Description: "Return bridge runtime status and policy configuration.",
 		Policy:      readOnlyVaultPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/getStatus"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/getStatus"},
 			SurfacePublic:  {RPCMethod: "public/getStatus"},
 			SurfaceCLI:     {Command: []string{"status"}},
 		},
@@ -132,7 +132,7 @@ var Catalog = []Definition{
 		Description: "List user-attached files in the current AI chat scope.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/listAttachments", MCPTool: "list_attachments"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/listAttachments", MCPTool: "list_attachments"},
 			SurfaceCLI:     {Command: []string{"attachment", "list"}},
 		},
 	},
@@ -143,7 +143,7 @@ var Catalog = []Definition{
 		Description: "Read a user-attached file from the current AI chat scope.",
 		Policy:      readOnlyChatPolicy(true),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/readAttachment", MCPTool: "read_attachment"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/readAttachment", MCPTool: "read_attachment"},
 			SurfaceCLI:     {Command: []string{"attachment", "read"}},
 		},
 	},
@@ -154,7 +154,7 @@ var Catalog = []Definition{
 		Description: "Cancel in-flight operations for a chat session.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/setCancelled"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/setCancelled"},
 			SurfaceCLI:     {Command: []string{"cancel"}},
 		},
 	},
@@ -165,7 +165,7 @@ var Catalog = []Definition{
 		Description: "Resume write operations for a cancelled chat session.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/setCancelled"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/setCancelled"},
 			SurfaceCLI:     {Command: []string{"resume"}},
 		},
 	},
@@ -176,7 +176,7 @@ var Catalog = []Definition{
 		Description: "Get metadata for a single scoped session.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/getContext"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/getContext"},
 			SurfaceCLI:     {Command: []string{"session"}},
 		},
 	},
@@ -200,7 +200,7 @@ var Catalog = []Definition{
 		Description: "Execute a short command in a terminal session and wait for completion.",
 		Policy:      policy(true, false, true, true, false, false, false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/exec", MCPTool: "terminal_execute"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/exec", MCPTool: "terminal_execute"},
 			SurfacePublic:  {RPCMethod: "public/terminalExecute", MCPTool: "terminal_execute"},
 			SurfaceCLI:     {Command: []string{"exec"}},
 		},
@@ -212,7 +212,7 @@ var Catalog = []Definition{
 		Description: "Start a long-running command in a terminal session.",
 		Policy:      policy(true, false, true, true, false, false, false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/jobStart", MCPTool: "terminal_start"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/jobStart", MCPTool: "terminal_start"},
 			SurfacePublic:  {RPCMethod: "public/terminalStart", MCPTool: "terminal_start"},
 			SurfaceCLI:     {Command: []string{"job-start"}},
 		},
@@ -224,7 +224,7 @@ var Catalog = []Definition{
 		Description: "Poll incremental output from a long-running terminal job.",
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/jobPoll", MCPTool: "terminal_poll"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/jobPoll", MCPTool: "terminal_poll"},
 			SurfacePublic:  {RPCMethod: "public/terminalPoll", MCPTool: "terminal_poll"},
 			SurfaceCLI:     {Command: []string{"job-poll"}},
 		},
@@ -236,7 +236,7 @@ var Catalog = []Definition{
 		Description: "Stop a long-running terminal job.",
 		Policy:      policy(true, false, false, true, true, true, true),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceBuiltin: {RPCMethod: "netcatty/jobStop", MCPTool: "terminal_stop"},
+			SurfaceBuiltin: {RPCMethod: "lemonssh/jobStop", MCPTool: "terminal_stop"},
 			SurfacePublic:  {RPCMethod: "public/terminalStop", MCPTool: "terminal_stop"},
 			SurfaceCLI:     {Command: []string{"job-stop"}},
 		},
@@ -247,67 +247,67 @@ var Catalog = []Definition{
 		"sftp.list",
 		"List a remote directory over the session file backend (SFTP or SCP-mode).",
 		Policy{SensitiveRead: true},
-		sftpBinding("netcatty/sftp/list", "public/sftp/list", "sftp_list", "sftp list", true),
+		sftpBinding("lemonssh/sftp/list", "public/sftp/list", "sftp_list", "sftp list", true),
 	),
 	sftpCapability(
 		"sftp.read",
 		"Read a remote file over the session file backend (SFTP or SCP-mode).",
 		Policy{SensitiveRead: true},
-		sftpBinding("netcatty/sftp/read", "public/sftp/readFile", "sftp_read_file", "sftp read", true),
+		sftpBinding("lemonssh/sftp/read", "public/sftp/readFile", "sftp_read_file", "sftp read", true),
 	),
 	sftpCapability(
 		"sftp.write",
 		"Write a remote file over the session file backend (SFTP or SCP-mode).",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/write", "public/sftp/writeFile", "sftp_write_file", "sftp write", false),
+		sftpBinding("lemonssh/sftp/write", "public/sftp/writeFile", "sftp_write_file", "sftp write", false),
 	),
 	sftpCapability(
 		"sftp.download",
 		"Download a remote file to a local path.",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/download", "public/sftp/download", "sftp_download", "sftp download", false),
+		sftpBinding("lemonssh/sftp/download", "public/sftp/download", "sftp_download", "sftp download", false),
 	),
 	sftpCapability(
 		"sftp.upload",
 		"Upload a local file to a remote path.",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/upload", "public/sftp/upload", "sftp_upload", "sftp upload", false),
+		sftpBinding("lemonssh/sftp/upload", "public/sftp/upload", "sftp_upload", "sftp upload", false),
 	),
 	sftpCapability(
 		"sftp.stat",
 		"Get remote file metadata over the session file backend (SFTP or SCP-mode).",
 		Policy{SensitiveRead: true},
-		sftpBinding("netcatty/sftp/stat", "public/sftp/stat", "sftp_stat", "sftp stat", true),
+		sftpBinding("lemonssh/sftp/stat", "public/sftp/stat", "sftp_stat", "sftp stat", true),
 	),
 	sftpCapability(
 		"sftp.home",
 		"Get the remote home directory for a session.",
 		Policy{SensitiveRead: true},
-		sftpBinding("netcatty/sftp/home", "public/sftp/home", "sftp_home", "sftp home", true),
+		sftpBinding("lemonssh/sftp/home", "public/sftp/home", "sftp_home", "sftp home", true),
 	),
 	sftpCapability(
 		"sftp.mkdir",
 		"Create a remote directory over the session file backend (SFTP or SCP-mode).",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/mkdir", "public/sftp/mkdir", "sftp_mkdir", "sftp mkdir", false),
+		sftpBinding("lemonssh/sftp/mkdir", "public/sftp/mkdir", "sftp_mkdir", "sftp mkdir", false),
 	),
 	sftpCapability(
 		"sftp.delete",
 		"Delete a remote file or directory over the session file backend (SFTP or SCP-mode).",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/delete", "public/sftp/delete", "sftp_delete", "sftp delete", false),
+		sftpBinding("lemonssh/sftp/delete", "public/sftp/delete", "sftp_delete", "sftp delete", false),
 	),
 	sftpCapability(
 		"sftp.rename",
 		"Rename a remote file or directory over the session file backend (SFTP or SCP-mode).",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/rename", "public/sftp/rename", "sftp_rename", "sftp rename", false),
+		sftpBinding("lemonssh/sftp/rename", "public/sftp/rename", "sftp_rename", "sftp rename", false),
 	),
 	sftpCapability(
 		"sftp.chmod",
 		"Change remote file permissions over the session file backend (SFTP or SCP-mode).",
 		Policy{Write: true},
-		sftpBinding("netcatty/sftp/chmod", "public/sftp/chmod", "sftp_chmod", "sftp chmod", false),
+		sftpBinding("lemonssh/sftp/chmod", "public/sftp/chmod", "sftp_chmod", "sftp chmod", false),
 	),
 
 	// ---- vault.cjs ----
@@ -339,7 +339,7 @@ var Catalog = []Definition{
 		Domain:      "vault",
 		Status:      StatusImplemented,
 		Description: "Open a vault host by creating a new terminal tab and starting the connection. Returns the new sessionId so you can run terminal/SFTP tools against it. Use vault_hosts_list first when you only know the label or hostname.",
-		// Sidebar Catty is scoped to already-open terminals/workspaces and must
+		// Sidebar LemonSSH is scoped to already-open terminals/workspaces and must
 		// not expand that scope mid-turn. Keep host_open for MCP / CLI / global.
 		AgentKinds: []AgentKind{AgentKindGlobal},
 		Policy:     vaultWritePolicy(false),
@@ -646,7 +646,7 @@ var Catalog = []Definition{
 		ID:          "vault.scripts.reference",
 		Domain:      "vault",
 		Status:      StatusImplemented,
-		Description: "Return Netcatty automation script syntax: nct API, triggers, host targeting, and source wrapping rules.",
+		Description: "Return LemonSSH automation script syntax: nct API, triggers, host targeting, and source wrapping rules.",
 		Policy:      readOnlyVaultPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
 			SurfaceCLI:    {Command: []string{"scripts", "reference"}},
@@ -810,7 +810,7 @@ func harnessCapability(id, toolName, description string) Definition {
 		Description: description,
 		Policy:      readOnlyChatPolicy(false),
 		Surfaces: map[Surface]SurfaceBinding{
-			SurfaceCatty: {ToolName: toolName},
+			SurfaceLemonSSH: {ToolName: toolName},
 		},
 	}
 }

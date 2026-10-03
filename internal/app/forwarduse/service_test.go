@@ -3,10 +3,10 @@ package forwarduse
 import (
 	"testing"
 
-	"github.com/binaricat/netcatty/internal/app/terminaluse"
+	"github.com/binaricat/lemonssh/internal/app/terminaluse"
 )
 
-// Characterization moved verbatim from cmd/netcatty/forward_service_test.go
+// Characterization moved verbatim from cmd/lemonssh/forward_service_test.go
 // during the W04 forward use-case extraction; the assertions are unchanged.
 func TestParseForwardRuleID(t *testing.T) {
 	if got := parseForwardRuleID("pf-rule-1-171000"); got != "rule-1" {

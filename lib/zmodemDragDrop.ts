@@ -2,7 +2,7 @@ import type { DropEntry } from "./sftpFileUtils";
 import { getDropEntryLocalPath } from "./sftpFileUtils";
 import type { Host } from "../types";
 
-const ZMODEM_RZ_MISSING_MARKER_PREFIX = "\x1b]1337;NetcattyRzMissing=";
+const ZMODEM_RZ_MISSING_MARKER_PREFIX = "\x1b]1337;LemonSSHRzMissing=";
 const ZMODEM_RZ_MISSING_MARKER_SUFFIX = "\x07";
 
 /**
@@ -52,7 +52,7 @@ export function createZmodemRzMissingToken(): string {
 }
 
 export function buildZmodemDragDropUploadCommand(rzMissingToken: string): string {
-  const markerFormat = `\\033]1337;NetcattyRzMissing=${rzMissingToken}\\007`;
+  const markerFormat = `\\033]1337;LemonSSHRzMissing=${rzMissingToken}\\007`;
   const script = `if command -v rz >/dev/null 2>&1; then exec rz -y; else printf ${quotePosixShellArg(markerFormat)}; fi`;
   return `sh -lc ${quotePosixShellArg(script)}\r`;
 }

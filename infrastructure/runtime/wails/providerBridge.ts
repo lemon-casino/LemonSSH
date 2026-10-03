@@ -21,7 +21,7 @@ type StreamEvent = { requestId: string; data?: string; event?: string; error?: s
 export function createProviderBridge(
   native: NativeProviderBindings,
   on: (name: string, callback: (event: { data?: unknown }) => void) => () => void,
-): Partial<NetcattyBridge> {
+): Partial<LemonSSHBridge> {
   const subscribe = (name: string, id: string, callback: (event: StreamEvent) => void) => (
     on(name, event => {
       const payload = (Array.isArray(event.data) ? event.data[0] : event.data) as StreamEvent | undefined;

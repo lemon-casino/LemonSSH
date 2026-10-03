@@ -28,10 +28,10 @@ const maskHtmlComments = (markdown: string): {
   sentinel: string;
 } => {
   let n = 0;
-  let sentinel = "@@NETCATTY_MD_COMMENT_";
+  let sentinel = "@@LEMONSSH_MD_COMMENT_";
   while (markdown.includes(sentinel)) {
     n += 1;
-    sentinel = `@@NETCATTY_MD_COMMENT_S${n}_`;
+    sentinel = `@@LEMONSSH_MD_COMMENT_S${n}_`;
   }
   const slots: string[] = [];
   const text = markdown.replace(/<!--[\s\S]*?-->/g, (chunk) => {

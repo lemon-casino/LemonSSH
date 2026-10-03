@@ -120,20 +120,20 @@ type SftpViewProps = React.ComponentProps<typeof SftpViewComponent>;
 type TerminalLayerProps = React.ComponentProps<typeof TerminalLayerComponent>;
 
 const LogViewFallback = () => (
-  <div className="netcatty-lazy-fade-in h-full min-h-0 bg-background" aria-hidden="true" />
+  <div className="lemonssh-lazy-fade-in h-full min-h-0 bg-background" aria-hidden="true" />
 );
 
 const SftpViewFallback = ({ visible }: { visible: boolean }) => {
   if (!visible) return null;
   return (
-    <div className="netcatty-lazy-fade-in absolute inset-0 z-20 bg-background" aria-hidden="true" />
+    <div className="lemonssh-lazy-fade-in absolute inset-0 z-20 bg-background" aria-hidden="true" />
   );
 };
 
 const TerminalLayerFallback = ({ visible }: { visible: boolean }) => {
   if (!visible) return null;
   return (
-    <div className="netcatty-lazy-fade-in absolute inset-0 z-20 bg-background" aria-hidden="true" />
+    <div className="lemonssh-lazy-fade-in absolute inset-0 z-20 bg-background" aria-hidden="true" />
   );
 };
 

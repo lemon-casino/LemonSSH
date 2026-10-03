@@ -23,7 +23,7 @@ func sanitize(title, body string) (string, string) {
 	}
 	title = clean(title, 120)
 	if title == "" {
-		title = "Netcatty"
+		title = "LemonSSH"
 	}
 	return title, clean(body, 500)
 }

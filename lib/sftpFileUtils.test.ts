@@ -79,12 +79,12 @@ test("captureDropPayload reads webkit entries synchronously", () => {
 
 test("getPathForFile treats a declining bridge verdict as final even when File.path is set", (t) => {
   const previousWindow = globalThis.window;
-  const previousNetcatty = previousWindow?.netcatty;
+  const previousLemonSSH = previousWindow?.lemonssh;
   const nextWindow = previousWindow ?? ({} as Window & typeof globalThis);
-  nextWindow.netcatty = {
-    ...previousNetcatty,
+  nextWindow.lemonssh = {
+    ...previousLemonSSH,
     getPathForFile: () => undefined,
-  } as NetcattyBridge;
+  } as LemonSSHBridge;
   Object.defineProperty(globalThis, "window", {
     value: nextWindow,
     writable: true,
@@ -92,7 +92,7 @@ test("getPathForFile treats a declining bridge verdict as final even when File.p
   });
   t.after(() => {
     if (previousWindow) {
-      previousWindow.netcatty = previousNetcatty;
+      previousWindow.lemonssh = previousLemonSSH;
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,
         writable: true,

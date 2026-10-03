@@ -103,14 +103,14 @@ test("serializeHostsToSshConfig encodes Host pattern characters as literal alias
   const quoted = serializeHostsToSshConfig([makeHost({ label: 'bad"alias' })]);
   const escaped = serializeHostsToSshConfig([makeHost({ label: 'bad\\alias' })]);
 
-  assert.match(encoded, /^Host netcatty-encoded-/m);
+  assert.match(encoded, /^Host lemonssh-encoded-/m);
   assert.match(literal, /^Host prod-2a-$/m);
   assert.notEqual(encoded.match(/^Host (.+)$/m)?.[1], literal.match(/^Host (.+)$/m)?.[1]);
-  assert.match(leadingDash, /^Host netcatty-encoded-/m);
+  assert.match(leadingDash, /^Host lemonssh-encoded-/m);
   assert.doesNotMatch(leadingDash, /^Host -/m);
-  assert.match(quoted, /^Host netcatty-encoded-/m);
+  assert.match(quoted, /^Host lemonssh-encoded-/m);
   assert.doesNotMatch(quoted, /^Host .*"/m);
-  assert.match(escaped, /^Host netcatty-encoded-/m);
+  assert.match(escaped, /^Host lemonssh-encoded-/m);
   assert.doesNotMatch(escaped, /^Host .*\\/m);
 });
 

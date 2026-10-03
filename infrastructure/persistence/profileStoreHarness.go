@@ -6,7 +6,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"github.com/binaricat/netcatty/internal/profile/store"
+	"github.com/binaricat/lemonssh/internal/profile/store"
 	"os"
 )
 

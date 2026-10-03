@@ -9,7 +9,7 @@ test("compressed folder uploads use reconstructed drop-entry paths", async () =>
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         checkCompressedUploadSupport: async () => ({
           supported: false,
           localTar: false,
@@ -55,7 +55,7 @@ test("compressed folder totals exclude directory entries", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         checkCompressedUploadSupport: async () => ({
           supported: true,
           localTar: true,

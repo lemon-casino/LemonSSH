@@ -19,11 +19,12 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/netcatty/internal/app/terminaluse"
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/sftp"
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
-	"github.com/binaricat/netcatty/internal/terminal/sshpool"
+	"github.com/binaricat/lemonssh/internal/app/terminaluse"
+	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/sshpool"
 	pkgsftp "github.com/pkg/sftp"
 )
 
@@ -46,9 +47,11 @@ type Service struct {
 	pool              *sshpool.Pool
 	knownHosts        *ssh.KnownHosts
 	sessions          map[string]*client
+	encodings         map[string]string
 	counter           int
 	terminalTransport func(sessionID string) (*gossh.Client, func() bool, error)
 	openStaging       func(path string) (*os.File, error)
+	interactiveDial   func(request OpenRequest) ssh.DialInteractive
 }
 
 // client is one registered SFTP subsystem.
@@ -66,6 +69,7 @@ func New(pool *sshpool.Pool, knownHosts *ssh.KnownHosts) *Service {
 		pool:       pool,
 		knownHosts: knownHosts,
 		sessions:   make(map[string]*client),
+		encodings:  make(map[string]string),
 	}
 }
 
@@ -86,6 +90,13 @@ func (s *Service) SetStagingOpener(open func(path string) (*os.File, error)) {
 	s.openStaging = open
 }
 
+// SetInteractiveDial wires the renderer-backed dial callbacks (passphrase
+// prompts, changed host-key confirmation, MFA challenges) built per open
+// request. Unwired services dial fail-closed.
+func (s *Service) SetInteractiveDial(interactive func(request OpenRequest) ssh.DialInteractive) {
+	s.interactiveDial = interactive
+}
+
 // Open dials (or borrows) a transport for host and registers an SFTP session.
 func (s *Service) Open(request OpenRequest) (string, error) {
 	if request.Hostname == "" || request.Username == "" {
@@ -94,7 +105,15 @@ func (s *Service) Open(request OpenRequest) (string, error) {
 	if request.Port == 0 {
 		request.Port = 22
 	}
-	config, err := ssh.BuildDialConfigErr(terminaluse.ConnectInputFromRequest(request.SSHConnectRequest), ssh.StrictPolicy(s.knownHosts), nil)
+	interactive := ssh.DialInteractive{}
+	if s.interactiveDial != nil {
+		interactive = s.interactiveDial(request)
+	}
+	policy := ssh.StrictPolicy(s.knownHosts)
+	if interactive.ConfirmHostKey != nil {
+		policy = ssh.ConfirmPolicy(s.knownHosts, interactive.ConfirmHostKey)
+	}
+	config, err := ssh.BuildDialConfigErr(terminaluse.ConnectInputFromRequest(request.SSHConnectRequest), policy, interactive)
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +169,9 @@ func (s *Service) register(session *client) string {
 	return id
 }
 
-// HomeDir returns the remote working directory for the SFTP session.
+// HomeDir returns the remote working directory for the SFTP session. The raw
+// path is decoded with the session's resolved filename charset so legacy
+// byte sequences survive the JSON channel as valid UTF-8.
 func (s *Service) HomeDir(sessionID string) (string, error) {
 	s.mu.Lock()
 	session, ok := s.sessions[sessionID]
@@ -158,7 +179,11 @@ func (s *Service) HomeDir(sessionID string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("sftp session %q not found", sessionID)
 	}
-	return session.raw.Getwd()
+	wd, err := session.raw.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return charset.Decode(wd, s.resolvedEncoding(sessionID)), nil
 }
 
 // Close releases the SFTP client and returns the transport to the pool.
@@ -166,6 +191,7 @@ func (s *Service) Close(sessionID string) error {
 	s.mu.Lock()
 	session, ok := s.sessions[sessionID]
 	delete(s.sessions, sessionID)
+	delete(s.encodings, sessionID)
 	s.mu.Unlock()
 	if !ok {
 		return nil

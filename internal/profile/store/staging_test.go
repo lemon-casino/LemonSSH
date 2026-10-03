@@ -25,7 +25,7 @@ func TestStageAndPromote(t *testing.T) {
 
 	stagingDir := filepath.Join(dir, "staging")
 	stagingPath, err := StageProfile(stagingDir, []Mutation{
-		{Domain: "vault", Key: "netcatty_hosts_v1", Value: []byte(`{"hosts":["h1"]}`)},
+		{Domain: "vault", Key: "lemonssh_hosts_v1", Value: []byte(`{"hosts":["h1"]}`)},
 		{Domain: "settings", Key: "theme", Value: []byte("dark")},
 	})
 	if err != nil {
@@ -55,7 +55,7 @@ func TestStageAndPromote(t *testing.T) {
 		t.Fatalf("open promoted: %v", err)
 	}
 	defer promoted.Close()
-	value, err := promoted.GetRaw("vault", "netcatty_hosts_v1")
+	value, err := promoted.GetRaw("vault", "lemonssh_hosts_v1")
 	if err != nil || string(value) != `{"hosts":["h1"]}` {
 		t.Fatalf("promoted data mismatch: %s (%v)", value, err)
 	}

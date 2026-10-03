@@ -2,7 +2,7 @@ import type { Host, Snippet } from './models';
 import { deleteSnippetFromVault } from './snippetAgentOps.ts';
 import { renumberVaultOrder } from './vaultOrder.ts';
 
-/** Normalize `netcatty:snippets:delete` detail into a set of snippet ids. */
+/** Normalize `lemonssh:snippets:delete` detail into a set of snippet ids. */
 export function collectSnippetDeleteIds(
   detail?: { id?: string; ids?: readonly string[] } | null,
 ): Set<string> {

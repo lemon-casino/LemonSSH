@@ -6,7 +6,7 @@
 
 ## 结论先行
 
-Grok Build 最值得 Catty 学的不是某一个 prompt，而是以下 8 个机制组成的闭环：
+Grok Build 最值得 LemonSSH 学的不是某一个 prompt，而是以下 8 个机制组成的闭环：
 
 1. **把上下文做成可检查、可持久化的数据结构，而不是散落的字符串拼接。** `PromptContext` 明确记录 audience、prompt mode、AGENTS.md、memory、role/persona、运行环境和构建时间，再统一渲染；父 agent 与子 agent 使用不同模板和目录信息，但项目指令保持一致。[`prompt/context.rs:79-151`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L79-L151) [`prompt/context.rs:160-171`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L160-L171) [`prompt/context.rs:251-297`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L251-L297)
 2. **在真正压缩前先做分层、可逆的减负。** 超过 50% 才对请求副本裁剪旧工具结果；近 3 轮不动，较老大结果保留头尾，10 轮以前的结果只留占位；原始事件流仍保留用于重放。[`request_builder.rs:20-108`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/actor/request_builder.rs#L20-L108) [`request_builder.rs:155-208`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/actor/request_builder.rs#L155-L208) [`types.rs:67-97`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/types.rs#L67-L97) [`mutations.rs:165-205`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/actor/mutations.rs#L165-L205)
@@ -17,7 +17,7 @@ Grok Build 最值得 Catty 学的不是某一个 prompt，而是以下 8 个机�
 7. **子 agent 是独立可恢复会话，不只是一次函数调用。** 子 agent 有独立 session id、原始 transcript、tool state、model、cwd、能力与隔离模式；支持继续以前的子 agent、后台运行、父轮取消隔离、进度/用量拉取，并把用量按 model 汇总回父账单。[`task/types.rs:29-68`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/types.rs#L29-L68) [`task/types.rs:84-108`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/types.rs#L84-L108) [`task/types.rs:304-335`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/types.rs#L304-L335) [`usage.rs:100-146`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/usage.rs#L100-L146)
 8. **压缩路径本身是可观测、可离线重放的产品功能。** 每次压缩记录触发比例、阈值、输入/输出 token、重试阶段、失败类别、TTFT、流耗时、最大 token 间隔、两段式命中/失效等；同时把“实际送给压缩模型的历史 + 返回摘要/错误”保存成 artifact，供离线迭代 prompt。[`compaction.rs:800-864`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L800-L864) [`session_compact.rs:219-310`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/helpers/session_compact.rs#L219-L310) [`persistence.rs:360-374`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/persistence.rs#L360-L374)
 
-对 Catty 的优先级建议：先做 **压缩后状态再注入 + 工具历史完整性修复 + 压缩 artifact/eval**；随后做 **可恢复 segments**；最后用实验开关验证 **后台两段式压缩**。这些项的收益与风险边界最清晰。
+对 LemonSSH 的优先级建议：先做 **压缩后状态再注入 + 工具历史完整性修复 + 压缩 artifact/eval**；随后做 **可恢复 segments**；最后用实验开关验证 **后台两段式压缩**。这些项的收益与风险边界最清晰。
 
 ## 1. 提示词与上下文装配
 
@@ -29,7 +29,7 @@ Grok Build 最值得 Catty 学的不是某一个 prompt，而是以下 8 个机�
 
 父/子 agent 的差异被显式建模：子 agent 用紧凑模板、不接收 persona catalog，但仍接收完整 AGENTS.md，避免验证型子任务绕过项目约束。[`prompt/context.rs:68-77`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L68-L77) [`prompt/context.rs:160-170`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L160-L170) [`prompt/context.rs:205-220`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L205-L220)
 
-**Catty 可借鉴：** 给现有 system prompt/context manager 增加一个可 dump、可版本化的 `PromptContextSnapshot`，让问题排查能回答“这轮究竟注入了什么、来自哪里、为何出现”。
+**LemonSSH 可借鉴：** 给现有 system prompt/context manager 增加一个可 dump、可版本化的 `PromptContextSnapshot`，让问题排查能回答“这轮究竟注入了什么、来自哪里、为何出现”。
 
 ### 1.2 项目规则有顺序、来源和幂等性
 
@@ -41,7 +41,7 @@ AGENTS.md/rules 的查找顺序是 global → repo root → cwd，越深的文�
 
 首轮大 prompt 超过 25 KB 时，不直接粗暴截掉尾部：会把全文写到 session 文件，内联内容按 query 80%、context 余量、skills 独立 4 KB 预算分配，并保留 head + tail，确保结尾真正问题仍在；写盘失败则改成无路径的诚实提示，避免模型追逐不存在的文件。[`prompt_build.rs:185-202`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs#L185-L202) [`prompt_build.rs:203-276`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs#L203-L276) [`prompt_build.rs:278-309`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/acp_session_impl/prompt_build.rs#L278-L309)
 
-这和 Catty 已有的 tool output handle 思路相似，但 Grok 把同一模式也用于用户输入。值得统一成通用的“上下文外置对象”：有稳定 handle、摘要、大小、来源、读取工具和生命周期。
+这和 LemonSSH 已有的 tool output handle 思路相似，但 Grok 把同一模式也用于用户输入。值得统一成通用的“上下文外置对象”：有稳定 handle、摘要、大小、来源、读取工具和生命周期。
 
 ## 2. Token 预算与上下文计量
 
@@ -51,7 +51,7 @@ Grok 把 bytes/4 估算、图片固定成本、百分比、剩余量和阈值判
 
 工具 schema 本身也进入压缩预算；输入溢出时采用 `verbatim → fitted verbatim → lossy` 的降级阶梯，fitted 为摘要预留 32,768 token，再扣除工具 schema token；lossy 最多使用窗口 70%。[`compaction.rs:879-890`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L879-L890) [`compaction.rs:931-946`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L931-L946) [`compaction.rs:1062-1116`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L1062-L1116)
 
-**Catty 可借鉴：** 统一 `tokenEstimator`、UI context 指示、step pruning 与 413 预检的边界语义；把 tool schema、pending tool output、图片字节都纳入“下一请求成本”，而不是只看上一响应 usage。
+**LemonSSH 可借鉴：** 统一 `tokenEstimator`、UI context 指示、step pruning 与 413 预检的边界语义；把 tool schema、pending tool output、图片字节都纳入“下一请求成本”，而不是只看上一响应 usage。
 
 ## 3. 历史裁剪、压缩与可恢复性
 
@@ -73,7 +73,7 @@ NOTE1 最多 12,000 字符；优先取完整、足够长的 `<summary>`，否则
 
 它还区分“后台已经完成的延迟”和“用户实际等待的延迟”，只有后者计入最终 TTFT；这是评估 speculative work 是否真的降低用户等待的正确方法。[`compaction.rs:342-355`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L342-L355) [`compaction.rs:416-428`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L416-L428)
 
-**风险：** 后台 pass1 会额外花 token，且 prefix fingerprint 目前只 hash item 类型和 text_content，没有显式 hash tool call arguments；如果 tool calls 的参数不在 `text_content()` 中，理论上可能出现缓存误命中。Catty 若实现，应使用完整 canonical serialization fingerprint，并先用命中率、浪费 token、同步等待下降三项实验数据验证。
+**风险：** 后台 pass1 会额外花 token，且 prefix fingerprint 目前只 hash item 类型和 text_content，没有显式 hash tool call arguments；如果 tool calls 的参数不在 `text_content()` 中，理论上可能出现缓存误命中。LemonSSH 若实现，应使用完整 canonical serialization fingerprint，并先用命中率、浪费 token、同步等待下降三项实验数据验证。
 
 ### 3.3 压缩后恢复精确细节
 
@@ -81,13 +81,13 @@ NOTE1 最多 12,000 字符；优先取完整、足够长的 `<summary>`，否则
 
 segment 有独立索引、关键词、turn/tool/file/error 统计和不同细节级别；fork 时连同 segments 一起复制，因此子分支不会因为父会话压缩失去早期证据。[`compaction_transcript.rs:75-140`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/compaction_transcript.rs#L75-L140) [`compaction_transcript.rs:184-267`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/compaction_transcript.rs#L184-L267) [`fork.rs:92-106`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/fork.rs#L92-L106)
 
-**Catty 可借鉴：** `ToolOutputStore` 解决的是大工具输出，segments 解决的是“摘要后整个旧对话”。两者可共用 handle/read 基础设施：压缩摘要携带结构化 archive manifest，按 segment/turn/tool/file 查询，而非只给一个巨大 transcript 路径。
+**LemonSSH 可借鉴：** `ToolOutputStore` 解决的是大工具输出，segments 解决的是“摘要后整个旧对话”。两者可共用 handle/read 基础设施：压缩摘要携带结构化 archive manifest，按 segment/turn/tool/file 查询，而非只给一个巨大 transcript 路径。
 
 ### 3.4 压缩后重新建立“工作现场”
 
 压缩成功后，Grok 不直接只留下 system + summary。它重新构造 AGENTS.md、skills、memory、计划模式、运行中的后台命令、活跃子 agent、改过的文件、MCP 和 todo，再对 compacted history 做 orphan ToolResult 清理与验证；若仍不合法，退回更小的安全历史。[`compaction.rs:1205-1350`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L1205-L1350) [`compaction.rs:1425-1499`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L1425-L1499) [`compaction.rs:1504-1548`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/compaction.rs#L1504-L1548)
 
-这是对 Catty 最直接的改进点：现有 SessionState reinjection 可以扩展为正式的 `ContinuationState`，明确包含 active jobs、subagents、todo/plan、edited files、MCP/tool catalog version、skills/AGENTS snapshot、外置输出 handles，并有 schema/version 和恢复测试。
+这是对 LemonSSH 最直接的改进点：现有 SessionState reinjection 可以扩展为正式的 `ContinuationState`，明确包含 active jobs、subagents、todo/plan、edited files、MCP/tool catalog version、skills/AGENTS snapshot、外置输出 handles，并有 schema/version 和恢复测试。
 
 ## 4. 工具结果与缓存
 
@@ -97,7 +97,7 @@ Grok 明确区分 `ToolRunResult.output`（干净、协议/序列化/追踪用�
 
 图片处理也考虑 cache：只有请求体接近 50 MB 才批量移除最旧图片，并一次降到 25 MB，形成迟滞区，避免每轮移一张、每轮破坏 KV 前缀；占位文案明确告诉模型图片已不可见，避免凭“记忆”幻觉描述。[`request_builder.rs:215-265`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/actor/request_builder.rs#L215-L265)
 
-**Catty 可借鉴：** 所有会改写历史前缀的策略都应有 cache-cost 意识；用 high-water/low-water 批处理，而不是刚过线就做最小改写。并将“干净工具结果”和“给模型看的文本”拆为两个字段，防止 reminder、裁剪标记污染恢复/审计数据。
+**LemonSSH 可借鉴：** 所有会改写历史前缀的策略都应有 cache-cost 意识；用 high-water/low-water 批处理，而不是刚过线就做最小改写。并将“干净工具结果”和“给模型看的文本”拆为两个字段，防止 reminder、裁剪标记污染恢复/审计数据。
 
 ## 5. 会话恢复与分叉
 
@@ -117,7 +117,7 @@ Grok 明确区分 `ToolRunResult.output`（干净、协议/序列化/追踪用�
 
 用量账本区分 main-loop calls 与 subagent calls，能按 model 汇总 input/output/cached/reasoning/cost，并显式标记 incomplete；后台仍在跑时不伪造精确账单。[`usage.rs:1-26`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/usage.rs#L1-L26) [`usage.rs:31-89`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/usage.rs#L31-L89) [`usage.rs:100-146`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-chat-state/src/usage.rs#L100-L146)
 
-**Catty 可借鉴：** 将 subagent completion 从一段自由文本提升为结构化结果：status、session id、turn/tool count、duration、tokens、worktree、archive handles；父上下文仅保留短摘要，细节通过 resume/read 获取。
+**LemonSSH 可借鉴：** 将 subagent completion 从一段自由文本提升为结构化结果：status、session id、turn/tool count、duration、tokens、worktree、archive handles；父上下文仅保留短摘要，细节通过 resume/read 获取。
 
 ## 7. Hooks 与 Skills
 
@@ -129,7 +129,7 @@ Skills 采用渐进披露：启动时仅列名称/说明/路径，单条说明�
 
 运行期还会根据 read/list/edit/apply_patch 实际触达路径发现或激活 skills；I/O 在资源锁外执行，checked_dirs 回写避免重复 stat，公告由 session 统一排队去重。[`skill_discovery.rs:27-45`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs#L27-L45) [`skill_discovery.rs:109-155`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs#L109-L155) [`skill_discovery.rs:159-218`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-tools/src/reminders/skill_discovery.rs#L159-L218)
 
-**Catty 可借鉴：** hook 应进入统一 AgentEvent trace；skill announcement 需要预算和去重，并在压缩后恢复“已宣布/已激活”状态，避免每次 compaction 后重复灌入。
+**LemonSSH 可借鉴：** hook 应进入统一 AgentEvent trace；skill announcement 需要预算和去重，并在压缩后恢复“已宣布/已激活”状态，避免每次 compaction 后重复灌入。
 
 ## 8. 可观测性与离线评估
 
@@ -139,7 +139,7 @@ compaction streaming timing 是 O(1) accumulator，不保存每 token 时间戳�
 
 更关键的是持久化 `compaction_requests/{id}.json`：包含精确输入 ConversationItem、工具定义、模型、用户额外上下文、摘要或错误和每次尝试细节，注释明确说用于 offline prompt iteration。[`persistence.rs:360-368`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-shell/src/session/persistence.rs#L360-L368)
 
-这使“摘要质量”可以离线回放，而不是靠线上主观反馈。Catty 应补一套固定 eval：
+这使“摘要质量”可以离线回放，而不是靠线上主观反馈。LemonSSH 应补一套固定 eval：
 
 - continuation state recall：active task/subagent/todo/edited file 是否完整；
 - exact-detail recovery：摘要缺失时能否从 archive 找回具体错误、命令、路径；
@@ -156,7 +156,7 @@ compaction streaming timing 是 O(1) accumulator，不保存每 token 时间戳�
 
 需要特别避免误判：Grok 可以配置 `Codex` prompt profile，也能组合 OpenCode 工具集；这表示兼容/复用工具行为，不等于它的上下文 runtime 来自 Codex/OpenCode。[`prompt/context.rs:15-29`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/prompt/context.rs#L15-L29) [`xai-grok-agent/src/config.rs:518-528`](/Users/chenqi/.codex/external-sources/grok-build/crates/codegen/xai-grok-agent/src/config.rs#L518-L528)
 
-## 10. 给 Catty 的落地计划建议
+## 10. 给 LemonSSH 的落地计划建议
 
 ### P0：先补正确性与评估底座
 
@@ -178,11 +178,11 @@ compaction streaming timing 是 O(1) accumulator，不保存每 token 时间戳�
 
 ### 不建议直接照搬
 
-- 不应直接采用 bytes/4 作为唯一 token 估算器；Catty 已有模型相关估算基础，应保留实际 tokenizer/usage 校正，只统一边界语义。
+- 不应直接采用 bytes/4 作为唯一 token 估算器；LemonSSH 已有模型相关估算基础，应保留实际 tokenizer/usage 校正，只统一边界语义。
 - 不应未经 eval 就开启后台 pass1；它可能增加费用且缓存失效会造成纯浪费。
-- 不应把 50%/85%/95%、40 KB、10 轮等常数照抄；这些是 Grok 的模型和服务约束，应由 Catty 的 trace 分布校准。
-- Hook 的 fail-open 是 Grok 明示的威胁模型选择，不适合作为所有安全策略的默认值；Catty 需要按 hook 类型区分“工作流扩展”和“安全门禁”。
+- 不应把 50%/85%/95%、40 KB、10 轮等常数照抄；这些是 Grok 的模型和服务约束，应由 LemonSSH 的 trace 分布校准。
+- Hook 的 fail-open 是 Grok 明示的威胁模型选择，不适合作为所有安全策略的默认值；LemonSSH 需要按 hook 类型区分“工作流扩展”和“安全门禁”。
 
 ## 最终判断
 
-Catty 现有架构已经有 pre-turn compaction、step pruning、413 retry、SessionState reinjection、ToolOutputStore 和统一 AgentEvent，方向是对的。Grok Build 显示下一阶段最有价值的不是再加一种总结 prompt，而是把这些模块连成一个**可恢复、可验证、可观测的上下文生命周期**：压缩前分层减负，压缩时保存证据，压缩后重建现场，细节按需恢复，所有路径都能离线重放和量化。
+LemonSSH 现有架构已经有 pre-turn compaction、step pruning、413 retry、SessionState reinjection、ToolOutputStore 和统一 AgentEvent，方向是对的。Grok Build 显示下一阶段最有价值的不是再加一种总结 prompt，而是把这些模块连成一个**可恢复、可验证、可观测的上下文生命周期**：压缩前分层减负，压缩时保存证据，压缩后重建现场，细节按需恢复，所有路径都能离线重放和量化。

@@ -28,7 +28,7 @@ export function buildTerminalPluginContributionContext({
   reconnectable,
 }: TerminalPluginContributionContextOptions): PluginContributionContext {
   return {
-    'netcatty.surface': surface,
+    'lemonssh.surface': surface,
     ...(sessionId ? { 'terminal.sessionId': sessionId } : {}),
     ...(status ? { 'terminal.status': status } : {}),
     ...(hostId ? { 'host.id': hostId } : {}),
@@ -69,6 +69,6 @@ export function resolveActivePluginKeybindingContext({
       hostProtocol: session?.protocol ?? (session ? 'ssh' : undefined),
       workspaceId,
     }),
-    'netcatty.activeTabId': activeTabId,
+    'lemonssh.activeTabId': activeTabId,
   };
 }

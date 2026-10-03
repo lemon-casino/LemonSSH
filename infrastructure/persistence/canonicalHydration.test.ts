@@ -45,7 +45,7 @@ test("real Go adapter boot, concurrent import, serialized writes, conflicts, res
     };
     return { client, close: async () => { await call({ Method: "close" }); } };
   }
-  const localData = new Map([["theme", "legacy"], ["netcatty_hosts_v1", "hosts"], ["netcatty_ai_sessions_v1", "private"]]);
+  const localData = new Map([["theme", "legacy"], ["lemonssh_hosts_v1", "hosts"], ["lemonssh_ai_sessions_v1", "private"]]);
   const local = {
     keys: () => [...localData.keys()], readString: (key: string) => localData.get(key) ?? null,
     writeString: (key: string, value: string) => { localData.set(key, value); return true; },
@@ -58,27 +58,27 @@ test("real Go adapter boot, concurrent import, serialized writes, conflicts, res
     const b = createCanonicalStorage(host.client, local, error => errors.push(error));
     await Promise.all([a.hydrate(), b.hydrate()]);
     assert.equal(a.readString("theme"), "legacy");
-    assert.equal(b.readString("netcatty_hosts_v1"), "hosts");
+    assert.equal(b.readString("lemonssh_hosts_v1"), "hosts");
     a.writeString("theme", "first");
     a.writeString("theme", "Go canonical");
     await a.flush();
     b.writeString("theme", "stale overwrite");
     await assert.rejects(b.flush(), /conflict/);
     assert.equal(b.readString("theme"), "Go canonical");
-    a.remove("netcatty_hosts_v1");
+    a.remove("lemonssh_hosts_v1");
     await a.flush();
     await b.refresh();
-    assert.equal(b.readString("netcatty_hosts_v1"), null);
-    assert.equal(await host.client.getRawBase64("settings", "netcatty_ai_sessions_v1"), undefined);
+    assert.equal(b.readString("lemonssh_hosts_v1"), null);
+    assert.equal(await host.client.getRawBase64("settings", "lemonssh_ai_sessions_v1"), undefined);
     await host.close();
     const restarted = await start();
     localData.set("theme", "stale local");
-    localData.set("netcatty_hosts_v1", "resurrected");
+    localData.set("lemonssh_hosts_v1", "resurrected");
     const c = createCanonicalStorage(restarted.client, local, error => errors.push(error));
     await c.hydrate();
     assert.equal(c.readString("theme"), "Go canonical");
-    assert.equal(c.readString("netcatty_hosts_v1"), null);
-    assert.equal(c.readString("netcatty_ai_sessions_v1"), "private");
+    assert.equal(c.readString("lemonssh_hosts_v1"), null);
+    assert.equal(c.readString("lemonssh_ai_sessions_v1"), "private");
     await restarted.close();
     c.writeString("theme", "cannot persist");
     await assert.rejects(c.flush(), /closed/);

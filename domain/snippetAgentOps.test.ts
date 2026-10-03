@@ -23,11 +23,16 @@ const host: Host = {
   tags: [],
 };
 
-test('getScriptApiReference includes nct API and wrapper rules', () => {
+test('getScriptApiReference includes nct API and the replay execution model', () => {
   const ref = getScriptApiReference();
   assert.match(ref, /nct\.screen\.waitForPrompt/);
+  // The reference documents the recorded-replay runner, not a JS sandbox.
+  assert.match(ref, /recorded-replay runner/);
+  assert.match(ref, /unsupported script line/);
+  // Session metadata properties are advertised as NOT available, so agents
+  // never author scripts that read them.
   assert.match(ref, /nct\.session\.name/);
-  assert.match(ref, /Only JavaScript is executed/);
+  assert.match(ref, /Not available to replayed scripts/);
   assert.match(ref, /onConnect/);
 });
 

@@ -4,9 +4,13 @@ import { spawnSync } from 'node:child_process';
 
 mkdirSync('bin', { recursive: true });
 const nativeTools = [
-  { command: 'netcatty-tool', output: 'LemonSSH-tool' },
-  { command: 'netcatty-mcp', output: 'LemonSSH-mcp' },
+  { command: 'lemonssh-tool', output: 'LemonSSH-tool' },
+  { command: 'lemonssh-mcp', output: 'LemonSSH-mcp' },
 ];
+// Legacy cleanup list must keep the OLD names: it removes stale
+// netcatty-tool.exe / netcatty-mcp.exe left by the previous release so the
+// renamed binaries are not shadowed. Renaming these entries would leak the
+// legacy executables into later packaging steps.
 for (const legacy of ['netcatty-tool', 'netcatty-mcp']) {
   rmSync(path.join('bin', legacy + (process.platform === 'win32' ? '.exe' : '')), { force: true });
 }

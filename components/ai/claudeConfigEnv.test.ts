@@ -53,7 +53,7 @@ test("buildClaudeEnv ignores managed keys typed into the env editor", () => {
     { CLAUDE_CODE_EXECUTABLE: "/usr/bin/claude" },
     "/cfg",
     "",
-    "CLAUDE_CODE_EXECUTABLE=/evil/claude\nCLAUDE_CONFIG_DIR=/evil/dir\nNETCATTY_CLAUDE_SETTINGS=/evil/settings.json\nANTHROPIC_API_KEY=sk-x",
+    "CLAUDE_CODE_EXECUTABLE=/evil/claude\nCLAUDE_CONFIG_DIR=/evil/dir\nLEMONSSH_CLAUDE_SETTINGS=/evil/settings.json\nANTHROPIC_API_KEY=sk-x",
   );
   assert.deepEqual(next, {
     CLAUDE_CODE_EXECUTABLE: "/usr/bin/claude",
@@ -62,10 +62,10 @@ test("buildClaudeEnv ignores managed keys typed into the env editor", () => {
   });
 });
 
-test("splitClaudeEnv + buildClaudeEnv round-trip the settings marker (NETCATTY_CLAUDE_SETTINGS)", () => {
+test("splitClaudeEnv + buildClaudeEnv round-trip the settings marker (LEMONSSH_CLAUDE_SETTINGS)", () => {
   const split = splitClaudeEnv({
     CLAUDE_CONFIG_DIR: "/cfg",
-    NETCATTY_CLAUDE_SETTINGS: "/team/settings.json",
+    LEMONSSH_CLAUDE_SETTINGS: "/team/settings.json",
     ANTHROPIC_API_KEY: "sk-x",
   });
   assert.equal(split.settingsPath, "/team/settings.json");
@@ -77,12 +77,12 @@ test("splitClaudeEnv + buildClaudeEnv round-trip the settings marker (NETCATTY_C
   const rebuilt = buildClaudeEnv(undefined, "/cfg", "/team/settings.json", "ANTHROPIC_API_KEY=sk-x");
   assert.deepEqual(rebuilt, {
     CLAUDE_CONFIG_DIR: "/cfg",
-    NETCATTY_CLAUDE_SETTINGS: "/team/settings.json",
+    LEMONSSH_CLAUDE_SETTINGS: "/team/settings.json",
     ANTHROPIC_API_KEY: "sk-x",
   });
 
   // settings alone (no config dir) is allowed
   assert.deepEqual(buildClaudeEnv(undefined, "", "/only/settings.json", ""), {
-    NETCATTY_CLAUDE_SETTINGS: "/only/settings.json",
+    LEMONSSH_CLAUDE_SETTINGS: "/only/settings.json",
   });
 });

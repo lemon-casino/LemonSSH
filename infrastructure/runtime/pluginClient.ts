@@ -1,4 +1,4 @@
-import type { DeclarativePluginUI } from '@netcatty/plugin-contract';
+import type { DeclarativePluginUI } from '@lemonssh/plugin-contract';
 import { getActiveRuntimeClient } from './runtimeClient';
 
 export interface PluginV2Client {

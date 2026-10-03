@@ -4,13 +4,13 @@ Research date: 2026-07-12
 
 Source revisions:
 
-- Netcatty: `c096a64d7a7015e18100b842614c26e8eaadfcb3`
+- LemonSSH: `c096a64d7a7015e18100b842614c26e8eaadfcb3`
 - Tabby: `18fa6959bd95f24b72403c8f22a4eb002b53adcf`
 - Electerm: `e473f5d172daf08ca82d7bdc9ebe14690820ca23`
 
 ## Executive conclusion
 
-Netcatty can and should borrow the competitors' common foundation: import `~/.ssh/config` as clickable hosts and authenticate through the already-running system SSH agent via its socket, without copying a private key or passphrase into the application.
+LemonSSH can and should borrow the competitors' common foundation: import `~/.ssh/config` as clickable hosts and authenticate through the already-running system SSH agent via its socket, without copying a private key or passphrase into the application.
 
 Tabby is the stronger reference for the difficult part. When an imported host has `IdentityFile`, it reads the corresponding public `.pub` file and asks the agent to use that specific identity first; if that cannot be done, it falls back to trying the agent's full identity list. This avoids both reading/decrypting the private key and the common “too many authentication attempts” failure. The behavior was added specifically for this problem in [Tabby PR #10953](https://github.com/Eugeny/tabby/pull/10953) and shipped in [v1.0.230](https://github.com/Eugeny/tabby/releases/tag/v1.0.230).
 
@@ -20,7 +20,7 @@ Neither application directly reads a private-key passphrase from macOS Keychain.
 
 ## What issue #2119 is asking for
 
-[Netcatty issue #2119](https://github.com/binaricat/Netcatty/issues/2119) supplies this OpenSSH configuration:
+[LemonSSH issue #2119](https://github.com/binaricat/LemonSSH/issues/2119) supplies this OpenSSH configuration:
 
 ```sshconfig
 Host aws-sg
@@ -36,9 +36,9 @@ Host aws-sg
 The requested outcome has two independent requirements:
 
 1. `aws-sg` appears as a clickable host in the application's UI.
-2. The application's built-in SSH client signs through the macOS SSH agent, so Netcatty does not store the private key or its passphrase.
+2. The application's built-in SSH client signs through the macOS SSH agent, so LemonSSH does not store the private key or its passphrase.
 
-The Keychain and agent roles must not be conflated. The application speaks the SSH-agent protocol through a socket. The macOS/OpenSSH tools are responsible for putting an unlocked identity into that agent. A reliable acceptance check is therefore: the desired public identity is visible to the agent before Netcatty connects.
+The Keychain and agent roles must not be conflated. The application speaks the SSH-agent protocol through a socket. The macOS/OpenSSH tools are responsible for putting an unlocked identity into that agent. A reliable acceptance check is therefore: the desired public identity is visible to the agent before LemonSSH connects.
 
 ## Comparison
 
@@ -73,7 +73,7 @@ When agent auth is allowed and `IdentityFile` paths exist, Tabby reads the match
 
 Strictly speaking, Tabby does not permanently filter the agent's identity list. It performs a targeted attempt first and then intentionally tries the full list. That is a compatibility tradeoff: it addresses server attempt limits while preserving older behavior if the `.pub` file is absent or stale. [PR #10953](https://github.com/Eugeny/tabby/pull/10953) documents the motivation, ordering, `.pub` dependency, and fallback.
 
-One limitation for #2119 is that Auto also loads the private key as a direct file-key method before building agent methods ([source](https://github.com/Eugeny/tabby/blob/18fa6959bd95f24b72403c8f22a4eb002b53adcf/tabby-ssh/src/session/ssh.ts#L161-L203)). For an encrypted key this can lead to Tabby's own passphrase prompt before agent auth. Choosing the explicit Agent method avoids direct private-key loading. This is a product detail Netcatty can improve on by treating an imported agent-backed host as agent-first without requiring a manual mode change.
+One limitation for #2119 is that Auto also loads the private key as a direct file-key method before building agent methods ([source](https://github.com/Eugeny/tabby/blob/18fa6959bd95f24b72403c8f22a4eb002b53adcf/tabby-ssh/src/session/ssh.ts#L161-L203)). For an encrypted key this can lead to Tabby's own passphrase prompt before agent auth. Choosing the explicit Agent method avoids direct private-key loading. This is a product detail LemonSSH can improve on by treating an imported agent-backed host as agent-first without requiring a manual mode change.
 
 ## Electerm
 
@@ -113,17 +113,17 @@ Electerm's direct-login order is explicit in `getAuthOrder`: `none`, password, p
 
 Electerm does test that a wrong file key is attempted and rejected before the agent succeeds ([source](https://github.com/electerm/electerm/blob/e473f5d172daf08ca82d7bdc9ebe14690820ca23/test/unit-ci/session-ssh-agent.spec.js#L265-L324)). It also contains a compatibility fix so agent auth remains eligible when a server reports only `publickey`, not a literal `agent` method ([source](https://github.com/electerm/electerm/blob/e473f5d172daf08ca82d7bdc9ebe14690820ca23/src/app/server/session-ssh.js#L82-L90), [fix commit](https://github.com/electerm/electerm/commit/f05ef847b774a95d4b3ddf9e06ba5a27220ac419)).
 
-## Netcatty gap at the researched revision
+## LemonSSH gap at the researched revision
 
-Netcatty already has most of the plumbing:
+LemonSSH already has most of the plumbing:
 
-- It imports non-wildcard SSH-config hosts and attaches `IdentityFile` paths ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512), [host creation](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L529-L556)).
-- It discovers the non-Windows agent from `SSH_AUTH_SOCK` and validates the socket ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L463-L495)).
-- With no explicit auth, it already tries the agent before default keys ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L554-L564), [ordering](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L637-L678)).
+- It imports non-wildcard SSH-config hosts and attaches `IdentityFile` paths ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512), [host creation](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L529-L556)).
+- It discovers the non-Windows agent from `SSH_AUTH_SOCK` and validates the socket ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L463-L495)).
+- With no explicit auth, it already tries the agent before default keys ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L554-L564), [ordering](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L637-L678)).
 
-The gap is the combination of those features. An imported `IdentityFile` is treated as a user-configured key. Before connecting, Netcatty reads/decrypts it and can show its own passphrase prompt ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L644-L690)). Agent-first fallback runs only when no key/password/agent was prepared ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L740-L761)). If a key was prepared, direct-key auth precedes agent auth ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L807-L821)).
+The gap is the combination of those features. An imported `IdentityFile` is treated as a user-configured key. Before connecting, LemonSSH reads/decrypts it and can show its own passphrase prompt ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L644-L690)). Agent-first fallback runs only when no key/password/agent was prepared ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L740-L761)). If a key was prepared, direct-key auth precedes agent auth ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L807-L821)).
 
-Netcatty's SSH-config importer also ignores `UseKeychain`, `AddKeysToAgent`, and `IdentitiesOnly`; its recognized block fields are visible in the parser ([source](https://github.com/binaricat/Netcatty/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512)).
+LemonSSH's SSH-config importer also ignores `UseKeychain`, `AddKeysToAgent`, and `IdentitiesOnly`; its recognized block fields are visible in the parser ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512)).
 
 ## Recommended phased design
 
@@ -131,13 +131,13 @@ Netcatty's SSH-config importer also ignores `UseKeychain`, `AddKeysToAgent`, and
 
 Add an explicit per-host authentication choice such as “System SSH Agent,” plus “Auto” behavior that prefers a reachable system agent for an SSH-config-managed host. On macOS/Linux, use `SSH_AUTH_SOCK`; retain a manual socket override and show whether the socket is reachable. Do not read or prompt for an imported encrypted `IdentityFile` before trying the agent.
 
-This phase directly solves #2119 when `aws_root` is already loaded in the macOS agent. It reuses Netcatty's existing socket support and changes selection/order rather than adding Keychain access.
+This phase directly solves #2119 when `aws_root` is already loaded in the macOS agent. It reuses LemonSSH's existing socket support and changes selection/order rather than adding Keychain access.
 
 Apply the same policy at every connection surface: terminal, SFTP, command execution, port forwarding, jump hosts, and background probes. Otherwise a host may connect in the terminal but still prompt for a key in SFTP or forwarding.
 
 ### Phase 2: target the configured identity, following Tabby
 
-For each imported `IdentityFile`, read only the matching public `.pub` file. Wrap/delegate the system agent so only matching public identities are advertised for the first attempt, or add the equivalent targeted-agent operation. Keep the private key and passphrase outside Netcatty.
+For each imported `IdentityFile`, read only the matching public `.pub` file. Wrap/delegate the system agent so only matching public identities are advertised for the first attempt, or add the equivalent targeted-agent operation. Keep the private key and passphrase outside LemonSSH.
 
 Recommended order for an Auto/agent-backed imported host:
 
@@ -156,9 +156,9 @@ Preserve these directives as structured imported metadata:
 - `IdentityFile`: candidate identity selectors, not automatically “read this private key now.”
 - `IdentityAgent`: socket override when present.
 - `IdentitiesOnly`: restrict which agent identities may be attempted; it does **not** mean disable the agent.
-- `AddKeysToAgent` and `UseKeychain`: record them for transparency, but do not claim they are enforced unless Netcatty intentionally invokes platform OpenSSH tooling.
+- `AddKeysToAgent` and `UseKeychain`: record them for transparency, but do not claim they are enforced unless LemonSSH intentionally invokes platform OpenSSH tooling.
 
-For strict `IdentitiesOnly yes`, do not perform the full-agent fallback. For absent/false, targeted-first then full-agent is reasonable. Import preview should explain which directives Netcatty uses and which remain owned by the user's OpenSSH setup.
+For strict `IdentitiesOnly yes`, do not perform the full-agent fallback. For absent/false, targeted-first then full-agent is reasonable. Import preview should explain which directives LemonSSH uses and which remain owned by the user's OpenSSH setup.
 
 ### Phase 4: macOS robustness and diagnostics
 
@@ -168,9 +168,9 @@ Both competitors mainly trust the inherited `SSH_AUTH_SOCK`; Electerm additional
 - a user-selectable socket path when automatic discovery fails;
 - a precise “agent reachable but target identity not loaded” state;
 - a safe verification action equivalent to listing public identities, without exposing private material;
-- clear fallback behavior rather than silently opening Netcatty's private-key passphrase prompt.
+- clear fallback behavior rather than silently opening LemonSSH's private-key passphrase prompt.
 
-Direct macOS Keychain integration should be a separate feature, not a prerequisite for #2119. The agent boundary is smaller, cross-platform, and already present in Netcatty.
+Direct macOS Keychain integration should be a separate feature, not a prerequisite for #2119. The agent boundary is smaller, cross-platform, and already present in LemonSSH.
 
 ## Acceptance tests for a future implementation
 
@@ -189,4 +189,4 @@ Direct macOS Keychain integration should be a separate feature, not a prerequisi
 - Inspected the pinned Tabby and Electerm source revisions locally.
 - Traced both applications from SSH-config import through connection authentication.
 - Ran Electerm's exact locked `ssh-config-loader@1.1.2` against the issue's exact configuration and recorded the converted bookmark shown above.
-- Inspected Netcatty's current import, identity-file preparation, socket discovery, and authentication ordering without modifying product code.
+- Inspected LemonSSH's current import, identity-file preparation, socket discovery, and authentication ordering without modifying product code.

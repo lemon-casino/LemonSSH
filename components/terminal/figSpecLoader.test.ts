@@ -19,7 +19,7 @@ test("normalizeCommandName strips path and extension", () => {
  * - spec loads deduplicate concurrent requests and cache resolved specs,
  * - preloadCommonSpecs never loads on the synchronous path (nonblocking),
  *   and its deferred batches eventually populate the shared cache.
- * getBridge reads the bridge at call time, so window.netcatty can be mocked
+ * getBridge reads the bridge at call time, so window.lemonssh can be mocked
  * after module import.
  */
 
@@ -30,7 +30,7 @@ const loadFigSpecRequests: string[] = [];
 
 Object.defineProperty(globalThis, "window", {
   value: {
-    netcatty: {
+    lemonssh: {
       listFigSpecs: async () => {
         listFigSpecsCalls++;
         return ["story", "slow-spec"];

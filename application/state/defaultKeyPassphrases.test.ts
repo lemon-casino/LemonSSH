@@ -47,7 +47,7 @@ function installLocalStorage(t: test.TestContext): void {
   });
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: undefined },
+    value: { lemonssh: undefined },
   });
 
   t.after(() => {
@@ -120,7 +120,7 @@ test("deleting a key cannot overwrite a concurrent key-list update", async (t) =
   let homeLookupCount = 0;
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => {
+    value: { lemonssh: { getHomeDir: async () => {
       homeLookupCount += 1;
       await homeLookup;
       return "/Users/alice";
@@ -151,7 +151,7 @@ test("deleting a Windows reference clears remembered path aliases", async (t) =>
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "C:\\Users\\Alice" } },
+    value: { lemonssh: { getHomeDir: async () => "C:\\Users\\Alice" } },
   });
   const key = {
     ...referenceKey(),
@@ -238,7 +238,7 @@ test("export read retries when the passphrase changes during decryption", async 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => "/Users/alice",
         credentialsDecrypt: async (value: string) => {
           decryptCount += 1;
@@ -301,7 +301,7 @@ test("passphrase verification reads every alias and preserves unreadable state",
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => "/Users/alice",
         credentialsDecrypt: async (value: string) => value,
       },
@@ -329,7 +329,7 @@ test("passphrase verification preserves conflicting readable alias values", asyn
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -358,7 +358,7 @@ test("imported passphrase cannot overwrite a correction queued first", async (t)
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         credentialsEncrypt: async (value: string) => {
           encryptCount += 1;
           if (encryptCount === 1) {
@@ -399,7 +399,7 @@ test("imported passphrase cannot overwrite a direct key correction during valida
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => "/Users/alice",
         credentialsEncrypt: async (value: string) => {
           encryptStarted?.();
@@ -444,7 +444,7 @@ test("loadDefaultKeyPassphrase cleanup preserves a passphrase saved concurrently
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => {
           homeLookupCount += 1;
           if (homeLookupCount === 1) await firstHomeLookup;
@@ -479,7 +479,7 @@ test("loadDefaultKeyPassphrase retries when the same path is saved concurrently"
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => {
           homeLookupCount += 1;
           if (homeLookupCount === 1) await firstHomeLookup;
@@ -526,7 +526,7 @@ test("loadDefaultKeyPassphrase matches an expanded connection path to a saved ho
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => "/Users/alice",
       },
     },
@@ -544,7 +544,7 @@ test("loadDefaultKeyPassphrase prefers an exact saved path over a stale alias", 
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -568,7 +568,7 @@ test("loadDefaultKeyPassphrase falls back to a valid alias and removes an invali
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -592,7 +592,7 @@ test("loadDefaultKeyPassphrase consolidates conflicting valid aliases around the
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -616,7 +616,7 @@ test("saveDefaultKeyPassphrase replaces stale values stored under path aliases",
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -639,7 +639,7 @@ test("removeDefaultKeyPassphraseAliases clears relative and expanded paths", asy
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   globalThis.localStorage.setItem(
     STORAGE_KEY_DEFAULT_KEY_PASSPHRASES,
@@ -677,7 +677,7 @@ test("passphrase removal and save mutations run in request order", async (t) => 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         getHomeDir: async () => {
           homeLookupCount += 1;
           if (homeLookupCount === 1) await firstHomeLookup;
@@ -758,7 +758,7 @@ test("rememberKeyPassphrase updates a reference key stored under an expanded ali
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "/Users/alice" } },
+    value: { lemonssh: { getHomeDir: async () => "/Users/alice" } },
   });
   let updatedKeys: SSHKey[] | undefined;
 
@@ -809,7 +809,7 @@ test("path aliases replace and clear Windows reference-key spellings", async (t)
   installLocalStorage(t);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: { getHomeDir: async () => "C:\\Users\\Alice" } },
+    value: { lemonssh: { getHomeDir: async () => "C:\\Users\\Alice" } },
   });
   const windowsReferenceKey: SSHKey = {
     ...referenceKey(),

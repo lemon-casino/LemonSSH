@@ -26,7 +26,7 @@ const NERD_FONT_FALLBACK_FONTS = [
 // AND the current Latin font has no recommended pairing.
 // All choices are TRUE monospace fonts that keep the terminal grid
 // aligned. macOS has no system-installed monospace CJK font, so we
-// reference Sarasa Mono SC which netcatty bundles as a webfont.
+// reference Sarasa Mono SC which LemonSSH bundles as a webfont.
 export function getDefaultCjkFallback(platform: SupportedPlatform): string {
   if (platform === 'win32') return 'SimSun';
   if (platform === 'darwin') return 'Sarasa Mono SC';
@@ -34,7 +34,7 @@ export function getDefaultCjkFallback(platform: SupportedPlatform): string {
 }
 
 // Every entry must point at a TRUE monospace CJK font. Sarasa Mono SC
-// is the safest universal choice because netcatty bundles it via
+// is the safest universal choice because LemonSSH bundles it via
 // @font-face, so it works even on machines without other CJK monospace
 // fonts installed.
 const PER_FONT_CJK_PAIRING: Record<string, string> = {

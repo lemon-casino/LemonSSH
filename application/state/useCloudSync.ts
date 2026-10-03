@@ -36,7 +36,7 @@ import {
 import { hasHostProfileClient, refreshHostProfile } from '../../infrastructure/persistence/hostStorageAdapter';
 import { reloadOAuthClientIdsFromStorage } from '../../infrastructure/services/cloudSync/oauthClientIds';
 import type { ShrinkFinding } from '../../domain/syncGuards';
-import { cloudSyncBridge as netcattyBridge, cloudSyncBridge } from '../../infrastructure/services/cloudSync/cloudSyncFacade';
+import { cloudSyncBridge as lemonsshBridge, cloudSyncBridge } from '../../infrastructure/services/cloudSync/cloudSyncFacade';
 import type { DeviceFlowState } from '../../infrastructure/services/adapters/GitHubAdapter';
 import {
   getConvergentSyncLocalConfig,
@@ -306,7 +306,7 @@ export const useCloudSync = (): CloudSyncHook => {
 
     void (async () => {
       try {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const password = await bridge?.cloudSyncGetSessionPassword?.();
         if (!password) return;
 
@@ -401,19 +401,19 @@ export const useCloudSync = (): CloudSyncHook => {
       throw new Error('Password must be at least 8 characters');
     }
     await manager.setupMasterKey(password);
-    void netcattyBridge.get()?.cloudSyncSetSessionPassword?.(password);
+    void lemonsshBridge.get()?.cloudSyncSetSessionPassword?.(password);
   }, []);
   
   const unlock = useCallback(async (password: string): Promise<boolean> => {
     const ok = await manager.unlock(password);
     if (ok) {
-      void netcattyBridge.get()?.cloudSyncSetSessionPassword?.(password);
+      void lemonsshBridge.get()?.cloudSyncSetSessionPassword?.(password);
     }
     return ok;
   }, []);
   
   const lock = useCallback(() => {
-    void netcattyBridge.get()?.cloudSyncClearSessionPassword?.();
+    void lemonsshBridge.get()?.cloudSyncClearSessionPassword?.();
     manager.lock();
   }, []);
   
@@ -423,7 +423,7 @@ export const useCloudSync = (): CloudSyncHook => {
   ): Promise<boolean> => {
     const ok = await manager.verifyPassword(newPassword) || await manager.changeMasterKey(oldPassword, newPassword);
     if (ok) {
-      const saved = await netcattyBridge.get()?.cloudSyncSetSessionPassword?.(newPassword);
+      const saved = await lemonsshBridge.get()?.cloudSyncSetSessionPassword?.(newPassword);
       if (saved === false) throw new Error('Master key changed locally, but saving the password failed. Retry the key update.');
     }
     return ok;
@@ -748,7 +748,7 @@ export const useCloudSync = (): CloudSyncHook => {
   }, []);
   
   const resetSyncEverything = useCallback(async (): Promise<string[]> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.cloudSyncResetEverything) throw new Error('cloudSyncResetEverything is not migrated to the Wails runtime yet');
     const removed = await bridge.cloudSyncResetEverything();
     // Go already deleted the durable identity. Refresh the same-window host
@@ -804,7 +804,7 @@ export const useCloudSync = (): CloudSyncHook => {
       throw new Error('No master key configured');
     }
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const password = await bridge?.cloudSyncGetSessionPassword?.();
     if (password) {
       const ok = await manager.unlock(password);

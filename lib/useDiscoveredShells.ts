@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { netcattyBridge } from "../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../infrastructure/services/lemonsshBridge";
 
 let shellCache: DiscoveredShell[] | null = null;
 let shellPromise: Promise<DiscoveredShell[]> | null = null;
@@ -12,7 +12,7 @@ let shellPromise: Promise<DiscoveredShell[]> | null = null;
 export async function ensureDiscoveredShells(): Promise<DiscoveredShell[]> {
   if (shellCache) return shellCache;
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.discoverShells) return [];
 
   if (!shellPromise) {

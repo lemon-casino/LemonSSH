@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 export type ApplicationInfo = {
   name: string;
@@ -15,7 +15,7 @@ export type SshAgentStatus = {
 
 export const useApplicationBackend = () => {
   const openExternal = useCallback(async (url: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.openExternal) {
       // Bridge resolves on success (either via system browser or in-app
       // fallback window) and rejects only when both paths fail. Let the
@@ -28,7 +28,7 @@ export const useApplicationBackend = () => {
   }, []);
 
   const getApplicationInfo = useCallback(async (): Promise<ApplicationInfo | null> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const info = await bridge?.getAppInfo?.();
     return info ?? null;
   }, []);
@@ -40,7 +40,7 @@ export const useApplicationBackend = () => {
     port?: number;
     username?: string;
   }): Promise<SshAgentStatus | null> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const status = await bridge?.checkSshAgent?.(options);
     return status ?? null;
   }, []);

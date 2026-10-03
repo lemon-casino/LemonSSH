@@ -20,10 +20,10 @@ func openTestStore(t *testing.T) *Store {
 
 func TestRawValueRoundTripAndBounds(t *testing.T) {
 	s := openTestStore(t)
-	if err := s.SetRaw("vault", "netcatty_hosts_v1", []byte(`{"hosts":[]}`)); err != nil {
+	if err := s.SetRaw("vault", "lemonssh_hosts_v1", []byte(`{"hosts":[]}`)); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	value, err := s.GetRaw("vault", "netcatty_hosts_v1")
+	value, err := s.GetRaw("vault", "lemonssh_hosts_v1")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -43,10 +43,10 @@ func TestRawValueRoundTripAndBounds(t *testing.T) {
 	if err := s.SetRaw("vault", "bad\x01key", []byte("v")); !errors.Is(err, ErrInvalidKey) {
 		t.Fatalf("control chars must fail, got %v", err)
 	}
-	if err := s.DeleteRaw("vault", "netcatty_hosts_v1"); err != nil {
+	if err := s.DeleteRaw("vault", "lemonssh_hosts_v1"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
-	if _, err := s.GetRaw("vault", "netcatty_hosts_v1"); !errors.Is(err, ErrNoSuchKey) {
+	if _, err := s.GetRaw("vault", "lemonssh_hosts_v1"); !errors.Is(err, ErrNoSuchKey) {
 		t.Fatal("deleted key must be gone")
 	}
 }
@@ -56,10 +56,10 @@ func TestEmptyValueIsPresentNotMissing(t *testing.T) {
 	// A zero-length value is a real value: localStorage stores empty strings
 	// (no custom CSS, default session log directory) and they must not read
 	// back as ErrNoSuchKey.
-	if err := s.SetRaw("settings", "netcatty_custom_css_v1", []byte{}); err != nil {
+	if err := s.SetRaw("settings", "lemonssh_custom_css_v1", []byte{}); err != nil {
 		t.Fatalf("set empty: %v", err)
 	}
-	value, err := s.GetRaw("settings", "netcatty_custom_css_v1")
+	value, err := s.GetRaw("settings", "lemonssh_custom_css_v1")
 	if err != nil {
 		t.Fatalf("empty value must read back, got %v", err)
 	}
@@ -69,11 +69,11 @@ func TestEmptyValueIsPresentNotMissing(t *testing.T) {
 
 	// The same holds for a transaction-issued empty value.
 	if _, err := s.Write(WriteRequest{Mutations: []Mutation{{
-		Domain: "settings", Key: "netcatty_session_logs_dir_v1", Value: []byte{},
+		Domain: "settings", Key: "lemonssh_session_logs_dir_v1", Value: []byte{},
 	}}}); err != nil {
 		t.Fatalf("transaction empty: %v", err)
 	}
-	value, err = s.GetRaw("settings", "netcatty_session_logs_dir_v1")
+	value, err = s.GetRaw("settings", "lemonssh_session_logs_dir_v1")
 	if err != nil || len(value) != 0 {
 		t.Fatalf("transaction empty value must read back, got %q (%v)", value, err)
 	}
@@ -85,7 +85,7 @@ func TestEmptyValueIsPresentNotMissing(t *testing.T) {
 	}
 	found := false
 	for _, key := range keys {
-		if key == "netcatty_custom_css_v1" {
+		if key == "lemonssh_custom_css_v1" {
 			found = true
 		}
 	}
@@ -94,10 +94,10 @@ func TestEmptyValueIsPresentNotMissing(t *testing.T) {
 	}
 
 	// A deleted key is still absent, not empty.
-	if err := s.DeleteRaw("settings", "netcatty_custom_css_v1"); err != nil {
+	if err := s.DeleteRaw("settings", "lemonssh_custom_css_v1"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
-	if _, err := s.GetRaw("settings", "netcatty_custom_css_v1"); !errors.Is(err, ErrNoSuchKey) {
+	if _, err := s.GetRaw("settings", "lemonssh_custom_css_v1"); !errors.Is(err, ErrNoSuchKey) {
 		t.Fatalf("deleted key must be ErrNoSuchKey, got %v", err)
 	}
 }

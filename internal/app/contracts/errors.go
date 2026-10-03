@@ -12,31 +12,31 @@ type ErrorCode string
 
 const (
 	// CodeUnknown covers errors that carry no more specific code.
-	CodeUnknown ErrorCode = "netcatty.unknown"
+	CodeUnknown ErrorCode = "lemonssh.unknown"
 	// CodeInvalidRequest marks a malformed or rejected request payload.
-	CodeInvalidRequest ErrorCode = "netcatty.invalid_request"
+	CodeInvalidRequest ErrorCode = "lemonssh.invalid_request"
 	// CodeNotFound marks a missing resource.
-	CodeNotFound ErrorCode = "netcatty.not_found"
+	CodeNotFound ErrorCode = "lemonssh.not_found"
 	// CodeConflict marks a state conflict such as duplicate ownership.
-	CodeConflict ErrorCode = "netcatty.conflict"
+	CodeConflict ErrorCode = "lemonssh.conflict"
 	// CodeDeadlineExceeded marks a request whose deadline elapsed.
-	CodeDeadlineExceeded ErrorCode = "netcatty.deadline_exceeded"
+	CodeDeadlineExceeded ErrorCode = "lemonssh.deadline_exceeded"
 	// CodeCancelled marks a request cancelled by its owner.
-	CodeCancelled ErrorCode = "netcatty.cancelled"
+	CodeCancelled ErrorCode = "lemonssh.cancelled"
 	// CodeUnavailable marks a temporarily unavailable backend or shell.
-	CodeUnavailable ErrorCode = "netcatty.unavailable"
+	CodeUnavailable ErrorCode = "lemonssh.unavailable"
 	// CodeInternal marks an unexpected internal failure.
-	CodeInternal ErrorCode = "netcatty.internal"
+	CodeInternal ErrorCode = "lemonssh.internal"
 	// CodeBusy marks a turn or chat that already has an active writer.
-	CodeBusy ErrorCode = "netcatty.busy"
+	CodeBusy ErrorCode = "lemonssh.busy"
 	// CodeStaleRevision marks a mismatched chat or turn revision.
-	CodeStaleRevision ErrorCode = "netcatty.stale_revision"
+	CodeStaleRevision ErrorCode = "lemonssh.stale_revision"
 	// CodeUnsupported marks an operation the adapter does not implement.
-	CodeUnsupported ErrorCode = "netcatty.unsupported"
+	CodeUnsupported ErrorCode = "lemonssh.unsupported"
 	// CodeScopeDenied marks a requested scope the host refused.
-	CodeScopeDenied ErrorCode = "netcatty.scope_denied"
+	CodeScopeDenied ErrorCode = "lemonssh.scope_denied"
 	// CodeCursorExpired marks an event cursor the host no longer holds.
-	CodeCursorExpired ErrorCode = "netcatty.cursor_expired"
+	CodeCursorExpired ErrorCode = "lemonssh.cursor_expired"
 )
 
 // Error is the structured error envelope crossing shell boundaries.

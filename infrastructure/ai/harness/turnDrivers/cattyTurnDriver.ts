@@ -28,7 +28,7 @@ import {
 import { computeTotalInputTokens, DEFAULT_MAX_OUTPUT_TOKENS } from '../contextBudget';
 import { clearChatSessionCancelled } from '../agentStop';
 import { isRequestTooLargeError } from '../../errorClassifier';
-import { getNetcattyBridge, generateId, resolveUserSkillsContext } from '../../aiChatStreamingSupport';
+import { getLemonSSHBridge, generateId, resolveUserSkillsContext } from '../../aiChatStreamingSupport';
 import {
   buildCattySdkMessages,
   collectOpenAIChatAssistantFieldsForMessages,
@@ -70,8 +70,8 @@ async function runCattyTurn(input: CattyTurnInput, ctx: TurnDriverContext): Prom
     ui,
   } = input;
 
-  const netcattyBridge = (bridge ?? getNetcattyBridge()) as NonNullable<ReturnType<typeof getNetcattyBridge>>;
-  const toolOutputTempBridge = netcattyBridge as typeof netcattyBridge & {
+  const lemonsshBridge = (bridge ?? getLemonSSHBridge()) as NonNullable<ReturnType<typeof getLemonSSHBridge>>;
+  const toolOutputTempBridge = lemonsshBridge as typeof lemonsshBridge & {
     getToolOutputPersistenceStatus?: () => Promise<{ durable: boolean; reason?: string }>;
     writeToolOutputTemp?: (
       record: import('../toolOutputStore').PersistedToolOutputRecord,
@@ -93,7 +93,7 @@ async function runCattyTurn(input: CattyTurnInput, ctx: TurnDriverContext): Prom
     ) => Promise<{ deletedCount: number }>;
   };
   const persistenceStatus = await toolOutputTempBridge.getToolOutputPersistenceStatus?.()
-    .catch(() => ({ durable: false }));
+    .catch((): { durable: boolean; reason?: string } => ({ durable: false }));
   if (
     toolOutputTempBridge.writeToolOutputTemp
     && toolOutputTempBridge.readToolOutputTemp
@@ -136,15 +136,15 @@ async function runCattyTurn(input: CattyTurnInput, ctx: TurnDriverContext): Prom
   } else {
     ctx.toolOutputStore.setPersistence?.(undefined);
   }
-  await clearChatSessionCancelled(sessionId, netcattyBridge);
-  if (netcattyBridge.aiMcpUpdateSessions) {
-    await netcattyBridge.aiMcpUpdateSessions(context.terminalSessions, sessionId);
+  await clearChatSessionCancelled(sessionId, lemonsshBridge);
+  if (lemonsshBridge.aiMcpUpdateSessions) {
+    await lemonsshBridge.aiMcpUpdateSessions(context.terminalSessions, sessionId);
   }
-  if (attachments?.length && netcattyBridge.aiMcpUpdateAttachments) {
-    await netcattyBridge.aiMcpUpdateAttachments(attachments, sessionId);
+  if (attachments?.length && lemonsshBridge.aiMcpUpdateAttachments) {
+    await lemonsshBridge.aiMcpUpdateAttachments(attachments, sessionId);
   }
   const userSkillsContext = await resolveUserSkillsContext(
-    netcattyBridge,
+    lemonsshBridge,
     trimmed,
     context.selectedUserSkillSlugs,
   );
@@ -155,7 +155,7 @@ async function runCattyTurn(input: CattyTurnInput, ctx: TurnDriverContext): Prom
     workspaceName: context.scopeType === 'workspace' ? context.scopeLabel : undefined,
   }));
   const toolsBundle = createCattyToolsFromCatalog(
-    netcattyBridge,
+    lemonsshBridge,
     getExecutorContext,
     context.commandBlocklist,
     context.globalPermissionMode,

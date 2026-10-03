@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -139,19 +140,39 @@ func (b *InteractiveBroker) PendingRequestID() string {
 
 // ConnectInput is the shell-neutral dial request used by Wails facades.
 type ConnectInput struct {
-	Hostname          string
-	Port              uint16
-	Username          string
-	Password          string
-	PrivateKey        string
-	Passphrase        string
-	Certificate       string
-	ProxyURL          string
-	ProxyCommand      string
-	EnableMFA         bool
-	UseAgent          bool
+	Hostname   string
+	Port       uint16
+	Username   string
+	Password   string
+	PrivateKey string
+	Passphrase string
+	// KeyPath labels the private key in passphrase prompts (file path or the
+	// caller's key identifier). Display only.
+	KeyPath      string
+	Certificate  string
+	ProxyURL     string
+	ProxyCommand string
+	EnableMFA    bool
+	UseAgent     bool
+	// AgentForwarding marks the transport as exposing the local SSH agent to
+	// this hop (OpenSSH ForwardAgent yes). DialConfig.ForwardAgent makes the
+	// pool treat such transports as single-use.
+	AgentForwarding   bool
 	IdentityFilePaths []string
 	JumpHosts         []ConnectInput
+}
+
+// DialInteractive bundles the renderer-backed callbacks one dial may need.
+// Nil members keep the fail-closed defaults (no MFA prompts, no passphrase
+// prompts, changed host keys rejected without confirmation).
+type DialInteractive struct {
+	// Challenge answers keyboard-interactive rounds (MFA). The factory binds
+	// the hostname per hop so prompts carry the hop being dialed.
+	Challenge func(hostname string) func(name, instruction string, questions []string, echoes []bool) ([]string, error)
+	// Passphrase asks for an encrypted private key's passphrase.
+	Passphrase PassphrasePrompt
+	// ConfirmHostKey asks the renderer to accept or reject a changed key.
+	ConfirmHostKey HostKeyConfirm
 }
 
 // FormatProxyURL builds a socks5:// or http:// URL. Command proxies fail closed.
@@ -175,16 +196,16 @@ func FormatProxyURL(kind, host string, port int, username, password string) (str
 }
 
 // BuildDialConfig maps a ConnectInput onto DialConfig. Every hop receives the
-// same host-key policy. MFA uses Challenge when enableMFA is set.
-func BuildDialConfig(input ConnectInput, policy HostKeyPolicy, challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)) DialConfig {
-	config, err := BuildDialConfigErr(input, policy, challenge)
+// same host-key policy; renderer callbacks ride DialInteractive per hop.
+func BuildDialConfig(input ConnectInput, policy HostKeyPolicy, interactive DialInteractive) DialConfig {
+	config, err := BuildDialConfigErr(input, policy, interactive)
 	if err != nil {
 		return DialConfig{}
 	}
 	return config
 }
 
-func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func(name, instruction string, questions []string, echoes []bool) ([]string, error)) (DialConfig, error) {
+func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, interactive DialInteractive) (DialConfig, error) {
 	privateKey := []byte(input.PrivateKey)
 	if len(privateKey) == 0 && len(input.IdentityFilePaths) > 0 {
 		loaded, err := LoadIdentityFilePEMs(input.IdentityFilePaths)
@@ -197,11 +218,18 @@ func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func
 		Password:      input.Password,
 		PrivateKeyPEM: privateKey,
 		Passphrase:    input.Passphrase,
+		KeyPath:       resolveKeyPath(input),
 		UseAgent:      input.UseAgent,
 		Certificate:   []byte(input.Certificate),
 	}
-	if input.EnableMFA && challenge != nil {
-		auth.Challenge = challenge
+	if interactive.Passphrase != nil && len(privateKey) > 0 {
+		passphrase := interactive.Passphrase
+		auth.RequestPassphrase = func(keyPath string, passphraseInvalid bool) (string, error) {
+			return passphrase(input.Hostname, keyPath, passphraseInvalid)
+		}
+	}
+	if input.EnableMFA && interactive.Challenge != nil {
+		auth.Challenge = interactive.Challenge(input.Hostname)
 	}
 	config := DialConfig{
 		Hostname:          input.Hostname,
@@ -214,15 +242,16 @@ func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func
 		KeepaliveInterval: 30 * time.Second,
 		ProxyURL:          input.ProxyURL,
 		ProxyCommand:      input.ProxyCommand,
+		ForwardAgent:      input.AgentForwarding,
 	}
 	if len(input.JumpHosts) > 0 {
 		config.JumpHosts = make([]DialConfig, 0, len(input.JumpHosts))
 		for _, hop := range input.JumpHosts {
-			hopChallenge := challenge
+			hopInteractive := interactive
 			if !hop.EnableMFA {
-				hopChallenge = nil
+				hopInteractive.Challenge = nil
 			}
-			child, err := BuildDialConfigErr(hop, policy, hopChallenge)
+			child, err := BuildDialConfigErr(hop, policy, hopInteractive)
 			if err != nil {
 				return DialConfig{}, err
 			}
@@ -230,4 +259,18 @@ func BuildDialConfigErr(input ConnectInput, policy HostKeyPolicy, challenge func
 		}
 	}
 	return config, nil
+}
+
+// resolveKeyPath picks the passphrase-prompt label: the caller's explicit key
+// path, else the first identity file, else empty.
+func resolveKeyPath(input ConnectInput) string {
+	if strings.TrimSpace(input.KeyPath) != "" {
+		return input.KeyPath
+	}
+	for _, path := range input.IdentityFilePaths {
+		if strings.TrimSpace(path) != "" {
+			return path
+		}
+	}
+	return ""
 }

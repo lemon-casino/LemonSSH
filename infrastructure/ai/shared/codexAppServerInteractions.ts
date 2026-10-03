@@ -90,7 +90,7 @@ let bridgeTeardown: (() => void) | null = null;
 
 function installCodexAppServerInteractionBridge(): () => void {
   const bridge = (window as unknown as {
-    netcatty?: {
+    lemonssh?: {
       onCodexAppServerInteractionRequest?: (
         cb: (payload: CodexAppServerInteraction) => void,
       ) => () => void;
@@ -98,7 +98,7 @@ function installCodexAppServerInteractionBridge(): () => void {
         cb: (payload: { interactionIds: string[] }) => void,
       ) => () => void;
     };
-  }).netcatty;
+  }).lemonssh;
   if (!bridge?.onCodexAppServerInteractionRequest) return () => {};
 
   const unsubscribeRequest = bridge.onCodexAppServerInteractionRequest((interaction) => {
@@ -166,12 +166,12 @@ async function respond(payload: Record<string, unknown>): Promise<void> {
   const interactionId = String(payload.interactionId || '');
   if (!interactionId) return;
   const bridge = (window as unknown as {
-    netcatty?: {
+    lemonssh?: {
       respondCodexAppServerInteraction?: (
         response: Record<string, unknown>,
       ) => Promise<unknown>;
     };
-  }).netcatty;
+  }).lemonssh;
   if (!bridge?.respondCodexAppServerInteraction) {
     throw new Error('Codex App Server interaction bridge is unavailable');
   }

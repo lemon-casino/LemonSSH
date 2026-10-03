@@ -6,9 +6,9 @@ import {
   setScriptRuns,
   waitForScriptRun,
 } from './scriptAutomationCoordinator.ts';
-import type { ScriptRun } from '@/types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRun } from '@/types/global/lemonssh-bridge-script.d.ts';
 import type { Snippet } from '@/domain/models';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
 
 test('waitForScriptRun resolves when run is already completed on subscribe', async () => {
   const runId = 'run-already-done';
@@ -69,7 +69,7 @@ test('selectScriptOverlayRun does not resurface older completed runs after dismi
 });
 
 test('runConnectScriptsSequential cancels only its own queued run and waits for stop', async () => {
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const sessionId = 'sess-connect-abort';
   let queuedRunId: string | undefined;
   let releaseStop: (() => void) | undefined;
@@ -94,7 +94,7 @@ test('runConnectScriptsSequential cancels only its own queued run and waits for 
     logs: [],
   }]);
 
-  netcattyBridge.get = () => ({
+  lemonsshBridge.get = () => ({
     scriptRun: async (params) => {
       queuedRunId = params.runId;
       assert.equal(params.returnWhenQueued, true);
@@ -104,7 +104,7 @@ test('runConnectScriptsSequential cancels only its own queued run and waits for 
       scriptStopCalls.push(id);
       releaseStop = () => resolve({ ok: true });
     }),
-  }) as ReturnType<typeof netcattyBridge.get>;
+  }) as ReturnType<typeof lemonsshBridge.get>;
 
   const controller = new AbortController();
   let stopCurrentRun: (() => Promise<void>) | null = null;
@@ -143,14 +143,14 @@ test('runConnectScriptsSequential cancels only its own queued run and waits for 
       (error: unknown) => error instanceof DOMException && error.name === 'AbortError',
     );
   } finally {
-    netcattyBridge.get = originalGet;
+    lemonsshBridge.get = originalGet;
     setScriptRuns([]);
     Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
 
 test('runConnectScriptsSequential retries the exact stop after a transient failure', async () => {
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const storage = new Map<string, string>();
   const stopCalls: string[] = [];
   let stopCurrentRun: (() => Promise<void>) | null = null;
@@ -164,13 +164,13 @@ test('runConnectScriptsSequential retries the exact stop after a transient failu
     },
   });
 
-  netcattyBridge.get = () => ({
+  lemonsshBridge.get = () => ({
     scriptRun: async (params) => ({ runId: params.runId!, runIds: [params.runId!] }),
     scriptStop: async (id: string) => {
       stopCalls.push(id);
       return { ok: stopCalls.length > 1 };
     },
-  }) as ReturnType<typeof netcattyBridge.get>;
+  }) as ReturnType<typeof lemonsshBridge.get>;
 
   const controller = new AbortController();
   try {
@@ -190,14 +190,14 @@ test('runConnectScriptsSequential retries the exact stop after a transient failu
     await stopCurrentRun!();
     assert.equal(stopCalls.length, 2);
   } finally {
-    netcattyBridge.get = originalGet;
+    lemonsshBridge.get = originalGet;
     setScriptRuns([]);
     Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
 
 test('runConnectScriptsSequential does not treat a script error named Aborted as cancellation', async () => {
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const storage = new Map<string, string>();
   const scriptStopCalls: string[] = [];
   Object.defineProperty(globalThis, 'localStorage', {
@@ -210,7 +210,7 @@ test('runConnectScriptsSequential does not treat a script error named Aborted as
     },
   });
 
-  netcattyBridge.get = () => ({
+  lemonsshBridge.get = () => ({
     scriptRun: async (params) => {
       setScriptRuns([{
         runId: params.runId!,
@@ -228,7 +228,7 @@ test('runConnectScriptsSequential does not treat a script error named Aborted as
       scriptStopCalls.push(id);
       return { ok: true };
     },
-  }) as ReturnType<typeof netcattyBridge.get>;
+  }) as ReturnType<typeof lemonsshBridge.get>;
 
   try {
     await assert.rejects(
@@ -241,7 +241,7 @@ test('runConnectScriptsSequential does not treat a script error named Aborted as
     );
     assert.deepEqual(scriptStopCalls, []);
   } finally {
-    netcattyBridge.get = originalGet;
+    lemonsshBridge.get = originalGet;
     setScriptRuns([]);
     Reflect.deleteProperty(globalThis, 'localStorage');
   }

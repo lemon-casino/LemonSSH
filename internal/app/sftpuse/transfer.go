@@ -7,13 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/binaricat/netcatty/internal/platform/applog"
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/sftp"
+	"github.com/binaricat/lemonssh/internal/platform/applog"
+	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/terminal/sftp"
 )
 
 // Download streams a remote file to a local destination path.
-func (s *Service) Download(sessionID, remotePath, localPath string) (int64, error) {
+func (s *Service) Download(sessionID, remotePath, localPath, encoding string) (int64, error) {
 	release, err := s.temp.Acquire(localPath)
 	if err != nil {
 		return 0, err
@@ -24,7 +25,7 @@ func (s *Service) Download(sessionID, remotePath, localPath string) (int64, erro
 		return 0, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return 0, err
 	}
@@ -45,7 +46,7 @@ func (s *Service) Download(sessionID, remotePath, localPath string) (int64, erro
 }
 
 // Upload streams a local file to a remote destination path.
-func (s *Service) Upload(sessionID, localPath, remotePath string) (int64, error) {
+func (s *Service) Upload(sessionID, localPath, remotePath, encoding string) (int64, error) {
 	release, err := s.temp.Acquire(localPath)
 	if err != nil {
 		return 0, err
@@ -56,7 +57,7 @@ func (s *Service) Upload(sessionID, localPath, remotePath string) (int64, error)
 		return 0, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return 0, err
 	}
@@ -87,8 +88,11 @@ func (s *Service) openLocal(localPath string) (*os.File, error) {
 }
 
 // ExtractArchive downloads a remote zip, extracts it locally with zip-slip
-// protection, and uploads the files next to the archive.
-func (s *Service) ExtractArchive(sessionID, remotePath string) (int, error) {
+// protection, and uploads the files next to the archive. The remote path and
+// archive entry names are interpreted with the session filename charset:
+// legacy (e.g. GBK) names are decoded to UTF-8 locally and re-encoded on the
+// way back up.
+func (s *Service) ExtractArchive(sessionID, remotePath, encoding string) (int, error) {
 	if s.temp == nil {
 		return 0, fmt.Errorf("managed temp unavailable")
 	}
@@ -98,11 +102,22 @@ func (s *Service) ExtractArchive(sessionID, remotePath string) (int, error) {
 	}
 	defer s.temp.Remove(filepath.Base(tempDir))
 	localZip := filepath.Join(tempDir, "archive.zip")
-	if _, err := s.Download(sessionID, remotePath, localZip); err != nil {
+	if _, err := s.Download(sessionID, remotePath, localZip, encoding); err != nil {
 		return 0, err
 	}
 	outDir := filepath.Join(tempDir, "out")
-	count, err := sftp.ExtractZipArchive(localZip, outDir)
+	// Archive entry names carry the server's legacy charset; auto-probe like
+	// a listing does and pin the session when a legacy charset is proven.
+	probe := charset.Auto
+	decodeName := func(raw string) string {
+		decoded := charset.Decode(raw, probe)
+		if detected, ok := charset.DetectListingEncoding([]string{raw}); ok {
+			probe = detected
+			s.pinEncoding(sessionID, detected)
+		}
+		return decoded
+	}
+	count, err := filesystem.ExtractArchiveDecoded(localZip, outDir, decodeName)
 	if err != nil {
 		return 0, err
 	}
@@ -123,9 +138,9 @@ func (s *Service) ExtractArchive(sessionID, remotePath string) (int, error) {
 		}
 		remote := parent + "/" + filepath.ToSlash(rel)
 		if info.IsDir() {
-			return s.Mkdir(sessionID, remote)
+			return s.Mkdir(sessionID, remote, encoding)
 		}
-		_, err = s.Upload(sessionID, path, remote)
+		_, err = s.Upload(sessionID, path, remote, encoding)
 		return err
 	}); walkErr != nil {
 		return count, walkErr
@@ -134,7 +149,7 @@ func (s *Service) ExtractArchive(sessionID, remotePath string) (int, error) {
 }
 
 // UploadCompressedFolder zips a local folder and uploads the archive.
-func (s *Service) UploadCompressedFolder(sessionID, localFolder, remoteZipPath string) (int64, error) {
+func (s *Service) UploadCompressedFolder(sessionID, localFolder, remoteZipPath, encoding string) (int64, error) {
 	if s.temp == nil {
 		return 0, fmt.Errorf("managed temp unavailable")
 	}
@@ -185,5 +200,5 @@ func (s *Service) UploadCompressedFolder(sessionID, localFolder, remoteZipPath s
 	if err := temp.Close(); err != nil {
 		return 0, err
 	}
-	return s.Upload(sessionID, tempPath, remoteZipPath)
+	return s.Upload(sessionID, tempPath, remoteZipPath, encoding)
 }

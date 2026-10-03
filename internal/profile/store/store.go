@@ -1,4 +1,4 @@
-// Package store implements the Netcatty transactional profile store (P2-02).
+// Package store implements the LemonSSH transactional profile store (P2-02).
 //
 // Engine: bbolt (pure Go, single-writer mmap B+tree, fully ACID file
 // transactions with crash recovery via free-list rebuild). Chosen over

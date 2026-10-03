@@ -1,4 +1,4 @@
-import type { ProviderValidationIssue } from "@netcatty/plugin-contract";
+import type { ProviderValidationIssue } from "@lemonssh/plugin-contract";
 
 export type TerminalSessionExitEvent = {
   intentional?: boolean;

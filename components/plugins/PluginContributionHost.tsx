@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 
 import { useI18n } from '../../application/i18n/I18nProvider';
 import {
@@ -6,11 +6,12 @@ import {
   usePluginViewLifecycle,
 } from '../../application/state/usePluginViewLifecycle';
 import { Button } from '../ui/button';
+import { DeclarativePluginViewSurface } from './DeclarativePluginViewSurface';
 import { PluginContributionIcon } from './PluginContributionIcon';
 
 export { requestOpenPluginView };
 
-const DEFAULT_KEYBINDING_CONTEXT = Object.freeze({ 'netcatty.surface': 'keybinding' });
+const DEFAULT_KEYBINDING_CONTEXT = Object.freeze({ 'lemonssh.surface': 'keybinding' });
 
 export function PluginContributionHost({
   locale,
@@ -29,12 +30,40 @@ export function PluginContributionHost({
     close,
     effectiveRequested,
     mountRef,
+    openError,
+    dismissOpenError,
   } = usePluginViewLifecycle({
     locale,
     theme,
     suppliedThemeTokens,
     keybindingContext,
   });
+
+  if ((!effectiveRequested || !activeView) && openError) {
+    // A failed open leaves no view surface, so the error renders standalone
+    // instead of disappearing with the region it would have lived in.
+    return (
+      <div
+        role="alert"
+        className="fixed bottom-4 left-1/2 z-50 flex max-w-[min(560px,90vw)] -translate-x-1/2 items-start gap-2 rounded-lg border border-destructive/50 bg-background px-4 py-3 shadow-lg"
+      >
+        <AlertTriangle size={16} className="mt-0.5 shrink-0 text-destructive" />
+        <p className="min-w-0 break-words text-sm text-destructive">
+          {t('plugins.viewOpenFailed').replace('{message}', openError)}
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          onClick={dismissOpenError}
+          aria-label={t('common.close')}
+        >
+          <X size={14} />
+        </Button>
+      </div>
+    );
+  }
 
   if (!effectiveRequested || !activeView) return null;
   const location = activeView.view.location;
@@ -50,6 +79,35 @@ export function PluginContributionHost({
     return (
       <section className={`${containerClass} flex flex-col`} role="region" aria-label={activeView.view.title}>
         <div ref={mountRef} className="min-h-0 flex-1" />
+      </section>
+    );
+  }
+
+  // Declarative settings views have no native surface: the host renders them
+  // from the validated schema (see DeclarativePluginViewSurface) instead of
+  // mounting an empty webview container.
+  if (location === 'settings') {
+    return (
+      <section className={`${containerClass} flex flex-col`} role="region" aria-label={activeView.view.title}>
+        <header className="app-no-drag flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <PluginContributionIcon pluginId={activeView.plugin.id} icon={activeView.view.icon} className="shrink-0" />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{activeView.view.title}</div>
+              <div className="truncate text-[10px] text-muted-foreground">{activeView.plugin.displayName}</div>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => void close()}
+            aria-label={t('common.close')}
+          >
+            <X size={14} />
+          </Button>
+        </header>
+        <DeclarativePluginViewSurface pluginId={activeView.plugin.id} viewId={activeView.view.id} location={location} />
       </section>
     );
   }

@@ -83,13 +83,13 @@ test("getMissingChainHostIds reports unresolved jump hosts", () => {
 });
 
 test("startPluginConnection preserves the namespaced provider configuration and attaches the host session", async () => {
-  let captured: NetcattyPluginConnectionStartRequest | null = null;
+  let captured: LemonSSHPluginConnectionStartRequest | null = null;
   const attached: string[] = [];
   const statuses: string[] = [];
   let progressLogs: string[] = [];
   const terminalBackend = {
     pluginConnectionAvailable: () => true,
-    startPluginConnection: async (options: NetcattyPluginConnectionStartRequest) => {
+    startPluginConnection: async (options: LemonSSHPluginConnectionStartRequest) => {
       captured = options;
       return {
         sessionId: options.sessionId,
@@ -136,7 +136,7 @@ test("startPluginConnection preserves the namespaced provider configuration and 
 
   assert.ok(captured?.requestId?.startsWith("plugin-connection-"));
   assert.equal(captured?.signal instanceof AbortSignal, true);
-  const { requestId: _requestId, signal: _signal, ...capturedRequest } = captured as NetcattyPluginConnectionStartRequest & {
+  const { requestId: _requestId, signal: _signal, ...capturedRequest } = captured as LemonSSHPluginConnectionStartRequest & {
     signal?: AbortSignal;
   };
   assert.deepEqual(capturedRequest, {
@@ -163,7 +163,7 @@ test("startPluginConnection preserves the namespaced provider configuration and 
 });
 
 test("startPluginConnection cancels a pending Provider request when the terminal unmounts before cleanup runs", async () => {
-  let captured: (NetcattyPluginConnectionStartRequest & { signal?: AbortSignal }) | null = null;
+  let captured: (LemonSSHPluginConnectionStartRequest & { signal?: AbortSignal }) | null = null;
   let resolveStartEntered: (() => void) | null = null;
   const startEntered = new Promise<void>((resolve) => { resolveStartEntered = resolve; });
   const cancelledRequests: string[] = [];
@@ -172,7 +172,7 @@ test("startPluginConnection cancels a pending Provider request when the terminal
   const isBootActiveRef = { current: true };
   const terminalBackend = {
     pluginConnectionAvailable: () => true,
-    startPluginConnection: async (options: NetcattyPluginConnectionStartRequest & { signal?: AbortSignal }) => {
+    startPluginConnection: async (options: LemonSSHPluginConnectionStartRequest & { signal?: AbortSignal }) => {
       captured = options;
       resolveStartEntered?.();
       await new Promise((_resolve, reject) => {
@@ -239,7 +239,7 @@ test("startPluginConnection waits for explicit Provider connected readiness befo
   const hasConnectedRef = { current: false };
   const terminalBackend = {
     pluginConnectionAvailable: () => true,
-    startPluginConnection: async (options: NetcattyPluginConnectionStartRequest) => ({
+    startPluginConnection: async (options: LemonSSHPluginConnectionStartRequest) => ({
       sessionId: options.sessionId,
       providerId: options.providerId,
       status: "connecting" as const,
@@ -303,7 +303,7 @@ test("startPluginConnection displays status diagnostics when a Provider exits wi
   const terminalWrites: string[] = [];
   const terminalBackend = {
     pluginConnectionAvailable: () => true,
-    startPluginConnection: async (options: NetcattyPluginConnectionStartRequest) => ({
+    startPluginConnection: async (options: LemonSSHPluginConnectionStartRequest) => ({
       sessionId: options.sessionId,
       providerId: options.providerId,
       status: "connected" as const,
@@ -1627,7 +1627,7 @@ test("startSSH recognizes Electron-prefixed jump-host auth failures", async () =
     execAvailable: () => true,
     startSSHSession: async () => {
       throw new Error(
-        'Error invoking remote method "netcatty:start": Error: Jump host authentication failed for "Bastion": All configured authentication methods failed',
+        'Error invoking remote method "lemonssh:start": Error: Jump host authentication failed for "Bastion": All configured authentication methods failed',
       );
     },
     startTelnetSession: async () => "telnet-session",

@@ -25,7 +25,7 @@ func TestNotificationBoundsAndControls(t *testing.T) {
 		t.Fatalf("invalid bounds/controls: %d %q", len(title), body)
 	}
 	title, _ = sanitize("\x00 ", "body")
-	if title != "Netcatty" {
+	if title != "LemonSSH" {
 		t.Fatalf("empty title: %q", title)
 	}
 }

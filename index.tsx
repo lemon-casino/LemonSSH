@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, lazy } from 'react';
+import { StrictMode, Suspense, lazy, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import '@fontsource/mona-sans/400.css';
 import '@fontsource/mona-sans/500.css';
@@ -25,6 +25,23 @@ let AppLockGate: typeof AppLockGateComponent;
 const LazySettingsPage = lazy(() => import('./components/SettingsPage'));
 const LazyTrayPanel = lazy(() => import('./components/TrayPanel'));
 const LazyTerminalPopupPage = lazy(() => import('./components/TerminalPopupPage'));
+
+// Tray panel window show handshake: the Go shell creates the #/tray window
+// hidden and defers Show until this page reports its first paint (same
+// mechanism as the settings window). Mounted as a sibling after
+// LazyTrayPanel inside the same Suspense boundary, so the panel's event
+// subscriptions are registered before the window becomes visible and the
+// menu-data snapshot pushed on show cannot race the mount.
+function TrayPanelWindowBoot() {
+  useEffect(() => {
+    // Deferred dynamic import: the entry must not evaluate service modules
+    // before canonical hydration (singleton stores would freeze stale state).
+    void import('./infrastructure/services/lemonsshBridge').then(
+      (module) => module.lemonsshBridge.get()?.notifyTrayPanelPaintReady?.(),
+    );
+  }, []);
+  return null;
+}
 
 function SettingsWindowFallback() {
   return (
@@ -196,10 +213,14 @@ const renderApp = () => {
   } else if (route === 'tray') {
     root.render(
       <StrictMode>
-        <AppLockGate settingsOptions={settingsOptions}>
+        {/* forceRenderChildren: the panel is a passive view (no connection
+            starts) and must mount behind the lock overlay so PaintReady —
+            the deferred window show — fires even while the app is locked. */}
+        <AppLockGate forceRenderChildren settingsOptions={settingsOptions}>
           {({ settings }) => (
             <Suspense fallback={<div style={{ minHeight: 48, background: 'hsl(var(--background))' }} />}>
               <LazyTrayPanel settings={settings} />
+              <TrayPanelWindowBoot />
             </Suspense>
           )}
         </AppLockGate>

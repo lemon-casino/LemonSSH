@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 type ResolvedIcon = { light: string; dark?: string };
 type ResolvedIconState = { requestKey: string; icon: ResolvedIcon } | null;
 
 export function pluginContributionIconRequestKey(
   pluginId: string | undefined,
-  icon: NetcattyPluginIconReference | undefined,
+  icon: LemonSSHPluginIconReference | undefined,
 ): string | null {
   return icon?.kind === 'package' && pluginId
     ? JSON.stringify([pluginId, icon.light, icon.dark ?? null])
@@ -23,7 +23,7 @@ export function selectPluginContributionIcon(
 
 export function usePluginContributionIcon(
   pluginId: string | undefined,
-  icon: NetcattyPluginIconReference | undefined,
+  icon: LemonSSHPluginIconReference | undefined,
 ): ResolvedIcon | null {
   const requestKey = pluginContributionIconRequestKey(pluginId, icon);
   const [resolved, setResolved] = useState<ResolvedIconState>(null);
@@ -34,7 +34,7 @@ export function usePluginContributionIcon(
       return;
     }
     let cancelled = false;
-    void netcattyBridge.get()?.getPluginContributionIcon?.(pluginId, icon).then((next) => {
+    void lemonsshBridge.get()?.getPluginContributionIcon?.(pluginId, icon).then((next) => {
       if (!cancelled) setResolved({ requestKey, icon: next });
     }).catch(() => {
       if (!cancelled) setResolved(null);

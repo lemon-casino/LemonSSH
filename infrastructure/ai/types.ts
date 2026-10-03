@@ -531,7 +531,7 @@ export interface AgentModelPreset {
   encodeDefaultThinking?: boolean;
   /**
    * Minimum agent CLI version that advertises this model (semver core).
-   * Netcatty is BYO-CLI: the packaged SDK does not replace the user's binary.
+   * LemonSSH is BYO-CLI: the packaged SDK does not replace the user's binary.
    */
   minCliVersion?: string;
 }

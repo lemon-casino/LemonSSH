@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { usePortForwardingAutoStart } from '../state/usePortForwardingAutoStart';
 import { editorTabStore } from '../state/editorTabStore';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { toast } from '../../components/ui/toast';
 import { sftpTransferCenterStore } from '../state/sftpTransferCenterStore';
@@ -219,7 +219,7 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
     // Skip "update available" toast if auto-download has already started or completed
     if (updateState.autoDownloadStatus !== 'idle') return;
     // Don't show automatic notification when auto-update is disabled
-    if (localStorageAdapter.readString('netcatty_auto_update_enabled_v1') === 'false') return;
+    if (localStorageAdapter.readString('lemonssh_auto_update_enabled_v1') === 'false') return;
     if (updateState.hasUpdate && updateState.latestRelease) {
       const version = updateState.latestRelease.version;
       if (toastedUpdateVersionRef.current === version) return;
@@ -290,16 +290,18 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
     terminalSettings,
   });
 
-  // Sync tray menu data + handle tray actions
+  // Sync tray menu data + handle tray actions. The renderer is the single
+  // content authority for the Go tray menu: it re-pushes whenever sessions,
+  // forward rules or hosts change, and again when the main window is shown
+  // (the shell rebuilds its menu from this snapshot and mirrors it onto the
+  // tray panel window).
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.updateTrayMenuData) return;
 
     let cancelled = false;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-
+    const pushTrayMenuData = () => {
       const sessionsForTray = sessions.map((s) => {
         const ws = s.workspaceId ? workspaces.find((w) => w.id === s.workspaceId) : undefined;
         return {
@@ -333,18 +335,31 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
         })),
         hosts: hostsForSystemMenu,
       });
+    };
+
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      pushTrayMenuData();
     }, 250);
+
+    // Window re-show is a menu rebuild trigger even when nothing re-rendered
+    // (close-to-tray restore, focus recovery).
+    const unsubscribeShown = bridge.onWindowShown?.(() => {
+      if (cancelled) return;
+      pushTrayMenuData();
+    });
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      unsubscribeShown?.();
     };
   }, [enabled, hasRuntimeTunnel, hosts, sessions, portForwardingRules, workspaces]);
 
   // Quit guard: block app exit while any editor tab has unsaved changes.
   // Main process sends "app:query-dirty-editors"; we respond with the result.
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onCheckDirtyEditors) return;
     const unsub = bridge.onCheckDirtyEditors(async () => {
       // Always report SOMETHING so the main process doesn't time out for
@@ -381,7 +396,7 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
   }, [enabled, t]);
 
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const unsubscribeEvents = bridge?.onGlobalSftpTransferEvent?.((event) => {
       sftpTransferCenterStore.ingestBackgroundEvent(event);
     });
@@ -528,7 +543,7 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
 
   // Keyboard-interactive authentication (2FA/MFA) event listener
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onKeyboardInteractive) return;
 
     const unsubscribe = bridge.onKeyboardInteractive((request) => {
@@ -566,12 +581,12 @@ export function useAppStartupEffects(ctx: StartupEffectsContext) {
         return prev.filter((request) => request.sessionId !== sessionId);
       });
     };
-    window.addEventListener("netcatty:terminal-session-disconnected", onTerminalDisconnected);
+    window.addEventListener("lemonssh:terminal-session-disconnected", onTerminalDisconnected);
 
     return () => {
       unsubscribe?.();
       unsubscribeCancelled?.();
-      window.removeEventListener("netcatty:terminal-session-disconnected", onTerminalDisconnected);
+      window.removeEventListener("lemonssh:terminal-session-disconnected", onTerminalDisconnected);
     };
   }, [enabled, setKeyboardInteractiveQueue]);
 

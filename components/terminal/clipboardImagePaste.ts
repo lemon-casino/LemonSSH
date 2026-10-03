@@ -1,4 +1,4 @@
-const REMOTE_CLIPBOARD_IMAGE_DIR = ".netcatty-paste-images";
+const REMOTE_CLIPBOARD_IMAGE_DIR = ".lemonssh-paste-images";
 
 type ClipboardImageFile = {
   path: string;
@@ -8,9 +8,9 @@ type ClipboardImageFile = {
 };
 
 export type RemoteClipboardImageBridge = Pick<
-  NetcattyBridge,
+  LemonSSHBridge,
   "readClipboardImage" | "openSftpForSession" | "startStreamTransfer"
-> & Pick<Partial<NetcattyBridge>, "closeSftp" | "deleteTempFile">;
+> & Pick<Partial<LemonSSHBridge>, "closeSftp" | "deleteTempFile">;
 
 type TerminalLike = {
   focus?: () => void;
@@ -45,7 +45,7 @@ export function getRemoteClipboardImageUploadErrorMessageKey(
 const shellSafePathPattern = /^[A-Za-z0-9_./~:@%+=,-]+$/;
 
 export function sanitizeRemoteClipboardImageName(name: string): string {
-  const fallback = "netcatty-paste.png";
+  const fallback = "lemonssh-paste.png";
   const trimmed = name.trim() || fallback;
   const sanitized = trimmed
     .replace(/[\0/\\]/g, "_")

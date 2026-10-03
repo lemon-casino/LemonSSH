@@ -20,152 +20,103 @@ export const SHELL_PROMPT_END_REGEX = /(?:~[#$]\s*|[@][^\n]{0,120}[:][^\n]{0,120
 /** Minimal smoke script for verifying manual run and onOutput triggers. */
 export const SCRIPT_SMOKE_TEST = `// === Smoke test ===
 // Manual:  trigger=manual, pick a target host, click "Run now"
-// onOutput: trigger=onOutput, pattern=NETCATTY_SMOKE, save, connect to target host, then run: echo NETCATTY_SMOKE
+// onOutput: trigger=onOutput, pattern=LEMONSSH_SMOKE, save, connect to target host, then run: echo LEMONSSH_SMOKE
 //
 await nct.screen.waitForPrompt(30000);
-await nct.screen.sendLine('echo netcatty-smoke-ok');
+await nct.screen.sendLine('echo lemonssh-smoke-ok');
 nct.log('Smoke test passed');
-await nct.dialog.alert('Netcatty script smoke test OK');
+await nct.dialog.alert('LemonSSH script smoke test OK');
 `;
 
 /** Full integration test for onConnect / manual run; dialog API enabled by default. */
-export const SCRIPT_INTEGRATION_TEST = `// Netcatty Integration Test — onConnect / manual full API exercise
+export const SCRIPT_INTEGRATION_TEST = `// LemonSSH Integration Test — onConnect / manual replay exercise
 // Trigger: onConnect or Run now | Permission: Auto or Confirm (dialogs need non-Observer)
+// One supported nct.* call per line: the replay parser rejects any other
+// JavaScript (no if/for, no template literals, no property reads).
 
-const CONFIG = {
-  SAMPLE_COUNT: 8,
-  SAMPLE_INTERVAL_MS: 2000,
-  PROMPT_TIMEOUT_MS: 60000,
-  STEP_TIMEOUT_MS: 20000,
-  RUN_DIALOGS: true,
-  RUN_SESSION_LOG: false,
-  RUN_SCREEN_CLEAR: false,
-};
+await nct.screen.waitForPrompt(60000);
+nct.log('=== LemonSSH Integration Test START ===');
 
-async function main() {
-  const tag = \`nc-it-\${Date.now().toString(36)}\`;
-  nct.log('=== Netcatty Integration Test START ===');
-  nct.log(\`tag=\${tag}  nct.version=\${nct.version}\`);
-  nct.log(\`session: name=\${nct.session.name} host=\${nct.session.hostname} user=\${nct.session.username} connected=\${nct.session.connected}\`);
+nct.log('[1/12] sendLine + waitForText');
+await nct.screen.sendLine('echo nc-it-BOOTSTRAP_OK');
+await nct.screen.waitForText('nc-it-BOOTSTRAP_OK', 20000);
 
-  if (!nct.session.connected) {
-    throw new Error('Session not connected');
-  }
+nct.log('[2/12] waitForAny');
+await nct.screen.sendLine('echo ANY_CHECK && uname -s');
+await nct.screen.waitForAny(["ANY_CHECK", "/Linux/"], 20000);
 
-  nct.log('[1/12] waitForPrompt');
-  await nct.screen.waitForPrompt(CONFIG.PROMPT_TIMEOUT_MS);
+nct.log('[3/12] getText');
+const text = await nct.screen.getText();
+nct.log(text);
 
-  nct.log('[2/12] sendLine + waitForText');
-  await nct.screen.sendLine(\`echo "\${tag}_BOOTSTRAP_OK"\`);
-  await nct.screen.waitForText(\`\${tag}_BOOTSTRAP_OK\`, CONFIG.STEP_TIMEOUT_MS);
+nct.log('[4/12] send raw + Enter');
+await nct.screen.send('echo -n "nc-it-RAW"');
+await nct.screen.sendLine('');
+await nct.screen.waitForText('nc-it-RAW', 20000);
 
-  nct.log('[3/12] waitForAny');
-  await nct.screen.sendLine('echo ANY_CHECK && uname -s');
-  await nct.screen.waitForAny(['ANY_CHECK', /Linux/], CONFIG.STEP_TIMEOUT_MS);
+nct.log('[5/12] waitForRegex');
+await nct.screen.sendLine('echo BUILD_ID=nc-it-001');
+await nct.screen.waitForRegex("/BUILD_ID=nc-it-001/", 20000);
 
-  nct.log('[4/12] getText / rows / cols / currentRow');
-  const text = await nct.screen.getText();
-  const lineCount = text.split('\\n').filter(Boolean).length;
-  nct.log(\`captured \${lineCount} lines, rows=\${nct.screen.rows} cols=\${nct.screen.cols} cursorRow=\${nct.screen.currentRow}\`);
+nct.log('[6/12] session.sleep');
+await nct.session.sleep(800);
 
-  nct.log('[5/12] send raw + Enter');
-  await nct.screen.send(\`echo -n "\${tag}_RAW"\`);
-  await nct.screen.sendLine('');
-  await nct.screen.waitForText(\`\${tag}_RAW\`, CONFIG.STEP_TIMEOUT_MS);
+nct.log('[7/12] progress');
+nct.progress.start('Health sampling', 2);
+await nct.screen.sendLine('echo "== Sample 1/2 ==" && date && uptime');
+await nct.screen.waitForPrompt(60000);
+nct.progress.step('sample 1/2');
+await nct.screen.sendLine('echo "== Sample 2/2 ==" && df -h /');
+await nct.screen.waitForPrompt(60000);
+nct.progress.step('sample 2/2');
+nct.progress.done();
 
-  nct.log('[6/12] waitForRegex');
-  await nct.screen.sendLine(\`echo BUILD_ID=\${tag}\`);
-  await nct.screen.waitForRegex(new RegExp(\`BUILD_ID=\${tag}\`), CONFIG.STEP_TIMEOUT_MS);
+nct.log('[8/12] screen.clear (uncomment to run)');
+// await nct.screen.clear();
 
-  nct.log('[7/12] session.sleep / nct.sleep');
-  await nct.session.sleep(800);
-  await nct.sleep(800);
+nct.log('[9/12] dialog confirm / prompt / alert');
+const go = await nct.dialog.confirm('Integration test finished OK. Continue to prompt/alert?');
+nct.log(go);
+const note = await nct.dialog.prompt('Optional note:');
+nct.log(note);
+await nct.dialog.alert('Done. Check the run log for captured values.');
 
-  nct.log('[8/12] progress loop health sampling');
-  nct.progress.start('Health sampling', CONFIG.SAMPLE_COUNT);
-  for (let i = 1; i <= CONFIG.SAMPLE_COUNT; i += 1) {
-    const cmd = [
-      \`echo "== Sample \${i}/\${CONFIG.SAMPLE_COUNT} =="\`,
-      'date',
-      'uptime',
-      "free -h | awk 'NR==2{print $1,$2,$3,$4,$7}'",
-      "df -h / | awk 'NR==2{print $1,$2,$3,$5,$6}'",
-      \`echo "\${tag}_SAMPLE_\${i}_DONE"\`,
-    ].join(' && ');
-    await nct.screen.sendLine(cmd);
-    await nct.screen.waitForRegex(new RegExp(\`\${tag}_SAMPLE_\${i}_DONE\`), CONFIG.STEP_TIMEOUT_MS);
-    await nct.screen.waitForPrompt(CONFIG.PROMPT_TIMEOUT_MS);
-    nct.progress.step(\`sample \${i}/\${CONFIG.SAMPLE_COUNT}\`);
-    nct.log(\`sample \${i}/\${CONFIG.SAMPLE_COUNT} ok\`);
-    if (i < CONFIG.SAMPLE_COUNT) {
-      await nct.session.sleep(CONFIG.SAMPLE_INTERVAL_MS);
-    }
-  }
-  nct.progress.done();
+nct.log('[10/12] select dialog');
+const shell = await nct.dialog.select('Preferred login shell?', ['/bin/bash', '/bin/zsh'], '/bin/bash');
+nct.log(shell);
 
-  nct.log('[9/12] nested loop activity mode');
-  const checks = ['whoami', 'id -u', 'pwd', 'echo $SHELL'];
-  for (const check of checks) {
-    await nct.screen.sendLine(check);
-    await nct.screen.waitForPrompt(CONFIG.PROMPT_TIMEOUT_MS);
-  }
+nct.log('[11/12] form dialog');
+const answers = await nct.dialog.form({ title: 'Replay check', message: 'Confirm environment', fields: [ { type: 'select', name: 'shell', label: 'Login shell', options: ['/bin/bash', '/bin/zsh'] }, { type: 'number', name: 'count', label: 'Samples', defaultValue: 2, min: 1, max: 10 } ] });
+nct.log(answers);
 
-  if (CONFIG.RUN_SESSION_LOG) {
-    nct.log('[10/12] startLog / stopLog');
-    await nct.session.startLog(\`./netcatty-it-\${tag}.log\`);
-    await nct.screen.sendLine(\`echo "\${tag}_LOGGED"\`);
-    await nct.screen.waitForText(\`\${tag}_LOGGED\`, CONFIG.STEP_TIMEOUT_MS);
-    await nct.session.stopLog();
-  } else {
-    nct.log('[10/12] startLog/stopLog skipped');
-  }
+nct.log('[12/12] session logging (uncomment to run)');
+// await nct.session.startLog('./lemonssh-it.log');
+// await nct.screen.sendLine('echo nc-it-LOGGED');
+// await nct.screen.waitForText('nc-it-LOGGED', 20000);
+// await nct.session.stopLog();
 
-  if (CONFIG.RUN_SCREEN_CLEAR) {
-    nct.log('[11/12] screen.clear');
-    await nct.screen.clear();
-    await nct.session.sleep(500);
-    await nct.screen.waitForPrompt(CONFIG.PROMPT_TIMEOUT_MS);
-  } else {
-    nct.log('[11/12] screen.clear skipped');
-  }
-
-  if (CONFIG.RUN_DIALOGS) {
-    nct.log('[12/12] dialog confirm / prompt / alert');
-    const go = await nct.dialog.confirm(\`Integration test \${tag} finished OK. Continue to prompt/alert?\`);
-    nct.log(\`confirm => \${go}\`);
-    if (go) {
-      const note = await nct.dialog.prompt('Optional note:', 'all-good');
-      nct.log(\`prompt => \${note}\`);
-      await nct.dialog.alert(\`Done. note=\${note}\`);
-    } else {
-      nct.log('confirm declined — skipping prompt/alert');
-    }
-  } else {
-    nct.log('[12/12] dialog skipped');
-  }
-
-  await nct.screen.sendLine(\`echo "=== \${tag} ALL_PASSED ==="\`);
-  await nct.screen.waitForText(\`\${tag} ALL_PASSED\`, CONFIG.STEP_TIMEOUT_MS);
-  nct.log('=== Netcatty Integration Test PASSED ===');
-}
-
-await main();
+await nct.screen.sendLine('echo nc-it-ALL_PASSED');
+await nct.screen.waitForText('nc-it-ALL_PASSED', 20000);
+nct.log('=== LemonSSH Integration Test PASSED ===');
 `;
 
-export const DEFAULT_SCRIPT_TEMPLATE = `// Netcatty automation script - async JS in the active terminal session
+export const DEFAULT_SCRIPT_TEMPLATE = `// LemonSSH automation script — recorded-replay against the active terminal
 //
-// nct.screen.waitForPrompt(ms?)          wait for shell prompt (# root / $ user)
-// nct.screen.waitForText(text, ms?)       wait for exact output text
-// nct.screen.waitForRegex(pattern, ms?)   wait for regex output, including multiline
-// nct.screen.waitForAny([patterns], ms?) wait until any pattern matches
-// nct.screen.sendLine(cmd)                type command + Enter; send(text) raw keys only
-// nct.screen.getText(start?, end?) | clear()
-// nct.session.connected | name | hostname | username (read-only metadata)
+// The runner parses one supported nct.* call per line (no JS engine):
+// no if/for, no template literals, no property reads. Unknown lines fail
+// with "unsupported script line" before anything runs.
+//
+// nct.screen.waitForPrompt(ms)            wait for shell prompt (# root / $ user)
+// nct.screen.waitForText(text, ms)         wait for exact output text
+// nct.screen.waitForRegex(pattern, ms?)    wait for regex output, including multiline
+// nct.screen.waitForAny([patterns], ms?)   wait until any pattern matches
+// nct.screen.sendLine(cmd)                 type command + Enter; send(text) raw keys only
+// nct.screen.getText() | clear()
 // nct.session.sleep(ms) | startLog(path) | stopLog() | disconnect()
-// nct.dialog.confirm(msg)->bool | prompt(msg, def?)->string | alert(msg)
+// nct.dialog.confirm(msg)->bool | prompt(msg)->string | alert(msg)
 // nct.dialog.form({ fields })->object; fields: select/radio/checkbox/textarea/number, optional visibleWhen
 // nct.dialog.select/radio/checkbox are convenience helpers
-// nct.progress.start(label, total)        opt-in determinate progress for loops
+// nct.progress.start(label, total)         opt-in determinate progress
 // nct.progress.step(detail?) | set(n, detail?) | done()
 // nct.log(msg)  run log panel. Type "nct." in editor for autocomplete snippets.
 //

@@ -459,7 +459,7 @@ test("copyWorkspaceWithCurrentShell captures per-pane cwd and copies the workspa
     getSessionRestoreCwd: () => undefined,
     hostById: new Map(),
     terminalHosts: [],
-    netcattyBridge: { get: () => ({}) },
+    lemonsshBridge: { get: () => ({}) },
     resolveShellSetting: () => ({ command: "bash" }),
     sessions,
     terminalSettings: { localShell: "bash" },
@@ -483,7 +483,7 @@ test("copyWorkspaceWithCurrentShell no-ops when the workspace is gone", async ()
     getSessionRestoreCwd: () => undefined,
     hostById: new Map(),
     terminalHosts: [],
-    netcattyBridge: { get: () => ({}) },
+    lemonsshBridge: { get: () => ({}) },
     resolveShellSetting: () => ({ command: "bash" }),
     sessions: [],
     terminalSettings: { localShell: "bash" },
@@ -559,7 +559,7 @@ In the `useSessionState({...})` destructuring block (contains `copySession,` ~li
 - [ ] **Step 3: Add the bound callback next to `copySessionWithCurrentShell` (App.tsx:891)**
 
 ```tsx
-  const copyWorkspaceWithCurrentShell = useCallback((workspaceId: string) => { return copyWorkspaceWithCurrentShellImpl(() => ({ classifyLocalShellType, collectSessionIds, copyWorkspace, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, netcattyBridge, resolveShellSetting, sessions, terminalSettings, workspaces }), workspaceId); }, [copyWorkspace, terminalSettings, discoveredShells, sessions, workspaces, getSessionRestoreCwd, hostById, terminalHosts]);
+  const copyWorkspaceWithCurrentShell = useCallback((workspaceId: string) => { return copyWorkspaceWithCurrentShellImpl(() => ({ classifyLocalShellType, collectSessionIds, copyWorkspace, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, lemonsshBridge, resolveShellSetting, sessions, terminalSettings, workspaces }), workspaceId); }, [copyWorkspace, terminalSettings, discoveredShells, sessions, workspaces, getSessionRestoreCwd, hostById, terminalHosts]);
 ```
 
 (`collectSessionIds` is already in scope in App.tsx — it appears in the `executeHotkeyAction` ctx.)

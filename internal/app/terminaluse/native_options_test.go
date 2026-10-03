@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"crypto/ed25519"
 	"crypto/rand"
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 	"os"
 	"path/filepath"
@@ -15,7 +15,7 @@ import (
 func TestTerminalNativeOptions(t *testing.T) {
 	interval, count, disabled := 7, 5, false
 	request := SSHConnectRequest{Term: "vt100", VerifyHostKeys: &disabled, KeepaliveInterval: &interval, KeepaliveCountMax: &count}
-	config, err := terminalSSHDialConfig(request, nil, nil)
+	config, err := terminalSSHDialConfig(request, nil, ssh.DialInteractive{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestTerminalNativeOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := ssh.NewKnownHosts(filepath.Join(t.TempDir(), "known_hosts"))
-	secure, err := terminalSSHDialConfig(SSHConnectRequest{}, hosts, nil)
+	secure, err := terminalSSHDialConfig(SSHConnectRequest{}, hosts, ssh.DialInteractive{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,9 +47,48 @@ func TestTerminalNativeOptions(t *testing.T) {
 		t.Fatal("default accepted changed key")
 	}
 	zero := 0
-	off, err := terminalSSHDialConfig(SSHConnectRequest{KeepaliveInterval: &zero}, hosts, nil)
+	off, err := terminalSSHDialConfig(SSHConnectRequest{KeepaliveInterval: &zero}, hosts, ssh.DialInteractive{})
 	if err != nil || off.KeepaliveInterval != 0 {
 		t.Fatalf("disable: %v %v", off.KeepaliveInterval, err)
+	}
+}
+
+func TestSSHConnectRequestMapsAgentForwarding(t *testing.T) {
+	request := SSHConnectRequest{
+		Hostname:        "target",
+		Username:        "root",
+		AgentForwarding: true,
+		JumpHosts: []SSHConnectRequest{
+			{Hostname: "jump-on", Username: "bastion", AgentForwarding: true},
+			{Hostname: "jump-off", Username: "bastion"},
+		},
+	}
+	input := ConnectInputFromRequest(request)
+	if !input.AgentForwarding {
+		t.Fatal("ConnectInputFromRequest dropped target AgentForwarding")
+	}
+	config, err := terminalSSHDialConfig(request, nil, ssh.DialInteractive{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !config.ForwardAgent {
+		t.Fatalf("target hop must carry ForwardAgent: %+v", config)
+	}
+	if len(config.JumpHosts) != 2 {
+		t.Fatalf("jump hops: %+v", config.JumpHosts)
+	}
+	if !config.JumpHosts[0].ForwardAgent {
+		t.Fatalf("enabled hop must carry ForwardAgent: %+v", config.JumpHosts[0])
+	}
+	if config.JumpHosts[1].ForwardAgent {
+		t.Fatalf("disabled hop must not carry ForwardAgent: %+v", config.JumpHosts[1])
+	}
+	plain, err := terminalSSHDialConfig(SSHConnectRequest{Hostname: "target", Username: "root"}, nil, ssh.DialInteractive{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.ForwardAgent {
+		t.Fatalf("default must leave ForwardAgent off: %+v", plain)
 	}
 }
 

@@ -4,8 +4,8 @@ import { isAIManagedStorageKey, profileDomainForKey } from "./profileDomain";
 import { encodeProfileText, hydrateCanonicalProfile, isProfileConflict, readCanonicalSnapshot, type LegacyTextStore, type ProfileSnapshot } from "./canonicalHydration";
 import { SYNC_STORAGE_KEYS } from '../../domain/sync';
 
-export const HOST_PROFILE_ERROR_EVENT = "netcatty:profile-storage-error";
-const CHANNEL_NAME = "netcatty:canonical-profile";
+export const HOST_PROFILE_ERROR_EVENT = "lemonssh:profile-storage-error";
+const CHANNEL_NAME = "lemonssh:canonical-profile";
 
 function reportFailure(error: unknown): void {
   console.error("[hostStorageAdapter] canonical persistence failed:", error);
@@ -75,7 +75,7 @@ export function createCanonicalStorage(
     const encryptedSyncRecord = key.startsWith(SYNC_STORAGE_KEYS.SYNC_BASE_PAYLOAD)
       || key.startsWith(SYNC_STORAGE_KEYS.CONVERGENT_REPLICA)
       || key.startsWith(SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE)
-      || key.startsWith('netcatty_sync_snapshots_v1');
+      || key.startsWith('lemonssh_sync_snapshots_v1');
     const expectedMasterConfig = cache.get(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG) ?? null;
     if (expected === value) return true;
     const edit = { key, value };

@@ -15,7 +15,7 @@ import {
   STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY,
 } from "../../../infrastructure/config/storageKeys";
 import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import {
   DEFAULT_SFTP_DIRECTORY_LISTING_CONCURRENCY,
@@ -109,12 +109,12 @@ async function tryStatTransferPath(
 ): Promise<{ size: number; lastModified: number; type: string } | null> {
   try {
     if (isLocal) {
-      const stat = await netcattyBridge.get()?.statLocal?.(filePath);
+      const stat = await lemonsshBridge.get()?.statLocal?.(filePath);
       if (!stat || stat.type === "directory") return null;
       return { size: Number(stat.size) || 0, lastModified: Number(stat.lastModified) || 0, type: stat.type };
     }
     if (!sftpId) return null;
-    const stat = await netcattyBridge.get()?.statSftp?.(sftpId, filePath, encoding);
+    const stat = await lemonsshBridge.get()?.statSftp?.(sftpId, filePath, encoding);
     if (!stat || stat.type === "directory") return null;
     return { size: Number(stat.size) || 0, lastModified: Number(stat.lastModified) || 0, type: stat.type };
   } catch {
@@ -412,7 +412,7 @@ export function useSftpDirectoryTransferOps({
                 }
                 // Await the invoke result — cancel resolves with { error } and may
                 // not fire onComplete/onError after preload clears listeners.
-                const transferPromise = netcattyBridge.require().startStreamTransfer!(options);
+                const transferPromise = lemonsshBridge.require().startStreamTransfer!(options);
                 // Streams that arm after the parent pause round never receive the
                 // initial pauseTransfer. Keep pausing while the folder is latched.
                 // Capture epoch per attempt so Resume (epoch bump) undoes a late pause.
@@ -428,14 +428,14 @@ export function useSftpDirectoryTransferOps({
                   ) {
                     const epochAtAttempt = getTransferControlEpoch(rootTaskId);
                     try {
-                      const result = await netcattyBridge.get()?.pauseTransfer?.(task.id);
+                      const result = await lemonsshBridge.get()?.pauseTransfer?.(task.id);
                       // Resume won while we were awaiting pause — undo.
                       if (
                         result?.success
                         && !isTransferControlEpochCurrent(rootTaskId, epochAtAttempt)
                       ) {
                         try {
-                          await netcattyBridge.get()?.resumeTransfer?.(task.id);
+                          await lemonsshBridge.get()?.resumeTransfer?.(task.id);
                         } catch { /* best-effort */ }
                         break;
                       }
@@ -563,7 +563,7 @@ export function useSftpDirectoryTransferOps({
     // Keep the current remote ancestor active through child discovery.
     try {
       if (!sourceIsLocal && sourceSftpId) {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const canonicalPath = await bridge?.realpathSftp?.(sourceSftpId, task.sourcePath, sourceEncoding)
           .catch(() => task.sourcePath) ?? task.sourcePath;
         claimedCanonicalPath = claimSftpDirectoryVisit(traversal, canonicalPath);
@@ -583,18 +583,18 @@ export function useSftpDirectoryTransferOps({
 
       if (targetIsLocal) {
         try {
-          await netcattyBridge.get()?.mkdirLocal?.(task.targetPath);
+          await lemonsshBridge.get()?.mkdirLocal?.(task.targetPath);
         } catch (mkdirErr: unknown) {
           const isEEXIST = mkdirErr instanceof Error && mkdirErr.message.includes("EEXIST");
           if (!isEEXIST) throw mkdirErr;
           // EEXIST: verify the existing path is actually a directory, not a file
-          const stat = await netcattyBridge.get()?.statLocal?.(task.targetPath);
+          const stat = await lemonsshBridge.get()?.statLocal?.(task.targetPath);
           if (stat && stat.type !== 'directory') {
             throw new Error(`Target path exists as a file: ${task.targetPath}`);
           }
         }
       } else if (targetSftpId) {
-        await netcattyBridge.get()?.mkdirSftp(targetSftpId, task.targetPath, targetEncoding);
+        await lemonsshBridge.get()?.mkdirSftp(targetSftpId, task.targetPath, targetEncoding);
       }
 
       let files: SftpFileEntry[];
@@ -783,7 +783,7 @@ export function useSftpDirectoryTransferOps({
 
           const skipUnchanged = readSkipUnchangedEnabled()
             && !task.replaceExistingTarget
-            && !String(task.targetPath).includes(".netcatty-");
+            && !String(task.targetPath).includes(".lemonssh-");
           // Missing fresh metadata must not fall back to listing attrs for skip.
           if (skipUnchanged && file.type !== "symlink" && freshSourceOk) {
             const existing = await tryStatTransferTarget(

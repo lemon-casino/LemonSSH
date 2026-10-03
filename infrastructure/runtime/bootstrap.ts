@@ -2,6 +2,8 @@ import { installWailsRuntimeClient } from "./wails/wailsRuntimeClient";
 import { createProfileClient } from "./profile/profileClient";
 import { getActiveRuntimeClient } from "./runtimeClient";
 import { configureHostProfileClient, hydrateHostProfile } from "../persistence/hostStorageAdapter";
+import { localStorageAdapter } from "../persistence/localStorageAdapter";
+import { runStoragePrefixMigration } from "../persistence/storageKeyMigration";
 // LemonSSH has one desktop runtime. The frontend must fail early when it is
 // loaded outside the Wails host instead of silently selecting a legacy shell.
 
@@ -13,6 +15,9 @@ export function installRuntimeClient(): void {
   }
   const client = createProfileClient();
   configureHostProfileClient(client);
+  // compat#3: copy legacy netcatty-prefixed localStorage keys to their
+  // lemonssh names before the canonical hydrate (and any settings read) runs.
+  runStoragePrefixMigration(localStorageAdapter);
   installRendererErrorLogging();
   hydrateReady = hydrateHostProfile();
 }

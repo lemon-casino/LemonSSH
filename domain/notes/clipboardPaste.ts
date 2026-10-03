@@ -479,10 +479,10 @@ const escapeRegExp = (value: string): string => (
 
 const chooseCodeMaskSentinel = (markdown: string): string => {
   let n = 0;
-  let sentinel = "@@NETCATTY_MD_CODE_";
+  let sentinel = "@@LEMONSSH_MD_CODE_";
   while (markdown.includes(sentinel)) {
     n += 1;
-    sentinel = `@@NETCATTY_MD_CODE_S${n}_`;
+    sentinel = `@@LEMONSSH_MD_CODE_S${n}_`;
   }
   return sentinel;
 };
@@ -668,7 +668,7 @@ export const maskCodeRegions = (markdown: string): CodeMask => {
 export const unmaskCodeRegions = (
   text: string,
   slots: string[],
-  sentinel = "@@NETCATTY_MD_CODE_",
+  sentinel = "@@LEMONSSH_MD_CODE_",
 ): string => {
   const re = new RegExp(`${escapeRegExp(sentinel)}(\\d+)@@`, "g");
   return text.replace(re, (_, idx: string) => slots[Number(idx)] ?? "");

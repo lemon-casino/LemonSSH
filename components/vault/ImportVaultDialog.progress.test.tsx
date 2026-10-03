@@ -18,7 +18,7 @@ const messages: Record<string, string> = {
   "vault.import.progress.complete": "Import complete",
   "vault.import.progress.failed": "Import failed",
   "vault.import.progress.summary": "Imported {count} hosts; skipped {skipped}; duplicates {duplicates}.",
-  "vault.import.progress.keepOpen": "You can keep using Netcatty while this runs.",
+  "vault.import.progress.keepOpen": "You can keep using LemonSSH while this runs.",
   "vault.import.progress.fileSummary": "{name} · {count} files",
   "vault.import.progress.fileCount": "{completed} of {total} files",
   "common.close": "Close",

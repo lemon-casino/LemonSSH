@@ -1,7 +1,11 @@
 import { CustomKeyBindings } from './models';
 
-const SYNC_VERSION_FIELD = '__netcattySyncVersion';
-const SYNC_ORIGIN_FIELD = '__netcattySyncOrigin';
+const SYNC_VERSION_FIELD = '__lemonsshSyncVersion';
+const SYNC_ORIGIN_FIELD = '__lemonsshSyncOrigin';
+// Pre-rename sync records carry the netcatty field names; reads keep
+// accepting both so already-stored records keep their sync version.
+const LEGACY_SYNC_VERSION_FIELD = '__netcattySyncVersion';
+const LEGACY_SYNC_ORIGIN_FIELD = '__netcattySyncOrigin';
 
 export interface CustomKeyBindingsStorageRecord {
   bindings: CustomKeyBindings;
@@ -54,6 +58,19 @@ export const parseCustomKeyBindingsStorageRecord = (
     return {
       version: record[SYNC_VERSION_FIELD] as number,
       origin: record[SYNC_ORIGIN_FIELD] as string,
+      bindings: record.bindings as CustomKeyBindings,
+    };
+  }
+
+  if (
+    typeof record[LEGACY_SYNC_VERSION_FIELD] === 'number' &&
+    typeof record[LEGACY_SYNC_ORIGIN_FIELD] === 'string' &&
+    record.bindings &&
+    typeof record.bindings === 'object'
+  ) {
+    return {
+      version: record[LEGACY_SYNC_VERSION_FIELD] as number,
+      origin: record[LEGACY_SYNC_ORIGIN_FIELD] as string,
       bindings: record.bindings as CustomKeyBindings,
     };
   }

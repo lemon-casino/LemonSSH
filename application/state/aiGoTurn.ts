@@ -1,10 +1,9 @@
 /**
- * aiGoTurn — renderer-side driver of the Go turn runtime (W12 minimal
- * chain). Enabled only when the host reports the dev fixture driver
- * (AgentStatus.goRuntimeReady); the product Catty path stays on the
- * renderer AgentRuntime until live provider wiring lands (W13+). All
- * authoritative state lives in Go: this module only relays DTOs, polls
- * for reconciliation and routes Stop to the Go owner.
+ * aiGoTurn — renderer-side driver of the Go turn runtime. Enabled when the
+ * host reports a driver behind the turn manager (AgentStatus.goRuntimeReady):
+ * the live provider installed from Settings→AI (AgentSetLiveProvider) or the
+ * dev fixture. All authoritative state lives in Go: this module only relays
+ * DTOs, polls for reconciliation and routes Stop to the Go owner.
  */
 
 import { generateId } from '../../infrastructure/ai/aiChatStreamingSupport';

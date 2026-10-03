@@ -13,7 +13,7 @@ import { logger } from "../../lib/logger";
 export const LOCAL_CLIPBOARD_IMAGE_CTRL_V = "\u0016";
 
 type ClipboardFileBridge = Pick<
-  Partial<NetcattyBridge>,
+  Partial<LemonSSHBridge>,
   "readClipboardFiles" | "hasClipboardImage"
 >;
 

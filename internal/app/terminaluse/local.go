@@ -10,10 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
 )
 
-// LocalStartRequest is the shell-facing local PTY payload.
+// LocalStartRequest is the shell-facing local PTY payload. SessionID carries
+// the renderer session alias for attach flows (popup observe); it is optional.
 type LocalStartRequest struct {
 	Shell     string            `json:"shell"`
 	ShellArgs []string          `json:"shellArgs"`
@@ -21,6 +22,7 @@ type LocalStartRequest struct {
 	Env       map[string]string `json:"env"`
 	Cols      uint16            `json:"cols"`
 	Rows      uint16            `json:"rows"`
+	SessionID string            `json:"sessionId,omitempty"`
 }
 
 // DiscoveredShell describes a locally available shell.
@@ -85,7 +87,7 @@ func (s *Service) StartLocalWithOptions(request LocalStartRequest) (string, erro
 	}
 
 	s.mu.Lock()
-	s.sessions[sessionID] = &terminalSession{local: local, localConfig: config, bootstrap: bootstrap}
+	s.sessions[sessionID] = &terminalSession{local: local, localConfig: config, bootstrap: bootstrap, uiID: request.SessionID}
 	s.mu.Unlock()
 
 	go func() {

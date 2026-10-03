@@ -1,10 +1,10 @@
-type LocalOptions = Parameters<NonNullable<NetcattyBridge['startLocalSession']>>[0];
+type LocalOptions = Parameters<NonNullable<LemonSSHBridge['startLocalSession']>>[0];
 export interface NativeLocalShellBindings {
- StartLocalWithOptions?: (request: {shell:string;shellArgs:string[];cwd:string;cols:number;rows:number;env:Record<string,string>}) => Promise<string>;
+ StartLocalWithOptions?: (request: {shell:string;shellArgs:string[];cwd:string;cols:number;rows:number;env:Record<string,string>;sessionId?:string}) => Promise<string>;
  StartLocal?: (shell:string,cwd:string,cols:number,rows:number) => Promise<string>;
- GetDefaultShell?: NonNullable<NetcattyBridge['getDefaultShell']>;
- DiscoverShells?: NonNullable<NetcattyBridge['discoverShells']>;
- ValidatePath?: NonNullable<NetcattyBridge['validatePath']>;
+ GetDefaultShell?: NonNullable<LemonSSHBridge['getDefaultShell']>;
+ DiscoverShells?: NonNullable<LemonSSHBridge['discoverShells']>;
+ ValidatePath?: NonNullable<LemonSSHBridge['validatePath']>;
 }
 
 export function createLocalShellBridge(bindings: NativeLocalShellBindings, attach: (alias:string|undefined,id:string)=>Promise<void>) {
@@ -14,7 +14,7 @@ export function createLocalShellBridge(bindings: NativeLocalShellBindings, attac
  };
  return {
   startLocalSession: async (options:LocalOptions = {}) => {
-   const request = {shell:options.shell ?? '',shellArgs:options.shellArgs ?? [],cwd:options.cwd ?? '',cols:options.cols ?? 80,rows:options.rows ?? 24,env:options.env ?? {}};
+   const request = {shell:options.shell ?? '',shellArgs:options.shellArgs ?? [],cwd:options.cwd ?? '',cols:options.cols ?? 80,rows:options.rows ?? 24,env:options.env ?? {},sessionId:options.sessionId};
    let id: string;
    if (bindings.StartLocalWithOptions) id = await bindings.StartLocalWithOptions(request);
    else {

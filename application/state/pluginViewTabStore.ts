@@ -10,7 +10,7 @@ export interface PluginViewTab {
   pluginName: string;
   viewId: string;
   title: string;
-  icon?: NetcattyPluginIconReference;
+  icon?: LemonSSHPluginIconReference;
   context?: Record<string, unknown>;
 }
 

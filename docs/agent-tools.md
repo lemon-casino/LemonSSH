@@ -38,7 +38,7 @@ idle periods; the user's existing terminals are retained.
 Run the handler/surface coverage check with:
 
 ```sh
-go test ./cmd/netcatty -run TestEveryAdvertisedNativeToolHasAllRPCSurfaces -v
+go test ./cmd/lemonssh -run TestEveryAdvertisedNativeToolHasAllRPCSurfaces -v
 ```
 
 Behavior tests cover scope isolation, native session mapping, vault dispatch,

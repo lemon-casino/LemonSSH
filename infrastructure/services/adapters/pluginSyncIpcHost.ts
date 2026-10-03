@@ -8,7 +8,7 @@
 
 import {
   PLUGIN_SYNC_INLINE_OBJECT_BYTES,
-} from '@netcatty/plugin-contract';
+} from '@lemonssh/plugin-contract';
 import type {
   EncryptedObjectAccount,
   EncryptedObjectStorageCapabilities,
@@ -117,7 +117,7 @@ type NativePluginSyncApi = {
 
 function getPluginSyncApi(): NativePluginSyncApi | null {
   if (typeof window === 'undefined') return null;
-  return (window as Window & { netcatty?: NativePluginSyncApi }).netcatty ?? null;
+  return (window as Window & { lemonssh?: NativePluginSyncApi }).lemonssh ?? null;
 }
 
 function mintRequestId(): string {

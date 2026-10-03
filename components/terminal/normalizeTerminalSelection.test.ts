@@ -16,6 +16,10 @@ const { Terminal: XTerm } = require("@xterm/xterm") as {
   Terminal: typeof XTermType;
 };
 
+// normalizeClipboardText mirrors xterm selectionText and emits CRLF between
+// logical lines on Windows. Expected multi-line selections must match.
+const lineBreak = process.platform === "win32" ? "\r\n" : "\n";
+
 /**
  * Fake line that matches real xterm translateToString(true) semantics:
  * trimRight only drops *empty* cells (trailing chars that were never written),
@@ -207,12 +211,12 @@ test("joinSoftWrappedRows preserves Windows paths and URL query delimiters", () 
     "C:\\Users\\alice\\file.txt",
   );
   assert.equal(
-    joinSoftWrappedRows("https://example.com/path   ", "?q=netcatty"),
-    "https://example.com/path?q=netcatty",
+    joinSoftWrappedRows("https://example.com/path   ", "?q=lemonssh"),
+    "https://example.com/path?q=lemonssh",
   );
   assert.equal(
-    joinSoftWrappedRows("https://example.com/search?   ", "q=netcatty"),
-    "https://example.com/search?q=netcatty",
+    joinSoftWrappedRows("https://example.com/search?   ", "q=lemonssh"),
+    "https://example.com/search?q=lemonssh",
   );
 });
 
@@ -252,7 +256,7 @@ test("joins soft-wrapped rows and collapses prose padding to one space", () => {
 
   assert.equal(
     getNormalizedTerminalSelection(term),
-    "Pi: use /copy is the most reliable option\nnext hard line",
+    `Pi: use /copy is the most reliable option${lineBreak}next hard line`,
   );
 });
 
@@ -277,7 +281,7 @@ test("preserves hard line breaks between non-wrapped rows while trimming padding
     { start: { x: 0, y: 0 }, end: { x: 11, y: 2 } },
   );
 
-  assert.equal(getNormalizedTerminalSelection(term), "line one\nline two\nline three");
+  assert.equal(getNormalizedTerminalSelection(term), `line one${lineBreak}line two${lineBreak}line three`);
 });
 
 test("preserves explicitly selected trailing spaces on a partial last row", () => {
@@ -339,7 +343,7 @@ test("returns empty string for empty range and normalizes inverted ranges", () =
     ],
     { start: { x: 6, y: 1 }, end: { x: 0, y: 0 } },
   );
-  assert.equal(getNormalizedTerminalSelection(inverted), "alpha\nbeta");
+  assert.equal(getNormalizedTerminalSelection(inverted), `alpha${lineBreak}beta`);
 });
 
 test("handles multi-row soft wrap chains", () => {
@@ -353,7 +357,7 @@ test("handles multi-row soft wrap chains", () => {
     { start: { x: 0, y: 0 }, end: { x: 3, y: 3 } },
   );
 
-  assert.equal(getNormalizedTerminalSelection(term), "aaabbbccc\nddd");
+  assert.equal(getNormalizedTerminalSelection(term), `aaabbbccc${lineBreak}ddd`);
 });
 
 test("preserves rectangular column selection including right-edge spaces", () => {
@@ -368,7 +372,7 @@ test("preserves rectangular column selection including right-edge spaces", () =>
   );
 
   // Columns 2..5 include the intentional spaces.
-  assert.equal(getNormalizedTerminalSelection(term), "  e\n  5\n  E");
+  assert.equal(getNormalizedTerminalSelection(term), `  e${lineBreak}  5${lineBreak}  E`);
 });
 
 test("converts non-breaking spaces to regular spaces", () => {

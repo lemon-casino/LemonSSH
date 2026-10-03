@@ -13,7 +13,7 @@ test("plugin runtime status is fetched once for concurrent terminal consumers", 
     async getPluginRuntimeStatus() {
       calls += 1;
       await Promise.resolve();
-      return { available: true } as NetcattyPluginRuntimeStatus;
+      return { available: true } as LemonSSHPluginRuntimeStatus;
     },
   };
 

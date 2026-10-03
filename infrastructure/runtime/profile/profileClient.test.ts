@@ -61,7 +61,7 @@ test("text helpers round-trip through base64", async () => {
   stub.setRawBase64 = async (domain, key, valueBase64) => {
     calls.push({ domain, key, value: valueBase64 });
   };
-  await setRawText(stub, "vault", "netcatty_hosts_v1", '{"hosts":[]}');
+  await setRawText(stub, "vault", "lemonssh_hosts_v1", '{"hosts":[]}');
   assert.equal(calls[0].value, Buffer.from('{"hosts":[]}', "utf8").toString("base64"));
   stub.setRawBase64 = original;
 });

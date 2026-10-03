@@ -19,7 +19,7 @@ test("applyThemeTokens mirrors the resolved scheme palette for the boot splash",
 
   applyThemeTokens("system", "light", tokens, "theme", "");
 
-  const mirror = JSON.parse(store.get("netcatty_boot_theme_v1") ?? "null");
+  const mirror = JSON.parse(store.get("lemonssh_boot_theme_v1") ?? "null");
   assert.ok(mirror, "mirror written");
   assert.equal(mirror.light.background, tokens.background);
   assert.equal(mirror.light.accent, tokens.accent);
@@ -27,6 +27,6 @@ test("applyThemeTokens mirrors the resolved scheme palette for the boot splash",
   // Second apply for the dark scheme merges without clobbering light.
   const { DARK_UI_THEMES } = await import("../../infrastructure/config/uiThemes.ts");
   applyThemeTokens("dark", "dark", DARK_UI_THEMES[0].tokens, "theme", "");
-  const merged = JSON.parse(store.get("netcatty_boot_theme_v1") ?? "null");
+  const merged = JSON.parse(store.get("lemonssh_boot_theme_v1") ?? "null");
   assert.ok(merged.light && merged.dark);
 });

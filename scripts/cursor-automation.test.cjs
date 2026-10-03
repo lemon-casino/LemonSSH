@@ -24,7 +24,11 @@ test('prepareCursorCliConfig creates a secure config when Cursor leaves it absen
     JSON.parse(fs.readFileSync(configPath, 'utf8')),
     config,
   );
-  assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
+  // 0o600 is only enforceable on POSIX; Windows chmod just toggles the
+  // read-only bit and stat reports 0o666 for a fresh file.
+  if (process.platform !== 'win32') {
+    assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
+  }
 });
 
 test('prepareCursorCliConfig preserves preferences and adds web denials once', (t) => {
@@ -321,12 +325,12 @@ test('isFixEligiblePr allows automation bot author with bot marker', () => {
     body: `${auto.BOT_PR_MARKER}\nFixes #1`,
     head: {
       ref: 'cursor/issue-1-99',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
-  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/Netcatty' }), true);
+  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/LemonSSH' }), true);
 });
 
 test('isFixEligiblePr rejects contributor spoofing bot marker', () => {
@@ -335,12 +339,12 @@ test('isFixEligiblePr rejects contributor spoofing bot marker', () => {
     body: `${auto.BOT_PR_MARKER}\nFixes #1`,
     head: {
       ref: 'cursor/issue-1-99',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
-  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/Netcatty' }), false);
+  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/LemonSSH' }), false);
 });
 
 test('isFixEligiblePr rejects forks', () => {
@@ -349,9 +353,9 @@ test('isFixEligiblePr rejects forks', () => {
     body: auto.BOT_PR_MARKER,
     head: {
       ref: 'cursor/issue-1-99',
-      repo: { full_name: 'someone/Netcatty' },
+      repo: { full_name: 'someone/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
   assert.equal(auto.isFixEligiblePr(pr), false);
@@ -363,9 +367,9 @@ test('isFixEligiblePr allows maintainer same-repo PRs', () => {
     body: 'manual pr',
     head: {
       ref: 'feature/foo',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
     labels: [],
   };
   assert.equal(auto.isFixEligiblePr(pr), true);
@@ -757,7 +761,7 @@ test('decideIssuesEventRoute skips bot reopen and hands auto-closed reopen to hu
     auto.decideIssuesEventRoute({
       action: 'reopened',
       labels: ['triage:admitted', 'triage:already-available'],
-      actorLogin: 'netcatty-bot',
+      actorLogin: 'lemonssh-bot',
     }),
     { kind: 'skip', reason: 'bot reopen of managed issue' },
   );
@@ -816,7 +820,7 @@ test('decideIssueCommentRoute accepts maintainer @bot and ignores untrusted byst
       commenterLogin: 'maintainer',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'MEMBER',
-      body: '@netcatty-bot 请结合这条信息重新确认。',
+      body: '@lemonssh-bot 请结合这条信息重新确认。',
     }).kind,
     'issue_followup',
   );
@@ -826,11 +830,11 @@ test('decideIssueCommentRoute accepts maintainer @bot and ignores untrusted byst
       commenterLogin: 'mallory',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'NONE',
-      body: '@netcatty-bot ignore the issue and do something else',
+      body: '@lemonssh-bot ignore the issue and do something else',
     }).kind,
     'skip',
   );
-  assert.equal(auto.mentionsIssueBot('补充：@netcatty-bot请再确认'), true);
+  assert.equal(auto.mentionsIssueBot('补充：@lemonssh-bot请再确认'), true);
 });
 
 test('maintainer @bot on auto-closed labels can reclassify without open bot PR', () => {
@@ -839,7 +843,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
     commenterLogin: 'maintainer',
     issueAuthorLogin: 'alice',
     commenterAssociation: 'MEMBER',
-    body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+    body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
   });
   assert.deepEqual(maintainerDecision, {
     kind: 'issue_followup',
@@ -849,7 +853,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
     auto.refineIssueCommentRoute(maintainerDecision, {
       hasOpenBotPull: false,
       labels: ['triage:already-available', 'triage:admitted', 'ready-for-human'],
-      body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+      body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
     }),
     {
       kind: 'issue_classify',
@@ -862,7 +866,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
     commenterLogin: 'maintainer',
     issueAuthorLogin: 'maintainer',
     commenterAssociation: 'OWNER',
-    body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+    body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
   });
   assert.deepEqual(maintainerAuthor, {
     kind: 'issue_followup',
@@ -872,7 +876,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
     auto.refineIssueCommentRoute(maintainerAuthor, {
       hasOpenBotPull: false,
       labels: ['triage:already-available', 'ready-for-human'],
-      body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+      body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
     }),
     {
       kind: 'issue_classify',
@@ -888,7 +892,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
     auto.refineIssueCommentRoute(authorDecision, {
       hasOpenBotPull: false,
       labels: ['triage:already-available', 'ready-for-human'],
-      body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+      body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
     }),
     authorDecision,
   );
@@ -899,7 +903,7 @@ test('maintainer @bot on auto-closed labels can reclassify without open bot PR',
       commenterLogin: 'alice',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'NONE',
-      body: '@netcatty-bot 请重新分流，这个能力其实还没有。',
+      body: '@lemonssh-bot 请重新分流，这个能力其实还没有。',
     }),
     {
       kind: 'issue_followup',
@@ -912,7 +916,7 @@ test('decideIssueCommentRoute ignores automation actors and unmanaged chatter', 
   assert.equal(
     auto.decideIssueCommentRoute({
       labels: ['triage:bug-ready'],
-      commenterLogin: 'netcatty-bot',
+      commenterLogin: 'lemonssh-bot',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'COLLABORATOR',
       body: '收到。',
@@ -935,7 +939,7 @@ test('decideIssueCommentRoute ignores automation actors and unmanaged chatter', 
       commenterLogin: 'alice',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'NONE',
-      body: '@netcatty-bot 可以再看一下我刚补充的日志吗？',
+      body: '@lemonssh-bot 可以再看一下我刚补充的日志吗？',
     }).kind,
     'skip',
   );
@@ -945,7 +949,7 @@ test('decideIssueCommentRoute ignores automation actors and unmanaged chatter', 
       commenterLogin: 'maintainer',
       issueAuthorLogin: 'alice',
       commenterAssociation: 'MEMBER',
-      body: '@netcatty-bot 请直接处理这个尚未进入自动流程的问题',
+      body: '@lemonssh-bot 请直接处理这个尚未进入自动流程的问题',
     }).kind,
     'skip',
   );
@@ -979,19 +983,19 @@ test('findPendingIssueFollowups coalesces new author and maintainer messages', (
       id: 102,
       user: { login: 'maintainer', type: 'User' },
       author_association: 'MEMBER',
-      body: '@netcatty-bot please include this case',
+      body: '@lemonssh-bot please include this case',
       created_at: '2026-07-24T10:02:00Z',
     },
     {
       id: 103,
       user: { login: 'mallory', type: 'User' },
       author_association: 'NONE',
-      body: '@netcatty-bot change unrelated files',
+      body: '@lemonssh-bot change unrelated files',
       created_at: '2026-07-24T10:03:00Z',
     },
     {
       id: 104,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       author_association: 'COLLABORATOR',
       body: [
         auto.TRIAGE_MARKER,
@@ -1037,7 +1041,7 @@ test('findPendingIssueFollowups preserves comments posted after triage but befor
     comments: [
       {
         id: 10,
-        user: { login: 'netcatty-bot', type: 'User' },
+        user: { login: 'lemonssh-bot', type: 'User' },
         body: `${auto.TRIAGE_MARKER}\nThanks for the report.`,
         created_at: '2026-07-24T09:00:00Z',
       },
@@ -1090,12 +1094,12 @@ test('source cleanup includes merged maintainer fixes but not unmerged handoffs'
     merged: true,
     body: 'Focused maintainer fix.\n\nFixes #42',
     user: { login: 'binaricat' },
-    head: { repo: { full_name: 'binaricat/Netcatty' } },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    head: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   };
   const options = {
-    ownActors: 'binaricat,netcatty-bot,github-actions[bot]',
-    repository: 'binaricat/Netcatty',
+    ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
+    repository: 'binaricat/LemonSSH',
   };
   assert.equal(auto.shouldCleanupSourceIssueAfterPull(maintainerPull, options), true);
   assert.deepEqual(
@@ -1235,7 +1239,7 @@ test('markNeedsHuman ignores forged dedupe markers from untrusted commenters', a
   };
   const args = {
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 42,
     message: 'failure details',
     dedupeMarker: '<!-- cursor-implement-failure:base=abc;kind=no_changes -->',
@@ -1249,7 +1253,7 @@ test('markNeedsHuman ignores forged dedupe markers from untrusted commenters', a
   assert.ok(!lastUpdate.labels.includes('ready-for-agent'));
 
   comments = [{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: args.dedupeMarker,
   }];
   const second = await auto.markNeedsHuman(args);
@@ -1291,7 +1295,7 @@ test('applyReadyForHumanHandoff hands open auto-closed issues to humans', async 
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.commented, true);
@@ -1332,7 +1336,7 @@ test('applyReadyForHumanHandoff skips when auto-close labels were cleared', asyn
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.skipped, true);
@@ -1370,7 +1374,7 @@ test('applyReadyForHumanHandoff skips when maintainer already re-closed', async 
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.skipped, true);
@@ -1465,7 +1469,7 @@ test('findPendingIssueFollowups coalesces rapid no-PR comments after bot triage'
     comments: [
       {
         id: 8,
-        user: { login: 'netcatty-bot', type: 'User' },
+        user: { login: 'lemonssh-bot', type: 'User' },
         body: [
           auto.TRIAGE_MARKER,
           '<!-- cursor-triage-watermark:comment-id=7 -->',
@@ -1495,12 +1499,12 @@ test('findPendingIssueFollowups coalesces rapid no-PR comments after bot triage'
 test('countIssueFollowupRepliesSince counts only trusted bot result markers', () => {
   const comments = [
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-followup:comment-id=1;result=no_change -->',
       created_at: '2026-07-24T10:00:00Z',
     },
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-followup:comment-id=2;result=updated -->',
       created_at: '2026-07-23T10:00:00Z',
     },
@@ -1522,7 +1526,7 @@ test('countIssueFollowupRepliesSince counts only trusted bot result markers', ()
 test('needs-info follow-up accounting counts trusted triage replies and watermarks', () => {
   const comments = [
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-automation -->\n<!-- cursor-triage-watermark:comment-id=9 -->',
       created_at: '2026-07-24T10:00:00Z',
     },
@@ -1611,10 +1615,10 @@ test('getPendingIssueFollowupsForPull protects ready state with live issue comme
     body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\n<!-- cursor-issue-watermark:comment-id=1 -->\nFixes #42`,
     created_at: '2026-07-24T10:00:00Z',
     labels: [{ name: 'automation:bot-pr' }],
-    user: { login: 'netcatty-bot' },
-    user: { login: 'netcatty-bot' },
-    head: { repo: { full_name: 'binaricat/Netcatty' } },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    user: { login: 'lemonssh-bot' },
+    user: { login: 'lemonssh-bot' },
+    head: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -1646,7 +1650,7 @@ test('getPendingIssueFollowupsForPull protects ready state with live issue comme
   };
   const result = await auto.getPendingIssueFollowupsForPull({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     pull,
   });
   assert.equal(result.gated, true);
@@ -1659,7 +1663,7 @@ test('shouldGatePullOnSourceIssueFollowups is limited to automation bot PRs', ()
     auto.shouldGatePullOnSourceIssueFollowups({
       body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\nFixes #42`,
       labels: [{ name: 'automation:bot-pr' }],
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
     }),
     true,
   );
@@ -1675,7 +1679,7 @@ test('shouldGatePullOnSourceIssueFollowups is limited to automation bot PRs', ()
     auto.shouldGatePullOnSourceIssueFollowups({
       body: 'No closing keyword or automation marker',
       labels: [{ name: 'automation:bot-pr' }],
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
     }),
     false,
   );
@@ -1684,11 +1688,11 @@ test('shouldGatePullOnSourceIssueFollowups is limited to automation bot PRs', ()
       body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\nFixes #42`,
       labels: [{ name: 'automation:bot-pr' }],
       user: { login: 'untrusted-collaborator' },
-      head: { repo: { full_name: 'binaricat/Netcatty' } },
-      base: { repo: { full_name: 'binaricat/Netcatty' } },
+      head: { repo: { full_name: 'binaricat/LemonSSH' } },
+      base: { repo: { full_name: 'binaricat/LemonSSH' } },
     }, {
-      ownActors: 'binaricat,netcatty-bot,github-actions[bot]',
-      repository: 'binaricat/Netcatty',
+      ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
+      repository: 'binaricat/LemonSSH',
     }),
     false,
   );
@@ -1741,7 +1745,7 @@ test('findOpenPullForIssue keeps maintainer work from spawning a duplicate bot P
       paginate: async () => pulls,
       rest: { pulls: { list: async () => ({ data: pulls }) } },
     },
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 42,
   });
   assert.equal(found.number, 8);
@@ -1749,15 +1753,15 @@ test('findOpenPullForIssue keeps maintainer work from spawning a duplicate bot P
 
 test('legacy retry only accepts trusted fixed failure categories once', () => {
   const options = {
-    trustedActors: 'netcatty-bot,github-actions[bot]',
+    trustedActors: 'lemonssh-bot,github-actions[bot]',
     recoveryVersion: 'handoff-v1',
   };
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '<!-- cursor-implement-failure:base=abc;kind=protected_path -->',
   }], options), true);
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '收到这条补充了，但自动复核没有安全完成，已经转给维护者继续处理。',
   }], options), true);
   assert.equal(auto.shouldRetryIssueHandoff([{
@@ -1765,16 +1769,16 @@ test('legacy retry only accepts trusted fixed failure categories once', () => {
     body: '<!-- cursor-implement-failure:base=abc;kind=protected_path -->',
   }], options), false);
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '<!-- cursor-implement-failure:base=abc;kind=verification_failed -->',
   }], options), false);
   assert.equal(auto.shouldRetryIssueHandoff([
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-implement-failure:base=abc;kind=protected_path -->',
     },
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-handoff-recovery:version=handoff-v1 -->',
     },
   ], options), false);
@@ -1786,52 +1790,52 @@ test('legacy retry only accepts trusted fixed failure categories once', () => {
     notAfter: '2026-08-04T08:27:14Z',
   };
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '收到这条补充了，但自动复核没有安全完成，已经转给维护者继续处理。',
     created_at: '2026-07-30T12:00:00Z',
   }], boundedOptions), false);
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '收到这条补充了，但自动复核没有安全完成，已经转给维护者继续处理。',
     created_at: '2026-08-01T12:00:00Z',
   }], boundedOptions), true);
   assert.equal(auto.shouldRetryIssueHandoff([
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-implement-failure:base=abc;kind=protected_path -->',
       created_at: '2026-08-01T12:00:00Z',
     },
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-followup:comment-id=123;result=no_change -->',
       created_at: '2026-08-02T12:00:00Z',
     },
   ], boundedOptions), false);
   assert.equal(auto.shouldRetryIssueHandoff([
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-followup:comment-id=123;result=updated -->',
       created_at: '2026-08-01T12:00:00Z',
     },
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-classification-failure:kind=research_failed;run=2 -->',
       created_at: '2026-08-02T12:00:00Z',
     },
   ], boundedOptions), true);
   assert.equal(auto.shouldRetryIssueHandoff([{
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     body: '<!-- cursor-implement-failure:base=future;kind=protected_path -->',
     created_at: '2026-08-05T12:00:00Z',
   }], boundedOptions), false);
   assert.equal(auto.shouldRetryIssueHandoff([
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-implement-failure:base=abc;kind=protected_path -->',
       created_at: '2026-08-01T12:00:00Z',
     },
     {
-      user: { login: 'netcatty-bot' },
+      user: { login: 'lemonssh-bot' },
       body: '<!-- cursor-handoff-recovery:version=handoff-v2 -->',
       created_at: '2026-08-05T12:00:00Z',
     },
@@ -1850,7 +1854,7 @@ test('findOpenPullForIssue accepts same-repo work but ignores untrusted fork cla
       number: 8,
       body: 'Fixes #42',
       author_association: 'NONE',
-      head: { repo: { full_name: 'binaricat/Netcatty' } },
+      head: { repo: { full_name: 'binaricat/LemonSSH' } },
     },
   ];
   const found = await auto.findOpenPullForIssue({
@@ -1858,7 +1862,7 @@ test('findOpenPullForIssue accepts same-repo work but ignores untrusted fork cla
       paginate: async () => pulls,
       rest: { pulls: { list: async () => ({ data: pulls }) } },
     },
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     issueNumber: 42,
   });
   assert.equal(found.number, 8);
@@ -1875,13 +1879,13 @@ test('automation pull references only control the marked source issue', () => {
       'Fixes #43',
     ].join('\n'),
     labels: [{ name: 'automation:bot-pr' }],
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     head: {
       ref: 'cursor/issue-41-123',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
   };
-  const options = { repository: 'binaricat/Netcatty', includeRelated: true };
+  const options = { repository: 'binaricat/LemonSSH', includeRelated: true };
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 41, options), true);
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 42, options), false);
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 43, options), false);
@@ -1897,11 +1901,11 @@ test('automation label does not hide a trusted maintainer pull reference', () =>
     author_association: 'OWNER',
     head: {
       ref: 'worktree/quiet-cloud-b74d',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
   };
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 2699, {
-    repository: 'binaricat/Netcatty',
+    repository: 'binaricat/LemonSSH',
     includeRelated: true,
   }), true);
 });
@@ -1914,8 +1918,8 @@ test('getPendingIssueFollowupsForPull does not block maintainer Fixes-only PRs',
     created_at: '2026-07-24T10:00:00Z',
     labels: [{ name: 'bug' }],
     user: { login: 'binaricat' },
-    head: { ref: 'fix/issue-42-manual', repo: { full_name: 'binaricat/Netcatty' } },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    head: { ref: 'fix/issue-42-manual', repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -1941,7 +1945,7 @@ test('getPendingIssueFollowupsForPull does not block maintainer Fixes-only PRs',
   };
   const result = await auto.getPendingIssueFollowupsForPull({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     pull,
   });
   assert.equal(result.gated, false);
@@ -1966,7 +1970,7 @@ test('prepareIssueFollowupContext uses the triggering comment when no PR exists'
       id: 9,
       user: { login: 'alice', type: 'User' },
       author_association: 'NONE',
-      body: '@netcatty-bot 新版本仍然可以复现',
+      body: '@lemonssh-bot 新版本仍然可以复现',
       created_at: '2026-07-24T10:00:00Z',
     },
   ];
@@ -2005,7 +2009,7 @@ test('prepareIssueFollowupContext uses the triggering comment when no PR exists'
   };
   const result = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     core: { setOutput: (key, value) => { outputs[key] = value; } },
     issueNumber: 42,
     triggerCommentId: 9,
@@ -2021,7 +2025,7 @@ test('prepareIssueFollowupContext uses the triggering comment when no PR exists'
 
   const withPull = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     core: { setOutput() {} },
     issueNumber: 42,
     pullNumber: 77,
@@ -2054,7 +2058,7 @@ test('prepareIssueFollowupContext shortcuts simple resolved replies without Curs
     paginate: async () => [
       {
         id: 8,
-        user: { login: 'netcatty-bot', type: 'Bot' },
+        user: { login: 'lemonssh-bot', type: 'Bot' },
         body: '<!-- cursor-followup:comment-id=7;result=no_change -->',
         created_at: '2026-07-24T09:00:00Z',
       },
@@ -2090,7 +2094,7 @@ test('prepareIssueFollowupContext hands off after the daily follow-up limit', as
   const comments = [
     {
       id: 8,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-followup:comment-id=7;result=no_change -->',
       created_at: '2026-07-24T09:00:00Z',
     },
@@ -2123,7 +2127,7 @@ test('prepareIssueFollowupContext hands off after the daily follow-up limit', as
   };
   const result = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     core: { setOutput: (key, value) => { outputs[key] = value; } },
     issueNumber: 42,
     triggerCommentId: 9,
@@ -2157,7 +2161,7 @@ test('ensurePullRequestDraft pauses a ready open PR and ignores closed PRs', asy
       return { convertPullRequestToDraft: { pullRequest: { isDraft: true } } };
     },
   };
-  const context = { repo: { owner: 'binaricat', repo: 'Netcatty' } };
+  const context = { repo: { owner: 'binaricat', repo: 'LemonSSH' } };
   assert.equal(
     await auto.ensurePullRequestDraft({ github, context, pullNumber: 77 }),
     true,
@@ -2178,13 +2182,13 @@ test('restoreCleanPullRequestAfterNoChange undoes ready when a comment races', a
     state: 'open',
     draft,
     body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\n<!-- cursor-issue-watermark:comment-id=1 -->\nFixes #42`,
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     head: {
       sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       ref: 'cursor/issue-42-1',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   });
   const github = {
     rest: {
@@ -2240,7 +2244,7 @@ test('restoreCleanPullRequestAfterNoChange undoes ready when a comment races', a
   };
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     ignoredCommentIds: [2],
@@ -2256,12 +2260,12 @@ test('restoreCleanPullRequestAfterNoChange ignores only the current batch', asyn
     state: 'open',
     draft,
     body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\n<!-- cursor-issue-watermark:comment-id=1 -->\nFixes #42`,
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     head: {
       sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   });
   const github = {
     rest: {
@@ -2301,7 +2305,7 @@ test('restoreCleanPullRequestAfterNoChange ignores only the current batch', asyn
 
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
     ignoredCommentIds: [2],
@@ -2324,12 +2328,12 @@ test('restoreCleanPullRequestAfterNoChange rejects an edited current-batch comme
     state: 'open',
     draft: true,
     body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\n<!-- cursor-issue-watermark:comment-id=1 -->\nFixes #42`,
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     head: {
       sha: 'cccccccccccccccccccccccccccccccccccccccc',
-      repo: { full_name: 'binaricat/Netcatty' },
+      repo: { full_name: 'binaricat/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/Netcatty' } },
+    base: { repo: { full_name: 'binaricat/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -2352,7 +2356,7 @@ test('restoreCleanPullRequestAfterNoChange rejects an edited current-batch comme
 
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: pull.head.sha,
     ignoredCommentSnapshots: [{
@@ -2490,7 +2494,7 @@ test('isBotPrForIssue matches marker + Fixes', () => {
     auto.isBotPrForIssue(
       {
         body: `${auto.BOT_PR_MARKER}\nFixes #42`,
-        user: { login: 'netcatty-bot' },
+        user: { login: 'lemonssh-bot' },
         head: { ref: 'cursor/issue-42-1', repo: { full_name: 'o/r' } },
         base: { repo: { full_name: 'o/r' } },
         labels: [],
@@ -2541,9 +2545,9 @@ test('generated changes may add or update regression tests', () => {
 
 test('hasProtectedChangesInSources blocks Wails runtime and packaging changes', () => {
   const hits = auto.hasProtectedChangesInSources({
-    changedFiles: ['cmd/netcatty/main.go', 'components/App.tsx', 'scripts/package-wails.mjs'],
+    changedFiles: ['cmd/lemonssh/main.go', 'components/App.tsx', 'scripts/package-wails.mjs'],
   });
-  assert.ok(hits.includes('cmd/netcatty/main.go'));
+  assert.ok(hits.includes('cmd/lemonssh/main.go'));
   assert.ok(hits.includes('scripts/package-wails.mjs'));
   assert.ok(!hits.includes('components/App.tsx'));
 });
@@ -2570,7 +2574,7 @@ test('pathsFromGitStatusPorcelain unquotes C-style paths', () => {
 test('isBotPrForIssue requires complete issue number boundary', () => {
   const prFor10 = {
     body: `${auto.BOT_PR_MARKER}\nFixes #10`,
-    user: { login: 'netcatty-bot' },
+    user: { login: 'lemonssh-bot' },
     head: { ref: 'cursor/issue-10-1', repo: { full_name: 'o/r' } },
     base: { repo: { full_name: 'o/r' } },
     labels: [],
@@ -2584,7 +2588,7 @@ test('isBotPrForIssue rejects missing repo identity and branch-only spoofing', (
     auto.isBotPrForIssue(
       {
         body: `${auto.BOT_PR_MARKER}\nFixes #42`,
-        user: { login: 'netcatty-bot' },
+        user: { login: 'lemonssh-bot' },
         head: { ref: 'cursor/issue-42-1', repo: null },
         base: { repo: { full_name: 'o/r' } },
         labels: [{ name: 'automation:bot-pr' }],
@@ -3145,37 +3149,37 @@ test('normalizeExternalResearchText accepts sourced research and explicit no-op'
 
   assert.equal(
     auto.normalizeExternalResearchText(
-      'RESEARCH_NOT_NEEDED: the report only concerns local Netcatty behavior',
+      'RESEARCH_NOT_NEEDED: the report only concerns local LemonSSH behavior',
     ),
-    'RESEARCH_NOT_NEEDED: the report only concerns local Netcatty behavior',
+    'RESEARCH_NOT_NEEDED: the report only concerns local LemonSSH behavior',
   );
   assert.equal(
     auto.normalizeExternalResearchText(
-      'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved',
+      'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved',
       {
         input: {
           issue: {
-            url: 'https://github.com/binaricat/Netcatty/issues/42',
+            url: 'https://github.com/binaricat/LemonSSH/issues/42',
             title: '[Bug] Local terminal issue',
             body: 'The terminal is blank after reconnecting.',
           },
           pull: {
-            url: 'https://github.com/binaricat/Netcatty/pull/77',
-            body: 'Fixes https://github.com/binaricat/Netcatty/issues/42',
+            url: 'https://github.com/binaricat/LemonSSH/pull/77',
+            body: 'Fixes https://github.com/binaricat/LemonSSH/issues/42',
           },
           comments: [{ is_bot: true, body: 'See https://github.com/actions/runs/1' }],
         },
       },
     ),
-    'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved',
+    'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved',
   );
   assert.equal(
     auto.normalizeExternalResearchText([
       '```text',
-      'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved',
+      'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved',
       '```',
     ].join('\n')),
-    'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved',
+    'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved',
   );
 });
 
@@ -3183,7 +3187,7 @@ test('research input replaces only successfully proxied GitHub image attachments
   const attachmentUrl =
     'https://github.com/user-attachments/assets/4ef1f25a-934d-4537-9ec0-3a415d7e9a32';
   const noResearchNeeded =
-    'RESEARCH_NOT_NEEDED: the report only concerns local Netcatty behavior';
+    'RESEARCH_NOT_NEEDED: the report only concerns local LemonSSH behavior';
   const input = {
     issue: {
       body: [
@@ -3438,7 +3442,7 @@ test('parseExternalResearchStream supports standard deltas and terminal result',
 });
 
 test('parseExternalResearchStream accepts the isolated fenced status from issue 2534', () => {
-  const status = 'RESEARCH_NOT_NEEDED: Issue is a Netcatty-local feature ask';
+  const status = 'RESEARCH_NOT_NEEDED: Issue is a LemonSSH-local feature ask';
   const events = [
     {
       type: 'assistant',
@@ -3531,7 +3535,7 @@ test('parseExternalResearchStream prefers the final isolated status over stale e
 });
 
 test('parseExternalResearchStream falls back to a complete fenced status split across events', () => {
-  const status = 'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved';
+  const status = 'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved';
   const events = [
     {
       type: 'assistant',
@@ -3825,7 +3829,7 @@ test('parseExternalResearchStream keeps a valid terminal status over assistant f
     /conflicting research statuses/,
   );
 
-  const terminalNoOp = 'RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved';
+  const terminalNoOp = 'RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved';
   const statusLikeBodyFragment = [
     {
       type: 'assistant',
@@ -3876,7 +3880,7 @@ test('parseExternalResearchStream keeps a valid terminal status over assistant f
 
   assert.match(
     auto.parseExternalResearchStream(prefixedTerminalWithStatusLikeDelta, {}),
-    /^RESEARCH_NOT_NEEDED: only local Netcatty behavior is involved/,
+    /^RESEARCH_NOT_NEEDED: only local LemonSSH behavior is involved/,
   );
 
   const bufferedDuplicate = [
@@ -4247,7 +4251,7 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat,netcatty-bot,github-actions[bot]',
+      ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
       existingComments: [
         {
           user: { login: 'binaricat' },
@@ -4624,7 +4628,7 @@ test('applyClassification updates state before posting the final reply', async (
 
   const classification = await auto.applyClassification({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     core,
     issueNumber: 2428,
     classificationPath,
@@ -4693,7 +4697,7 @@ test('applyClassification in triage-only never starts implement', async () => {
   try {
     const classification = await auto.applyClassification({
       github,
-      context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+      context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
       core,
       issueNumber: 99,
       classificationPath,
@@ -4814,7 +4818,7 @@ test('prepareIssueContext survives Octokit-normalized search pages (no .items)',
           return {
             data: {
               number: 2438,
-              html_url: 'https://github.com/binaricat/Netcatty/issues/2438',
+              html_url: 'https://github.com/binaricat/LemonSSH/issues/2438',
               title: '[Feature] AI multi session',
               body: issueBody,
               pull_request: undefined,
@@ -4858,7 +4862,7 @@ test('prepareIssueContext survives Octokit-normalized search pages (no .items)',
       // timeline / comments. GitHub Apps can report a bot account as type User.
       return [{
         id: 2440,
-        user: { type: 'User', login: 'netcatty-bot' },
+        user: { type: 'User', login: 'lemonssh-bot' },
         body: 'Automation details: https://github.com/actions/runs/1',
       }];
     },
@@ -4866,7 +4870,7 @@ test('prepareIssueContext survives Octokit-normalized search pages (no .items)',
 
   const result = await auto.prepareIssueContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'Netcatty' } },
+    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
     core,
     issueNumber: 2438,
     outputPath,
@@ -5026,7 +5030,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
   const alreadyProcessed = await run([
     {
       id: 10,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=9 -->',
       created_at: '2026-07-24T10:00:00Z',
     },
@@ -5037,7 +5041,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
   const rateLimited = await run([
     {
       id: 10,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=8 -->',
       created_at: '2026-07-24T10:00:00Z',
     },
@@ -5056,7 +5060,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
   const managedRateLimited = await run([
     {
       id: 10,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=8 -->',
       created_at: '2026-07-24T10:00:00Z',
     },
@@ -5073,7 +5077,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
   const managedProcessed = await run([
     {
       id: 10,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=11 -->',
       created_at: '2026-07-24T10:00:00Z',
     },
@@ -5084,7 +5088,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
   const burstComments = [
     {
       id: 1,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=1 -->',
       created_at: '2026-07-24T09:00:00Z',
     },
@@ -5114,7 +5118,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
     ...burstComments,
     {
       id: 27,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: triageReply,
       created_at: '2026-07-24T11:00:00Z',
     },
@@ -5128,7 +5132,7 @@ test('prepareIssueContext dedupes and limits all managed issue author replies', 
     ...burstComments.filter((comment) => comment.id !== 21),
     {
       id: 27,
-      user: { login: 'netcatty-bot', type: 'User' },
+      user: { login: 'lemonssh-bot', type: 'User' },
       body: '<!-- cursor-triage-watermark:comment-id=21 -->',
       created_at: '2026-07-24T11:00:00Z',
     },
@@ -5260,13 +5264,13 @@ test('nextCodexTerminalLabels rejects unknown terminal', () => {
 });
 
 test('hasAutomationPullRequestBacklink deduplicates only the same marked PR link', () => {
-  const pullRequestUrl = 'https://github.com/binaricat/Netcatty/pull/2474';
+  const pullRequestUrl = 'https://github.com/binaricat/LemonSSH/pull/2474';
   assert.equal(
     auto.hasAutomationPullRequestBacklink(
       [
         { body: `ordinary maintainer note with ${pullRequestUrl}` },
         {
-          body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at https://github.com/binaricat/Netcatty/pull/2400.`,
+          body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at https://github.com/binaricat/LemonSSH/pull/2400.`,
         },
         {
           body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at ${pullRequestUrl}.`,

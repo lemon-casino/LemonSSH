@@ -24,11 +24,11 @@ interface Props {
   /**
    * Algorithm overrides this host would inherit from its group when its
    * own field is unset. Used purely for display: an `undefined` value
-   * here means the host can freely use NetCatty defaults by resetting
+   * here means the host can freely use LemonSSH defaults by resetting
    * a category; a populated value means the host would inherit those
    * lists, and resetting locally falls back to them — the panel
    * surfaces that so the user knows the local Reset button doesn't
-   * jump them to NetCatty's defaults in that case.
+   * jump them to LemonSSH's defaults in that case.
    */
   inheritedFromGroup?: HostAlgorithmOverrides;
 }
@@ -44,7 +44,7 @@ const CATEGORY_LABEL_KEY: Record<SSHAlgorithmCategory, string> = {
 /**
  * Per-category SSH algorithm override editor.
  *
- * When a category's array is `undefined`, that category uses NetCatty's
+ * When a category's array is `undefined`, that category uses LemonSSH's
  * negotiated default list. When it's a non-empty array, that array fully
  * replaces the offered list for the category.
  *
@@ -122,7 +122,7 @@ export const AlgorithmOverridesPanel: React.FC<Props> = ({
         // First click in this category — seed with the *effective* offer
         // for this category. If the group has set a list for this
         // category, use that (so customizing one entry doesn't lose the
-        // group's narrowing). Otherwise seed from NetCatty's effective
+        // group's narrowing). Otherwise seed from LemonSSH's effective
         // default, which already accounts for legacy mode. Seeding from
         // SUPPORTED_ALGORITHMS_BY_CATEGORY would silently introduce
         // legacy algorithms (CBC, arcfour, MD5) into the offered list.
@@ -157,10 +157,10 @@ export const AlgorithmOverridesPanel: React.FC<Props> = ({
         // all-or-nothing inherit boundary, once any other category
         // remains on the host the group's `algorithms` object stops
         // being inherited as a whole, and the missing category falls
-        // back to NetCatty defaults — not the group's narrower list.
+        // back to LemonSSH defaults — not the group's narrower list.
         // Persist the inherited list verbatim instead, so Reset means
         // "use what this host would otherwise inherit" rather than
-        // "silently switch to NetCatty defaults".
+        // "silently switch to LemonSSH defaults".
         next[category] = inherited.slice();
       } else {
         delete next[category];
@@ -200,7 +200,7 @@ export const AlgorithmOverridesPanel: React.FC<Props> = ({
       // gating the inherited notice uses) so that a host that already
       // has any local override stops pretending its empty categories
       // still come from the group — `applyGroupDefaults` won't apply
-      // them, and the runtime falls back to NetCatty defaults.
+      // them, and the runtime falls back to LemonSSH defaults.
       const baseline = inheritedForDisplay?.[category] ?? effectiveDefault[category];
       return baseline.includes(algo);
     },

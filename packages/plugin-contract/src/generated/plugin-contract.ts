@@ -165,6 +165,27 @@ export type CredentialRef = {
   id: string;
 };
 
+export type DeclarativePluginKeybinding = {
+  command: string;
+  key: string;
+  mac?: string;
+  linux?: string;
+  windows?: string;
+  args?: JsonValue;
+  enabled?: boolean;
+};
+
+export type DeclarativePluginMenu = {
+  id: string;
+  command: string;
+  alt?: string;
+  location: "commandPalette" | "application" | "host/context" | "terminal/context" | "terminal/toolbar" | "statusBar";
+  title?: string;
+  group?: string;
+  order?: number;
+  visible?: boolean;
+};
+
 export type DeclarativePluginSetting = {
   id: string;
   type: "text" | "number" | "boolean" | "select" | "password";
@@ -178,14 +199,18 @@ export type DeclarativePluginSetting = {
 export type DeclarativePluginUI = {
   settings?: Array<DeclarativePluginSetting> | null;
   views?: Array<DeclarativePluginView> | null;
+  menus?: Array<DeclarativePluginMenu> | null;
+  keybindings?: Array<DeclarativePluginKeybinding> | null;
 };
 
 export type DeclarativePluginView = {
   id: string;
   type: "list" | "card";
   title: string;
+  location?: "settings";
   columns?: Array<string>;
   bindings?: Array<string>;
+  visible?: boolean;
 };
 
 export type FeatureId = string;
@@ -444,12 +469,14 @@ export type PluginContributions = {
 };
 
 export type PluginEngineHeader = ({
-  netcatty: SemverRange;
+  lemonssh?: SemverRange;
+  netcatty?: SemverRange;
   api: SemverRange;
 } & Record<string, unknown>);
 
 export type PluginEngines = {
-  netcatty: SemverRange;
+  lemonssh?: SemverRange;
+  netcatty?: SemverRange;
   api: SemverRange;
 };
 
@@ -641,7 +668,8 @@ export type RpcSuccess = {
 };
 
 export type RuntimeInitializeParams = {
-  netcattyVersion: SemanticVersion;
+  lemonsshVersion?: SemanticVersion;
+  netcattyVersion?: SemanticVersion;
   apiVersion: SemanticVersion;
   supportedFeatures: Array<FeatureId>;
 };
@@ -901,7 +929,7 @@ export type TerminalInterceptorAttachmentSuccess = {
 export type TerminalInterceptorChunkByteLength = number;
 
 export type TerminalInterceptorChunkFrame = {
-  type: "netcatty:terminal-interceptor:chunk";
+  type: "lemonssh:terminal-interceptor:chunk" | "netcatty:terminal-interceptor:chunk";
   sequence: SafePositiveInteger;
   direction: TerminalInterceptorDirection;
   creditBytes: TerminalInterceptorCreditBytes;
@@ -913,7 +941,7 @@ export type TerminalInterceptorCreditBytes = number;
 export type TerminalInterceptorDirection = "input" | "output";
 
 export type TerminalInterceptorFailedResultFrame = {
-  type: "netcatty:terminal-interceptor:result";
+  type: "lemonssh:terminal-interceptor:result" | "netcatty:terminal-interceptor:result";
   sequence: SafePositiveInteger;
   status: "failed";
 };
@@ -923,7 +951,7 @@ export type TerminalInterceptorFrame = (TerminalInterceptorReadyFrame) | (Termin
 export type TerminalInterceptorLimits = {"maxChunkBytes":65536,"maxWindowBytes":262144};
 
 export type TerminalInterceptorOkResultFrame = {
-  type: "netcatty:terminal-interceptor:result";
+  type: "lemonssh:terminal-interceptor:result" | "netcatty:terminal-interceptor:result";
   sequence: SafePositiveInteger;
   status: "ok";
   creditBytes: TerminalInterceptorChunkByteLength;
@@ -931,7 +959,7 @@ export type TerminalInterceptorOkResultFrame = {
 };
 
 export type TerminalInterceptorReadyFrame = {
-  type: "netcatty:terminal-interceptor:ready";
+  type: "lemonssh:terminal-interceptor:ready" | "netcatty:terminal-interceptor:ready";
   sessionId: string;
   direction: TerminalInterceptorDirection;
   windowBytes: TerminalInterceptorWindowBytes;
@@ -970,5 +998,32 @@ export type ViewContribution = {
 };
 
 export type ViewLocation = "aside" | "panel" | "tab" | "modal" | "settings";
+
+export type WasmAbi = {"version":1,"hostModule":"lemonssh","guestExports":{"alloc":"lemonssh_alloc","free":"lemonssh_free","dispatch":"lemonssh_dispatch"},"hostImports":{"log":"lemonssh_host_log","settingGet":"lemonssh_host_setting_get"},"maxRequestBytes":1048576,"maxResponseBytes":1048576,"defaultTimeoutMs":10000,"maxLogBytes":8192,"maxLogEntries":64,"maxSettingKeyBytes":256};
+
+export type WasmDispatchError = {
+  code: string;
+  message: string;
+  data?: JsonValue;
+};
+
+export type WasmDispatchFailure = {
+  ok: false;
+  error: WasmDispatchError;
+};
+
+export type WasmDispatchRequest = {
+  method: string;
+  payload?: JsonValue;
+};
+
+export type WasmDispatchResponse = (WasmDispatchSuccess) | (WasmDispatchFailure);
+
+export type WasmDispatchSuccess = {
+  ok: true;
+  result?: JsonValue;
+};
+
+export type WasmHostImportStatus = {"ok":0,"permissionDenied":-1,"invalidArgument":-2,"unavailable":-3};
 
 export type WireIntegerLimits = {"maxSafeInteger":9007199254740991};

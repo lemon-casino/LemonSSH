@@ -125,7 +125,7 @@ export const TrafficDiagram: React.FC<TrafficDiagramProps> = ({ type, isAnimatin
                         <ServerIcon className="h-10 w-10" />
                     </div>
 
-                    {/* App Logo - bottom center (Netcatty client) */}
+                    {/* App Logo - bottom center (LemonSSH client) */}
                     <div className={`absolute left-1/2 -translate-x-1/2 bottom-4 z-10 transition-opacity duration-300 ${getOpacity('app')}`}>
                         <AppLogo className="h-12 w-12" />
                     </div>

@@ -1,289 +1,132 @@
 # Terminal Provider API
 
-PR 5 adds the host-owned terminal Provider registry on top of the isolated
-runtime and permission boundary. Provider declarations remain immutable
-manifest data. Listing Providers never starts a plugin; first invocation uses
-the existing idempotent `onProvider:<id>` activation seam and revalidates the
-active plugin version and runtime identity after the response.
+Status: implemented for enumeration, invocation, cancellation and session
+events over the lemonssh-wasm-abi v1 dispatch channel. The registry lives in
+`internal/plugin/providers`; the Wails surface is
+`PluginService.TerminalProviders` / `ProvideTerminal` /
+`CancelTerminalRequest` / `PublishTerminalSessionEvent` /
+`ExtensionProviders` (`cmd/lemonssh/pluginService.go`), adapted by the plugin
+bridge (`infrastructure/runtime/wails/pluginBridge.ts`) and consumed by the
+renderer registry (`application/state/pluginTerminalProviderRegistry.ts`).
+The extension kinds (`connection`, `authentication`, `importer`, `sync`) are
+enumerated through the same registry and are served end to end by the
+extension data plane (`cmd/lemonssh/pluginExtensionService.go`,
+`pluginExtensionConnection.go`) — see
+[sync-providers.md](./sync-providers.md) for the sync operations and below
+for connection/importer/authentication.
 
-## Runtime registration
+## Intent
 
-An activated plugin registers only contributions owned by its exact plugin ID:
+Terminal providers let a plugin contribute bounded behavior to the terminal:
+completion items, decorations, link/hover matchers, prompt markers, and
+themes. Extension providers (connection, authentication, importer, sync) are
+enumerated through the same registry.
 
-```ts
-context.subscriptions.add(context.providers.register(
-  "com.example.shell.completion",
-  "terminal.completion",
-  async ({ payload, cancellationToken }) => {
-    if (cancellationToken.isCancellationRequested) return { items: [] };
-    return { items: [{ text: "git status", displayText: "git status", score: 100 }] };
-  },
-));
-```
+## Declaration and discovery
 
-Registration is activation-owned and disposable. A stale disposable cannot
-remove a replacement registration. Invocation carries the declared Provider
-ID/kind, an operation, a host-generated request ID, a bounded JSON payload, the
-deadline, and a cooperative cancellation token. Results use the canonical
-`ok`/`cancelled`/`failed` Provider result union and are validated again by the
-main process before renderer use.
+Plugins declare providers at runtime over the WASM dispatch channel — no
+plugin code runs outside the sandbox and nothing is registered that the
+manifest does not allow:
 
-Each invocation reauthorizes the Provider kind's least-privilege permission
-set against the current runtime identity before sending a session snapshot or
-request payload. Required grants are reused; optional declarations prompt at
-first use and denial/cancellation returns no terminal data to the runtime.
+- `providers.list` — the host asks an enabled plugin for its declarations;
+  the result is `{"providers": [{id, label, description?, kind,
+  capabilities?, configurationSchema?}, …]}` (labels follow the contract
+  `LocalizedText` shape: a string or a `{locale: text}` map, resolved by the
+  host with the requested locale, then `"en"`, then the first key).
+- `provider.invoke` — the host runs one operation:
+  `{providerId, kind, operation, requestId, session, payload, deadlineMs}`;
+  the result is the operation-specific JSON value.
+- `provider.sessionEvent` — the host notifies the plugin about one terminal
+  session lifecycle event (`{type, session, exitCode?}`); the result is only
+  checked for `ok`.
 
-## Terminal snapshots and lifecycle
+The SDK ships the canonical constants and decoders
+(`PROVIDERS_LIST_DISPATCH_METHOD`, `PROVIDER_INVOKE_DISPATCH_METHOD`,
+`PROVIDER_SESSION_EVENT_DISPATCH_METHOD`, `parsePluginProviderListResult`,
+`parsePluginProviderInvokeRequest`).
 
-Providers receive immutable metadata snapshots containing only stable session
-identity and presentation context: session/host/workspace IDs, protocol,
-connection status, cwd, title, shell type, dimensions, and alternate-screen
-state. Active runtimes can subscribe with `context.terminals.onDidChange()`.
-Protocol values preserve the actual built-in transport (`ssh`, `mosh`, `et`,
-`telnet`, `local`, or `serial`) and accept bounded namespaced identifiers for
-future connection Providers instead of collapsing non-SSH transports to SSH.
-Immediately before an invocation, a lazily activated Provider receives a
-`snapshot` event for the current session so it does not depend on lifecycle
-events that occurred before activation.
-Lifecycle events cover creation, connection/reconnection, cwd/title/resize/
-alternate-screen changes, command submission, host-detected command completion,
-disconnect, and disposal. Completion events contain no command text or raw
-output and are emitted from OSC 133 completion markers when available, with a
-conservative next-prompt fallback for shells without integration markers.
-Connection-scoped cwd, title, and alternate-screen metadata is cleared before
-disconnect and reconnect publication; viewport dimensions remain available.
-Ongoing lifecycle delivery begins only after a successful invocation with a
-non-`once` `provider.terminal` grant. Each event rechecks that grant without
-opening a new prompt and remains bound to the exact plugin version, runtime ID,
-runtime kind, and security principal that received the authorized invocation.
-One-use grants receive only the invocation snapshot and payload.
+## Fail-closed authorization
 
-PR 5 intentionally omits command text, password/prompt content, raw terminal
-output, xterm objects, backend handles, and terminal-worker ports. The ordinary
-JSON-RPC Provider path is not suitable for hot interception. PR 6 owns the
-separate permission-gated MessagePort fast path for input/output interceptors,
-sensitive-input bypass, circuit breaking, and the 4 ms interceptor budget.
+A declaration is accepted only while **both** hold:
 
-## Privileged terminal data pipeline
+1. the plugin's stored manifest declares the permission
+   `{"kind": "provider", "resource": "<kind>", "mode": "read"}` (the
+   `provider` kind is validated by `internal/plugin/manifest` and mirrored by
+   `@lemonssh/plugin-cli`); and
+2. the fail-closed broker holds the grant for
+   `["provider","<kind>"]:read` — recorded only through the trusted
+   `PluginService.GrantPermission` approval path, re-checked by the registry
+   on every enumeration and invocation, and revoked by
+   `SetEnabled(false)` / `Uninstall`.
 
-PR 6 implements the two declared raw kinds without exposing xterm, Electron
-IPC, backend streams, or the general plugin control plane. Only an advanced
-utility runtime with `provider.terminal` and the matching
-`terminal.intercept.input` or `terminal.intercept.output` grant can be attached.
-Authorization is bound to the exact plugin version, runtime ID, runtime kind,
-security principal, terminal session, direction, and declared Provider.
-Because the transferred port is a long-lived capability, both permissions must
-resolve to a session, application, or persistent grant; a one-use grant is
-rejected before either port endpoint is published.
-Browser runtimes are rejected before a port is transferred. Publisher
-signature eligibility remains a distribution-policy decision owned by PR 9;
-the advanced runtime and explicit high-risk permission boundary is already
-enforced here.
+Disabling a plugin, revoking its grant, or breaking its WASM module removes
+its providers from the registry without surfacing an error to other plugins.
+Enumerating providers never instantiates or "starts" anything: the WASM
+module already exists from enable time, and a module that cannot answer the
+dispatch simply contributes nothing.
 
-An activated utility plugin uses the same registration owner and receives a
-specialized SDK invocation:
+## Hard boundaries
 
-```ts
-context.subscriptions.add(context.providers.register(
-  "com.example.filter.input",
-  "terminal.interceptor.input",
-  async ({ data, session, sequence }) => {
-    // The transferred UTF-8 Uint8Array is owned by this invocation.
-    return data;
-  },
-));
-```
+- Providers receive immutable metadata snapshots only — session/host IDs,
+  protocol, status, cwd, title, shell type, dimensions. Never raw xterm
+  objects, backend handles, password/prompt content, or unbounded output
+  streams.
+- The privileged `terminal.interceptor.input/output` kinds are **not**
+  registrable through this path; input/output interceptors remain a separate,
+  explicit-grant fast path (`terminal.intercept.*`), and the registry rejects
+  those kinds.
+- Each `provider.invoke` dispatch is deadline-capped (requested
+  `deadlineMs`, clamped to the host's 10 s dispatch cap) and can be aborted
+  through `CancelTerminalRequest`, which surfaces as a `cancelled` result.
+- Failures are structured: a plugin-declared error becomes a `failed` result
+  carrying the plugin's code in `error.data.pluginCode`; transport failures
+  map to the wire codes (`-32004` deadline, `-32013` internal).
 
-For each terminal session, Netcatty permits at most one arbitrary interceptor
-per direction. A single candidate can be selected automatically; competing
-candidates require an explicit host-owned user choice and "No interceptor" is
-the default/cancel action. The choice is session-local and is discarded on
-session disposal, contribution withdrawal, runtime replacement, crash, or
-quarantine. The requesting renderer must own the terminal session before any
-authorization or activation work occurs.
+## Renderer flow
 
-The main process transfers the two ends of one `MessageChannelMain` directly
-to the terminal worker and selected plugin utility process. The utility-side
-attachment is established by a transfer-aware `PluginRpcRouter` request, so
-the existing router owns correlation, deadline, cancellation, validation,
-late-response retirement, close cleanup, and protocol-failure containment.
-Only the accepted long-lived byte path leaves the control plane. Data messages
-contain a monotonic sequence, direction, bounded credit information, and one
-transferable `ArrayBuffer`; the main process never copies terminal payloads.
-Ready, chunk, successful-result, and failed-result metadata use the canonical
-`TerminalInterceptorFrame` union. Both worker and utility peers validate it
-from the generated contract bundle, and the shared MessagePort envelope rejects
-missing, unexpected, detached, oversized, or byte-length-mismatched transfers.
-The worker serializes chunks, caps each transfer at 64 KiB, and limits queued
-output to a 256 KiB credit window. Output remains ordered and host output taps
-retain the original data. Renderer flow acknowledgements use the original
-ingress count even when a plugin expands, contracts, or completely suppresses
-visible output. Host-bypassed sensitive input and protocol replies still wait
-behind earlier ordinary input so bypass cannot reorder the terminal stream.
+`usePluginTerminalProviders` polls availability per kind, sends
+`providePluginTerminal` requests with 1.5 s deadlines through the window
+registry, and merges accepted results into decorations and the resolved
+theme (`domain/pluginTerminalProviders.ts` normalizes and bounds every
+result). The shipped `hello-lemonssh` example declares the
+`terminal.theme` provider `com.lemonssh.hello.accent`; after the
+manifest-declared `provider/terminal.theme/read` grant it answers
+`provideTheme` with an accent cursor color.
 
-Input requests have a 4 ms worker-owned deadline. Output requests have a
-bounded 50 ms deadline and a 256 KiB queued-output window. A timeout, malformed
-response, invalid UTF-8 result, closed port, runtime exit, or credit-window
-overflow trips the circuit breaker immediately: the original chunk fails open,
-the interceptor is disabled for that session/direction, and Netcatty displays
-a host-owned warning. An interceptor cannot suppress that warning or re-enable
-itself without a fresh host authorization path.
+## Extension provider data plane (connection / importer / authentication)
 
-These budgets are containment limits, not production performance acceptance
-evidence. PR 9 owns the reproducible benchmark harness, supported hardware and
-operating-system matrix, and release gate proving no more than 1% no-plugin
-throughput regression plus approximately 4 ms p95 / 8 ms p99 added input
-latency before the development gate can be removed.
+The extension kinds run their operations over the same `provider.invoke`
+envelope, served by `PluginService.InvokePluginExtensionProvider` (generic
+surface) plus the dedicated methods the renderer bridge maps
+(`infrastructure/runtime/wails/pluginBridge.ts`):
 
-Credential protection is outside plugin control. Input that the host marks as
-sensitive/no-echo bypasses the port before buffer creation, including every
-character entered while the password-prompt state is active and confirmed
-sudo/su credential autofill. Recorded automation credentials use a password
-dialog, remain redacted from script activity/logs, and carry the same sensitive
-marker through the script bridge. The terminal worker also recognizes authentication
-challenges from bounded original-output tails before output interception, so an
-output plugin cannot expose a password by hiding or rewriting its prompt.
-Generic PTY protocols do not expose an authoritative live echo-mode signal.
-Consequently, a custom or promptless program that disables echo may not be
-recognized by the host classifier. The native permission dialog states this
-limit before granting input interception, and public enablement remains blocked
-until PR 9 restricts the capability to explicitly approved signed advanced
-plugins. This is a deliberate limitation of the first terminal data path, not
-an absolute no-echo confidentiality guarantee.
-Sensitive input is also excluded from terminal broadcast. Terminal protocol replies, urgent interrupts, transfer input gates,
-transport encoding, Telnet IAC escaping, host logs, renderer flow accounting,
-and marker/safety parsing remain host-owned. Output interceptors may create or
-suppress visible byte sequences that affect output-derived lifecycle signals
-such as OSC 133. Netcatty owns the parser, marker objects, validation, and
-cleanup, but deliberately derives those signals from the transformed visible
-stream; credential-prompt classification remains based on bounded original
-host output before interception. With no active interceptor, the
-worker uses the existing synchronous output path and performs no interceptor
-Promise, transfer, or payload allocation.
+- **connection** — `validateConfiguration` / `probe` through the generic
+  surface (the `startPluginConnection` pre-flight in
+  `application/state/useTerminalBackend.ts`), then `open` /
+  `writeInput` / `readOutput` / `resize` / `signal` / `status` / `close` for
+  the live connection. The Go host registers every opened connection as a
+  first class terminal session (`internal/app/terminaluse/plugin_session.go`):
+  renderer input, resize, signals, session logs and exit tracking flow
+  through the ordinary terminal pipeline, and plugin output is published on
+  the loopback data plane. A per-chunk `plugin:connection-data` renderer
+  event exists for non-terminal consumers and stays gated off until a
+  listener subscribes; connection closes always surface as
+  `plugin:connection-closed`.
+- **importer** — `detect` over a bounded base64 sample; `parseBegin` /
+  `parseChunk` / `parseFinish` / `parseRecords` / `parseAbort` stream a file
+  staged behind an opaque selection token (picked through the native file
+  dialog, bounded by the contract `ImporterLimits`). Progress records are
+  mirrored to the renderer as `plugin:importer-progress` events; drafts and
+  warnings/errors return to the caller.
+- **authentication** — `begin` results carrying
+  `{status: "challenge", challenge}` are registered host-side and mirrored as
+  `plugin:authentication-challenge` events; the renderer answers through
+  `PluginService.RespondPluginAuthenticationChallenge` (`challengeResponse`
+  operation). `authenticated` clears the pending entry, `cancelled`/`failed`
+  emit a cancel event; unknown challenge ids fail closed.
 
-## Host adapters
-
-Netcatty's built-in autocomplete engine and keyword highlighter use the same
-application Provider adapters as plugins:
-
-- completion requests run built-in and plugin Providers concurrently;
-- one active request exists per session and Provider kind; a newer request
-  cancels and suppresses the older result;
-- Provider ordering is deterministic and can honor a host-owned preference
-  list; completion items are score-ranked and text-deduplicated;
-- one Provider failure is contained and does not suppress other Providers;
-- plugin completion responses are capped and normalized before rendering;
-- completion insertion/display text rejects control and bidirectional override
-  characters before it can reach terminal input or suggestion UI. The host
-  always renders the exact insertion text for third-party completions, so a
-  friendly label cannot conceal a different command on previewless terminals;
-- decoration Providers return declarative rules only. Rule IDs are namespaced,
-  counts and strings are bounded, colors must be explicit hex values, and
-  unsupported expressions are rejected before reaching the highlighter, and
-  accepted plugin patterns are compiled and executed by the linear-time RE2JS
-  engine with global, case-insensitive matching;
-- decoration results are capped again after Provider fan-out at 16 active
-  rules and 32 total patterns. Plugin matching examines at most the first 4096
-  characters of each incoming text segment and retains at most 256 plugin
-  matches per terminal write. Highlight colors are applied to already-parsed
-  cells; ordinary input and output only rematch dirty rows. When rules change,
-  the host restores original cell colors and recolors the visible viewport
-  immediately, then finishes scrollback in idle slices. Heavy output may skip
-  matching until one quiet-window catch-up. Patterns that can match an empty
-  string are rejected because they cannot produce a visible highlight. Normal
-  boot and hibernate wake share the same CWD-triggered decoration refresh path;
-- link and hover Providers receive one bounded physical xterm line and return
-  exact zero-based ranges. Links are restricted to credential-free HTTP(S)
-  URLs, reuse the host link-modifier policy, and render hover text with host
-  DOM nodes rather than plugin HTML. UTF-16 result boundaries are mapped back
-  to xterm cells so wide and combining characters cannot shift activation or
-  decoration ranges. Requests pause while the terminal is hidden or
-  disconnected, and in-flight results are aborted and invalidated on either
-  transition;
-- matcher Providers receive at most the latest 32 parsed logical normal-buffer
-  lines in one batch. Wrapped physical rows are joined before invocation and
-  exact logical ranges are split back across host-owned xterm decorations.
-  Each result identifies a host-provided `lineId`; ranges are validated against
-  that exact line, the combined request text is capped below the 128 KiB
-  Provider envelope, and at most 64 logical matches remain visible.
-  Alternate-screen output is excluded;
-- semantic Providers receive only a bounded command submitted from a
-  positively confirmed shell prompt (or an explicitly identified network
-  device prompt) and require `terminal.input`. Authentication challenges,
-  REPL input, and other untrusted prompt-shaped input never reach ordinary
-  Providers. Prompt Providers receive no command or raw output. Their
-  bounded annotations are rendered at host-detected command completion. A
-  prompt line is included only when the shared host detector confirms an empty
-  shell prompt, so the last output line is never mislabeled as prompt context;
-- background Providers return at most four solid-color presentation layers.
-  Per-layer opacity and the combined host overlay are capped at 0.35, plugin
-  HTML/CSS/images are never accepted, and the request includes the current
-  terminal background color for contrast-aware results. An omitted layer
-  opacity uses the host-owned safe default of 0.15. Providers may request
-  a 250-60000 ms host refresh cadence; refresh pauses while the terminal is
-  hidden or disconnected and is disabled when reduced motion is requested;
-- theme Providers receive the complete current host palette and may return a
-  bounded partial palette of explicit colors. Providers are merged in the same
-  deterministic preference order as enumeration, with the first value for each
-  color winning; host colors remain authoritative for omitted values;
-- every ordinary visual adapter applies a renderer-owned end-to-end wait bound
-  around lazy activation, authorization, and runtime work. Stale generations,
-  disconnects, contribution changes, runtime replacement, and terminal
-  disposal cannot reapply old visual results. Provider availability is cached
-  from immutable enumeration without activation, stale enumeration generations
-  cannot overwrite newer contribution state, and enumeration errors fail
-  closed. Autocomplete, decoration, link, hover, matcher, and background paths
-  therefore perform no plugin RPC work when those contribution kinds are
-  absent or the development-gated host is disabled.
-
-The operation payload/result shapes for the ordinary adapters are intentionally
-declarative. Every payload also contains the immutable `session` snapshot for
-the exact invocation:
-
-- `terminal.completion/provideCompletions`: bounded input, cursor, host OS,
-  CWD source, and result limit -> bounded completion items;
-- `terminal.decoration/provideDecorations`: a host refresh reason -> bounded
-  declarative highlight rules;
-- `terminal.link/provideLinks`: `{ line, bufferLineNumber }` ->
-  `{ links: [{ start, length, uri, label? }] }`;
-- `terminal.hover/provideHovers`: `{ line, bufferLineNumber }` ->
-  `{ hovers: [{ start, length, contents }] }`;
-- `terminal.matcher/provideMatches`: `{ lines: [{ lineId, line,
-  bufferLineNumber }] }` -> `{ matches: [{ lineId, start, length, label,
-  severity?, color? }] }`;
-- `terminal.semantic/provideSemantics`: `{ command }` -> classification,
-  destructive/idempotent flags, and bounded annotations;
-- `terminal.prompt/provideAnnotations`: a host reason -> bounded annotations;
-- `terminal.background/provideBackgrounds`: a host reason and optional current
-  terminal background -> bounded solid-color layers plus optional
-  `refreshAfterMs`.
-- `terminal.theme/provideTheme`: a host reason and complete current host palette
-  -> a validated partial terminal palette.
-
-The SDK exports and infers the matching payload, item, operation, and result
-interfaces for all nine ordinary Provider kinds, including the immutable
-host session snapshot attached to every invocation. The generic registration
-overload remains available for later Provider kinds, so plugins do not need
-application-internal renderer types and PRs 6-9 can add their own typed maps.
-
-The control-plane JSON budget remains 1 MiB, while each terminal Provider
-payload and result is additionally limited to 128 KiB. Default terminal
-Provider requests have a 1.5 second deadline; autocomplete uses a shorter 750
-ms runtime deadline plus an 800 ms renderer-owned end-to-end wait bound that
-also covers lazy activation and first-use authorization. Built-in suggestions
-therefore remain available when a plugin prompt is unanswered. Renderer
-request cancellation is owned by the requesting
-WebContents and all outstanding work is aborted when that sender is destroyed.
-A single renderer may retain at most 64 active terminal requests, and one
-fan-out invokes at most the first 32 deterministically ranked Providers.
-
-## Downstream compatibility
-
-The registry uses the existing generic Provider request/result envelopes,
-runtime identity, cancellation, progress, permission names, and stream
-protocol. PR 6 added its direct interceptor transport without changing the
-ordinary registry. PR 7 reused that registration and runtime lifecycle for
-connection, authentication, and importer Providers, with operation-specific
-result validators and bounded stream consumers. PR 8 sync Providers (implemented)
-and PR 9
-rollout can reuse the same boundaries.
+Every operation re-resolves its `providerId` through the broker-checked
+registry first, honors the request deadline (clamped to the 10 s dispatch
+cap), and can be aborted through `PluginService.CancelPluginExtensionRequest`.
+Cancellations mark the request id so late operations with the same id fail
+fast instead of re-entering a plugin.

@@ -256,8 +256,8 @@ test('runSdkAgentTurn stores SDK session ids with backend and path metadata', as
   );
 
   assert.equal(sessionIds.length, 1);
-  assert.match(sessionIds[0], /^netcatty-sdk-session:/);
-  const payload = JSON.parse(decodeURIComponent(sessionIds[0].replace(/^netcatty-sdk-session:/, '')));
+  assert.match(sessionIds[0], /^lemonssh-sdk-session:/);
+  const payload = JSON.parse(decodeURIComponent(sessionIds[0].replace(/^lemonssh-sdk-session:/, '')));
   assert.deepEqual(payload, {
     v: 1,
     id: 'thread-1',
@@ -302,7 +302,7 @@ test('runSdkAgentTurn forwards Cursor API key as agent environment', async () =>
   );
 
   assert.deepEqual(streamArgs[13], {
-    NETCATTY_CURSOR_AUTH_MODE: 'api-key',
+    LEMONSSH_CURSOR_AUTH_MODE: 'api-key',
     CURSOR_API_KEY: 'cur-test-key',
   });
   assert.equal(streamArgs[2], 'cursor');
@@ -344,8 +344,8 @@ test('runSdkAgentTurn in cursor cli-login mode does not inject CURSOR_API_KEY', 
   );
 
   assert.deepEqual(streamArgs[13], {
-    NETCATTY_CURSOR_AUTH_MODE: 'cli-login',
-    NETCATTY_CURSOR_CLI_BIN: '/Users/me/.local/bin/agent',
+    LEMONSSH_CURSOR_AUTH_MODE: 'cli-login',
+    LEMONSSH_CURSOR_CLI_BIN: '/Users/me/.local/bin/agent',
   });
 });
 

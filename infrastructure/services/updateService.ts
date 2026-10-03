@@ -6,7 +6,7 @@
  * 2. electron-updater bridge (used by SettingsSystemTab for download/install)
  */
 
-import { netcattyBridge } from "./netcattyBridge";
+import { lemonsshBridge } from "./lemonsshBridge";
 
 // ================================
 // Part 1: GitHub API Version Check
@@ -49,6 +49,17 @@ function parseVersion(version: string): number[] {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
   });
+}
+
+/**
+ * Returns true for versions that cannot participate in update checks:
+ * empty or every numeric segment zero ("", "0.0.0", "0.0.0-dev",
+ * "0.0.0-wails-skeleton"). Mirrors updateuse.IsDevVersion in Go.
+ */
+export function isDevVersion(version: string): boolean {
+  if (!version || version.trim() === '') return true;
+  const segments = version.trim().replace(/^v/i, '').split(/[-+]/)[0].split('.');
+  return segments.every((part) => (parseInt(part, 10) || 0) === 0);
 }
 
 /**
@@ -173,7 +184,7 @@ export interface UpdateDownloadProgress {
 }
 
 export async function checkForUpdate(): Promise<ElectronUpdateCheckResult> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.checkForUpdate) {
     return { available: false, supported: false, error: "Bridge unavailable" };
   }
@@ -186,7 +197,7 @@ export async function checkForUpdate(): Promise<ElectronUpdateCheckResult> {
 }
 
 export async function downloadUpdate(): Promise<{ success: boolean; error?: string }> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.downloadUpdate) {
     return { success: false, error: "Bridge unavailable" };
   }
@@ -194,24 +205,24 @@ export async function downloadUpdate(): Promise<{ success: boolean; error?: stri
 }
 
 export function installUpdate(): void {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   bridge?.installUpdate?.();
 }
 
 export function onDownloadProgress(
   cb: (progress: UpdateDownloadProgress) => void,
 ): (() => void) | undefined {
-  return netcattyBridge.get()?.onUpdateDownloadProgress?.(cb);
+  return lemonsshBridge.get()?.onUpdateDownloadProgress?.(cb);
 }
 
 export function onDownloaded(cb: () => void): (() => void) | undefined {
-  return netcattyBridge.get()?.onUpdateDownloaded?.(cb);
+  return lemonsshBridge.get()?.onUpdateDownloaded?.(cb);
 }
 
 export function onError(
   cb: (payload: { error: string }) => void,
 ): (() => void) | undefined {
-  return netcattyBridge.get()?.onUpdateError?.(cb);
+  return lemonsshBridge.get()?.onUpdateError?.(cb);
 }
 
 /** Returns the GitHub Releases page URL, optionally for a specific version tag. */

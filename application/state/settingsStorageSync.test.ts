@@ -5,8 +5,9 @@ import { act, create } from 'react-test-renderer';
 import { JSDOM } from 'jsdom';
 import { useSettingsState } from './useSettingsState';
 import { useTerminalSettingsStore, type TerminalSettingsSnapshot } from './terminalSettingsStore';
+import { customThemeStore } from './customThemeStore';
 import { hostStorageAdapter, configureHostProfileClient, hydrateHostProfile, flushHostProfileWrites } from '../../infrastructure/persistence/hostStorageAdapter';
-import { STORAGE_KEY_TERM_SETTINGS, STORAGE_KEY_TERM_FONT_SIZE } from '../../infrastructure/config/storageKeys';
+import { STORAGE_KEY_TERM_SETTINGS, STORAGE_KEY_TERM_FONT_SIZE, STORAGE_KEY_CUSTOM_THEMES } from '../../infrastructure/config/storageKeys';
 import { resolveTerminalAutocompleteSettings } from '../../components/terminal/autocomplete/terminalAutocompleteSettings';
 import type { ProfileClient } from '../../infrastructure/runtime/profile/profileClient';
 
@@ -82,6 +83,18 @@ for (const canonical of [false, true]) {
       assert.equal(snapshot.terminalSettings.autocompletePopupMenu, true);
       await act(async () => { hostStorageAdapter.writeString(STORAGE_KEY_TERM_FONT_SIZE, '19'); await settle(); });
       assert.equal(snapshot.terminalFontSize, 19);
+      // Custom terminal themes ride the same sync manifest: writing or
+      // removing the key through the adapter must reload customThemeStore.
+      await act(async () => {
+        hostStorageAdapter.write(STORAGE_KEY_CUSTOM_THEMES, [{ id: 'custom-sync-check', name: 'Sync Check' }]);
+        await settle();
+      });
+      assert.deepEqual(customThemeStore.getCustomThemes().map((theme) => theme.id), ['custom-sync-check']);
+      await act(async () => {
+        hostStorageAdapter.remove(STORAGE_KEY_CUSTOM_THEMES);
+        await settle();
+      });
+      assert.deepEqual(customThemeStore.getCustomThemes(), []);
       assert.equal(mounts, 1);
     } finally {
       await act(async () => { root?.unmount(); await settle(); });

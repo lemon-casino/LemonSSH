@@ -16,7 +16,7 @@ test('plugin setting cards retain localized descriptions alongside structured co
     scopeId: 'application',
     visible: true,
     value: 30,
-  } as NetcattyPluginSettingContribution;
+  } as LemonSSHPluginSettingContribution;
   const html = renderToStaticMarkup(
     <I18nProvider locale="en">
       <PluginSettingField

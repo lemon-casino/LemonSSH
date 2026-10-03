@@ -3,10 +3,10 @@
 Files in this directory are bundled as static assets for the AI provider
 configuration UI.
 
-## Originally authored for netcatty
+## Originally authored for lemonssh
 
 - `anthropic.svg`, `openai.svg`, `google.svg`, `ollama.svg`, `openrouter.svg`,
-  `custom.svg` — netcatty.
+  `custom.svg` — lemonssh.
 
 ## From [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Xiaomi_logo_(2021-).svg)
 

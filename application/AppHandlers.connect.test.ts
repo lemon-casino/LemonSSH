@@ -155,7 +155,7 @@ test('keyboard-interactive submit can save login password for the session host',
     () => ({
       hosts,
       keyboardInteractiveQueue: queue,
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           respondKeyboardInteractive: (...args: unknown[]) => {
             bridgeResponses.push(args);
@@ -212,7 +212,7 @@ test('keyboard-interactive submit does not save secondary password when allowSav
     () => ({
       hosts,
       keyboardInteractiveQueue: queue,
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           respondKeyboardInteractive: () => ({ success: true }),
         }),
@@ -263,7 +263,7 @@ test('keyboard-interactive submit uses explicit hostId when saving password', as
     () => ({
       hosts,
       keyboardInteractiveQueue: queue,
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           respondKeyboardInteractive: () => ({ success: true }),
         }),
@@ -314,7 +314,7 @@ test('keyboard-interactive submit preserves host changes made while delivery is 
       hosts,
       hostsRef,
       keyboardInteractiveQueue: queue,
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({ respondKeyboardInteractive: () => delivery }),
       },
       sessions: [{
@@ -369,7 +369,7 @@ test('keyboard-interactive submit keeps the prompt and password unchanged when d
     () => ({
       hosts,
       keyboardInteractiveQueue: queue,
-      netcattyBridge: {
+      lemonsshBridge: {
         get: () => ({
           respondKeyboardInteractive: () => ({ success: false, error: 'Request not found' }),
         }),

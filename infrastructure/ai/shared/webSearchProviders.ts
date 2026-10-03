@@ -9,7 +9,7 @@
  * renderer process.
  */
 
-import type { NetcattyBridge } from '../cattyAgent/executor';
+import type { LemonSSHBridge } from '../cattyAgent/executor';
 import type { WebSearchConfig } from '../types';
 import { WEB_SEARCH_PROVIDER_PRESETS } from '../types';
 import { decryptField } from '../../persistence/secureFieldAdapter';
@@ -36,7 +36,7 @@ export function resolveWebSearchApiHost(config: WebSearchConfig): string {
 }
 
 async function fetchJson(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   url: string,
   method: string,
   headers: Record<string, string>,
@@ -55,7 +55,7 @@ async function fetchJson(
 // ---------------------------------------------------------------------------
 
 async function searchTavily(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   maxResults: number,
@@ -82,7 +82,7 @@ async function searchTavily(
 // ---------------------------------------------------------------------------
 
 async function searchExa(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   maxResults: number,
@@ -109,7 +109,7 @@ async function searchExa(
 // ---------------------------------------------------------------------------
 
 async function searchBocha(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   maxResults: number,
@@ -136,7 +136,7 @@ async function searchBocha(
 // ---------------------------------------------------------------------------
 
 async function searchZhipu(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   _maxResults: number,
@@ -162,7 +162,7 @@ async function searchZhipu(
 // ---------------------------------------------------------------------------
 
 async function searchSearxng(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   _maxResults: number,
@@ -214,7 +214,7 @@ export type WebSearchKeyDecrypt = (
 ) => Promise<string | undefined | null>;
 
 export async function executeWebSearchProvider(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   config: WebSearchConfig,
   query: string,
   maxResults: number,
@@ -224,7 +224,7 @@ export async function executeWebSearchProvider(
   if (!fn) throw new Error(`Unsupported web search provider: ${config.providerId}`);
 
   const apiHost = resolveWebSearchApiHost(config);
-  const nativeSync = (bridge as NetcattyBridge & {
+  const nativeSync = (bridge as LemonSSHBridge & {
     aiSyncWebSearch?: (
       apiHost: string | null,
       apiKey: string | null,
@@ -255,7 +255,7 @@ export async function executeWebSearchProvider(
   // the fetch (process-lifetime entries). netpolicy still adjudicates every
   // request fail-closed, so this call is advisory: ignore result and errors.
   if (apiHost) {
-    const allowlistBridge = bridge as NetcattyBridge & {
+    const allowlistBridge = bridge as LemonSSHBridge & {
       aiAllowlistAddHost?: (baseURL: string) => Promise<unknown>;
     };
     try {

@@ -11,7 +11,9 @@ import {
   registerTerminalSettingsActions,
 } from './terminalSettingsStore';
 import { SyncConfig, TerminalSettings, HotkeyScheme, CustomKeyBindings, DEFAULT_KEY_BINDINGS, KeyBinding, UILanguage, SessionLogFormat, normalizeTerminalSettings } from '../../domain/models';
+import { normalizeLegacyTerminalThemeId } from '../../infrastructure/config/terminalThemes';
 import {
+  normalizeAppLockSettings,
   normalizeAppLockTimeoutMinutes,
   type AppLockSettings,
   type AppLockTimeoutMinutes,
@@ -106,7 +108,7 @@ import { getUiThemeById } from '../../infrastructure/config/uiThemes';
 import { DEFAULT_UI_FONT_ID, withWindowsEmojiFallback } from '../../infrastructure/config/uiFonts';
 import { uiFontStore, useUIFontsLoaded } from './uiFontStore';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   resolveSftpTransferConcurrency,
   resolveSftpSkipUnchangedEnabled,
@@ -276,7 +278,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     return stored && isValidUiFontId(stored) ? stored : DEFAULT_UI_FONT_ID;
   });
   const [syncConfig, setSyncConfig] = useState<SyncConfig | null>(() => localStorageAdapter.read<SyncConfig>(STORAGE_KEY_SYNC));
-  const [terminalThemeId, setTerminalThemeId] = useState<string>(() => localStorageAdapter.readString(STORAGE_KEY_TERM_THEME) || DEFAULT_TERMINAL_THEME);
+  const [terminalThemeId, setTerminalThemeId] = useState<string>(() => normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME)) || DEFAULT_TERMINAL_THEME);
   const [followAppTerminalTheme, setFollowAppTerminalThemeState] = useState<boolean>(() => {
     const stored = localStorageAdapter.readString(STORAGE_KEY_TERM_FOLLOW_APP_THEME);
     if (stored !== null) return stored === 'true';
@@ -289,10 +291,10 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     return !isUpgrade;
   });
   const [terminalThemeDarkId, setTerminalThemeDarkId] = useState<string>(
-    () => localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_DARK) || TERMINAL_THEME_AUTO,
+    () => normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_DARK)) || TERMINAL_THEME_AUTO,
   );
   const [terminalThemeLightId, setTerminalThemeLightId] = useState<string>(
-    () => localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_LIGHT) || TERMINAL_THEME_AUTO,
+    () => normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_LIGHT)) || TERMINAL_THEME_AUTO,
   );
   const [terminalFontFamilyId, setTerminalFontFamilyId] = useState<string>(() => {
     const stored = localStorageAdapter.readString(STORAGE_KEY_TERM_FONT_FAMILY);
@@ -772,7 +774,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   const notifySettingsChanged = useCallback((key: string, value: unknown) => {
     if (!enableSettingsSync) return;
     try {
-      netcattyBridge.get()?.notifySettingsChanged?.({ key, value });
+      lemonsshBridge.get()?.notifySettingsChanged?.({ key, value });
     } catch {
       // ignore - bridge may not be available
     }
@@ -814,16 +816,20 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     notifySettingsChanged(STORAGE_KEY_WORKSPACE_FOCUS_STYLE, style);
   }, [notifySettingsChanged]);
 
+  // Persisted by the Go side (AppLockService.SetTimeoutMinutes), which also
+  // reschedules its idle timer and broadcasts onAppLockSettingsChanged so
+  // every window resyncs. The resolved settings update local state directly
+  // so the selector reflects the choice even before the broadcast arrives.
   const setAppLockTimeoutMinutes = useCallback((timeoutMinutes: AppLockTimeoutMinutes) => {
-    void netcattyBridge.get()?.setAppLockTimeoutMinutes?.(normalizeAppLockTimeoutMinutes(timeoutMinutes))
+    void lemonsshBridge.get()?.setAppLockTimeoutMinutes?.(normalizeAppLockTimeoutMinutes(timeoutMinutes))
       ?.then((next) => {
-        if (next) setAppLockSettingsState(next);
+        if (next) setAppLockSettingsState(normalizeAppLockSettings(next));
       })
       .catch(() => {});
   }, []);
 
-  const requestAppLockEnable = useCallback(async () => {
-    const next = await netcattyBridge.get()?.requestAppLockEnable?.();
+  const requestAppLockEnable = useCallback(async (password: string) => {
+    const next = await lemonsshBridge.get()?.requestAppLockEnable?.(password);
     if (next && !('ok' in next)) {
       setAppLockSettingsState(next);
     }
@@ -831,7 +837,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   }, [appLockSettings]);
 
   const requestAppLockDisable = useCallback(async (currentPassword: string) => {
-    const next = await netcattyBridge.get()?.requestAppLockDisable?.(currentPassword);
+    const next = await lemonsshBridge.get()?.requestAppLockDisable?.(currentPassword);
     if (next && !('ok' in next)) {
       setAppLockSettingsState(next);
     }
@@ -842,7 +848,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     currentPassword?: string;
     nextPassword: string;
   }) => {
-    const next = await netcattyBridge.get()?.requestAppLockPasswordChange?.(input);
+    const next = await lemonsshBridge.get()?.requestAppLockPasswordChange?.(input);
     if (next && !('ok' in next)) {
       setAppLockSettingsState(next);
     }
@@ -854,7 +860,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     currentPassword?: string;
     autoPromptEnabled?: boolean;
   }) => {
-    const next = await netcattyBridge.get()?.setAppLockSystemUnlockEnabled?.(input);
+    const next = await lemonsshBridge.get()?.setAppLockSystemUnlockEnabled?.(input);
     if (next && !('ok' in next)) {
       setAppLockSettingsState(next);
     }
@@ -937,13 +943,14 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     const storedLang = readStoredString(STORAGE_KEY_UI_LANGUAGE);
     if (storedLang) setUiLanguage(storedLang as UILanguage);
 
-    void netcattyBridge.get()?.getAppLockSettings?.().then((next) => {
+    void lemonsshBridge.get()?.getAppLockSettings?.().then((next) => {
       if (next) setAppLockSettingsState(next);
     }).catch(() => {});
 
     // Terminal
     const storedTermTheme = readStoredString(STORAGE_KEY_TERM_THEME);
-    if (storedTermTheme) setTerminalThemeId(storedTermTheme);
+    const normalizedTermTheme = normalizeLegacyTerminalThemeId(storedTermTheme);
+    if (normalizedTermTheme) setTerminalThemeId(normalizedTermTheme);
     // Cloud sync writes follow-app via applySyncableSettings; without this the
     // open window keeps the pre-sync flag while terminalThemeId updates, which
     // flickers between the local default theme and the synced one (#2757).
@@ -952,9 +959,11 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
       setFollowAppTerminalThemeState(storedFollowAppTermTheme === 'true');
     }
     const storedTermThemeDark = readStoredString(STORAGE_KEY_TERM_THEME_DARK);
-    if (storedTermThemeDark) setTerminalThemeDarkId(storedTermThemeDark);
+    const normalizedTermThemeDark = normalizeLegacyTerminalThemeId(storedTermThemeDark);
+    if (normalizedTermThemeDark) setTerminalThemeDarkId(normalizedTermThemeDark);
     const storedTermThemeLight = readStoredString(STORAGE_KEY_TERM_THEME_LIGHT);
-    if (storedTermThemeLight) setTerminalThemeLightId(storedTermThemeLight);
+    const normalizedTermThemeLight = normalizeLegacyTerminalThemeId(storedTermThemeLight);
+    if (normalizedTermThemeLight) setTerminalThemeLightId(normalizedTermThemeLight);
     const storedTermFont = readStoredString(STORAGE_KEY_TERM_FONT_FAMILY);
     const migratedTermFont = migrateIncomingTerminalFontId(storedTermFont);
     if (migratedTermFont) setTerminalFontFamilyId(migratedTermFont);
@@ -1151,7 +1160,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   useLayoutEffect(() => {
     localStorageAdapter.writeString(STORAGE_KEY_UI_LANGUAGE, uiLanguage);
     document.documentElement.lang = uiLanguage;
-    netcattyBridge.get()?.setLanguage?.(uiLanguage);
+    lemonsshBridge.get()?.setLanguage?.(uiLanguage);
     // Fix 1: Skip IPC broadcast on initial mount
     if (persistMountedRef.current) {
       notifySettingsChanged(STORAGE_KEY_UI_LANGUAGE, uiLanguage);
@@ -1218,7 +1227,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
 
   useEffect(() => {
     if (!enableSettingsSync) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onLanguageChanged) return;
     const unsubscribe = bridge.onLanguageChanged((language) => {
       if (typeof language !== 'string' || !language.length) return;
@@ -1235,7 +1244,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   }, [enableSettingsSync]);
 
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     let sawPushedSettings = false;
 
     const unsubscribe = bridge?.onAppLockSettingsChanged?.((next) => {
@@ -1578,7 +1587,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   useEffect(() => {
     let cancelled = false;
     const requestIdAtStart = sshDeepLinkSetRequestIdRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getSshDeepLinkEnabled) return;
     void bridge.getSshDeepLinkEnabled().then((enabled) => {
       if (cancelled || typeof enabled !== 'boolean') return;
@@ -1601,7 +1610,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     sshDeepLinkMutationSourceRef.current = 'local';
     setSshDeepLinkEnabledState(enabled);
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setSshDeepLinkEnabled) return;
     void bridge.setSshDeepLinkEnabled(enabled).then((result) => {
       if (sshDeepLinkSetRequestIdRef.current !== requestId) return;
@@ -1638,7 +1647,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   useEffect(() => {
     let cancelled = false;
     const requestIdAtStart = jmsDeepLinkSetRequestIdRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getJmsDeepLinkEnabled) return;
     void bridge.getJmsDeepLinkEnabled().then((enabled) => {
       if (cancelled || typeof enabled !== 'boolean') return;
@@ -1661,7 +1670,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     jmsDeepLinkMutationSourceRef.current = 'local';
     setJmsDeepLinkEnabledState(enabled);
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setJmsDeepLinkEnabled) return;
     void bridge.setJmsDeepLinkEnabled(enabled).then((result) => {
       if (jmsDeepLinkSetRequestIdRef.current !== requestId) return;
@@ -1698,7 +1707,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
   useEffect(() => {
     let cancelled = false;
     const requestIdAtStart = explorerContextMenuSetRequestIdRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getExplorerContextMenuEnabled) return;
     void bridge.getExplorerContextMenuEnabled().then((result) => {
       if (cancelled) return;
@@ -1729,7 +1738,7 @@ export const useSettingsState = (options: { enableSettingsSync?: boolean; enable
     explorerContextMenuMutationSourceRef.current = 'local';
     setExplorerContextMenuEnabledState(enabled);
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setExplorerContextMenuEnabled) return;
     void bridge.setExplorerContextMenuEnabled(enabled).then((result) => {
       if (explorerContextMenuSetRequestIdRef.current !== requestId) return;

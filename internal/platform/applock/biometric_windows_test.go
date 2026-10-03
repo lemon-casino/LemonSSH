@@ -29,7 +29,7 @@ func TestBiometricPowerShellCommandFlags(t *testing.T) {
 }
 
 func TestBiometricPowerShellCommandNoConsole(t *testing.T) {
-	if os.Getenv("NETCATTY_TEST_CONSOLE_PARENT") != "1" {
+	if os.Getenv("LEMONSSH_TEST_CONSOLE_PARENT") != "1" {
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
 		executable, err := os.Executable()
@@ -37,7 +37,7 @@ func TestBiometricPowerShellCommandNoConsole(t *testing.T) {
 			t.Fatal(err)
 		}
 		cmd := exec.CommandContext(ctx, executable, "-test.run=^TestBiometricPowerShellCommandNoConsole$", "-test.v")
-		cmd.Env = append(os.Environ(), "NETCATTY_TEST_CONSOLE_PARENT=1")
+		cmd.Env = append(os.Environ(), "LEMONSSH_TEST_CONSOLE_PARENT=1")
 		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NEW_CONSOLE}
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("console parent test failed: %v\n%s", err, out)
@@ -90,11 +90,11 @@ func TestBiometricPowerShellCommandContext(t *testing.T) {
 }
 
 func TestWindowsHelloNativeAuthentication(t *testing.T) {
-	if os.Getenv("NETCATTY_TEST_WINDOWS_HELLO") != "1" {
+	if os.Getenv("LEMONSSH_TEST_WINDOWS_HELLO") != "1" {
 		t.Skip("opt-in hardware authentication test")
 	}
 	err := AuthenticateBiometric()
-	if os.Getenv("NETCATTY_TEST_WINDOWS_HELLO_UNAVAILABLE") == "1" {
+	if os.Getenv("LEMONSSH_TEST_WINDOWS_HELLO_UNAVAILABLE") == "1" {
 		if err == nil {
 			t.Fatal("unavailable Hello unexpectedly authenticated")
 		}

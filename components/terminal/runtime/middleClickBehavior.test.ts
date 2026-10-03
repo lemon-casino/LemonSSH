@@ -347,7 +347,7 @@ test("Shift right-click mousedown capture is limited to connected mouse tracking
   );
 });
 
-test("right-click mouseup reaches mouse-tracking apps when Netcatty did not claim the press", () => {
+test("right-click mouseup reaches mouse-tracking apps when LemonSSH did not claim the press", () => {
   // Herdr / Terminal.app: button-down was delivered, so button-up must be too.
   // Swallowing mouseup leaves the TUI stuck thinking the right button is held (#2721).
   const claim = createRightClickMouseTrackingPressClaim();
@@ -370,7 +370,7 @@ test("right-click mouseup reaches mouse-tracking apps when Netcatty did not clai
   );
 });
 
-test("right-click mouseup is stopped only when Netcatty claimed the matching mousedown", () => {
+test("right-click mouseup is stopped only when LemonSSH claimed the matching mousedown", () => {
   const shiftClaim = createRightClickMouseTrackingPressClaim();
   assert.equal(
     shiftClaim.noteMouseDown({
@@ -417,7 +417,7 @@ test("right-click mouseup is stopped only when Netcatty claimed the matching mou
 });
 
 test("right-click mouseup pairs with the claimed mousedown, not the release modifiers", () => {
-  // Shift+right press claimed by Netcatty, then Shift released before mouseup:
+  // Shift+right press claimed by LemonSSH, then Shift released before mouseup:
   // still swallow the release so xterm never sees a lone button-up.
   const claimedThenShiftReleased = createRightClickMouseTrackingPressClaim();
   assert.equal(

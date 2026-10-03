@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://netcatty.com/schemas/plugins/0.1.0-internal/plugin-contract.schema.json",
-  "title": "Netcatty Plugin Contract",
-  "description": "Canonical public contract for Netcatty plugin manifests and host RPC messages.",
+  "$id": "https://lemonssh.com/schemas/plugins/0.1.0-internal/plugin-contract.schema.json",
+  "title": "LemonSSH Plugin Contract",
+  "description": "Canonical public contract for LemonSSH plugin manifests and host RPC messages.",
   "$ref": "#/$defs/PluginManifest",
   "$defs": {
     "DeclarativePluginUI": {
@@ -10,7 +10,9 @@
       "additionalProperties": false,
       "properties": {
         "settings": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginSetting" } },
-        "views": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginView" } }
+        "views": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginView" } },
+        "menus": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginMenu" } },
+        "keybindings": { "type": ["array", "null"], "items": { "$ref": "#/$defs/DeclarativePluginKeybinding" } }
       }
     },
     "DeclarativePluginSetting": {
@@ -33,8 +35,37 @@
         "id": { "type": "string" },
         "type": { "enum": ["list", "card"] },
         "title": { "type": "string" },
+        "location": { "enum": ["settings"], "description": "Only the settings surface renders declarative views today." },
         "columns": { "type": "array", "items": { "type": "string" } },
-        "bindings": { "type": "array", "items": { "type": "string" } }
+        "bindings": { "type": "array", "items": { "type": "string" } },
+        "visible": { "type": "boolean", "default": true }
+      }
+    },
+    "DeclarativePluginMenu": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "command", "location"],
+      "properties": {
+        "id": { "type": "string" },
+        "command": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "alt": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "location": { "enum": ["commandPalette", "application", "host/context", "terminal/context", "terminal/toolbar", "statusBar"] },
+        "title": { "type": "string" },
+        "group": { "type": "string" },
+        "order": { "type": "integer" },
+        "visible": { "type": "boolean", "default": true }
+      }
+    },
+    "DeclarativePluginKeybinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["command", "key"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "mac": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "linux": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "windows": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "args": { "$ref": "#/$defs/JsonValue" },
+        "enabled": { "type": "boolean", "default": true }
       }
     },
     "JsonPrimitive": {
@@ -60,6 +91,83 @@
       "const": {
         "maxDepth": 128,
         "maxNodes": 100000
+      }
+    },
+    "WasmAbi": {
+      "description": "Canonical names and limits of the Go host's WASM dispatch channel (lemonssh-wasm-abi v1). Guests export lemonssh_alloc/lemonssh_free/lemonssh_dispatch; the host module lemonssh provides the broker-gated lemonssh_host_* imports. The host additionally registers the legacy netcatty module and resolves legacy netcatty_* guest exports for backward compatibility. See docs/plugin-platform/isolated-runtime.md.",
+      "const": {
+        "version": 1,
+        "hostModule": "lemonssh",
+        "guestExports": {
+          "alloc": "lemonssh_alloc",
+          "free": "lemonssh_free",
+          "dispatch": "lemonssh_dispatch"
+        },
+        "hostImports": {
+          "log": "lemonssh_host_log",
+          "settingGet": "lemonssh_host_setting_get"
+        },
+        "maxRequestBytes": 1048576,
+        "maxResponseBytes": 1048576,
+        "defaultTimeoutMs": 10000,
+        "maxLogBytes": 8192,
+        "maxLogEntries": 64,
+        "maxSettingKeyBytes": 256
+      }
+    },
+    "WasmDispatchRequest": {
+      "description": "JSON envelope the host writes into guest memory for one lemonssh_dispatch call.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1 },
+        "payload": { "$ref": "#/$defs/JsonValue" }
+      }
+    },
+    "WasmDispatchError": {
+      "description": "Plugin-declared failure. code uses the canonical PluginErrorName vocabulary.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "data": { "$ref": "#/$defs/JsonValue" }
+      }
+    },
+    "WasmDispatchSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok"],
+      "properties": {
+        "ok": { "const": true },
+        "result": { "$ref": "#/$defs/JsonValue" }
+      }
+    },
+    "WasmDispatchFailure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok", "error"],
+      "properties": {
+        "ok": { "const": false },
+        "error": { "$ref": "#/$defs/WasmDispatchError" }
+      }
+    },
+    "WasmDispatchResponse": {
+      "description": "Envelope the guest returns behind a [u32 LE length] prefix from lemonssh_dispatch. Transport-level failures (timeouts, traps, allocation exhaustion, missing ABI) are host errors, not envelopes.",
+      "oneOf": [
+        { "$ref": "#/$defs/WasmDispatchSuccess" },
+        { "$ref": "#/$defs/WasmDispatchFailure" }
+      ]
+    },
+    "WasmHostImportStatus": {
+      "description": "Structured i32 return codes every lemonssh_host_* import returns to the guest; denials never trap or panic. lemonssh_host_setting_get additionally returns positive byte counts: ret > 0 && ret <= bufCap means the value was written, ret > bufCap means the value needs ret bytes and nothing was written.",
+      "const": {
+        "ok": 0,
+        "permissionDenied": -1,
+        "invalidArgument": -2,
+        "unavailable": -3
       }
     },
     "WireIntegerLimits": {
@@ -189,7 +297,7 @@
       "additionalProperties": false
     },
     "CredentialRef": {
-      "description": "An opaque host-issued reference to a Netcatty-owned credential. The host validates ownership and provider-operation scope before issuing a plaintext lease.",
+      "description": "An opaque host-issued reference to a LemonSSH-owned credential. The host validates ownership and provider-operation scope before issuing a plaintext lease.",
       "type": "object",
       "required": ["kind", "id"],
       "properties": {
@@ -401,20 +509,26 @@
     },
     "PluginEngines": {
       "type": "object",
-      "required": ["netcatty", "api"],
+      "required": ["api"],
       "properties": {
-        "netcatty": { "$ref": "#/$defs/SemverRange" },
+        "lemonssh": { "$ref": "#/$defs/SemverRange" },
+        "netcatty": { "$ref": "#/$defs/SemverRange", "description": "Legacy engine key accepted for backward compatibility with manifests written before the LemonSSH rename." },
         "api": { "$ref": "#/$defs/SemverRange" }
       },
+      "if": { "not": { "required": ["lemonssh"], "properties": { "lemonssh": {} } } },
+      "then": { "required": ["netcatty"], "properties": { "netcatty": {} } },
       "additionalProperties": false
     },
     "PluginEngineHeader": {
       "type": "object",
-      "required": ["netcatty", "api"],
+      "required": ["api"],
       "properties": {
-        "netcatty": { "$ref": "#/$defs/SemverRange" },
+        "lemonssh": { "$ref": "#/$defs/SemverRange" },
+        "netcatty": { "$ref": "#/$defs/SemverRange", "description": "Legacy engine key accepted for backward compatibility with manifests written before the LemonSSH rename." },
         "api": { "$ref": "#/$defs/SemverRange" }
       },
+      "if": { "not": { "required": ["lemonssh"], "properties": { "lemonssh": {} } } },
+      "then": { "required": ["netcatty"], "properties": { "netcatty": {} } },
       "additionalProperties": true
     },
     "PluginFeatures": {
@@ -984,13 +1098,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "description": "Source id of an identity or key draft in the same import. Netcatty maps it to the newly persisted host-owned credential id."
+          "description": "Source id of an identity or key draft in the same import. LemonSSH maps it to the newly persisted host-owned credential id."
         }
       },
       "additionalProperties": false
     },
     "ImporterHostDraft": {
-      "description": "A host draft normalized by Netcatty before Vault persistence. Executable startup commands and plaintext built-in credentials are intentionally not part of this public importer shape.",
+      "description": "A host draft normalized by LemonSSH before Vault persistence. Executable startup commands and plaintext built-in credentials are intentionally not part of this public importer shape.",
       "type": "object",
       "anyOf": [
         {
@@ -1856,7 +1970,7 @@
       "type": "object",
       "required": ["type", "sessionId", "direction", "windowBytes"],
       "properties": {
-        "type": { "const": "netcatty:terminal-interceptor:ready" },
+        "type": { "enum": ["lemonssh:terminal-interceptor:ready", "netcatty:terminal-interceptor:ready"] },
         "sessionId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000]+$" },
         "direction": { "$ref": "#/$defs/TerminalInterceptorDirection" },
         "windowBytes": { "$ref": "#/$defs/TerminalInterceptorWindowBytes" }
@@ -1867,7 +1981,7 @@
       "type": "object",
       "required": ["type", "sequence", "direction", "creditBytes", "byteLength"],
       "properties": {
-        "type": { "const": "netcatty:terminal-interceptor:chunk" },
+        "type": { "enum": ["lemonssh:terminal-interceptor:chunk", "netcatty:terminal-interceptor:chunk"] },
         "sequence": { "$ref": "#/$defs/SafePositiveInteger" },
         "direction": { "$ref": "#/$defs/TerminalInterceptorDirection" },
         "creditBytes": { "$ref": "#/$defs/TerminalInterceptorCreditBytes" },
@@ -1879,7 +1993,7 @@
       "type": "object",
       "required": ["type", "sequence", "status", "creditBytes", "byteLength"],
       "properties": {
-        "type": { "const": "netcatty:terminal-interceptor:result" },
+        "type": { "enum": ["lemonssh:terminal-interceptor:result", "netcatty:terminal-interceptor:result"] },
         "sequence": { "$ref": "#/$defs/SafePositiveInteger" },
         "status": { "const": "ok" },
         "creditBytes": { "$ref": "#/$defs/TerminalInterceptorChunkByteLength" },
@@ -1891,7 +2005,7 @@
       "type": "object",
       "required": ["type", "sequence", "status"],
       "properties": {
-        "type": { "const": "netcatty:terminal-interceptor:result" },
+        "type": { "enum": ["lemonssh:terminal-interceptor:result", "netcatty:terminal-interceptor:result"] },
         "sequence": { "$ref": "#/$defs/SafePositiveInteger" },
         "status": { "const": "failed" }
       },
@@ -1907,9 +2021,10 @@
     },
     "RuntimeInitializeParams": {
       "type": "object",
-      "required": ["netcattyVersion", "apiVersion", "supportedFeatures"],
+      "required": ["apiVersion", "supportedFeatures"],
       "properties": {
-        "netcattyVersion": { "$ref": "#/$defs/SemanticVersion" },
+        "lemonsshVersion": { "$ref": "#/$defs/SemanticVersion" },
+        "netcattyVersion": { "$ref": "#/$defs/SemanticVersion", "description": "Legacy initialize field accepted for backward compatibility with runtimes built before the LemonSSH rename." },
         "apiVersion": { "$ref": "#/$defs/SemanticVersion" },
         "supportedFeatures": {
           "type": "array",
@@ -1918,6 +2033,8 @@
           "items": { "$ref": "#/$defs/FeatureId" }
         }
       },
+      "if": { "not": { "required": ["lemonsshVersion"], "properties": { "lemonsshVersion": {} } } },
+      "then": { "required": ["netcattyVersion"], "properties": { "netcattyVersion": {} } },
       "additionalProperties": false
     },
     "RuntimeInitializeResult": {

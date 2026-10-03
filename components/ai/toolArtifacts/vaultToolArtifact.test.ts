@@ -120,7 +120,7 @@ test('parseVaultToolArtifact maps script run results', () => {
 });
 
 test('parseVaultToolArtifact unwraps Claude MCP text result envelopes', () => {
-  const artifact = parseVaultToolArtifact('mcp__netcatty-remote-hosts__vault_notes_list', JSON.stringify([
+  const artifact = parseVaultToolArtifact('mcp__lemonssh-remote-hosts__vault_notes_list', JSON.stringify([
     {
       type: 'text',
       text: JSON.stringify({

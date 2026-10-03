@@ -11,7 +11,7 @@ import {
   SCRIPT_OVERLAY_FINISHED_DISMISS_DELAY_MS,
   ScriptExecutionOverlay,
 } from "./ScriptExecutionOverlay.tsx";
-import type { ScriptRun } from "@/types/global/netcatty-bridge-script.d.ts";
+import type { ScriptRun } from "@/types/global/lemonssh-bridge-script.d.ts";
 
 const completedRun: ScriptRun = {
   runId: "completed-run",

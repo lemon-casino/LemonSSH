@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AuthenticationChallenge } from "@netcatty/plugin-contract";
+import type { AuthenticationChallenge } from "@lemonssh/plugin-contract";
 import { isSafePluginAuthenticationUrl } from "../../domain/pluginConnection";
 import { pluginExtensionBridge } from "./pluginExtensionBridge";
 
-type ChallengeEvent = NetcattyPluginAuthenticationChallengeEvent;
+type ChallengeEvent = LemonSSHPluginAuthenticationChallengeEvent;
 export type PluginAuthenticationChallengeResponse = string | boolean | ReadonlyArray<string>;
 type ActiveChallengeEvent = Extract<ChallengeEvent, { challenge: AuthenticationChallenge }>;
 type ChallengeQueueRef = { current: ActiveChallengeEvent[] };

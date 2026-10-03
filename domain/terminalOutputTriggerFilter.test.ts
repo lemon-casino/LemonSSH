@@ -64,34 +64,34 @@ test('resetPendingEscape clears an incomplete non-alternate control sequence', (
 
 test('processServerChunk keeps command stdout after enter clears pending echo', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('echo NETCATTY_TRIGGER_PROBE');
+  filter.noteUserInput('echo LEMONSSH_TRIGGER_PROBE');
   filter.noteUserInput('\r');
-  const result = filter.processServerChunk('NETCATTY_TRIGGER_PROBE\r\n');
-  assert.equal(result.scannableText, 'NETCATTY_TRIGGER_PROBE\r\n');
+  const result = filter.processServerChunk('LEMONSSH_TRIGGER_PROBE\r\n');
+  assert.equal(result.scannableText, 'LEMONSSH_TRIGGER_PROBE\r\n');
 });
 
 test('processServerChunk strips delayed submitted command echo but keeps stdout', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('echo NETCATTY_TRIGGER_PROBE');
+  filter.noteUserInput('echo LEMONSSH_TRIGGER_PROBE');
   filter.noteUserInput('\r');
-  const result = filter.processServerChunk('echo NETCATTY_TRIGGER_PROBE\r\nNETCATTY_TRIGGER_PROBE\r\n');
-  assert.equal(result.scannableText, 'NETCATTY_TRIGGER_PROBE\r\n');
+  const result = filter.processServerChunk('echo LEMONSSH_TRIGGER_PROBE\r\nLEMONSSH_TRIGGER_PROBE\r\n');
+  assert.equal(result.scannableText, 'LEMONSSH_TRIGGER_PROBE\r\n');
 });
 
 test('processServerChunk strips delayed bare submitted command echo', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('NETCATTY_TRIGGER_PROBE');
+  filter.noteUserInput('LEMONSSH_TRIGGER_PROBE');
   filter.noteUserInput('\r');
-  const result = filter.processServerChunk('NETCATTY_TRIGGER_PROBE\r\n');
+  const result = filter.processServerChunk('LEMONSSH_TRIGGER_PROBE\r\n');
   assert.equal(result.scannableText, '');
 });
 
 test('processServerChunk keeps command-not-found stderr after enter', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('netcatty-trigger-probe');
+  filter.noteUserInput('lemonssh-trigger-probe');
   filter.noteUserInput('\r');
-  const result = filter.processServerChunk('netcatty-trigger-probe: command not found\r\n');
-  assert.equal(result.scannableText, 'netcatty-trigger-probe: command not found\r\n');
+  const result = filter.processServerChunk('lemonssh-trigger-probe: command not found\r\n');
+  assert.equal(result.scannableText, 'lemonssh-trigger-probe: command not found\r\n');
 });
 
 test('noteUserInput tracks remapped backspace bytes sent to the session', () => {
@@ -193,12 +193,12 @@ test('markInputEchoUncertain tracks split alternate-screen controls in suppresse
 
 test('processServerChunk strips OSC cwd sequences without blocking later stdout', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('echo NETCATTY_TRIGGER_PROBE');
+  filter.noteUserInput('echo LEMONSSH_TRIGGER_PROBE');
   filter.noteUserInput('\r');
 
   filter.processServerChunk('\x1b]7;file://VM-4-16-ubuntu/root\x07\x1b[?2004h');
-  const result = filter.processServerChunk('\r\n\x1b[?2004l\rNETCATTY_TRIGGER_PROBE\r\n');
-  assert.match(result.scannableText, /NETCATTY_TRIGGER_PROBE/);
+  const result = filter.processServerChunk('\r\n\x1b[?2004l\rLEMONSSH_TRIGGER_PROBE\r\n');
+  assert.match(result.scannableText, /LEMONSSH_TRIGGER_PROBE/);
   assert.notEqual(result.meta.dropReason, 'pending-escape');
 });
 
@@ -211,25 +211,25 @@ test('processServerChunk strips split OSC sequences across chunks', () => {
 
 test('processServerChunk suppresses scan while command line is being edited', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('echo NETCATTY_TRIGGER_PROBE');
-  const result = filter.processServerChunk('\x1b[7mNETCATTY_TRIGGER_PROBE\x1b[27m');
+  filter.noteUserInput('echo LEMONSSH_TRIGGER_PROBE');
+  const result = filter.processServerChunk('\x1b[7mLEMONSSH_TRIGGER_PROBE\x1b[27m');
   assert.equal(result.scannableText, '');
   assert.equal(result.meta.dropReason, 'editing-input-line');
 });
 
 test('processServerChunk strips reverse-video echo without leaking SGR params', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('NETCATTY_TRIGGER_PROBE');
-  const result = filter.processServerChunk('\x1b[7mNETCATTY_TRIGGER_PROBE\x1b[27m');
+  filter.noteUserInput('LEMONSSH_TRIGGER_PROBE');
+  const result = filter.processServerChunk('\x1b[7mLEMONSSH_TRIGGER_PROBE\x1b[27m');
   assert.equal(result.scannableText, '');
   assert.equal(result.meta.dropReason, 'editing-input-line');
 });
 
 test('processServerChunk ignores bracketed paste wrappers when matching echo', () => {
   const filter = createTerminalOutputTriggerFilter();
-  filter.noteUserInput('\x1b[200~echo NETCATTY_TRIGGER_PROBE\x1b[201~');
+  filter.noteUserInput('\x1b[200~echo LEMONSSH_TRIGGER_PROBE\x1b[201~');
   filter.noteUserInput('\r');
-  filter.processServerChunk('echo NETCATTY_TRIGGER_PROBE\r\n');
-  const result = filter.processServerChunk('NETCATTY_TRIGGER_PROBE\r\n');
-  assert.equal(result.scannableText, 'NETCATTY_TRIGGER_PROBE\r\n');
+  filter.processServerChunk('echo LEMONSSH_TRIGGER_PROBE\r\n');
+  const result = filter.processServerChunk('LEMONSSH_TRIGGER_PROBE\r\n');
+  assert.equal(result.scannableText, 'LEMONSSH_TRIGGER_PROBE\r\n');
 });

@@ -47,7 +47,7 @@ test('builds a resource-bearing terminal command context', () => {
     alternateScreen: false,
     reconnectable: false,
   }), {
-    'netcatty.surface': 'terminal/context',
+    'lemonssh.surface': 'terminal/context',
     'terminal.sessionId': 'session-1',
     'terminal.status': 'connected',
     'host.id': 'host-1',
@@ -65,13 +65,13 @@ test('resolves the focused workspace session for global keybindings', () => {
     sessions,
     workspaces,
   }), {
-    'netcatty.surface': 'keybinding',
+    'lemonssh.surface': 'keybinding',
     'terminal.sessionId': 'session-1',
     'terminal.status': 'connected',
     'host.id': 'host-1',
     'host.protocol': 'ssh',
     'workspace.id': 'workspace-1',
-    'netcatty.activeTabId': 'workspace-1',
+    'lemonssh.activeTabId': 'workspace-1',
   });
 });
 
@@ -85,7 +85,7 @@ test('resolves standalone sessions and fails closed for non-terminal tabs', () =
     sessions,
     workspaces,
   }), {
-    'netcatty.surface': 'keybinding',
-    'netcatty.activeTabId': 'vault',
+    'lemonssh.surface': 'keybinding',
+    'lemonssh.activeTabId': 'vault',
   });
 });

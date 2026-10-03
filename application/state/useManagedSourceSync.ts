@@ -6,13 +6,17 @@ import {
   toSafeSshHostAlias,
   isSafeSshHostMatchLiteral,
 } from "../../domain/sshConfigSerializer";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import { STORAGE_KEY_MANAGED_SOURCES } from "../../infrastructure/config/storageKeys";
 import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
 import { withVaultImportLock } from "./vaultManagedImportLock";
 
-const MANAGED_BLOCK_BEGIN = "# BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK";
-const MANAGED_BLOCK_END = "# END NETCATTY MANAGED";
+const MANAGED_BLOCK_BEGIN = "# BEGIN LEMONSSH MANAGED - DO NOT EDIT THIS BLOCK";
+const MANAGED_BLOCK_END = "# END LEMONSSH MANAGED";
+// Pre-rename files carry the NETCATTY markers; locating keeps accepting both
+// so an existing legacy block is replaced in place instead of duplicated.
+const LEGACY_MANAGED_BLOCK_BEGIN = "# BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK";
+const LEGACY_MANAGED_BLOCK_END = "# END NETCATTY MANAGED";
 
 export interface UseManagedSourceSyncOptions {
   hosts: Host[];
@@ -56,7 +60,7 @@ export const useManagedSourceSync = ({
 
   const readExistingFileContent = useCallback(
     async (filePath: string): Promise<string | null> => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.readLocalFile) {
         return null;
       }
@@ -88,8 +92,22 @@ export const useManagedSourceSync = ({
 
       const beginIndex = existingContent.indexOf(MANAGED_BLOCK_BEGIN);
       const endIndex = existingContent.indexOf(MANAGED_BLOCK_END);
+      const legacyBeginIndex = beginIndex === -1
+        ? existingContent.indexOf(LEGACY_MANAGED_BLOCK_BEGIN)
+        : -1;
+      const legacyEndIndex = endIndex === -1
+        ? existingContent.indexOf(LEGACY_MANAGED_BLOCK_END)
+        : -1;
 
       if (beginIndex === -1 || endIndex === -1 || endIndex < beginIndex) {
+        // No current managed block. A pre-rename NETCATTY block is replaced in
+        // place (converging onto the new markers); truly unmanaged content
+        // needs duplicate Host entries removed instead.
+        if (legacyBeginIndex !== -1 && legacyEndIndex !== -1 && legacyEndIndex > legacyBeginIndex) {
+          const legacyBefore = existingContent.substring(0, legacyBeginIndex);
+          const legacyAfter = existingContent.substring(legacyEndIndex + LEGACY_MANAGED_BLOCK_END.length);
+          return `${legacyBefore}${MANAGED_BLOCK_BEGIN}\n${managedContent}${MANAGED_BLOCK_END}${legacyAfter}`;
+        }
         // No existing managed block - need to remove duplicate Host entries
         // Build a set of hostnames/aliases that will be managed
         const managedHostnameSet = new Set<string>();
@@ -126,7 +144,7 @@ export const useManagedSourceSync = ({
 
   const writeSshConfigToFile = useCallback(
     async (source: ManagedSource, managedHosts: Host[], allHosts = hostsRef.current) => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.writeLocalFile) {
         console.warn("[ManagedSourceSync] writeLocalFile not available");
         return false;

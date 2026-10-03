@@ -16,7 +16,7 @@ test('buffers stream events emitted before the Response stream starts', async (t
   let receivedIdleTimeoutMs: number | undefined;
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -84,7 +84,7 @@ test('captures OpenAI-compatible reasoning_content before the tool follow-up req
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -157,7 +157,7 @@ test('does not duplicate reasoning_content when tool calls stream across chunks'
   const assistantFields: Array<OpenAIChatAssistantFields | undefined> = [];
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -265,7 +265,7 @@ test('keeps captured reasoning_content aligned across consecutive tool calls', a
   });
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -372,7 +372,7 @@ test('replays reasoning_content through the SDK tool loop', async (t) => {
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -467,7 +467,7 @@ test('continues OpenAI-compatible tool streams when the introductory tool chunk 
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -549,7 +549,7 @@ test('continues OpenAI-compatible tool streams when the introductory tool chunk 
   const followUpMessages = sentBodies[1].messages as Array<Record<string, unknown>>;
   const assistantMessage = followUpMessages[1] as { tool_calls?: Array<{ id?: string }> };
   const toolMessage = followUpMessages[2] as { tool_call_id?: string };
-  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_netcatty_'));
+  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_lemonssh_'));
   assert.equal(toolMessage.tool_call_id, assistantMessage.tool_calls?.[0]?.id);
 });
 
@@ -572,7 +572,7 @@ test('continues OpenAI-compatible streams when provider chunks omit the top-leve
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -654,7 +654,7 @@ test('continues OpenAI-compatible streams when provider chunks omit the top-leve
   const followUpMessages = sentBodies[1].messages as Array<Record<string, unknown>>;
   const assistantMessage = followUpMessages[1] as { tool_calls?: Array<{ id?: string }> };
   const toolMessage = followUpMessages[2] as { tool_call_id?: string };
-  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_netcatty_'));
+  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_lemonssh_'));
   assert.equal(toolMessage.tool_call_id, assistantMessage.tool_calls?.[0]?.id);
 });
 
@@ -678,7 +678,7 @@ test('continues DeepSeek-compatible tool streams when empty id, type, and name p
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -768,7 +768,7 @@ test('continues DeepSeek-compatible tool streams when empty id, type, and name p
     tool_calls?: Array<{ id?: string; type?: string; function?: { name?: string; arguments?: string } }>;
   };
   const toolMessage = followUpMessages[2] as { tool_call_id?: string };
-  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_netcatty_'));
+  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_lemonssh_'));
   assert.equal(assistantMessage.tool_calls?.[0]?.type, 'function');
   assert.equal(assistantMessage.tool_calls?.[0]?.function?.name, 'terminal_exec');
   assert.equal(toolMessage.tool_call_id, assistantMessage.tool_calls?.[0]?.id);
@@ -794,7 +794,7 @@ test('continues DeepSeek-compatible tool streams when later argument chunks keep
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -903,7 +903,7 @@ test('continues OpenAI-compatible tool streams when arguments arrive before the 
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -990,7 +990,7 @@ test('continues OpenAI-compatible tool streams when arguments arrive before the 
   assert.equal(text, 'tool completed');
   const followUpMessages = sentBodies[1].messages as Array<Record<string, unknown>>;
   const assistantMessage = followUpMessages[1] as { tool_calls?: Array<{ id?: string; function?: { arguments?: string } }> };
-  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_netcatty_'));
+  assert.ok(assistantMessage.tool_calls?.[0]?.id?.startsWith('call_lemonssh_'));
   assert.equal(assistantMessage.tool_calls?.[0]?.function?.arguments, '{"command":"which docker"}');
 });
 
@@ -1014,7 +1014,7 @@ test('recovers tool streams when the first named chunk carries a non-standard to
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {
@@ -1131,7 +1131,7 @@ test('re-injects the remembered tool name when the SDK missed the naming chunk',
   };
 
   (globalThis as typeof globalThis & { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       aiFetch: async () => ({ ok: true, status: 200, data: '{}' }),
       aiChatCancel: async () => true,
       onAiStreamData: (requestId: string, cb: (data: string) => void) => {

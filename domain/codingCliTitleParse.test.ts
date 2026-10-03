@@ -13,7 +13,7 @@ import {
 test('inferCodingCliProviderFromTitleSignals detects Claude and Codex titles', () => {
   assert.equal(inferCodingCliProviderFromTitleSignals('✳ Claude Code · refactor auth'), 'claude');
   assert.equal(inferCodingCliProviderFromTitleSignals('⠋ codex · my-project'), 'codex');
-  assert.equal(inferCodingCliProviderFromTitleSignals('⠋ Working · netcatty'), 'codex');
+  assert.equal(inferCodingCliProviderFromTitleSignals('⠋ Working · lemonssh'), 'codex');
 });
 
 test('inferCodingCliProviderFromTitleSignals detects Droid and Factory titles', () => {
@@ -28,11 +28,11 @@ test('inferCodingCliProviderFromTitleSignals ignores provider names inside longe
 
 test('resolveCodingCliActivityPhase treats spinner titles as busy', () => {
   assert.equal(
-    resolveCodingCliActivityPhase('⠋ netcatty', 'codex'),
+    resolveCodingCliActivityPhase('⠋ lemonssh', 'codex'),
     'busy',
   );
   assert.equal(
-    resolveCodingCliActivityPhase('netcatty', 'codex'),
+    resolveCodingCliActivityPhase('lemonssh', 'codex'),
     'idle',
   );
 });
@@ -68,9 +68,9 @@ test('shouldClearCodingCliProviderForTitle clears on shell titles only', () => {
   assert.equal(shouldClearCodingCliProviderForTitle('host:~/repo', 'codex'), true);
   assert.equal(shouldClearCodingCliProviderForTitle('/Users/alice/project', 'codex'), true);
   assert.equal(shouldClearCodingCliProviderForTitle('C:\\Users\\alice\\project', 'codex'), true);
-  assert.equal(shouldClearCodingCliProviderForTitle('netcatty', 'codex'), false);
-  assert.equal(shouldClearCodingCliProviderForTitle('netcatty: refactor', 'codex'), false);
-  assert.equal(shouldClearCodingCliProviderForTitle('⠋ Working · netcatty', 'codex'), false);
+  assert.equal(shouldClearCodingCliProviderForTitle('lemonssh', 'codex'), false);
+  assert.equal(shouldClearCodingCliProviderForTitle('lemonssh: refactor', 'codex'), false);
+  assert.equal(shouldClearCodingCliProviderForTitle('⠋ Working · lemonssh', 'codex'), false);
   assert.equal(shouldClearCodingCliProviderForTitle('', 'codex'), true);
 });
 

@@ -154,8 +154,8 @@ test('ToolOutputStore spills retained output through its persistence adapter', a
     spillThresholdChars: 10,
     persistence: {
       write: async (_record, content) => {
-        files.set('/netcatty/tool-output.log', content);
-        return '/netcatty/tool-output.log';
+        files.set('/lemonssh/tool-output.log', content);
+        return '/lemonssh/tool-output.log';
       },
       read: async (path, input) => {
         const content = files.get(path);
@@ -192,14 +192,14 @@ test('ToolOutputStore spills retained output through its persistence adapter', a
   assert.equal(store.get(handle.id, 'chat-1')?.fullContent, undefined);
   store.prune('chat-1');
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.deepEqual(deleted, ['/netcatty/tool-output.log']);
+  assert.deepEqual(deleted, ['/lemonssh/tool-output.log']);
 });
 
 test('ToolOutputStore restores a durable handle after a runtime restart', async () => {
   const files = new Map<string, { record: PersistedToolOutputRecord; content: string }>();
   const persistence: ToolOutputPersistence = {
     write: async (record, content) => {
-      const path = `/netcatty/${record.handleId}.log`;
+      const path = `/lemonssh/${record.handleId}.log`;
       files.set(path, { record, content });
       return path;
     },
@@ -399,11 +399,11 @@ test('ToolOutputStore does not resurrect a handle when its chat is deleted durin
 
   const reading = store.readChunkAsync({ handleId: record.handleId }, record.chatSessionId);
   store.prune(record.chatSessionId);
-  finishRestore({ path: '/netcatty/racing.log', record });
+  finishRestore({ path: '/lemonssh/racing.log', record });
 
   assert.equal(await reading, null);
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.deepEqual(deletedPaths, ['/netcatty/racing.log']);
+  assert.deepEqual(deletedPaths, ['/lemonssh/racing.log']);
   assert.equal(store.listPendingHandles(record.chatSessionId).length, 0);
 });
 
@@ -475,11 +475,11 @@ test('ToolOutputStore does not resurrect an old handle when its terminal is dele
     sessionId: record.terminalSessionId,
     content: 'new output',
   });
-  finishRestore({ path: '/netcatty/old-output.log', record });
+  finishRestore({ path: '/lemonssh/old-output.log', record });
 
   assert.equal(await reading, null);
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.ok(deletedPaths.includes('/netcatty/old-output.log'));
+  assert.ok(deletedPaths.includes('/lemonssh/old-output.log'));
   assert.equal(store.get(record.handleId, record.chatSessionId), undefined);
 });
 
@@ -515,7 +515,7 @@ test('ToolOutputStore keeps restoring one terminal when a different terminal is 
 
   const reading = store.readChunkAsync({ handleId: record.handleId }, record.chatSessionId);
   store.pruneTerminalSession(record.chatSessionId, 'terminal-a');
-  finishRestore({ path: '/netcatty/terminal-b.log', record });
+  finishRestore({ path: '/lemonssh/terminal-b.log', record });
 
   assert.equal((await reading)?.content, 'terminal');
 });
@@ -525,7 +525,7 @@ test('ToolOutputStore can restore a durable handle after its in-memory cache exp
   const files = new Map<string, { record: PersistedToolOutputRecord; content: string }>();
   const persistence: ToolOutputPersistence = {
     write: async (record, content) => {
-      const path = `/netcatty/${record.handleId}.log`;
+      const path = `/lemonssh/${record.handleId}.log`;
       files.set(path, { record, content });
       return path;
     },

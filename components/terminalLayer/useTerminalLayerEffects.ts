@@ -502,8 +502,8 @@ export function useTerminalLayerEffects(ctx: TerminalLayerEffectsContext) {
     // handler so a second click on an already-open AI panel closes it.
     useEffect(() => {
       const handler = () => handleToggleAiFromTopBar();
-      window.addEventListener('netcatty:toggle-ai-panel', handler);
-      return () => window.removeEventListener('netcatty:toggle-ai-panel', handler);
+      window.addEventListener('lemonssh:toggle-ai-panel', handler);
+      return () => window.removeEventListener('lemonssh:toggle-ai-panel', handler);
     }, [handleToggleAiFromTopBar]);
 
   useEffect(() => {
@@ -636,8 +636,8 @@ export function useTerminalLayerEffects(ctx: TerminalLayerEffectsContext) {
       // then land the SFTP panel on the transfer directory.
       openHostThenSftp(host, targetDirectory);
     };
-    window.addEventListener('netcatty:open-sftp-transfer-target', handler);
-    return () => window.removeEventListener('netcatty:open-sftp-transfer-target', handler);
+    window.addEventListener('lemonssh:open-sftp-transfer-target', handler);
+    return () => window.removeEventListener('lemonssh:open-sftp-transfer-target', handler);
   }, [activeTabIdRef, effectiveHosts, onConnectToHost, openPath, setSftpHostForTab, setSftpInitialLocationForTab, setSidePanelOpenTabs, sftpActiveHost, sftpHostForTab, window]);
   
   useEffect(() => {

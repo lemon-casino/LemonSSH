@@ -129,7 +129,7 @@ test("flow high-water mark stays clear of the ssh2 channel window (issue #1961)"
   // Pausing the source stream for SSH means calling ssh2 channel pause(),
   // which stops the remote from sending until resume() + a full round-trip.
   // ssh2's own channel window is 2MB (WINDOW_THRESHOLD 1MB), so a small
-  // high-water mark makes Netcatty pause/resume dozens of times during a
+  // high-water mark makes LemonSSH pause/resume dozens of times during a
   // multi-MB dump (e.g. `tail -2000f big.log`). Each cycle costs ~1 RTT, so
   // on a WAN link the dump crawls (reported ~20s vs ~2s in other clients).
   // Keep the high-water mark near the ssh2 window so bulk output flows in a

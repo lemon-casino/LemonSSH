@@ -64,8 +64,8 @@ export const QuickScriptEditorDialog: React.FC<QuickScriptEditorDialogProps> = (
       setTargetGroupSelection([]);
       setOpen(true);
     };
-    window.addEventListener('netcatty:scripts:add', handler);
-    return () => window.removeEventListener('netcatty:scripts:add', handler);
+    window.addEventListener('lemonssh:scripts:add', handler);
+    return () => window.removeEventListener('lemonssh:scripts:add', handler);
   }, []);
 
   useEffect(() => {
@@ -77,8 +77,8 @@ export const QuickScriptEditorDialog: React.FC<QuickScriptEditorDialogProps> = (
       setTargetGroupSelection(snippet.targetsAllHosts ? [] : (snippet.targetGroups ?? []));
       setOpen(true);
     };
-    window.addEventListener('netcatty:snippets:edit', handler);
-    return () => window.removeEventListener('netcatty:snippets:edit', handler);
+    window.addEventListener('lemonssh:snippets:edit', handler);
+    return () => window.removeEventListener('lemonssh:snippets:edit', handler);
   }, []);
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export const QuickScriptEditorDialog: React.FC<QuickScriptEditorDialogProps> = (
 
       onCreateSnippet(snippet);
       toast.success(t('scripts.recording.savedNamed', { name: snippet.label }));
-      window.dispatchEvent(new CustomEvent('netcatty:scripts:saved', {
+      window.dispatchEvent(new CustomEvent('lemonssh:scripts:saved', {
         detail: { snippetId: snippet.id, packagePath },
       }));
 
@@ -120,8 +120,8 @@ export const QuickScriptEditorDialog: React.FC<QuickScriptEditorDialogProps> = (
         setOpen(true);
       }
     };
-    window.addEventListener('netcatty:scripts:save-recorded', handler);
-    return () => window.removeEventListener('netcatty:scripts:save-recorded', handler);
+    window.addEventListener('lemonssh:scripts:save-recorded', handler);
+    return () => window.removeEventListener('lemonssh:scripts:save-recorded', handler);
   }, [onCreatePackage, onCreateSnippet, packages, t]);
 
   const hostById = useMemo(
@@ -229,7 +229,7 @@ export const QuickScriptEditorDialog: React.FC<QuickScriptEditorDialogProps> = (
     if (onRunSnippet) {
       onRunSnippet(savedSnippet, targets);
     } else {
-      window.dispatchEvent(new CustomEvent('netcatty:scripts:run-now', {
+      window.dispatchEvent(new CustomEvent('lemonssh:scripts:run-now', {
         detail: { snippet: savedSnippet },
       }));
     }

@@ -48,7 +48,7 @@ type NativeSidecarApi = {
 
 function getSidecarApi(): NativeSidecarApi | null {
   if (typeof window === 'undefined') return null;
-  return (window as Window & { netcatty?: NativeSidecarApi }).netcatty ?? null;
+  return (window as Window & { lemonssh?: NativeSidecarApi }).lemonssh ?? null;
 }
 
 /**

@@ -92,6 +92,16 @@ func NewSession(config Config) *Session {
 func (s *Session) ID() string         { return s.config.SessionID }
 func (s *Session) Generation() uint32 { s.mu.Lock(); defer s.mu.Unlock(); return s.generation }
 
+// PID reports the shell process id, or 0 before Start / after Reconnect.
+func (s *Session) PID() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.process == nil {
+		return 0
+	}
+	return s.process.PID()
+}
+
 func (s *Session) Start(ctx context.Context, backend Backend) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

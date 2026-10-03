@@ -2,12 +2,12 @@ import { startTransition, useCallback, useEffect, useRef, useState } from 'react
 import type { DiscoveredAgent, ExternalAgentConfig } from '../../infrastructure/ai/types';
 import { getExternalAgentSdkBackend } from '../../infrastructure/ai/managedAgents';
 
-interface NetcattyBridge {
+interface LemonSSHBridge {
   aiDiscoverAgents(options?: { refreshShellEnv?: boolean; apiKeyPresent?: boolean }): Promise<DiscoveredAgent[]>;
 }
 
-function getBridge(): NetcattyBridge | undefined {
-  return (window as unknown as { netcatty?: NetcattyBridge }).netcatty;
+function getBridge(): LemonSSHBridge | undefined {
+  return (window as unknown as { lemonssh?: LemonSSHBridge }).lemonssh;
 }
 
 const AGENT_DISCOVERY_CACHE_TTL_MS = 60_000;

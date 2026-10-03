@@ -14,7 +14,7 @@ import {
 } from "../../../lib/zmodemDragDrop";
 import { extractDropEntries, extractNativeDropEntries, type DropEntry } from "../../../lib/sftpFileUtils";
 import { isNativeFileDrop, useNativeFileDrop } from "../../../application/state/useNativeFileDrop";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import type { Host, TerminalSession } from "../../../types";
 import { toast } from "../../ui/toast";
 import {
@@ -302,7 +302,7 @@ export function useTerminalDragDrop({
         sessionRef,
         terminalBackend: {
           ...terminalBackend,
-          startZmodemDragDropUpload: netcattyBridge.get()?.startZmodemDragDropUpload
+          startZmodemDragDropUpload: lemonsshBridge.get()?.startZmodemDragDropUpload
             ? terminalBackend.startZmodemDragDropUpload
             : undefined,
         },

@@ -22,7 +22,7 @@ import {
 import { emitAIStateChanged } from './aiStateEvents';
 import { getAgentRuntime } from '../../infrastructure/ai/harness/globalAgentRuntime';
 
-/** Typed accessor for the native bridge exposed on `window.netcatty`. */
+/** Typed accessor for the native bridge exposed on `window.lemonssh`. */
 export interface AIBridge {
   aiSdkAgentCleanup?: (chatSessionId: string) => Promise<{ ok: boolean }>;
   deleteChatToolOutputsTemp?: (chatSessionId: string) => Promise<{ deletedCount: number }>;
@@ -33,15 +33,24 @@ export interface AIBridge {
   aiMcpSetCommandTimeout?: (timeout: number) => Promise<unknown> | unknown;
   aiMcpSetMaxIterations?: (maxIterations: number) => Promise<unknown> | unknown;
   aiSyncWebSearch?: (apiHost: string | null, apiKey: string | null) => Promise<{ ok: boolean; error?: string }>;
+  /** F06: installs/clears the active provider behind the Go turn runtime. */
+  aiSetLiveProvider?: (config: {
+    family: 'openai';
+    endpoint: string;
+    apiKeyHeader: string;
+    apiKeyValue: string;
+    model: string;
+    maxIterations?: number;
+  } | null) => Promise<{ ok: boolean; active?: boolean; error?: string }>;
 }
 
 export function getAIBridge() {
-  return (window as unknown as { netcatty?: AIBridge }).netcatty;
+  return (window as unknown as { lemonssh?: AIBridge }).lemonssh;
 }
 
 
-export const AI_STATE_CHANGED_DRAFTS_BY_SCOPE = 'netcatty:ai-drafts-by-scope';
-export const AI_STATE_CHANGED_PANEL_VIEW_BY_SCOPE = 'netcatty:ai-panel-view-by-scope';
+export const AI_STATE_CHANGED_DRAFTS_BY_SCOPE = 'lemonssh:ai-drafts-by-scope';
+export const AI_STATE_CHANGED_PANEL_VIEW_BY_SCOPE = 'lemonssh:ai-panel-view-by-scope';
 
 export type DraftsByScope = Partial<Record<string, AIDraft>>;
 export type PanelViewByScope = Partial<Record<string, AIPanelView>>;

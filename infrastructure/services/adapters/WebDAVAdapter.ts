@@ -10,7 +10,10 @@ import {
   type ProviderAccount,
   type OAuthTokens,
 } from '../../../domain/sync';
-import { netcattyBridge } from '../netcattyBridge';
+// Under Wails this resolves to the runtime client's sync port (Go transport);
+// outside Wails it falls back to the aggregate bridge. Querying the aggregate
+// bridge directly would never reach CloudSyncWebdav* on the sync port.
+import { cloudSyncBridge as lemonsshBridge } from '../cloudSync/cloudSyncFacade';
 
 type WebDAVClient = ReturnType<typeof createClient>;
 
@@ -188,7 +191,7 @@ export class WebDAVAdapter {
       if (!this.config) {
         throw new Error('Missing WebDAV config');
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.cloudSyncWebdavInitialize) {
         const result = await bridge.cloudSyncWebdavInitialize(this.config);
         this.resource = result?.resourceId || this.getSyncPath();
@@ -207,7 +210,7 @@ export class WebDAVAdapter {
       if (!this.config) {
         throw new Error('Missing WebDAV config');
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.cloudSyncWebdavUpload) {
         const result = await bridge.cloudSyncWebdavUpload(this.config, syncedFile);
         this.resource = result?.resourceId || this.getSyncPath();
@@ -226,16 +229,18 @@ export class WebDAVAdapter {
       if (!this.config) {
         throw new Error('Missing WebDAV config');
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.cloudSyncWebdavDownload) {
         const result = await bridge.cloudSyncWebdavDownload(this.config);
         return (result?.syncedFile ?? null) as SyncedFile | null;
       }
       const client = this.getClient();
       const path = this.getSyncPath();
+      const legacyPath = this.getLegacySyncPath();
       const exists = await client.exists(path);
-      if (!exists) return null;
-      const data = await client.getFileContents(path, { format: 'text' });
+      const targetPath = exists ? path : ((await client.exists(legacyPath)) ? legacyPath : null);
+      if (!targetPath) return null;
+      const data = await client.getFileContents(targetPath, { format: 'text' });
       if (!data) return null;
       return parseSyncedFileJson(data as string);
     });
@@ -246,16 +251,19 @@ export class WebDAVAdapter {
       if (!this.config) {
         throw new Error('Missing WebDAV config');
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.cloudSyncWebdavDelete) {
         await bridge.cloudSyncWebdavDelete(this.config);
         return;
       }
       const client = this.getClient();
-      const path = this.getSyncPath();
-      const exists = await client.exists(path);
-      if (!exists) return;
-      await client.deleteFile(path);
+      // compat#5: the user asked to delete the remote snapshot — remove both
+      // spellings so a legacy-named snapshot cannot resurrect via fallback.
+      for (const path of [this.getSyncPath(), this.getLegacySyncPath()]) {
+        const exists = await client.exists(path);
+        if (!exists) continue;
+        await client.deleteFile(path);
+      }
     });
   }
 
@@ -359,6 +367,15 @@ export class WebDAVAdapter {
 
   private getSyncPath(): string {
     return ensureLeadingSlash(SYNC_CONSTANTS.SYNC_FILE_NAME);
+  }
+
+  /**
+   * compat#5: the legacy snapshot name from pre-rename builds, used only as a
+   * read/delete fallback (and never as an upload target) so old remote
+   * artifacts keep working. Writes always target getSyncPath().
+   */
+  private getLegacySyncPath(): string {
+    return ensureLeadingSlash(SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME);
   }
 
   private buildAccountInfo(config: WebDAVConfig | null): ProviderAccount | null {

@@ -197,7 +197,7 @@ test("network recovery starts an exhausted auto-start rule through the real serv
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => {
           snapshotCalls++;
           return backendSnapshot.promise;
@@ -294,7 +294,7 @@ test("network recovery refreshes retries for a connecting final attempt", async 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [],
         startPortForward: async () => startResult.promise,
         onPortForwardStatus: () => () => undefined,
@@ -363,7 +363,7 @@ test("manual stop cancels an exhausted recovery while backend sync is pending", 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => backendSnapshot.promise,
         startPortForward: async ({ ruleId }: { ruleId: string }) => {
           startedRuleIds.push(ruleId);

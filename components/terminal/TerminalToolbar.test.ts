@@ -180,7 +180,7 @@ test("compact scripts popover hosts bulk-delete confirm outside the popover", ()
   assert.match(toolbarSource, /<VaultDeleteConfirmDialog/);
   // Popup vault mutation goes through the prop; the event only clears popover selection.
   assert.match(toolbarSource, /onDeleteSnippets\?\.\(new Set\(ids\)\)/);
-  assert.match(toolbarSource, /netcatty:snippets:delete/);
+  assert.match(toolbarSource, /lemonssh:snippets:delete/);
   const scriptsPopoverIdx = toolbarSource.indexOf("open={scriptsPopoverOpen}");
   const popoverEndIdx = toolbarSource.indexOf("</Popover>", scriptsPopoverIdx);
   const dialogIdx = toolbarSource.indexOf("<VaultDeleteConfirmDialog", popoverEndIdx);

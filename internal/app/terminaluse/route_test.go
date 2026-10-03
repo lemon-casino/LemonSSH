@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"testing"
 
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
 )
 
 func TestReconnectKeepsNativeSessionAndRotatesRoute(t *testing.T) {

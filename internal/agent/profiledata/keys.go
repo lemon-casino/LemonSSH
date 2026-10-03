@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/binaricat/netcatty/internal/profile/store"
+	"github.com/binaricat/lemonssh/internal/profile/store"
 )
 
 // KeyClass buckets each renderer AI storage key by what it carries. The
@@ -42,36 +42,46 @@ type KeySpec struct {
 
 // AIStorageKeys is the frozen W10 inventory (storageKeys.ts, AI section).
 var AIStorageKeys = []KeySpec{
-	{StorageKey: "netcatty_ai_providers_v1", Class: ClassProviderConfig, SecretBearing: true},
-	{StorageKey: "netcatty_ai_active_provider_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_active_model_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_permission_mode_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_tool_integration_mode_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_host_permissions_v1", Class: ClassGrant},
-	{StorageKey: "netcatty_ai_external_agents_v1", Class: ClassProviderConfig},
-	{StorageKey: "netcatty_ai_default_agent_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_command_blocklist_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_command_timeout_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_response_idle_timeout_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_max_iterations_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_sessions_v1", Class: ClassChatHistory},
-	{StorageKey: "netcatty_ai_active_session_map_v1", Class: ClassEphemeral},
-	{StorageKey: "netcatty_ai_agent_model_map_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_agent_provider_map_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_agent_thinking_map_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_composer_model_prefs_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_web_search_v1", Class: ClassProviderConfig, SecretBearing: true},
-	{StorageKey: "netcatty_ai_quick_messages_v1", Class: ClassPreference},
-	{StorageKey: "netcatty_ai_permission_grants_v1", Class: ClassGrant},
-	{StorageKey: "netcatty_ai_show_terminal_selection_action_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_providers_v1", Class: ClassProviderConfig, SecretBearing: true},
+	{StorageKey: "lemonssh_ai_active_provider_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_active_model_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_permission_mode_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_tool_integration_mode_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_host_permissions_v1", Class: ClassGrant},
+	{StorageKey: "lemonssh_ai_external_agents_v1", Class: ClassProviderConfig},
+	{StorageKey: "lemonssh_ai_default_agent_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_command_blocklist_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_command_timeout_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_response_idle_timeout_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_max_iterations_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_sessions_v1", Class: ClassChatHistory},
+	{StorageKey: "lemonssh_ai_active_session_map_v1", Class: ClassEphemeral},
+	{StorageKey: "lemonssh_ai_agent_model_map_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_agent_provider_map_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_agent_thinking_map_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_composer_model_prefs_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_web_search_v1", Class: ClassProviderConfig, SecretBearing: true},
+	{StorageKey: "lemonssh_ai_quick_messages_v1", Class: ClassPreference},
+	{StorageKey: "lemonssh_ai_permission_grants_v1", Class: ClassGrant},
+	{StorageKey: "lemonssh_ai_show_terminal_selection_action_v1", Class: ClassPreference},
 }
 
-// Spec returns the inventory entry for one storage key, or nil.
+const (
+	aiStorageKeyPrefix       = "lemonssh_ai_"
+	legacyAIStorageKeyPrefix = "netcatty_ai_"
+)
+
+// Spec returns the inventory entry for one storage key, or nil. Pre-rename
+// renderer keys (netcatty_ai_*) resolve to their lemonssh_ai_* entry so a
+// snapshot taken before the rename still classifies.
 func Spec(storageKey string) *KeySpec {
 	for i := range AIStorageKeys {
 		if AIStorageKeys[i].StorageKey == storageKey {
 			return &AIStorageKeys[i]
 		}
+	}
+	if renamed, ok := strings.CutPrefix(storageKey, legacyAIStorageKeyPrefix); ok {
+		return Spec(aiStorageKeyPrefix + renamed)
 	}
 	return nil
 }
@@ -97,9 +107,9 @@ func (k KeySpec) Syncable() bool {
 }
 
 // ProfileKey is the store key a storage key migrates to: the full
-// netcatty_ai_ prefix is replaced by the ai/ namespace.
+// lemonssh_ai_ prefix is replaced by the ai/ namespace.
 func (k KeySpec) ProfileKey() string {
-	return "ai/" + strings.TrimPrefix(k.StorageKey, "netcatty_ai_")
+	return "ai/" + strings.TrimPrefix(k.StorageKey, aiStorageKeyPrefix)
 }
 
 // encV1Prefix marks renderer-encrypted envelope values.
@@ -119,7 +129,9 @@ type PlanReport struct {
 // mutations. Rules:
 //   - known keys map to their classified domain and profile key;
 //   - values must be valid JSON (or empty, which is recorded and skipped);
-//   - unknown "netcatty_ai_*" keys fail closed and block the plan;
+//   - unknown lemonssh_ai_*/netcatty_ai_* keys fail closed and block the
+//     plan (the legacy prefix is classified through the Spec alias, so only
+//     genuinely unknown keys land here);
 //   - secret-bearing values are planned but flagged: promotion requires the
 //     origin-aware reseal decision before this package's caller stages them
 //     (T37/T38).
@@ -130,7 +142,7 @@ func PlanMigrations(snapshot map[string]json.RawMessage) ([]store.Mutation, *Pla
 	for storageKey, value := range snapshot {
 		spec := Spec(storageKey)
 		if spec == nil {
-			if strings.HasPrefix(storageKey, "netcatty_ai_") {
+			if strings.HasPrefix(storageKey, aiStorageKeyPrefix) || strings.HasPrefix(storageKey, legacyAIStorageKeyPrefix) {
 				report.UnknownKeys = append(report.UnknownKeys, storageKey)
 			}
 			continue

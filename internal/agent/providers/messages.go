@@ -61,7 +61,7 @@ type SessionLine struct {
 func BuildSystemPrompt(input SystemPromptInput) string {
 	prompt := input.Base
 	if input.Base == "" {
-		prompt = "You are Catty, the LemonSSH assistant."
+		prompt = "You are LemonSSH, the built-in assistant of the LemonSSH desktop app."
 	}
 	var sections []string
 	if len(input.TerminalSession) > 0 {

@@ -38,7 +38,7 @@ const (
 	TransferTempPrefix = "active-transfer-"
 )
 
-// TempService manages the Netcatty dedicated temp directory. Everything the
+// TempService manages the LemonSSH dedicated temp directory. Everything the
 // app writes temporarily must live under this root (AGENTS.md contract) so
 // Settings > System can show and clear it.
 type TempService struct {
@@ -55,7 +55,7 @@ type tempEntry struct {
 	staged os.FileInfo
 }
 
-// NewTempService creates the dedicated temp root (Netcatty temp dir) if
+// NewTempService creates the dedicated temp root (LemonSSH temp dir) if
 // missing and returns the service.
 func NewTempService(root string) (*TempService, error) {
 	if strings.TrimSpace(root) == "" {
@@ -492,6 +492,13 @@ func withinBase(base, target string) bool {
 // protection and a total uncompressed size cap. Pre-existing files at entry
 // paths are overwritten; traversal entries abort the whole extraction.
 func ExtractArchive(archivePath, destinationRoot string) (extracted int, err error) {
+	return ExtractArchiveDecoded(archivePath, destinationRoot, nil)
+}
+
+// ExtractArchiveDecoded extracts like ExtractArchive but maps every entry
+// name through decodeName before use (legacy-charset archives, e.g. GBK zips
+// written without the UTF-8 flag). Zip-slip checks run on the decoded name.
+func ExtractArchiveDecoded(archivePath, destinationRoot string, decodeName func(string) string) (extracted int, err error) {
 	reader, err := zip.OpenReader(archivePath)
 	if err != nil {
 		return 0, err
@@ -506,9 +513,13 @@ func ExtractArchive(archivePath, destinationRoot string) (extracted int, err err
 		}
 	}
 	for _, file := range reader.File {
-		cleanName := path.Clean(file.Name)
+		name := file.Name
+		if decodeName != nil {
+			name = decodeName(name)
+		}
+		cleanName := path.Clean(name)
 		if strings.HasPrefix(cleanName, "../") || path.IsAbs(cleanName) || strings.Contains(cleanName, "..\\") {
-			return extracted, fmt.Errorf("%w: %q", ErrUnsafeArchiveName, file.Name)
+			return extracted, fmt.Errorf("%w: %q", ErrUnsafeArchiveName, name)
 		}
 		if file.FileInfo().IsDir() {
 			if err := os.MkdirAll(filepath.Join(destinationRoot, filepath.FromSlash(cleanName)), 0o700); err != nil {
@@ -516,7 +527,7 @@ func ExtractArchive(archivePath, destinationRoot string) (extracted int, err err
 			}
 			continue
 		}
-		if err := extractFile(file, destinationRoot); err != nil {
+		if err := extractFileNamed(file, destinationRoot, cleanName); err != nil {
 			return extracted, err
 		}
 		extracted++
@@ -524,8 +535,8 @@ func ExtractArchive(archivePath, destinationRoot string) (extracted int, err err
 	return extracted, nil
 }
 
-func extractFile(file *zip.File, destinationRoot string) error {
-	target := filepath.Join(destinationRoot, filepath.FromSlash(path.Clean(file.Name)))
+func extractFileNamed(file *zip.File, destinationRoot, cleanName string) error {
+	target := filepath.Join(destinationRoot, filepath.FromSlash(cleanName))
 	if !withinBase(destinationRoot, target) {
 		return fmt.Errorf("%w: %q", ErrUnsafeArchiveName, file.Name)
 	}

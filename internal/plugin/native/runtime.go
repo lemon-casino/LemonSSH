@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/plugin/permissions"
+	"github.com/binaricat/lemonssh/internal/plugin/permissions"
 )
 
 var (

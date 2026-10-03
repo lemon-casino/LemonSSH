@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/app/contracts"
+	"github.com/binaricat/lemonssh/internal/app/contracts"
 )
 
 // echoDriver streams a fixed number of text events then finishes; it

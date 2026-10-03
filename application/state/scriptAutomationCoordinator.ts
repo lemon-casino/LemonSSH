@@ -3,8 +3,8 @@ import { isScriptSnippet, scriptContainsWriteOperations } from '@/domain/snippet
 import { localStorageAdapter } from '@/infrastructure/persistence/localStorageAdapter.ts';
 import { STORAGE_KEY_AI_PERMISSION_MODE } from '@/infrastructure/config/storageKeys.ts';
 import type { AIPermissionMode } from '@/infrastructure/ai/types.ts';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
-import type { ScriptRun } from '@/types/global/netcatty-bridge-script.d.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
+import type { ScriptRun } from '@/types/global/lemonssh-bridge-script.d.ts';
 import { publishScriptRunsSnapshot } from './scriptRunsStore.ts';
 
 type RunsListener = (runs: ScriptRun[]) => void;
@@ -101,7 +101,7 @@ export async function runAutomationScript(params: {
     throw new Error('Observer mode blocks scripts that write to the terminal.');
   }
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.scriptRun) {
     throw new Error('Script bridge unavailable');
   }
@@ -273,16 +273,16 @@ export async function runSnippetOrScript(params: {
 }
 
 export async function stopScriptRun(runId: string): Promise<{ ok: boolean }> {
-  const result = await netcattyBridge.get()?.scriptStop?.(runId);
+  const result = await lemonsshBridge.get()?.scriptStop?.(runId);
   return { ok: result?.ok !== false };
 }
 
 export async function pauseScriptRun(runId: string): Promise<{ ok: boolean }> {
-  const result = await netcattyBridge.get()?.scriptPause?.(runId);
+  const result = await lemonsshBridge.get()?.scriptPause?.(runId);
   return { ok: result?.ok !== false };
 }
 
 export async function resumeScriptRun(runId: string): Promise<{ ok: boolean }> {
-  const result = await netcattyBridge.get()?.scriptResume?.(runId);
+  const result = await lemonsshBridge.get()?.scriptResume?.(runId);
   return { ok: result?.ok !== false };
 }

@@ -46,7 +46,7 @@ export function truncateToolCommandTooltip(
  * Pull the user-meaningful shell command out of the tool-call args.
  *
  * Different tool surfaces hand us different shapes:
- *   - Netcatty's own `terminal_execute` MCP tool → `{command: "<string>"}`
+ *   - LemonSSH's own `terminal_execute` MCP tool → `{command: "<string>"}`
  *   - Codex `local_shell`                      → `{command: ["zsh","-lc","<full>"]}`
  *   - Codex command_execution (SDK)             → `{command: "/bin/zsh -lc '<full>'"}`
  *   - Claude `Bash`                             → `{command: "<string>"}`
@@ -56,10 +56,10 @@ export function truncateToolCommandTooltip(
  * otherwise the outer shell quotes leak into the title.
  *
  * And under the "Skill + CLI" integration, the agent's shell tool wraps a
- * call to our internal `netcatty-tool-cli` binary, so the real intent is one
+ * call to our internal `lemonssh-tool-cli` binary, so the real intent is one
  * level deeper:
  *
- *   netcatty-tool-cli exec --session <id> --chat-session <id> -- <real-cmd>
+ *   lemonssh-tool-cli exec --session <id> --chat-session <id> -- <real-cmd>
  *
  * We unwrap both layers so the chat panel shows what the user actually
  * cares about (the remote command), not Codex's wrapper title which is
@@ -88,19 +88,19 @@ export function extractDisplayCommand(args: Record<string, unknown> | undefined)
   // Unwrap a STRING shell wrapper, e.g. Codex SDK's `/bin/zsh -lc '<full>'`.
   // The array branch above already extracts the inner command; the string form
   // (codex command_execution) does not, so strip `<shell> -l?c <quote>…<quote>`
-  // here. Without this the outer quote leaks into the netcatty-cli title below.
+  // here. Without this the outer quote leaks into the tool-cli title below.
   const strWrap = cmdString.match(
     /^(?:\S*\/)?(?:sh|bash|zsh|fish|ash|dash)\s+-l?c\s+(['"])([\s\S]*)\1\s*$/,
   );
   if (strWrap) cmdString = strWrap[2];
 
-  // Netcatty CLI wrapper extraction.
-  // Packaged / Windows paths may be `netcatty-tool-cli.cjs` or `.cmd`; strip the
+  // LemonSSH CLI wrapper extraction.
+  // Packaged / Windows paths may be `lemonssh-tool-cli.cjs` or `.cmd`; strip the
   // optional extension so the subcommand after the binary is still found.
-  const cliIdx = cmdString.search(/netcatty-tool-cli(?:\.(?:cjs|cmd|exe|js))?/i);
+  const cliIdx = cmdString.search(/(?:lemonssh|netcatty)-tool-cli(?:\.(?:cjs|cmd|exe|js))?/i);
   if (cliIdx >= 0) {
-    const cliMatch = cmdString.slice(cliIdx).match(/^netcatty-tool-cli(?:\.(?:cjs|cmd|exe|js))?/i);
-    const cliTokenLen = cliMatch?.[0]?.length ?? 'netcatty-tool-cli'.length;
+    const cliMatch = cmdString.slice(cliIdx).match(/^(?:lemonssh|netcatty)-tool-cli(?:\.(?:cjs|cmd|exe|js))?/i);
+    const cliTokenLen = cliMatch?.[0]?.length ?? 'lemonssh-tool-cli'.length;
     const afterCli = cmdString
       .slice(cliIdx + cliTokenLen)
       .replace(/^["']?\s*/, '');
@@ -122,12 +122,12 @@ export function extractDisplayCommand(args: Record<string, unknown> | undefined)
         return inner;
       }
     }
-    if (sub === 'job-poll') return 'netcatty: poll job';
-    if (sub === 'job-stop') return 'netcatty: stop job';
-    if (sub === 'session') return 'netcatty: inspect session';
-    if (sub === 'env') return 'netcatty: list sessions';
-    if (sub === 'status') return 'netcatty: status';
-    if (sub) return `netcatty: ${sub}`;
+    if (sub === 'job-poll') return 'LemonSSH: poll job';
+    if (sub === 'job-stop') return 'LemonSSH: stop job';
+    if (sub === 'session') return 'LemonSSH: inspect session';
+    if (sub === 'env') return 'LemonSSH: list sessions';
+    if (sub === 'status') return 'LemonSSH: status';
+    if (sub) return `LemonSSH: ${sub}`;
   }
 
   return cmdString;
@@ -181,14 +181,15 @@ export function approvalCommandWasUnwrapped(
   if (!displayCommand) return false;
   const raw = rawCommandString(args);
   if (!raw || raw === displayCommand) return false;
-  return raw.includes('netcatty-tool-cli') || /(?:^|\/)(sh|bash|zsh|fish|ash|dash)\s+-l?c\s+/.test(raw)
+  return raw.includes('lemonssh-tool-cli') || raw.includes('netcatty-tool-cli') || /(?:^|\/)(sh|bash|zsh|fish|ash|dash)\s+-l?c\s+/.test(raw)
     || (Array.isArray(args?.command) && args.command.length >= 3);
 }
 
 /**
  * Best-effort execution context for approval review (session / cwd / shell).
  * Never invents host names; only surfaces fields already present on tool args
- * or explicit netcatty-tool-cli flags in the command string.
+ * or explicit tool-cli flags (current lemonssh-tool-cli or legacy
+ * netcatty-tool-cli) in the command string.
  */
 export function extractApprovalExecutionContext(
   args: Record<string, unknown> | undefined,
@@ -223,10 +224,10 @@ export function extractApprovalExecutionContext(
     }
   }
 
-  // Skills+CLI wrappers keep the Netcatty target only on CLI flags after unwrap.
+  // Skills+CLI wrappers keep the LemonSSH target only on CLI flags after unwrap.
   if (!sessionId) {
     const cmd = rawCommandString(args);
-    if (cmd && cmd.includes('netcatty-tool-cli')) {
+    if (cmd && (cmd.includes('lemonssh-tool-cli') || cmd.includes('netcatty-tool-cli'))) {
       const sessionMatch = cmd.match(/--session(?:\s+|=)(?:"([^"]+)"|'([^']+)'|(\S+))/);
       const fromFlag = sessionMatch?.[1] ?? sessionMatch?.[2] ?? sessionMatch?.[3];
       if (fromFlag) sessionId = fromFlag;

@@ -47,8 +47,8 @@ export function usePluginConnectionSectionState({
   identities,
   keys,
 }: PluginConnectionSectionStateOptions) {
-  const [providers, setProviders] = useState<ReadonlyArray<NetcattyExtensionProviderContribution>>([]);
-  const [authenticationProviders, setAuthenticationProviders] = useState<ReadonlyArray<NetcattyExtensionProviderContribution>>([]);
+  const [providers, setProviders] = useState<ReadonlyArray<LemonSSHExtensionProviderContribution>>([]);
+  const [authenticationProviders, setAuthenticationProviders] = useState<ReadonlyArray<LemonSSHExtensionProviderContribution>>([]);
   const [configurationText, setConfigurationText] = useState(() => JSON.stringify(
     form.pluginConnection?.configuration === undefined ? {} : form.pluginConnection.configuration,
     null,

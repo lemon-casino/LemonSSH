@@ -1,10 +1,30 @@
 # Changelog
 
-## [Unreleased] - 2026-03-11
+## [Unreleased] - 2026-09-24
+
+### 功能
+- Wails 壳接入应用内更新体系：设置 > 系统 的"当前版本"显示真实版本号（Go `UpdateService` 的 `Version` 经 `getAppInfo` 提供），启动自动检查、手动"检查更新"、下载进度条与"立即安装"全部生效
+- 更新通道基于 GitHub Releases：按平台匹配 `LemonSSH-{版本}-{goos}-{goarch}` 产物（scripts/package-wails.mjs 的发布形态），下载校验 `checksums.txt` 的 sha256；发布 `release-manifest.json` 且构建注入 ed25519 公钥时额外执行清单验签（internal/platform/updater）
+- 安装采用自替换：将新二进制原子换入运行路径后延时重启应用；`update:*` 事件广播到所有窗口（主窗口与设置窗口同步显示进度）
+- 自动更新开关持久化到 profile 存储；开启时发现更新自动开始下载。版本号为 0 的开发构建（0.0.0-*）自动禁用应用内更新并降级为打开 Releases 页
+
+### 渠道对账
+- 本通道的发布物是单文件可执行产物；下文 Electron 时代宣称的 Windows NSIS / macOS dmg / Linux deb/rpm/pacman 原生安装器自动更新不适用于 Wails 壳。未发布对应产物（或 `checksums.txt` 校验失败）时，UI 如实降级为"手动下载"入口，不再伪造进度
+
+### 兼容性
+- 随品牌迁移，远端粘贴图片上传目录更名为 `.lemonssh-paste-images/`：新会话只写入新目录；历史版本在远端主机上创建的同用途旧目录不再读取、也永不删除。远端 shell 历史中旧版本注入的 osc7 历史清理标记同样为预期残留：仅旧历史行残留展示，新会话的标记照常自清理，不构成数据丢失
+
+## [Unreleased] - 2026-03-11（已归档：Electron 时代，未随迁移发布）
+
+> **归档说明**：本段为 Electron 壳时代的未发布条目，未随 Electron→Wails 迁移发布。
+> 所述 Windows NSIS / macOS dmg / Linux deb/rpm/pacman 原生安装器及 electron-updater
+> 自动更新形态已随 Electron 壳废弃（Wails 壳的发布物是单文件可执行产物，见上方
+> 2026-09-24 段）。其中"粘贴时自动上传剪贴板图片"已随 commit `83e0e987`
+> 在 Wails 壳落地，其余更新器条目不适用于当前壳。以下内容按历史原样保留。
 
 ### 功能
 - Linux deb/rpm/pacman 安装包启用应用内自动更新；未标记的开发包和 Snap 继续提供手动下载入口
-- 终端新增"粘贴时自动上传剪贴板图片"选项：剪贴板含图片时，在远程会话中粘贴（快捷键/右键/中键）自动通过 SFTP 上传图片到远端 `.netcatty-paste-images/` 目录并输入远端路径，否则保持原有文本粘贴行为（设置 > 终端 > 行为，默认关闭）
+- 终端新增"粘贴时自动上传剪贴板图片"选项：剪贴板含图片时，在远程会话中粘贴（快捷键/右键/中键）自动通过 SFTP 上传图片到远端 `.lemonssh-paste-images/` 目录并输入远端路径，否则保持原有文本粘贴行为（设置 > 终端 > 行为，默认关闭）
 - 修复自动更新 IPC 事件仅发送到单个窗口的问题，改为广播所有窗口（主窗口 + 设置窗口均可收到）
 - 统一手动检查更新与自动更新的状态机，消除三套并行状态
 - 手动"检查更新"通过 GitHub API 检测版本，发现更新后异步触发 electron-updater 下载

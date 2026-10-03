@@ -66,7 +66,7 @@ const bridgeState: {
 
 Object.defineProperty(globalThis, "window", {
   value: {
-    netcatty: {
+    lemonssh: {
       listFigSpecs: async () => ["story"],
       loadFigSpec: async (commandName: string) => commandName === "story" ? storySpec : null,
       listAutocompleteLocalDir: async (

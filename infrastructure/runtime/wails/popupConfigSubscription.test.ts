@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { subscribePopupConfig } from './popupConfigSubscription';
 import { createWailsRuntimeClient, type WailsBindingDeps } from './wailsRuntimeClient';
+import type { TerminalSession } from '../../../types';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 
@@ -40,6 +41,56 @@ test('popup config requires both URL identity fields and never subscribes to glo
     await tick();
     dispose();
     assert.equal(calls, 0);
+  }
+});
+
+test('peer session windows pull their clone payload through the sessionWindow identity params', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { location: { search: '?sessionWindowId=win1&sessionWindowToken=tok1' } } });
+  const delivered: unknown[] = [];
+  const identities: string[][] = [];
+  const client = createWailsRuntimeClient({
+    terminal: {}, sftp: {},
+    events: { On: () => { throw new Error('global config subscription forbidden'); } },
+    sessionWindow: {
+      GetConfig: async (id: string, token: string) => { identities.push([id, token]); return { title: 'Prod SSH', sourceSession: { id: 'session-1' }, localShellType: 'zsh' }; },
+      Heartbeat: async (id: string, token: string) => { identities.push([id, token]); },
+    },
+  } as unknown as WailsBindingDeps);
+  const dispose = client.transitionBridge.onOpenSessionInNewWindow!(payload => delivered.push(payload));
+  try {
+    await tick();
+    assert.deepEqual(identities, [['win1', 'tok1'], ['win1', 'tok1']]);
+    assert.deepEqual(delivered, [{ title: 'Prod SSH', sourceSession: { id: 'session-1' }, localShellType: 'zsh' }]);
+  } finally {
+    dispose?.();
+    if (original) Object.defineProperty(globalThis, 'window', original);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
+});
+
+test('session window subscription is a no-op without identity params and Open fails closed without bindings', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  // The main window has no session-window identity in its URL.
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { location: { search: '' } } });
+  const client = createWailsRuntimeClient({
+    terminal: {}, sftp: {},
+    events: { On: () => { throw new Error('global config subscription forbidden'); } },
+  } as unknown as WailsBindingDeps);
+  try {
+    let called = false;
+    const dispose = client.transitionBridge.onOpenSessionInNewWindow!(() => { called = true; });
+    await tick();
+    dispose?.();
+    assert.equal(called, false);
+    const result = await client.transitionBridge.openSessionInNewWindow!({
+      title: 'x',
+      sourceSession: { id: 's', hostId: 'h', hostLabel: 'H', username: 'u', hostname: 'example.test', status: 'connected' } as TerminalSession,
+    });
+    assert.deepEqual(result, { success: false, error: 'openSessionInNewWindow unavailable' });
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'window', original);
+    else Reflect.deleteProperty(globalThis, 'window');
   }
 });
 

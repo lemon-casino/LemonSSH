@@ -71,7 +71,7 @@ test("useTerminalBackend exposes onWindowShown so the resume hook actually fires
     new URL("../../application/state/useTerminalBackend.ts", import.meta.url),
     "utf8",
   );
-  assert.match(source, /const onWindowShown = useCallback\(\(cb: \(\) => void\) => \{\s*const bridge = netcattyBridge\.get\(\);\s*return bridge\?\.onWindowShown\?\.\(cb\);/);
+  assert.match(source, /const onWindowShown = useCallback\(\(cb: \(\) => void\) => \{\s*const bridge = lemonsshBridge\.get\(\);\s*return bridge\?\.onWindowShown\?\.\(cb\);/);
   const returnIndex = source.indexOf("useMemo(");
   assert.notEqual(returnIndex, -1);
   assert.match(source.slice(returnIndex), /onWindowShown,/);

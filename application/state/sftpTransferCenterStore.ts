@@ -12,7 +12,7 @@ import {
 } from "../../domain/sftpTransferConflicts";
 import { STORAGE_KEY_SFTP_TRANSFER_CENTER } from "../../infrastructure/config/storageKeys";
 import { hostStorageAdapter as localStorageAdapter } from "../../infrastructure/persistence/hostStorageAdapter";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import { notify } from "../notification";
 import { globalSftpTransferScheduler } from "./sftp/globalTransferScheduler";
 import {
@@ -683,7 +683,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
     if (!adopter && typeof globalThis.window !== "undefined") {
       // Open the SFTP panel on the active terminal tab first so a preparer can
       // register, then ask it to reconnect the required hosts.
-      globalThis.window.dispatchEvent(new CustomEvent("netcatty:open-sftp-transfer-target", {
+      globalThis.window.dispatchEvent(new CustomEvent("lemonssh:open-sftp-transfer-target", {
         detail: { task, forResume: true },
       }));
       // ~45s is enough for MFA/password prompts; longer felt like a hang.
@@ -700,7 +700,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
         const preparer = [...controllers.entries()].find(([, controls]) => controls.canPrepareAdoption);
         if (preparer && !prepareDispatched) {
           prepareDispatched = true;
-          globalThis.window.dispatchEvent(new CustomEvent("netcatty:prepare-sftp-transfer-resume", {
+          globalThis.window.dispatchEvent(new CustomEvent("lemonssh:prepare-sftp-transfer-resume", {
             detail: {
               task,
               targetOwnerId: preparer[0],
@@ -712,7 +712,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
           }));
         } else if (!preparer && attempt === 10) {
           // Re-request panel open if nothing registered after a few seconds.
-          globalThis.window.dispatchEvent(new CustomEvent("netcatty:open-sftp-transfer-target", {
+          globalThis.window.dispatchEvent(new CustomEvent("lemonssh:open-sftp-transfer-target", {
             detail: { task, forResume: true },
           }));
           prepareDispatched = false;
@@ -753,7 +753,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
     // earlier cancel that never hit startTransferNow (same transferId).
     if (action === "resume" || action === "retry") {
       try {
-        await netcattyBridge.get()?.clearPendingTransferCancel?.(taskId);
+        await lemonsshBridge.get()?.clearPendingTransferCancel?.(taskId);
       } catch {
         // best-effort
       }
@@ -764,7 +764,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
       && task.status !== "interrupted"
       && task.status !== "attention";
     if (liveCompressedJob && (action === "pause" || action === "resume" || action === "cancel")) {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (action === "pause") {
         // Control epoch supersedes races; bridge lifecycleEpoch is stamped on success.
         const pauseControlEpoch = bumpTransferControlEpoch(taskId);
@@ -1045,9 +1045,9 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
         const childIds = tasks
           .filter((candidate) => candidate.parentTaskId === taskId)
           .map((candidate) => candidate.id);
-        try { await netcattyBridge.get()?.cancelTransfer?.(taskId); } catch { /* best-effort */ }
+        try { await lemonsshBridge.get()?.cancelTransfer?.(taskId); } catch { /* best-effort */ }
         for (const childId of childIds) {
-          try { await netcattyBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
+          try { await lemonsshBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
         }
         const cancelIds = new Set([taskId, ...childIds]);
         tasks = tasks.map((candidate) => cancelIds.has(candidate.id) && candidate.status !== "completed" ? {
@@ -1091,7 +1091,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
           .map((candidate) => candidate.id);
         if (childIds.length > 0) {
           for (const childId of childIds) {
-            try { await netcattyBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
+            try { await lemonsshBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
           }
           tasks = tasks.map((candidate) => childIds.includes(candidate.id) ? {
             ...candidate,
@@ -1259,15 +1259,15 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
         // best-effort
       }
       try {
-        await netcattyBridge.get()?.cancelTransfer?.(taskId);
+        await lemonsshBridge.get()?.cancelTransfer?.(taskId);
         for (const childId of childIds) {
-          try { await netcattyBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
+          try { await lemonsshBridge.get()?.cancelTransfer?.(childId); } catch { /* best-effort */ }
         }
       } catch {
         // Best-effort backend cancel when the owning panel is gone / no window.
       }
       try {
-        await netcattyBridge.get()?.cleanupTransferArtifacts?.({
+        await lemonsshBridge.get()?.cleanupTransferArtifacts?.({
           transferId: taskId,
           sourcePath: task.sourcePath,
           targetPath: task.targetPath,
@@ -1675,7 +1675,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
           releaseTransferPauseTree(taskId, childIds);
 
           if (task.ownerId === "dedicated-resume" && task.isDirectory) {
-            const bridge = netcattyBridge.get();
+            const bridge = lemonsshBridge.get();
             // Cancel soft-paused child streams so the held walk settles. When a
             // child is not in activeTransfers, cancelTransfer leaves a sticky
             // pendingCancel latch — clear it before startFresh reuses the same
@@ -1699,7 +1699,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
           try {
             const resumeIds = [taskId, ...childIds.filter((id) => id !== taskId)];
             const results = await Promise.all(resumeIds.map(async (id) =>
-              netcattyBridge.get()?.resumeTransfer?.(id) ?? { success: false },
+              lemonsshBridge.get()?.resumeTransfer?.(id) ?? { success: false },
             ));
             const after = tasks.find((candidate) => candidate.id === taskId);
             if (after?.status === "cancelled") return existing;
@@ -1793,7 +1793,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
         } : candidate);
         emit();
         try {
-          await netcattyBridge.get()?.cleanupTransferArtifacts?.({
+          await lemonsshBridge.get()?.cleanupTransferArtifacts?.({
             transferId: taskId,
             sourcePath: task.sourcePath,
             targetPath: task.targetPath,
@@ -1818,7 +1818,7 @@ export function createSftpTransferCenterStore(persistence?: StorePersistence): S
         : candidate);
       emit();
       try {
-        void netcattyBridge.get()?.prioritizeTransfer?.(taskId);
+        void lemonsshBridge.get()?.prioritizeTransfer?.(taskId);
       } catch {
         // best-effort
       }

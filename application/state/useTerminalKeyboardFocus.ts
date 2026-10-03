@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import { installTerminalKeyboardFocusTracking } from "./terminalKeyboardFocus";
 
 export function useTerminalKeyboardFocus(enabled = true): void {
   useEffect(() => {
     if (!enabled) return undefined;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setTerminalKeyboardFocus) return undefined;
 
     let lastPublished: boolean | undefined;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileConflict, FileConflictAction, Host, TransferStatus, SftpFilenameEncoding } from "../../../domain/models";
 import { getSftpConflictTypeKey } from "../../../domain/sftpConflict";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import { notify } from "../../notification";
 import { joinPath } from "./utils";
@@ -47,7 +47,7 @@ function createDropScanCancelledError(): Error {
 }
 
 async function listLocalTreeWithAbort(
-  bridge: NetcattyBridge,
+  bridge: LemonSSHBridge,
   localPath: string,
   options: LocalTreeScanOptions = {},
 ): Promise<LocalTreeListEntry[]> {
@@ -245,11 +245,11 @@ export const useSftpExternalOperations = (
   // Track every renderer-owned watch id so duplicate opens stay deduplicated
   // and panel/window teardown releases the worker-side polling resources.
   const stopExternalFileWatch = useCallback(async (watchId: string, cleanupTempFile: boolean) => {
-    await netcattyBridge.get()?.stopFileWatch?.(watchId, cleanupTempFile);
+    await lemonsshBridge.get()?.stopFileWatch?.(watchId, cleanupTempFile);
   }, []);
   const subscribeExternalFileWatchStopped = useCallback((
     callback: (payload: { watchId: string; localPath?: string }) => void,
-  ) => netcattyBridge.get()?.onFileWatchStopped?.(callback), []);
+  ) => lemonsshBridge.get()?.onFileWatchStopped?.(callback), []);
   const {
     activeCountRef: activeFileWatchCountRef,
     captureGeneration: captureExternalFileWatchGeneration,
@@ -280,7 +280,7 @@ export const useSftpExternalOperations = (
       }
 
       if (pane.connection.isLocal) {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (bridge?.readLocalFile) {
           const buffer = await bridge.readLocalFile(filePath);
           return new TextDecoder().decode(buffer);
@@ -293,7 +293,7 @@ export const useSftpExternalOperations = (
         throw new Error("SFTP session not found");
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) {
         throw new Error("Bridge not available");
       }
@@ -311,7 +311,7 @@ export const useSftpExternalOperations = (
       }
 
       if (pane.connection.isLocal) {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (bridge?.readLocalFile) {
           return await bridge.readLocalFile(filePath);
         }
@@ -323,7 +323,7 @@ export const useSftpExternalOperations = (
         throw new Error("SFTP session not found");
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.readSftpBinary) {
         throw new Error("Binary file reading not supported");
       }
@@ -341,7 +341,7 @@ export const useSftpExternalOperations = (
       }
 
       if (pane.connection.isLocal) {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (bridge?.writeLocalFile) {
           const data = new TextEncoder().encode(content);
           await bridge.writeLocalFile(filePath, data.buffer);
@@ -355,7 +355,7 @@ export const useSftpExternalOperations = (
         throw new Error("SFTP session not found");
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) {
         throw new Error("Bridge not available");
       }
@@ -394,7 +394,7 @@ export const useSftpExternalOperations = (
       }
 
       if (pane.connection.isLocal) {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (!bridge?.writeLocalFile) throw new Error("Local file writing not supported");
         const data = new TextEncoder().encode(content);
         await bridge.writeLocalFile(filePath, data.buffer);
@@ -440,7 +440,7 @@ export const useSftpExternalOperations = (
         editorTabStore.remapSessionId(connectionId, liveConnectionId);
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) throw new Error("Bridge not available");
 
       await bridge.writeSftp(
@@ -472,7 +472,7 @@ export const useSftpExternalOperations = (
         throw new Error("No connection available");
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.downloadSftpToTempWithProgress) {
         throw new Error("SFTP temp download not supported");
       }
@@ -594,7 +594,7 @@ export const useSftpExternalOperations = (
         throw new Error("No connection available");
       }
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.openWithApplication) {
         throw new Error("System app opening not supported");
       }
@@ -672,7 +672,7 @@ export const useSftpExternalOperations = (
           throw new Error("No connection available");
         }
 
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (!bridge?.openWithSystemDefault) {
           throw new Error("System default opening not supported");
         }
@@ -840,11 +840,11 @@ export const useSftpExternalOperations = (
     };
   }, [cancelPendingUploadConflicts]);
 
-  // Create upload bridge that wraps netcattyBridge.
+  // Create upload bridge that wraps lemonsshBridge.
   // Pass connect-time Host so pooled stream uploads open the pinned endpoint
   // (session hostname/port/user overrides), not the vault entry by hostId alone.
   const createUploadBridge = useCallback((connectHost?: Host): UploadBridge => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return {
       managesTransferLifecycle: Boolean(
         bridge?.startStreamTransfer && bridge.onGlobalSftpTransferEvent,
@@ -860,26 +860,26 @@ export const useSftpExternalOperations = (
       cancelStagedUploadFile: bridge?.cancelStagedUploadFile,
       deleteTempFile: bridge?.deleteTempFile,
       mkdirSftp: async (sftpId: string, path: string) => {
-        const b = netcattyBridge.get();
+        const b = lemonsshBridge.get();
         if (b?.mkdirSftp) {
           await b.mkdirSftp(sftpId, path);
         }
       },
       statSftp: async (sftpId: string, path: string) => {
-        const b = netcattyBridge.get();
+        const b = lemonsshBridge.get();
         if (!b?.statSftp) return null;
         return b.statSftp(sftpId, path);
       },
       // Only wire when present so uploadService can fall back via `lstat ?? stat`.
       lstatSftp: bridge?.lstatSftp
         ? async (sftpId: string, path: string) => {
-            const b = netcattyBridge.get();
+            const b = lemonsshBridge.get();
             if (!b?.lstatSftp) return null;
             return b.lstatSftp(sftpId, path);
           }
         : undefined,
       deleteSftp: async (sftpId: string, path: string, expectedType) => {
-        const b = netcattyBridge.get();
+        const b = lemonsshBridge.get();
         if (b?.deleteSftp) {
           await b.deleteSftp(sftpId, path, undefined, expectedType);
         }
@@ -889,7 +889,7 @@ export const useSftpExternalOperations = (
       // session (max 2/host) so the browse connection stays free.
       startStreamTransfer: bridge?.startStreamTransfer
         ? async (options) => {
-            const b = netcattyBridge.get();
+            const b = lemonsshBridge.get();
             if (!b?.startStreamTransfer) {
               return { transferId: options.transferId, error: 'Stream transfer not available' };
             }
@@ -985,7 +985,7 @@ export const useSftpExternalOperations = (
       if (!pane?.connection) {
         throw new Error("No active connection");
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) {
         throw new Error("Bridge not available");
       }
@@ -1020,7 +1020,7 @@ export const useSftpExternalOperations = (
         ? startUploadScanningTask(callbacks, crypto.randomUUID(), { label: scanLabel })
         : null;
       if (scanningTask && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("netcatty:open-sftp-transfer-center"));
+        window.dispatchEvent(new CustomEvent("lemonssh:open-sftp-transfer-center"));
       }
 
       const scanAbort = new AbortController();
@@ -1342,7 +1342,7 @@ export const useSftpExternalOperations = (
       const run = async (forceReconnect = false): Promise<UploadResult[]> => {
         const pane = getActivePane(side);
         if (!pane?.connection) throw new Error("No active connection");
-        if (!netcattyBridge.get()) throw new Error("Bridge not available");
+        if (!lemonsshBridge.get()) throw new Error("Bridge not available");
 
         const { sftpId, release } = await resolveRemoteSftpId(side, { forceReconnect });
         const livePane = getActivePane(side) ?? pane;
@@ -1490,7 +1490,7 @@ export const useSftpExternalOperations = (
         label: folderName,
       });
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("netcatty:open-sftp-transfer-center"));
+        window.dispatchEvent(new CustomEvent("lemonssh:open-sftp-transfer-center"));
       }
       const scanAbort = new AbortController();
       const detachScanCancel = controller.addCancelListener(() => {
@@ -1518,7 +1518,7 @@ export const useSftpExternalOperations = (
             originatingEndpoint,
             connectionCacheKeyMapRef.current,
           );
-          const bridge = netcattyBridge.get();
+          const bridge = lemonsshBridge.get();
           if (!bridge) throw new Error("Bridge not available");
           if (!bridge.listLocalTree) throw new Error("Folder upload not supported");
 
@@ -1729,7 +1729,7 @@ export const useSftpExternalOperations = (
           originatingEndpoint,
           connectionCacheKeyMapRef.current,
         );
-        if (!netcattyBridge.get()) throw new Error("Bridge not available");
+        if (!lemonsshBridge.get()) throw new Error("Bridge not available");
 
         const { sftpId, release } = await resolveRemoteSftpId(side, {
           forceReconnect,
@@ -1867,7 +1867,7 @@ export const useSftpExternalOperations = (
 
   const selectApplication = useCallback(
     async (): Promise<{ path: string; name: string } | null> => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.selectApplication) {
         return null;
       }

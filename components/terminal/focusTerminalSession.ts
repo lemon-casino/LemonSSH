@@ -28,7 +28,7 @@ interface FocusTerminalSessionInputOptions {
 const escapeAttributeValue = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-export const TERMINAL_SESSION_RESTORE_FOCUS_EVENT = "netcatty:terminal-session-restore-focus";
+export const TERMINAL_SESSION_RESTORE_FOCUS_EVENT = "lemonssh:terminal-session-restore-focus";
 
 export type TerminalSessionRestoreFocusDetail = {
   sessionId: string;

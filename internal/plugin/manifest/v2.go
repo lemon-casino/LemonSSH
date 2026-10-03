@@ -7,7 +7,7 @@ package manifest
 import (
 	"errors"
 	"fmt"
-	"github.com/binaricat/netcatty/internal/plugin/ui"
+	"github.com/binaricat/lemonssh/internal/plugin/ui"
 	"regexp"
 	"strings"
 )
@@ -19,6 +19,9 @@ var (
 	namePattern       = regexp.MustCompile(`^[a-z][a-z0-9-]{1,63}$`)
 	versionPattern    = regexp.MustCompile(`^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$`)
 	identifierPattern = regexp.MustCompile(`^[a-z][a-z0-9._-]{0,127}$`)
+	// Matches the plugin-cli V2_SHA256_PATTERN so packaging and the host
+	// reject the same malformed digests before any binary is hashed.
+	sha256Pattern = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
 )
 
 type Manifest struct {
@@ -58,6 +61,9 @@ func Validate(m Manifest) error {
 		if err := ui.Validate(*m.UI); err != nil {
 			return err
 		}
+		if err := validateUICommandReferences(*m.UI, m.Contributions); err != nil {
+			return err
+		}
 	}
 	if m.APIVersion != Version {
 		return fmt.Errorf("%w: apiVersion %d, want %d", ErrInvalid, m.APIVersion, Version)
@@ -74,7 +80,7 @@ func Validate(m Manifest) error {
 	if !strings.HasSuffix(m.Entrypoint.WASM, ".wasm") || strings.Contains(m.Entrypoint.WASM, "..") {
 		return fmt.Errorf("%w: entrypoint wasm %q", ErrInvalid, m.Entrypoint.WASM)
 	}
-	if len(m.Entrypoint.SHA256) != 64 {
+	if !sha256Pattern.MatchString(m.Entrypoint.SHA256) {
 		return fmt.Errorf("%w: entrypoint sha256 must be 64 hex chars", ErrInvalid)
 	}
 	if m.Entrypoint.MemoryMB != 0 && (m.Entrypoint.MemoryMB < 16 || m.Entrypoint.MemoryMB > 512) {
@@ -91,6 +97,15 @@ func Validate(m Manifest) error {
 
 var validPermissionKinds = map[string]bool{
 	"filesystem": true, "network": true, "terminal": true, "secret": true, "clipboard": true,
+	// "runtime" gates the lemonssh-wasm-abi host imports: resource "log"
+	// (write) covers lemonssh_host_log and resource "settings" (read) covers
+	// lemonssh_host_setting_get. See docs/plugin-platform/isolated-runtime.md.
+	"runtime": true,
+	// "provider" registers terminal/extension providers: the resource is the
+	// contract ProviderKind (e.g. "terminal.theme"); only a manifest-declared
+	// kind can be granted, and internal/plugin/providers re-checks the broker
+	// on every enumeration/invocation. See docs/plugin-platform/terminal-providers.md.
+	"provider": true,
 }
 
 func validatePermissions(perms []Permission) error {
@@ -130,6 +145,41 @@ func validateContributions(contribs []Contribution) error {
 			return fmt.Errorf("%w: duplicate contribution %s", ErrInvalid, key)
 		}
 		seen[key] = true
+	}
+	return nil
+}
+
+// validateUICommandReferences closes the loop between the ui block and the
+// contributions list: a menu or keybinding that points at an undeclared
+// command could never execute, so the manifest is rejected at install time
+// instead of surfacing dead entries in the host UI.
+func validateUICommandReferences(ui ui.Schema, contribs []Contribution) error {
+	commands := make(map[string]bool, len(contribs))
+	for _, contribution := range contribs {
+		if contribution.Type == "command" {
+			commands[contribution.ID] = true
+		}
+	}
+	check := func(kind, id, command string) error {
+		if !commands[command] {
+			return fmt.Errorf("%w: %s %q references undeclared command %q", ErrInvalid, kind, id, command)
+		}
+		return nil
+	}
+	for _, menu := range ui.Menus {
+		if err := check("menu", menu.ID, menu.Command); err != nil {
+			return err
+		}
+		if menu.Alt != "" {
+			if err := check("menu", menu.ID+" (alt)", menu.Alt); err != nil {
+				return err
+			}
+		}
+	}
+	for _, binding := range ui.Keybindings {
+		if err := check("keybinding", binding.Command+" ("+binding.Key+")", binding.Command); err != nil {
+			return err
+		}
 	}
 	return nil
 }

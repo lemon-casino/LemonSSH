@@ -1,8 +1,8 @@
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 const requireBridge = () => {
-  const bridge = netcattyBridge.get();
-  if (!bridge) throw new Error("Netcatty desktop bridge is unavailable");
+  const bridge = lemonsshBridge.get();
+  if (!bridge) throw new Error("LemonSSH desktop bridge is unavailable");
   return bridge;
 };
 
@@ -39,12 +39,12 @@ export const pluginExtensionBridge = Object.freeze({
     credentialCatalogListeners.add(listener);
     return () => credentialCatalogListeners.delete(listener);
   },
-  async detectImporter(request: Parameters<NonNullable<NetcattyBridge["detectPluginImporter"]>>[0]) {
+  async detectImporter(request: Parameters<NonNullable<LemonSSHBridge["detectPluginImporter"]>>[0]) {
     const bridge = requireBridge();
     if (!bridge.detectPluginImporter) return null;
     return bridge.detectPluginImporter(request);
   },
-  async parseImporterFile(request: Parameters<NonNullable<NetcattyBridge["parsePluginImporterFile"]>>[0]) {
+  async parseImporterFile(request: Parameters<NonNullable<LemonSSHBridge["parsePluginImporterFile"]>>[0]) {
     const bridge = requireBridge();
     if (!bridge.parsePluginImporterFile) throw new Error("Plugin importer bridge is unavailable");
     return bridge.parsePluginImporterFile(request);
@@ -60,17 +60,17 @@ export const pluginExtensionBridge = Object.freeze({
   async releaseImporterFile(selectionToken: string) {
     return requireBridge().releasePluginImporterFile?.(selectionToken) ?? false;
   },
-  onImporterProgress(listener: Parameters<NonNullable<NetcattyBridge["onPluginImporterProgress"]>>[0]) {
-    return netcattyBridge.get()?.onPluginImporterProgress?.(listener) ?? (() => {});
+  onImporterProgress(listener: Parameters<NonNullable<LemonSSHBridge["onPluginImporterProgress"]>>[0]) {
+    return lemonsshBridge.get()?.onPluginImporterProgress?.(listener) ?? (() => {});
   },
-  onAuthenticationChallenge(listener: Parameters<NonNullable<NetcattyBridge["onPluginAuthenticationChallenge"]>>[0]) {
-    return netcattyBridge.get()?.onPluginAuthenticationChallenge?.(listener) ?? (() => {});
+  onAuthenticationChallenge(listener: Parameters<NonNullable<LemonSSHBridge["onPluginAuthenticationChallenge"]>>[0]) {
+    return lemonsshBridge.get()?.onPluginAuthenticationChallenge?.(listener) ?? (() => {});
   },
-  onContributionsChanged(listener: Parameters<NonNullable<NetcattyBridge["onPluginContributionsChanged"]>>[0]) {
-    return netcattyBridge.get()?.onPluginContributionsChanged?.(listener) ?? (() => {});
+  onContributionsChanged(listener: Parameters<NonNullable<LemonSSHBridge["onPluginContributionsChanged"]>>[0]) {
+    return lemonsshBridge.get()?.onPluginContributionsChanged?.(listener) ?? (() => {});
   },
   async respondAuthenticationChallenge(
-    response: Parameters<NonNullable<NetcattyBridge["respondPluginAuthenticationChallenge"]>>[0],
+    response: Parameters<NonNullable<LemonSSHBridge["respondPluginAuthenticationChallenge"]>>[0],
   ) {
     const bridge = requireBridge();
     if (!bridge.respondPluginAuthenticationChallenge) throw new Error("Plugin authentication bridge is unavailable");

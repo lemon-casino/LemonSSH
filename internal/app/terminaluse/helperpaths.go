@@ -7,7 +7,7 @@ import (
 	"runtime"
 )
 
-const helperRootEnv = "NETCATTY_HELPER_ROOT"
+const helperRootEnv = "LEMONSSH_HELPER_ROOT"
 
 func helperBinaryName(kind string) string {
 	name := "mosh-client"
@@ -56,12 +56,14 @@ func fileIsExecutable(path string) bool {
 }
 
 // resolveHelperBinary locates a bundled mosh-client or et binary. Order:
-// explicit path, NETCATTY_HELPER_ROOT, next to the executable (packaged
-// Resources/mosh), then the repo resources/<kind>/<platform> layout used by
-// fetch-mosh-binaries. Missing helpers fail closed instead of guessing PATH.
+// explicit path, LEMONSSH_HELPER_ROOT, next to the executable (flat packaged
+// layout produced by scripts/package-wails.mjs, then the nested kind and
+// macOS Resources layouts), then the repo resources/<kind>/<platform> layout
+// provisioned by npm run wails:helpers. Missing helpers fail closed instead
+// of guessing PATH.
 func resolveHelperBinary(kind, explicit, envRoot, exeDir, repoRoot string) (string, error) {
 	name := helperBinaryName(kind)
-	candidates := make([]string, 0, 6)
+	candidates := make([]string, 0, 7)
 	if explicit != "" {
 		candidates = append(candidates, explicit)
 	}
@@ -70,6 +72,7 @@ func resolveHelperBinary(kind, explicit, envRoot, exeDir, repoRoot string) (stri
 		candidates = append(candidates, filepath.Join(envRoot, helperKindDir(kind), name))
 	}
 	if exeDir != "" {
+		candidates = append(candidates, filepath.Join(exeDir, name))
 		candidates = append(candidates, filepath.Join(exeDir, helperKindDir(kind), name))
 		candidates = append(candidates, filepath.Join(exeDir, "Resources", helperKindDir(kind), name))
 	}
@@ -81,5 +84,5 @@ func resolveHelperBinary(kind, explicit, envRoot, exeDir, repoRoot string) (stri
 			return candidate, nil
 		}
 	}
-	return "", fmt.Errorf("%s helper %s not found (set %s or run npm run fetch:%s)", kind, name, helperRootEnv, kind)
+	return "", fmt.Errorf("%s helper %s not found (place %s next to the executable, set %s to a folder containing it, or run npm run wails:helpers in a source checkout)", kind, name, name, helperRootEnv)
 }

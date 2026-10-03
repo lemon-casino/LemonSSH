@@ -44,7 +44,7 @@ const installBridgeStub = () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async (options: Record<string, unknown>) => {
           started = true;
           capturedOptions = options;
@@ -65,7 +65,7 @@ test("stopAndCleanupRuleAndWait stops backend tunnels without a renderer connect
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async (ruleId: string) => {
           stoppedRuleId = ruleId;
           return { stopped: 1 };
@@ -85,7 +85,7 @@ test("syncWithBackend binds backend tunnels by explicit rule id", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "imported-rule-id",
           tunnelId: "opaque-backend-tunnel-id",
@@ -113,7 +113,7 @@ test("reconcileWithBackend reports an unavailable snapshot on query failure", as
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => {
           throw new Error("backend temporarily unavailable");
         },
@@ -132,7 +132,7 @@ test("reconcileWithBackend reports an unavailable snapshot on query failure", as
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [],
       },
     },
@@ -146,7 +146,7 @@ test("syncWithBackend subscribes adopted auto-start tunnels for reconnect", asyn
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "synced-auto-start-rule",
           tunnelId: "synced-auto-start-tunnel",
@@ -197,7 +197,7 @@ test("heartbeat subscribes newly discovered auto-start tunnels for reconnect", a
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [],
       },
     },
@@ -212,7 +212,7 @@ test("heartbeat subscribes newly discovered auto-start tunnels for reconnect", a
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "heartbeat-auto-start-rule",
           tunnelId: "heartbeat-auto-start-tunnel",
@@ -255,7 +255,7 @@ test("heartbeat replaces subscriptions when a rule gets a new backend tunnel", a
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "replacement-rule",
           tunnelId,
@@ -301,7 +301,7 @@ test("syncWithBackend registers adopted tunnels without a status callback", asyn
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "plain-synced-rule",
           tunnelId: "plain-synced-tunnel",
@@ -332,7 +332,7 @@ test("synced auto-start tunnels reconnect after an unexpected inactive event", a
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "inactive-reconnect-rule",
           tunnelId: "inactive-reconnect-tunnel",
@@ -372,7 +372,7 @@ test("manual stop of a synced tunnel does not schedule reconnect", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         listPortForwards: async () => [{
           ruleId: "manual-synced-stop-rule",
           tunnelId: "manual-synced-stop-tunnel",
@@ -414,7 +414,7 @@ test("stopPortForward asks the backend to stop a rule even without local trackin
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async (ruleId: string) => {
           stoppedRuleId = ruleId;
           return { stopped: 1, failed: 0, errors: [] };
@@ -435,7 +435,7 @@ test("stopPortForward preserves an untracked backend tunnel after cleanup fails"
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({
           stopped: 0,
           failed: 1,
@@ -459,7 +459,7 @@ test("stopPortForward preserves an untracked backend tunnel after cleanup fails"
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
       },
     },
@@ -471,7 +471,7 @@ test("stopPortForward preserves an untracked backend tunnel when cleanup rejects
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           throw new Error("backend stop request rejected");
         },
@@ -493,7 +493,7 @@ test("stopPortForward preserves an untracked backend tunnel when cleanup rejects
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
       },
     },
@@ -523,7 +523,7 @@ test("stopPortForward cancels reconnects scheduled in other windows", async (t) 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
       },
     },
@@ -540,7 +540,7 @@ test("stopPortForward keeps the live status when backend cleanup fails", async (
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({ success: true }),
         onPortForwardStatus: (_tunnelId: string, listener: typeof statusListener) => {
           statusListener = listener;
@@ -576,7 +576,7 @@ test("stopPortForward keeps the live status when backend cleanup fails", async (
     Object.defineProperty(globalThis, "window", {
       configurable: true,
       value: {
-        netcatty: {
+        lemonssh: {
           stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
         },
       },
@@ -599,7 +599,7 @@ test("stopAndCleanupRuleAndWait reports backend stop failures", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           throw new Error("backend stop failed");
         },
@@ -617,7 +617,7 @@ test("stopAndCleanupRuleAndWait reports partial backend stop failures", async ()
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({
           stopped: 1,
           failed: 1,
@@ -658,7 +658,7 @@ test("stopAndCleanupRuleAndWait preserves a pending reconnect after stop failure
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           await new Promise<void>((resolve) => setTimeout(resolve, 25));
           return {
@@ -682,7 +682,7 @@ test("stopAndCleanupRuleAndWait preserves a pending reconnect after stop failure
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           throw new Error("cleanup failure");
         },
@@ -718,7 +718,7 @@ test("stopAndCleanupRuleAndWait blocks a pending reconnect while stop succeeds",
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           await new Promise<void>((resolve) => setTimeout(resolve, 25));
           return { stopped: 1, failed: 0, errors: [] };
@@ -742,7 +742,7 @@ test("stopAndCleanupRuleAndWait coalesces overlapping cleanup calls", async () =
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           stopCalls += 1;
           return new Promise<{ stopped: number; failed: number; errors: string[] }>((resolve) => {
@@ -769,7 +769,7 @@ test("startPortForward rejects starts while the rule is pending cleanup", async 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => (
           new Promise<{ stopped: number; failed: number; errors: string[] }>((resolve) => {
             resolveStop = resolve;
@@ -813,7 +813,7 @@ test("startPortForward rejects starts while the rule is pending cleanup", async 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
       },
     },
@@ -828,7 +828,7 @@ test("startPortForward treats repeated active starts as idempotent", async () =>
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => {
           startCalls += 1;
           return { success: true };
@@ -869,7 +869,7 @@ test("inactive backend events remove the runtime tunnel immediately", async () =
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({ success: true }),
         onPortForwardStatus: (_tunnelId: string, listener: typeof statusListener) => {
           statusListener = listener;
@@ -893,7 +893,7 @@ test("inactive close events preserve an already scheduled reconnect", async (t) 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({ success: true }),
         listPortForwards: async () => [],
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
@@ -935,7 +935,7 @@ test("startPortForward adopts a tunnel reused by the backend", async () => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({
           success: true,
           tunnelId: "existing-backend-tunnel",
@@ -984,7 +984,7 @@ test("startPortForward does not keep an adopted tunnel that stopped before subsc
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({
           success: true,
           tunnelId: "already-stopped-tunnel",
@@ -1035,7 +1035,7 @@ test("startPortForward does not revive an adopted tunnel stopped during its snap
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({
           success: true,
           tunnelId: "stopped-during-snapshot-tunnel",
@@ -1081,7 +1081,7 @@ test("startPortForward keeps cleanup-blocked backend tunnels in an error state",
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({
           success: false,
           tunnelId: "cleanup-blocked-tunnel",
@@ -1130,7 +1130,7 @@ test("stopAndCleanupRule still clears local reconnect state after backend stop f
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         stopPortForwardByRuleId: async () => {
           throw new Error("backend stop failed");
         },

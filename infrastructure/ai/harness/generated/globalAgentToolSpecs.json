@@ -2,7 +2,7 @@
   {
     "capabilityId": "session.environment",
     "toolName": "get_environment",
-    "rpcMethod": "netcatty/getContext",
+    "rpcMethod": "lemonssh/getContext",
     "localExecution": false,
     "description": "List scoped terminal sessions available to the agent.",
     "inputShape": {},
@@ -20,7 +20,7 @@
   {
     "capabilityId": "attachment.list",
     "toolName": "list_attachments",
-    "rpcMethod": "netcatty/listAttachments",
+    "rpcMethod": "lemonssh/listAttachments",
     "localExecution": false,
     "description": "List user-attached files in the current AI chat scope.",
     "inputShape": {},
@@ -38,7 +38,7 @@
   {
     "capabilityId": "attachment.read",
     "toolName": "read_attachment",
-    "rpcMethod": "netcatty/readAttachment",
+    "rpcMethod": "lemonssh/readAttachment",
     "localExecution": false,
     "description": "Read a user-attached file from the current AI chat scope.",
     "inputShape": {
@@ -91,7 +91,7 @@
   {
     "capabilityId": "terminal.execute",
     "toolName": "terminal_execute",
-    "rpcMethod": "netcatty/exec",
+    "rpcMethod": "lemonssh/exec",
     "localExecution": false,
     "description": "Execute a short command in a terminal session and wait for completion. Use only for commands expected to finish within about 60 seconds. For long-running commands use terminal_start and terminal_poll. Commands run in an isolated subshell of the visible terminal: the user sees the output live, but shell state such as cd, export, or set does not persist between calls — use absolute paths or combine cd with the command (cd /path && cmd).",
     "inputShape": {
@@ -120,7 +120,7 @@
   {
     "capabilityId": "terminal.start",
     "toolName": "terminal_start",
-    "rpcMethod": "netcatty/jobStart",
+    "rpcMethod": "lemonssh/jobStart",
     "localExecution": false,
     "description": "Start a long-running command in a terminal session. Prefer for builds, scans, log-following, or anything likely to exceed about 2 minutes. Shell state such as cd or export does not persist between calls — combine cd with the command.",
     "inputShape": {
@@ -149,7 +149,7 @@
   {
     "capabilityId": "terminal.poll",
     "toolName": "terminal_poll",
-    "rpcMethod": "netcatty/jobPoll",
+    "rpcMethod": "lemonssh/jobPoll",
     "localExecution": false,
     "description": "Poll incremental output from a long-running terminal job. Wait at least about 30 seconds between polls unless output justifies checking sooner.",
     "inputShape": {
@@ -178,7 +178,7 @@
   {
     "capabilityId": "terminal.stop",
     "toolName": "terminal_stop",
-    "rpcMethod": "netcatty/jobStop",
+    "rpcMethod": "lemonssh/jobStop",
     "localExecution": false,
     "description": "Stop a long-running terminal job.",
     "inputShape": {
@@ -202,7 +202,7 @@
   {
     "capabilityId": "sftp.list",
     "toolName": "sftp_list",
-    "rpcMethod": "netcatty/sftp/list",
+    "rpcMethod": "lemonssh/sftp/list",
     "localExecution": false,
     "description": "List a remote directory over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -231,7 +231,7 @@
   {
     "capabilityId": "sftp.read",
     "toolName": "sftp_read_file",
-    "rpcMethod": "netcatty/sftp/read",
+    "rpcMethod": "lemonssh/sftp/read",
     "localExecution": false,
     "description": "Read a remote file over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -260,7 +260,7 @@
   {
     "capabilityId": "sftp.write",
     "toolName": "sftp_write_file",
-    "rpcMethod": "netcatty/sftp/write",
+    "rpcMethod": "lemonssh/sftp/write",
     "localExecution": false,
     "description": "Write a remote file over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -294,7 +294,7 @@
   {
     "capabilityId": "sftp.download",
     "toolName": "sftp_download",
-    "rpcMethod": "netcatty/sftp/download",
+    "rpcMethod": "lemonssh/sftp/download",
     "localExecution": false,
     "description": "Download a remote file to a local path.",
     "inputShape": {
@@ -328,7 +328,7 @@
   {
     "capabilityId": "sftp.upload",
     "toolName": "sftp_upload",
-    "rpcMethod": "netcatty/sftp/upload",
+    "rpcMethod": "lemonssh/sftp/upload",
     "localExecution": false,
     "description": "Upload a local file to a remote path.",
     "inputShape": {
@@ -362,7 +362,7 @@
   {
     "capabilityId": "sftp.stat",
     "toolName": "sftp_stat",
-    "rpcMethod": "netcatty/sftp/stat",
+    "rpcMethod": "lemonssh/sftp/stat",
     "localExecution": false,
     "description": "Get remote file metadata over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -391,7 +391,7 @@
   {
     "capabilityId": "sftp.home",
     "toolName": "sftp_home",
-    "rpcMethod": "netcatty/sftp/home",
+    "rpcMethod": "lemonssh/sftp/home",
     "localExecution": false,
     "description": "Get the remote home directory for a session.",
     "inputShape": {
@@ -415,7 +415,7 @@
   {
     "capabilityId": "sftp.mkdir",
     "toolName": "sftp_mkdir",
-    "rpcMethod": "netcatty/sftp/mkdir",
+    "rpcMethod": "lemonssh/sftp/mkdir",
     "localExecution": false,
     "description": "Create a remote directory over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -444,7 +444,7 @@
   {
     "capabilityId": "sftp.delete",
     "toolName": "sftp_delete",
-    "rpcMethod": "netcatty/sftp/delete",
+    "rpcMethod": "lemonssh/sftp/delete",
     "localExecution": false,
     "description": "Delete a remote file or directory over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -473,7 +473,7 @@
   {
     "capabilityId": "sftp.rename",
     "toolName": "sftp_rename",
-    "rpcMethod": "netcatty/sftp/rename",
+    "rpcMethod": "lemonssh/sftp/rename",
     "localExecution": false,
     "description": "Rename a remote file or directory over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -507,7 +507,7 @@
   {
     "capabilityId": "sftp.chmod",
     "toolName": "sftp_chmod",
-    "rpcMethod": "netcatty/sftp/chmod",
+    "rpcMethod": "lemonssh/sftp/chmod",
     "localExecution": false,
     "description": "Change remote file permissions over the session file backend (SFTP or SCP-mode).",
     "inputShape": {
@@ -585,7 +585,7 @@
     "toolName": "host_open",
     "rpcMethod": "vault/hosts/open",
     "localExecution": false,
-    "description": "Open a vault host by creating a new terminal tab and starting the connection. Returns the new sessionId so you can run terminal/SFTP tools against it. Use vault_hosts_list first when you only know the label or hostname. Opens a terminal tab for a saved vault host (same as clicking the host in Netcatty). Connection may still be establishing when the tool returns — use get_environment or wait briefly before terminal_execute if needed. Call session_close with the returned sessionId when the task is finished. Auth prompts (passphrase / keyboard-interactive) still require the user in the Netcatty UI.",
+    "description": "Open a vault host by creating a new terminal tab and starting the connection. Returns the new sessionId so you can run terminal/SFTP tools against it. Use vault_hosts_list first when you only know the label or hostname. Opens a terminal tab for a saved vault host (same as clicking the host in LemonSSH). Connection may still be establishing when the tool returns — use get_environment or wait briefly before terminal_execute if needed. Call session_close with the returned sessionId when the task is finished. Auth prompts (passphrase / keyboard-interactive) still require the user in the LemonSSH UI.",
     "inputShape": {
       "hostId": {
         "type": "string",
@@ -1769,7 +1769,7 @@
     "toolName": "scripts_reference",
     "rpcMethod": "vault/scripts/reference",
     "localExecution": false,
-    "description": "Return Netcatty automation script syntax: nct API, triggers, host targeting, and source wrapping rules. Returns full Netcatty automation script syntax reference (nct API, triggers, host targeting). Read before authoring scripts.",
+    "description": "Return LemonSSH automation script syntax: nct API, triggers, host targeting, and source wrapping rules. Returns full LemonSSH automation script syntax reference (nct API, triggers, host targeting). Read before authoring scripts.",
     "inputShape": {},
     "policy": {
       "write": false,

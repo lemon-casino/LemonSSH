@@ -472,7 +472,7 @@ export const RootTopTab: React.FC<RootTopTabProps> = memo(({ tabId, label, icon,
       data-state={isActive ? 'active' : 'inactive'}
       onClick={handleClick}
       className={cn(
-        "netcatty-tab relative h-7 overflow-hidden text-xs font-semibold cursor-pointer flex items-center app-no-drag transition-[padding,gap] duration-300 ease-out",
+        "lemonssh-tab relative h-7 overflow-hidden text-xs font-semibold cursor-pointer flex items-center app-no-drag transition-[padding,gap] duration-300 ease-out",
         compact ? "px-2 gap-0" : "px-3 gap-2",
         className,
       )}
@@ -563,7 +563,7 @@ export const PluginViewTopTab: React.FC<PluginViewTopTabProps> = memo(({
           onDragLeave={onTabDragLeave}
           onDrop={(event) => onTabDrop(event, tab.id)}
           className={cn(
-            'netcatty-tab relative h-7 min-w-[140px] max-w-[240px] flex-shrink-0 cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-t-md pl-3 pr-2 text-xs font-semibold app-no-drag',
+            'lemonssh-tab relative h-7 min-w-[140px] max-w-[240px] flex-shrink-0 cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-t-md pl-3 pr-2 text-xs font-semibold app-no-drag',
             'flex transition-transform duration-150',
             isBeingDragged && isDraggingForReorder && 'scale-95 opacity-40',
             tabAnimationClass,
@@ -671,7 +671,7 @@ export const EditorTopTab: React.FC<EditorTopTabProps> = memo(({
           onDragLeave={onTabDragLeave}
           onDrop={(e) => onTabDrop(e, tabId)}
           className={cn(
-            "netcatty-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
+            "lemonssh-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
             "transition-transform duration-150",
             isBeingDragged && isDraggingForReorder ? "opacity-40 scale-95" : "",
             tabAnimationClass,
@@ -826,7 +826,7 @@ export const SessionTopTab: React.FC<SessionTopTabProps> = memo(({
       onDragLeave={onTabDragLeave}
       onDrop={(e) => onTabDrop(e, session.id)}
       className={cn(
-        "netcatty-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
+        "lemonssh-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
         "transition-transform duration-150",
         isBeingDragged && isDraggingForReorder ? "opacity-40 scale-95" : "",
         tabAnimationClass,
@@ -1038,7 +1038,7 @@ export const WorkspaceTopTab: React.FC<WorkspaceTopTabProps> = memo(({
           onDragLeave={onTabDragLeave}
           onDrop={(e) => onTabDrop(e, workspace.id)}
           className={cn(
-            "netcatty-tab relative h-7 pl-3 pr-2 min-w-[150px] max-w-[260px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
+            "lemonssh-tab relative h-7 pl-3 pr-2 min-w-[150px] max-w-[260px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
             "transition-transform duration-150",
             isBeingDragged && isDraggingForReorder ? "opacity-40 scale-95" : "",
             isHostDropTarget && "ring-1 ring-inset",
@@ -1194,7 +1194,7 @@ export const LogViewTopTab: React.FC<LogViewTopTabProps> = memo(({
       onDragLeave={onTabDragLeave}
       onDrop={(e) => onTabDrop(e, logView.id)}
       className={cn(
-        "netcatty-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
+        "lemonssh-tab relative h-7 pl-3 pr-2 min-w-[140px] max-w-[240px] rounded-t-md overflow-hidden text-xs font-semibold cursor-pointer flex items-center justify-between gap-2 app-no-drag flex-shrink-0",
         "transition-transform duration-150",
         isBeingDragged && isDraggingForReorder ? "opacity-40 scale-95" : "",
         tabAnimationClass,

@@ -2,7 +2,7 @@
 
 Research date: 2026-07-17
 
-Scope: Netcatty v1.1.68 and the current main branch, including start, stop,
+Scope: LemonSSH v1.1.68 and the current main branch, including start, stop,
 auto-start, multi-window synchronization, and backend lifecycle behavior.
 External comparisons use official source code or documentation only.
 
@@ -20,7 +20,7 @@ treated as an idempotent success, but it did not republish the active status.
 This exactly matches the report: the tunnel was running, the page showed it as
 stopped, and the user could not stop it from that page.
 
-Original reproduction and screenshots: [Issue #2280](https://github.com/binaricat/Netcatty/issues/2280).
+Original reproduction and screenshots: [Issue #2280](https://github.com/binaricat/LemonSSH/issues/2280).
 The relevant lifecycle was unchanged between v1.1.68 and the inspected main
 branch.
 

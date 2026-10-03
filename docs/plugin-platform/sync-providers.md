@@ -1,7 +1,23 @@
-# Sync providers
+# Sync providers (implemented over the v2 provider registry)
 
-Netcatty cloud sync providers are dynamic and namespaced. Built-in providers
-(`github`, `google`, `onedrive`, `webdav`, `s3`) stay compatible; plugins
+Status: `kind: "sync"` declarations are enumerable through the broker-gated
+provider registry (`internal/plugin/providers`, see
+[terminal-providers.md](./terminal-providers.md) — a plugin needs the
+manifest-declared `{"kind": "provider", "resource": "sync", "mode": "read"}`
+permission plus the trusted grant to appear in
+`PluginService.ExtensionProviders("sync", …)`), and the sync data plane is
+served by the Go extension host (`cmd/lemonssh/pluginExtensionService.go`)
+over the same dispatch channel. The renderer adapter
+(`infrastructure/services/adapters/pluginSyncIpcHost.ts`) drives it through
+the typed bridge surface; `isPluginSyncIpcAvailable()` reports true only when
+the bridge exposes the data plane **and** the registry currently enumerates at
+least one sync provider, which re-opens the plugin sync cloud backup path
+(`infrastructure/services/cloudSync/*`).
+
+## Intent
+
+LemonSSH cloud sync providers are dynamic and namespaced. Built-in providers
+(`github`, `google`, `onedrive`, `webdav`, `s3`) stay first-party; plugins
 register additional IDs under their plugin namespace with `kind: "sync"` and
 permission `provider.sync`.
 
@@ -10,78 +26,75 @@ permission `provider.sync`.
 Plugins implement **encrypted object storage only**:
 
 - `connect` / `disconnect` / `getAccount`
-- `getCapabilities` (`revisions`, `conditionalWrites`, `atomicReplacement`, size limits)
+- `getCapabilities` (`revisions`, `conditionalWrites`, `atomicReplacement`,
+  size limits)
 - `readObject` / `writeObject` / `deleteObject`
 
-Netcatty owns encryption, the master key, CRDT merge, migrations, protection
+LemonSSH owns encryption, the master key, CRDT merge, migrations, protection
 snapshots, conflict handling, and read-merge-write-verify. Plugin providers
-never receive the vault master key or plaintext sync payloads.
+never receive the vault master key or plaintext sync payloads — callers hand
+over already-encrypted object bytes. Sync connect secrets (`password`,
+`token`, `secret`, `apiKey`, `accessToken`) are stripped from configuration
+before entering any cloud payload, sealed with the platform credential
+provider (AES-256-GCM, OS-keyring backed) and stored inside the owning
+plugin's store record under a reserved `sync-secret/` key namespace that the
+declarative settings surface never exposes; they are referenced only as
+opaque `{ kind: "secret", id, key }` refs. A connect dispatch inlines the
+resolved secret value — the sandboxed plugin can only ever receive its OWN
+secret, and the WASM host imports deliberately have no secret channel.
 
-## Secrets
+## Wire protocol
 
-Only non-secret configuration marked for sync enters cloud payloads. Plugin
-connect secrets (`password`, `token`, `secret`, `apiKey`, `accessToken`) are
-stripped from configuration, stored in the OS-backed plugin secret store, and
-passed to `SyncConnectPayload.credential` as opaque `{ kind: "secret", id, key }`
-references. Additional extracted secrets are stored under `sync-credential:<field>`
-keys so plugins can `secrets.get` / `credentials.createLease` them.
+Every sync operation is one `provider.invoke` dispatch with
+`kind: "sync"` and `payload.operationId` equal to the request id (see
+[terminal-providers.md](./terminal-providers.md) for the envelope). The
+operations and payload shapes mirror the contract payloads
+(`SyncConnectPayload`, `SyncReadObjectPayload`, …); object bytes cross the
+1 MiB dispatch envelope as base64 (`encoding: "base64"`):
 
-Durable reconnects persist an opaque SecretRef (`{ kind, id, key }`), not
-plaintext. The host injects Authorization only after consuming an
-operation-bound lease whose `operationId` matches `network:<origin>`.
+| operation        | payload → result |
+|------------------|------------------|
+| `connect`        | `{configuration, operationId, credential?}` → `{account}` |
+| `disconnect`     | `{operationId}` → `null` |
+| `getAccount`     | `{operationId}` → `{account: SyncAccount \| null}` |
+| `getCapabilities`| `{operationId}` → `SyncCapabilitiesResult` |
+| `readObject`     | `{key, operationId, streamed?}` → `{found, byteLength, encoding?, data?}` or `{found, streamed: true, byteLength}` |
+| `readChunk`      | `{transferId, operationId, maxBytes}` → `{encoding: "base64", data, done}` |
+| `writeObject`    | `{key, operationId, byteLength, encoding: "base64", data, expectedRevision?}` → `{created, revision?}` |
+| `writeBegin`     | `{key, operationId, byteLength, expectedRevision?}` → `{windowBytes}` |
+| `writeChunk`     | `{transferId, operationId, sequence, encoding: "base64", data}` → `{accepted}` |
+| `writeCommit`    | `{transferId, operationId}` → `{created, revision?}` |
+| `deleteObject`   | `{key, operationId, expectedRevision?}` → `{deleted}` |
 
-**Using a SecretRef from a sandbox plugin:** create an operation-bound lease via
-`credentials.createLease` with `operationId` set to `network:<origin>` (same
-origin the request will call), then call `network.request` with:
+The host clamps chunk windows to 192 KiB of raw bytes (base64 plus JSON must
+fit the dispatch envelope) and every dispatch to the 10 s cap. Streamed reads
+and begin/chunk/commit writes keep their cursor/buffer in the plugin's own
+guest memory between dispatches; the host tracks the transfer id → provider
+binding and expires it after 10 idle minutes, so a stale or spoofed
+`transferId` resolves to nothing.
 
-```json
-{
-  "url": "https://example.com/…",
-  "credentialLease": { "kind": "secret-lease", "id": "…", "operationId": "network:https://example.com", "expiresAt": 0 },
-  "authorization": { "scheme": "Bearer" }
-}
-```
+## Renderer flow
 
-The host consumes the lease (bound to the request origin, not a plugin-echoed
-id) and injects `Authorization` (Bearer or Basic). Plaintext never returns to
-the plugin. Companion `credentialLeases` remains available for node-only
-companions.
+`createPluginSyncIpcHost()` (`infrastructure/services/adapters/
+pluginSyncIpcHost.ts`) implements the `PluginSyncProviderHost` used by the
+cloud sync adapters: small objects ride inline, everything above the
+`SyncLimits.inlineObjectBytes` cutoff uses the pull/chunked transfers above.
+`isPluginSyncIpcAvailable()` returns true only when the bridge exposes the
+data plane methods **and** `pluginHostReady()` — fed by the bridge's cached
+`ExtensionProviders("sync", …)` registry probe, refreshed on every plugin
+lifecycle change — reports at least one enumerated sync provider.
 
-WebDAV continues to exercise the shared EncryptedObjectStorage path for
-configuration, proxy behavior, upload/download, and recovery. Write verification
-on WebDAV is performed by the adapter's pad+verify upload (not a second host
-byte re-read). Credentials remain field-encrypted at rest via the secure field
-adapter.
+## Current reality
 
-## Streams and SyncLimits
-
-Public `SyncLimits` (see plugin contract) define:
-
-- `maxObjectBytes` — hard ciphertext cap
-- `inlineObjectBytes` — maximum size that may travel inline on the control plane
-- key / revision length bounds
-
-Above `inlineObjectBytes`, main↔plugin uses credit-window streams
-(`STREAM_WINDOW_BYTES` = 256 KiB). Renderer↔main uses structured-clone
-`Uint8Array` for inline payloads and pull/chunked IPC (`sync-write-begin` /
-`sync-write-chunk` / `sync-write-commit`, `sync-read-chunk`) for larger objects.
-Transfers are per-sender, TTL-bounded, capped, and cancelled via
-`cancelPluginExtensionRequest(requestId)` / `AbortSignal`.
-
-## Sidecars (non-cascade)
-
-Missing or disabled plugins must not delete synced settings or connection
-baselines. Host-owned `plugin_sync_sidecars` carry `sync:true` non-secret
-settings and account/CRDT baselines through collect/apply with last-known and
-prefer-cloud merge semantics. Device-local baselines survive remote settings
-wipes; empty-vault upload guards ignore last-known-only evidence.
-
-## WebDAV
-
-The production WebDAV adapter is wrapped as EncryptedObjectStorage so it shares
-the same encrypt→write / read→decrypt surface as plugin providers. WebDAV's
-native pad+verify upload already satisfies write verification and may leave
-trailing padding on the remote object; the shared bridge therefore skips a
-full byte re-read on that path (`assumeVerifiedWrites`) — without that flag the
-host compare would false-fail on padded bodies. Plugin providers keep
-host-owned byte compare after write.
+- The data plane is served by `PluginService.PluginSync*` (14 methods,
+  `cmd/lemonssh/pluginExtensionService.go`); chunked transfers and secret
+  storage are covered by Go tests (`cmd/lemonssh/pluginExtensionService_test.go`).
+- The `pluginSyncRestoreSecrets` stash is session-scoped (in-memory on the
+  host): previous plaintext values captured on overwrite/delete can be
+  re-applied or discarded, but do not survive an app restart.
+- The built-in WebDAV/S3 sync adapters live in
+  `infrastructure/services/adapters/` and are unrelated to the plugin platform.
+- `collectPluginSyncSidecars` / `applyPluginSyncSidecars` remain bridge
+  surface without a Go data plane under Wails; the renderer sidecar bridge
+  falls back to its local last-known/pending-remote persistence, so plugin
+  settings still ride the encrypted cloud payload.

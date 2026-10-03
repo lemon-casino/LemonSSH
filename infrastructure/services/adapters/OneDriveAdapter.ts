@@ -22,7 +22,7 @@ import {
   type PKCEChallenge,
 } from '../../../domain/sync';
 import { resolveOAuthClientId } from '../cloudSync/oauthClientIds';
-import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
+import { cloudSyncBridge as lemonsshBridge } from '../cloudSync/cloudSyncFacade';
 import { arrayBufferToBase64, generateRandomBytes } from '../EncryptionService';
 
 // ============================================================================
@@ -176,7 +176,7 @@ export const exchangeCodeForTokens = async (
   codeVerifier: string,
   redirectUri: string
 ): Promise<OAuthTokens> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveExchangeCodeForTokens) {
     return bridge.onedriveExchangeCodeForTokens({
       clientId: resolveOAuthClientId('onedrive'),
@@ -221,7 +221,7 @@ export const exchangeCodeForTokens = async (
  * Refresh access token
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTokens> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveRefreshAccessToken) {
     return bridge.onedriveRefreshAccessToken({
       clientId: resolveOAuthClientId('onedrive'),
@@ -265,7 +265,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
  * Get authenticated user info
  */
 export const getUserInfo = async (accessToken: string): Promise<ProviderAccount> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveGetUserInfo) {
     const user = await bridge.onedriveGetUserInfo({ accessToken });
     return {
@@ -316,7 +316,7 @@ export const getUserInfo = async (accessToken: string): Promise<ProviderAccount>
  * Validate access token
  */
 export const validateToken = async (accessToken: string): Promise<boolean> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveGetUserInfo) {
     try {
       await bridge.onedriveGetUserInfo({ accessToken });
@@ -367,40 +367,52 @@ async function retryOnNotFound<T>(
 
 /**
  * Ensure app folder exists and find sync file
+ *
+ * compat#5: look for the renamed lemonssh-vault.json first, then the legacy
+ * netcatty-vault.json path (updates hit the found resource id; the name is
+ * never migrated).
  */
 export const findSyncFile = async (accessToken: string): Promise<string | null> => {
   const fetchOnce = async (): Promise<string | null> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.onedriveFindSyncFile) {
-      const result = await bridge.onedriveFindSyncFile({
+      const current = await bridge.onedriveFindSyncFile({
         accessToken,
         fileName: SYNC_CONSTANTS.SYNC_FILE_NAME,
       });
-      return result.fileId || null;
+      if (current.fileId) return current.fileId;
+      const legacy = await bridge.onedriveFindSyncFile({
+        accessToken,
+        fileName: SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME,
+      });
+      return legacy.fileId || null;
     }
-    try {
-      const response = await fetch(
-        `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me${APP_FOLDER_PATH}:/${SYNC_CONSTANTS.SYNC_FILE_NAME}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
+    for (const fileName of [SYNC_CONSTANTS.SYNC_FILE_NAME, SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME]) {
+      try {
+        const response = await fetch(
+          `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me${APP_FOLDER_PATH}:/${fileName}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (response.status === 404) {
+          continue;
         }
-      );
 
-      if (response.status === 404) {
-        return null;
+        if (!response.ok) {
+          throw new Error('Failed to find sync file');
+        }
+
+        const item: DriveItem = await response.json();
+        return item.id;
+      } catch {
+        continue;
       }
-
-      if (!response.ok) {
-        throw new Error('Failed to find sync file');
-      }
-
-      const item: DriveItem = await response.json();
-      return item.id;
-    } catch {
-      return null;
     }
+    return null;
   };
 
   return retryOnNotFound(fetchOnce);
@@ -413,7 +425,7 @@ export const uploadSyncFile = async (
   accessToken: string,
   syncedFile: SyncedFile
 ): Promise<string> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveUploadSyncFile) {
     const result = await bridge.onedriveUploadSyncFile({
       accessToken,
@@ -449,45 +461,63 @@ export const uploadSyncFile = async (
 
 /**
  * Download sync file
+ *
+ * compat#5: without a resource id the path-based read prefers the renamed
+ * file and falls back to the legacy name; with a fileId the id is used as-is.
  */
 export const downloadSyncFile = async (
   accessToken: string,
   fileId?: string
 ): Promise<SyncedFile | null> => {
   const fetchOnce = async (): Promise<SyncedFile | null> => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.onedriveDownloadSyncFile) {
-      const result = await bridge.onedriveDownloadSyncFile({
-        accessToken,
-        fileId,
-        fileName: SYNC_CONSTANTS.SYNC_FILE_NAME,
-      });
-      return (result.syncedFile as SyncedFile | null) || null;
-    }
-    try {
-      // Can use either file ID or path
-      const url = fileId
-        ? `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me/drive/items/${fileId}/content`
-        : `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me${APP_FOLDER_PATH}:/${SYNC_CONSTANTS.SYNC_FILE_NAME}:/content`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.status === 404) {
-        return null;
+      if (fileId) {
+        const result = await bridge.onedriveDownloadSyncFile({
+          accessToken,
+          fileId,
+          fileName: SYNC_CONSTANTS.SYNC_FILE_NAME,
+        });
+        return (result.syncedFile as SyncedFile | null) || null;
       }
-
-      if (!response.ok) {
-        throw new Error('Failed to download sync file');
+      for (const fileName of [SYNC_CONSTANTS.SYNC_FILE_NAME, SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME]) {
+        const result = await bridge.onedriveDownloadSyncFile({
+          accessToken,
+          fileName,
+        });
+        const syncedFile = (result.syncedFile as SyncedFile | null) || null;
+        if (syncedFile) return syncedFile;
       }
-
-      return response.json();
-    } catch {
       return null;
     }
+    const candidates = fileId
+      ? [`${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me/drive/items/${fileId}/content`]
+      : [
+          `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me${APP_FOLDER_PATH}:/${SYNC_CONSTANTS.SYNC_FILE_NAME}:/content`,
+          `${SYNC_CONSTANTS.ONEDRIVE_GRAPH_API}/me${APP_FOLDER_PATH}:/${SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME}:/content`,
+        ];
+    for (const url of candidates) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (response.status === 404) {
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error('Failed to download sync file');
+        }
+
+        return await response.json() as SyncedFile;
+      } catch {
+        continue;
+      }
+    }
+    return null;
   };
 
   return retryOnNotFound(fetchOnce);
@@ -500,7 +530,7 @@ export const deleteSyncFile = async (
   accessToken: string,
   fileId: string
 ): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.onedriveDeleteSyncFile) {
     await bridge.onedriveDeleteSyncFile({ accessToken, fileId });
     return;

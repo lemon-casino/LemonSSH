@@ -331,7 +331,7 @@ export const getHistoryPreviewSelectionFromRoot = (
   return getHistoryPreviewSelectionText(overlay, activeSelection);
 };
 
-export const HISTORY_PREVIEW_HIDE_EVENT = "netcatty-history-preview-hide";
+export const HISTORY_PREVIEW_HIDE_EVENT = "lemonssh-history-preview-hide";
 
 export const requestHistoryPreviewHide = (
   root: ParentNode | Element | null | undefined,

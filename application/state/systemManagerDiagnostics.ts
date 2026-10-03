@@ -1,11 +1,11 @@
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 export async function writeSystemManagerDiagnostic(
   message: string,
   extra?: Record<string, unknown>,
 ) {
   try {
-    await netcattyBridge.get()?.logDiagnostic?.({
+    await lemonsshBridge.get()?.logDiagnostic?.({
       source: 'system-manager',
       message,
       extra,

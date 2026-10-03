@@ -1,34 +1,47 @@
 package credentials
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
+
+	gokeyring "github.com/zalando/go-keyring"
 )
 
 type memoryKeyring struct {
-	mu  sync.Mutex
-	m   map[string]string
-	err error
+	mu              sync.Mutex
+	m               map[string]string
+	err             error
+	getErrByService map[string]error // injected per-service Get failures
+	setErrByUser    map[string]error // injected per-user Set rejections
 }
 
 func newMemoryKeyring() *memoryKeyring { return &memoryKeyring{m: make(map[string]string)} }
 func (k *memoryKeyring) Get(service, user string) (string, error) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
+	if err, ok := k.getErrByService[service]; ok {
+		return "", err
+	}
 	if k.err != nil {
 		return "", k.err
 	}
 	value, ok := k.m[service+"/"+user]
 	if !ok {
-		return "", errors.New("missing")
+		return "", gokeyring.ErrNotFound
 	}
 	return value, nil
 }
 func (k *memoryKeyring) Set(service, user, password string) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
+	if err, ok := k.setErrByUser[user]; ok {
+		return err
+	}
 	if k.err != nil {
 		return k.err
 	}
@@ -40,6 +53,16 @@ func (k *memoryKeyring) Delete(service, user string) error {
 	defer k.mu.Unlock()
 	delete(k.m, service+"/"+user)
 	return nil
+}
+
+// purposeUser mirrors the provider's internal per-purpose keyring username.
+func purposeUser(purpose string) string {
+	digest := sha256.Sum256([]byte(purpose))
+	return fmt.Sprintf("credential-purpose-%x", digest[:])
+}
+
+func encodePurposeKeyForTest(key []byte) string {
+	return base64.RawStdEncoding.EncodeToString(key)
 }
 
 func TestProviderRoundTripAndPurposeBinding(t *testing.T) {
@@ -144,5 +167,118 @@ func TestProviderKeyIsSeparatedPerPurpose(t *testing.T) {
 	}
 	if _, err := provider.Open(second, "host.other"); err != nil {
 		t.Fatalf("second open: %v", err)
+	}
+}
+
+// TestProviderReadsLegacyServiceNameAndUpgradesCopy covers the rename
+// compatibility path: a purpose key stored under the legacy "Netcatty"
+// service name must decrypt, be copied to the new "LemonSSH" service name,
+// and never be deleted from the legacy slot.
+func TestProviderReadsLegacyServiceNameAndUpgradesCopy(t *testing.T) {
+	keyring := newMemoryKeyring()
+	legacyKey := make([]byte, 32)
+	for i := range legacyKey {
+		legacyKey[i] = byte(i + 1)
+	}
+	encoded := encodePurposeKeyForTest(legacyKey)
+	user := purposeUser("host.password")
+	keyring.m[legacyKeyringService+"/"+user] = encoded
+
+	provider := New(keyring)
+	envelope, err := provider.Seal([]byte("secret"), "host.password")
+	if err != nil {
+		t.Fatalf("seal with legacy key: %v", err)
+	}
+	if got := keyring.m[keyringService+"/"+user]; got != encoded {
+		t.Fatalf("upgrade copy must land under the new service name, got %q", got)
+	}
+	if got := keyring.m[legacyKeyringService+"/"+user]; got != encoded {
+		t.Fatalf("legacy entry must be preserved, got %q", got)
+	}
+	opened, err := provider.Open(envelope, "host.password")
+	if err != nil {
+		t.Fatalf("open after upgrade copy: %v", err)
+	}
+	if string(opened) != "secret" {
+		t.Fatalf("roundtrip mismatch: %s", opened)
+	}
+}
+
+// TestProviderPrefersNewServiceNameOverLegacy proves the new service name
+// wins when both entries exist, and that the legacy entry is left untouched.
+func TestProviderPrefersNewServiceNameOverLegacy(t *testing.T) {
+	keyring := newMemoryKeyring()
+	newKey := make([]byte, 32)
+	legacyKey := make([]byte, 32)
+	for i := range newKey {
+		newKey[i] = byte(0xA0 + i)
+		legacyKey[i] = byte(0x50 + i)
+	}
+	user := purposeUser("host.password")
+	keyring.m[keyringService+"/"+user] = encodePurposeKeyForTest(newKey)
+	keyring.m[legacyKeyringService+"/"+user] = encodePurposeKeyForTest(legacyKey)
+
+	provider := New(keyring)
+	envelope, err := provider.Seal([]byte("secret"), "host.password")
+	if err != nil {
+		t.Fatalf("seal: %v", err)
+	}
+	if got := keyring.m[legacyKeyringService+"/"+user]; got != encodePurposeKeyForTest(legacyKey) {
+		t.Fatal("legacy entry must not be overwritten when the new name hits")
+	}
+	// The envelope must be encrypted with the new-name key: remove it and the
+	// legacy key can no longer decrypt it.
+	delete(keyring.m, keyringService+"/"+user)
+	if _, err := provider.Open(envelope, "host.password"); !errors.Is(err, ErrPurposeMismatch) {
+		t.Fatalf("envelope must be bound to the new-name key, got %v", err)
+	}
+}
+
+// TestProviderReadSucceedsWhenUpgradeSetRejected proves a rejected upgrade
+// copy never blocks the read: the legacy key still decrypts and no new-name
+// entry appears.
+func TestProviderReadSucceedsWhenUpgradeSetRejected(t *testing.T) {
+	keyring := newMemoryKeyring()
+	legacyKey := make([]byte, 32)
+	for i := range legacyKey {
+		legacyKey[i] = byte(i + 7)
+	}
+	encoded := encodePurposeKeyForTest(legacyKey)
+	user := purposeUser("host.password")
+	keyring.m[legacyKeyringService+"/"+user] = encoded
+	keyring.setErrByUser = map[string]error{user: errors.New("keychain ACL denied")}
+
+	provider := New(keyring)
+	envelope, err := provider.Seal([]byte("secret"), "host.password")
+	if err != nil {
+		t.Fatalf("seal must succeed despite rejected upgrade copy: %v", err)
+	}
+	if _, ok := keyring.m[keyringService+"/"+user]; ok {
+		t.Fatal("rejected upgrade copy must not write the new-name entry")
+	}
+	if got := keyring.m[legacyKeyringService+"/"+user]; got != encoded {
+		t.Fatal("legacy entry must be preserved")
+	}
+	opened, err := provider.Open(envelope, "host.password")
+	if err != nil || string(opened) != "secret" {
+		t.Fatalf("open must succeed via the legacy entry: %v", err)
+	}
+}
+
+// TestProviderNonNotFoundGetDoesNotMintKey proves fail-closed behavior: when
+// a keyring Get returns an error other than ErrNotFound (unavailable service,
+// ACL denial, locked Secret Service), no replacement key may be generated —
+// otherwise existing ciphertext would silently become undecryptable.
+func TestProviderNonNotFoundGetDoesNotMintKey(t *testing.T) {
+	for _, service := range []string{keyringService, legacyKeyringService} {
+		keyring := newMemoryKeyring()
+		keyring.getErrByService = map[string]error{service: errors.New("secret service locked")}
+		provider := New(keyring)
+		if _, err := provider.Seal([]byte("secret"), "host.password"); !errors.Is(err, ErrUnavailable) {
+			t.Fatalf("seal must fail closed for %s Get failure, got %v", service, err)
+		}
+		if len(keyring.m) != 0 { // availability probe is deleted; no key may be minted
+			t.Fatalf("no purpose key may be minted for %s Get failure, have %v", service, keyring.m)
+		}
 	}
 }

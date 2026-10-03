@@ -24,12 +24,12 @@ const ORDINARY_PROVIDER_KINDS = Object.freeze([
   'terminal.prompt',
   'terminal.background',
   'terminal.theme',
-] as const satisfies readonly NetcattyTerminalProviderKind[]);
+] as const satisfies readonly LemonSSHTerminalProviderKind[]);
 const PROVIDER_DEADLINE_MS = 1_500;
 const PROVIDER_RESPONSE_TIMEOUT_MS = 1_800;
 
 export type RequestPluginTerminalProviders = (
-  kind: NetcattyTerminalProviderKind,
+  kind: LemonSSHTerminalProviderKind,
   operation: string,
   payload: Readonly<Record<string, unknown>>,
   deadlineMs: number,
@@ -42,13 +42,13 @@ export interface PluginTerminalProviderRefreshMetadata {
   hostId?: string;
   workspaceId?: string;
   protocol: string;
-  status: NetcattyTerminalSessionSnapshot['status'];
-  shellType?: NetcattyTerminalSessionSnapshot['shellType'];
+  status: LemonSSHTerminalSessionSnapshot['status'];
+  shellType?: LemonSSHTerminalSessionSnapshot['shellType'];
   baseTheme: TerminalTheme;
 }
 
 interface UsePluginTerminalProvidersOptions extends PluginTerminalProviderRefreshMetadata {
-  getSnapshotState(): Partial<NetcattyTerminalSessionSnapshot>;
+  getSnapshotState(): Partial<LemonSSHTerminalSessionSnapshot>;
 }
 
 export function mergePluginTerminalThemeColors(
@@ -168,7 +168,7 @@ export function usePluginTerminalProviders(options: UsePluginTerminalProvidersOp
   }, [registry]);
 
   const hasProvider = useCallback(
-    (kind: NetcattyTerminalProviderKind) => availabilityRef.current.has(kind),
+    (kind: LemonSSHTerminalProviderKind) => availabilityRef.current.has(kind),
     [],
   );
 

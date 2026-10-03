@@ -15,8 +15,16 @@ import (
 	"time"
 )
 
-const syncFileName = "netcatty-vault.json"
-const gistDescription = "Netcatty Encrypted Vault (DO NOT EDIT MANUALLY)"
+const (
+	// syncFileName / gistDescription are the current snapshot identity; the
+	// legacy constants keep pre-rename snapshots discoverable and updatable
+	// (read-side fallback only — new snapshots are always created under the
+	// new identity).
+	syncFileName          = "lemonssh-vault.json"
+	legacySyncFileName    = "netcatty-vault.json"
+	gistDescription       = "LemonSSH Encrypted Vault (DO NOT EDIT MANUALLY)"
+	legacyGistDescription = "Netcatty Encrypted Vault (DO NOT EDIT MANUALLY)"
+)
 const oneDriveScope = "https://graph.microsoft.com/Files.ReadWrite.AppFolder https://graph.microsoft.com/User.Read offline_access"
 const maxOAuthBytes = 64 << 10
 
@@ -412,11 +420,13 @@ func (c *OAuthClient) User(ctx context.Context, provider string, o UserOptions) 
 	}
 }
 
+// validFileName accepts the current snapshot name and, for read-side
+// compatibility, the legacy pre-rename name; anything else is rejected.
 func validFileName(name string) error {
-	if name != "" && name != syncFileName {
-		return errors.New("Only the Netcatty encrypted snapshot is allowed")
+	if name == "" || name == syncFileName || name == legacySyncFileName {
+		return nil
 	}
-	return nil
+	return errors.New("Only the LemonSSH encrypted snapshot is allowed")
 }
 
 func allowedDownloadURL(raw string, github bool) bool {

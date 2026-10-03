@@ -1,4 +1,4 @@
-const CUSTOM_CSS_STYLE_ID = 'netcatty-custom-css';
+const CUSTOM_CSS_STYLE_ID = 'lemonssh-custom-css';
 
 /** Inject or update the user custom CSS style block in document.head. */
 export function applyCustomCssToDocument(css: string): void {

@@ -13,8 +13,9 @@ test('SDK session identities preserve Codex runtime and default legacy values to
   });
 
   const legacy = encodeSdkSessionIdentity('thread-2', 'codex', '/bin/codex');
-  const payload = JSON.parse(decodeURIComponent(legacy.slice('netcatty-sdk-session:'.length)));
+  const payload = JSON.parse(decodeURIComponent(legacy.slice('lemonssh-sdk-session:'.length)));
   delete payload.runtime;
+  // A pre-rename netcatty-prefixed id must keep parsing.
   const legacyWithoutRuntime = `netcatty-sdk-session:${encodeURIComponent(JSON.stringify(payload))}`;
   assert.equal(parseSdkSessionIdentity(legacyWithoutRuntime)?.runtime, 'sdk');
 });

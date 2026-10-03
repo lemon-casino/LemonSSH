@@ -14,7 +14,7 @@
 
 4. 三个成熟项目都没有把 Linux `.deb` 做成应用内自更新：Element Desktop 在 Linux 直接关闭更新；Joplin 的桌面更新入口打开下载地址，Linux 安装脚本更新的是用户目录中的 AppImage；Beekeeper Studio 明确只对 Linux AppImage 启用 `electron-updater`，非 AppImage Linux 包直接跳过。[Element updater.ts](https://github.com/element-hq/element-desktop/blob/bcd84015638697695b50b3e9d3031ba4eecff831/src/updater.ts#L74-L128)、[Joplin checkForUpdates.ts](https://github.com/laurent22/joplin/blob/2654b33620775080d1d59c552259d41e33dad3d2/packages/app-desktop/checkForUpdates.ts#L85-L126)、[Beekeeper update_manager.ts](https://github.com/beekeeper-studio/beekeeper-studio/blob/55938d331df2b102aeda57f7a640a98489c7826f/apps/studio/src/background/update_manager.ts#L31-L69)
 
-5. 对 Issue #2848 来说，关键问题不是 `electron-updater` 能不能安装 `.deb`，而是发布物和运行时是否成对满足条件：`.deb` 内要有正确的 `package-type` 和 `app-update.yml`，更新服务器要有对应的 `latest-linux[-架构].yml` 与 `.deb`，安装时要处理提权确认、取消、失败和手动降级入口。当前工作区的桥接层已经按这个方向读取 `package-type`，构建配置也包含 `.deb` 和 GitHub 发布配置；但本次是只读研究，没有把它表述为已在实际安装包中验证或已随正式版本发布。[Netcatty autoUpdateBridge.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L50-L80)、[Netcatty electron-builder.config.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron-builder.config.cjs#L257-L305)、[Netcatty package.json](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/package.json#L107-L113)
+5. 对 Issue #2848 来说，关键问题不是 `electron-updater` 能不能安装 `.deb`，而是发布物和运行时是否成对满足条件：`.deb` 内要有正确的 `package-type` 和 `app-update.yml`，更新服务器要有对应的 `latest-linux[-架构].yml` 与 `.deb`，安装时要处理提权确认、取消、失败和手动降级入口。当前工作区的桥接层已经按这个方向读取 `package-type`，构建配置也包含 `.deb` 和 GitHub 发布配置；但本次是只读研究，没有把它表述为已在实际安装包中验证或已随正式版本发布。[LemonSSH autoUpdateBridge.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L50-L80)、[LemonSSH electron-builder.config.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron-builder.config.cjs#L257-L305)、[LemonSSH package.json](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/package.json#L107-L113)
 
 ## 1. 官方实现：从安装包识别到安装
 
@@ -47,7 +47,7 @@ Linux 更新清单的默认名称带有平台和架构后缀：x64 使用 `lates
 
 源码没有弹出产品层“是否现在更新”的对话框。它的默认值是发现更新后自动下载，下载完成后在正常退出时自动安装；显式 `quitAndInstall` 则立即进入安装并退出应用。[AppUpdater.ts](https://github.com/electron-userland/electron-builder/blob/3a3f4396e1c6a390f04afb2c6d6f667a9022f5a6/packages/electron-updater/src/AppUpdater.ts#L52-L69)、[BaseUpdater.ts](https://github.com/electron-userland/electron-builder/blob/3a3f4396e1c6a390f04afb2c6d6f667a9022f5a6/packages/electron-updater/src/BaseUpdater.ts#L78-L103)
 
-因此，若 Netcatty 要求用户确认，确认应由 Netcatty 自己的界面控制：确认下载后调用 `downloadUpdate()`，确认重启后调用 `quitAndInstall()`；同时关闭默认的退出即安装，避免用户只是退出应用时突然触发提权。
+因此，若 LemonSSH 要求用户确认，确认应由 LemonSSH 自己的界面控制：确认下载后调用 `downloadUpdate()`，确认重启后调用 `quitAndInstall()`；同时关闭默认的退出即安装，避免用户只是退出应用时突然触发提权。
 
 ### 1.5 安装失败和回退
 
@@ -99,16 +99,16 @@ Beekeeper 的 Linux 构建配置包含 Snap、`.deb`、AppImage、RPM、Flatpak 
 
 已确认的结论：Beekeeper 的 UI 确认流程值得参考，但它只服务于 AppImage。对 Linux `.deb`，源码没有单独的提权确认、包管理器安装或回滚路径，不能把 AppImage 的行为直接外推到 `.deb`。
 
-## 3. 对 Netcatty Issue #2848 的直接启示
+## 3. 对 LemonSSH Issue #2848 的直接启示
 
-Issue #2848 描述的是“`.deb` 应用检测到新版后仍需手动下载 `.deb` 安装”。[Issue #2848](https://github.com/binaricat/Netcatty/issues/2848)
+Issue #2848 描述的是“`.deb` 应用检测到新版后仍需手动下载 `.deb` 安装”。[Issue #2848](https://github.com/binaricat/LemonSSH/issues/2848)
 
 本工作区固定提交 `3f67ccf3b2766e7757e3d2ca63b1044808a8363c` 中，已经能确认以下事实：
 
-- `autoUpdateBridge.cjs` 把 `APPIMAGE` 识别为 AppImage；否则读取 `resources/package-type`，接受 `deb/rpm/pacman`；无标记时返回不支持。[autoUpdateBridge.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L50-L80)
-- `electron-builder.config.cjs` 的 Linux 目标包含 `AppImage`、`deb`、`rpm`、`pacman`，发布配置为 GitHub。[electron-builder.config.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron-builder.config.cjs#L257-L305)
-- 应用依赖范围是 `electron-updater` `^6.8.3`，锁文件解析到 `6.8.3`；这与上面确认的 `DebUpdater` 实现相符。[package.json](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/package.json#L107-L113)
-- 桥接层把 `autoInstallOnAppQuit` 设为 `false`，把检查、下载和安装暴露为显式操作；安装前还会检查未保存编辑。[autoUpdateBridge.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L101-L105)、[autoUpdateBridge.cjs](https://github.com/binaricat/Netcatty/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L386-L565)
+- `autoUpdateBridge.cjs` 把 `APPIMAGE` 识别为 AppImage；否则读取 `resources/package-type`，接受 `deb/rpm/pacman`；无标记时返回不支持。[autoUpdateBridge.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L50-L80)
+- `electron-builder.config.cjs` 的 Linux 目标包含 `AppImage`、`deb`、`rpm`、`pacman`，发布配置为 GitHub。[electron-builder.config.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron-builder.config.cjs#L257-L305)
+- 应用依赖范围是 `electron-updater` `^6.8.3`，锁文件解析到 `6.8.3`；这与上面确认的 `DebUpdater` 实现相符。[package.json](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/package.json#L107-L113)
+- 桥接层把 `autoInstallOnAppQuit` 设为 `false`，把检查、下载和安装暴露为显式操作；安装前还会检查未保存编辑。[autoUpdateBridge.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L101-L105)、[autoUpdateBridge.cjs](https://github.com/binaricat/LemonSSH/blob/3f67ccf3b2766e7757e3d2ca63b1044808a8363c/electron/bridges/autoUpdateBridge.cjs#L386-L565)
 
 因此，后续若要验证 Issue 是否真正完成，最小证据链应是：
 
@@ -122,7 +122,7 @@ Issue #2848 描述的是“`.deb` 应用检测到新版后仍需手动下载 `.d
 
 ## 来源与版本边界
 
-- Issue：[#2848](https://github.com/binaricat/Netcatty/issues/2848)
+- Issue：[#2848](https://github.com/binaricat/LemonSSH/issues/2848)
 - 官方自动更新说明：[electron-builder Auto Update](https://www.electron.build/docs/features/auto-update/)
 - 官方 Linux 目标说明：[electron-builder Linux](https://www.electron.build/docs/linux/)
 - 官方 API 说明：[electron-updater API](https://www.electron.build/docs/api/electron-updater/)

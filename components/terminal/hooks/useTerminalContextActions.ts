@@ -1,7 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback } from "react";
 import type { RefObject } from "react";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import { pasteTextIntoTerminal } from "../runtime/terminalUserPaste";
 import { clearTerminalViewportAndSyncPty } from "../clearTerminalViewport";
@@ -120,7 +120,7 @@ export const useTerminalContextActions = ({
     requestHistoryPreviewHide(term.element?.parentElement);
     term.focus();
     try {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       await handleTerminalClipboardPaste({
         bridge,
         autoUploadClipboardImage:
@@ -160,7 +160,7 @@ export const useTerminalContextActions = ({
     const term = termRef.current;
     if (!term) return;
     try {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       const result = await handleRemoteClipboardImageUpload({
         bridge,
         getRemoteCwd: getRemoteCwd ?? (async () => undefined),

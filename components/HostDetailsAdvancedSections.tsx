@@ -194,6 +194,11 @@ export const HostDetailsAdvancedSections: React.FC<HostDetailsAdvancedSectionsPr
                   moshEnabled: true,
                   etEnabled: false,
                   x11Forwarding: undefined,
+                  // Mosh's UDP SSP protocol cannot carry SSH agent channels,
+                  // so the saved flag must not leak into mosh sessions — an
+                  // explicit host-level false also beats an inherited group
+                  // default (agentForwarding is an inheritable key).
+                  agentForwarding: false,
                 }));
               } else {
                 update("moshEnabled", false);
@@ -316,8 +321,9 @@ export const HostDetailsAdvancedSections: React.FC<HostDetailsAdvancedSectionsPr
         >
           <ToggleRow
             label={t("hostDetails.agentForwarding")}
-            hint={t("hostDetails.agentForwarding.desc")}
+            hint={form.moshEnabled ? t("hostDetails.agentForwarding.moshUnsupported") : t("hostDetails.agentForwarding.desc")}
             enabled={!!form.agentForwarding}
+            disabled={!!form.moshEnabled}
             onToggle={() => update("agentForwarding", !form.agentForwarding)}
           />
           {form.agentForwarding && sshForwardingAgentStatus && !sshForwardingAgentStatus.running && (

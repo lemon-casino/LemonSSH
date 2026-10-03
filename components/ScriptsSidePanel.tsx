@@ -31,7 +31,7 @@ import { reorderVaultItems, reorderVaultStrings, sortByVaultOrder } from '../dom
 import { isScriptSnippet } from '../domain/snippetScript.ts';
 import { cn } from '../lib/utils';
 import { Snippet } from '../types';
-import type { ScriptRun } from '../types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRun } from '../types/global/lemonssh-bridge-script.d.ts';
 import { ScriptRunList } from './scripts/ScriptRunList';
 import { ScriptRecordingHelpDialog } from './scripts/ScriptRecordingHelpDialog';
 import {
@@ -330,8 +330,8 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
         });
       }
     };
-    window.addEventListener('netcatty:scripts:saved', handler);
-    return () => window.removeEventListener('netcatty:scripts:saved', handler);
+    window.addEventListener('lemonssh:scripts:saved', handler);
+    return () => window.removeEventListener('lemonssh:scripts:saved', handler);
   }, []);
 
   // Normalize the package list + derive ancestor packages implied by each path
@@ -419,8 +419,8 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
       if (!detail?.ids?.length) return;
       clearSnippetSelection();
     };
-    window.addEventListener('netcatty:snippets:delete', handler);
-    return () => window.removeEventListener('netcatty:snippets:delete', handler);
+    window.addEventListener('lemonssh:snippets:delete', handler);
+    return () => window.removeEventListener('lemonssh:snippets:delete', handler);
   }, [clearSnippetSelection, onBulkDeleteRequest]);
 
   const toggleSnippetSelection = useCallback((id: string) => {
@@ -460,7 +460,7 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
     // Always route through the shared event so AppSideEffects can clear host
     // login/connect bindings (onSnippetsChange alone would leave them stale).
     window.dispatchEvent(
-      new CustomEvent('netcatty:snippets:delete', { detail: { ids } }),
+      new CustomEvent('lemonssh:snippets:delete', { detail: { ids } }),
     );
     clearSnippetSelection();
   }, [clearSnippetSelection, pendingDeleteIds, snippets]);
@@ -715,11 +715,11 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
   ]);
 
   const handleAddSnippet = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('netcatty:snippets:add'));
+    window.dispatchEvent(new CustomEvent('lemonssh:snippets:add'));
   }, []);
 
   const handleAddScript = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('netcatty:scripts:add'));
+    window.dispatchEvent(new CustomEvent('lemonssh:scripts:add'));
   }, []);
 
   const openPackageDialog = useCallback(() => {
@@ -823,13 +823,13 @@ const ScriptsSidePanelInner: React.FC<ScriptsSidePanelProps> = ({
 
   const handleEditSnippet = useCallback((snippet: Snippet) => {
     window.dispatchEvent(
-      new CustomEvent('netcatty:snippets:edit', { detail: { snippet } }),
+      new CustomEvent('lemonssh:snippets:edit', { detail: { snippet } }),
     );
   }, []);
 
   const handleDeleteSnippet = useCallback((id: string) => {
     window.dispatchEvent(
-      new CustomEvent('netcatty:snippets:delete', { detail: { id } }),
+      new CustomEvent('lemonssh:snippets:delete', { detail: { id } }),
     );
   }, []);
 

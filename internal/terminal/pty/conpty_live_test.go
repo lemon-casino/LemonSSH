@@ -62,17 +62,17 @@ func TestConptyLiveSmoke(t *testing.T) {
 
 	// Echo a marker command through the PTY input.
 	generation := session.Generation()
-	if _, err := session.Write(generation, []byte("echo NETCATTY_CONPTY_OK\r\n")); err != nil {
+	if _, err := session.Write(generation, []byte("echo LEMONSSH_CONPTY_OK\r\n")); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	deadline = time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
-		if strings.Contains(output(), "NETCATTY_CONPTY_OK") {
+		if strings.Contains(output(), "LEMONSSH_CONPTY_OK") {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	if !strings.Contains(output(), "NETCATTY_CONPTY_OK") {
+	if !strings.Contains(output(), "LEMONSSH_CONPTY_OK") {
 		t.Fatalf("echo output missing: %q", output())
 	}
 

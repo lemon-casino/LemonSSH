@@ -104,7 +104,7 @@ describe('plugin provider manager boundary', () => {
     storage.set(SYNC_STORAGE_KEYS.DEVICE_NAME, 'Test Device');
     const manager = createManagerHarness(storage);
     registerPluginProviderIdImpl.call(manager, 'com.example.backup.sync');
-    storage.set('netcatty_provider_plugin_v1:com.example.backup.sync', {
+    storage.set('lemonssh_provider_plugin_v1:com.example.backup.sync', {
       provider: 'com.example.backup.sync',
       status: 'connected',
       config: { endpoint: 'https://example.test' },
@@ -247,7 +247,7 @@ describe('plugin provider manager boundary', () => {
       storage.get(SYNC_STORAGE_KEYS.PLUGIN_CLOUD_PROVIDERS),
       ['com.example.backup.sync'],
     );
-    assert.ok(storage.get('netcatty_provider_plugin_v1:com.example.backup.sync'));
+    assert.ok(storage.get('lemonssh_provider_plugin_v1:com.example.backup.sync'));
 
     unregisterPluginProviderIdImpl.call(manager, 'com.example.backup.sync');
     assert.equal(storage.has(SYNC_STORAGE_KEYS.PLUGIN_CLOUD_PROVIDERS), false);

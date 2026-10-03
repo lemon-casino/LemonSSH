@@ -956,7 +956,7 @@ export const attachSessionToTerminal = (
       ctx.onTerminalOutput?.(data, meta);
       // Ordinary transports connect on first visible output. Mosh defers that
       // transition until ready unless its SSH bootstrap explicitly reports
-      // that it is blocked on input Netcatty could not answer automatically.
+      // that it is blocked on input LemonSSH could not answer automatically.
       markConnectedOnFirstOutput(meta);
     },
     { replayBacklog: true },

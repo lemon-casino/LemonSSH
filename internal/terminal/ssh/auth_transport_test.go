@@ -84,7 +84,7 @@ func TestSSHConfiguredKeyPassphraseCertificateAndAgent(t *testing.T) {
 			}})
 			endpoint := configAt(address, policy)
 			input.Hostname, input.Port = endpoint.Hostname, endpoint.Port
-			config, err := BuildDialConfigErr(input, policy, nil)
+			config, err := BuildDialConfigErr(input, policy, DialInteractive{})
 			if err != nil {
 				t.Fatal(err)
 			}

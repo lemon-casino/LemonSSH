@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { checkForUpdates, getReleaseUrl, type ReleaseInfo, type UpdateCheckResult } from '../../infrastructure/services/updateService';
+import { checkForUpdates, getReleaseUrl, isDevVersion, type ReleaseInfo, type UpdateCheckResult } from '../../infrastructure/services/updateService';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import { STORAGE_KEY_UPDATE_DISMISSED_VERSION, STORAGE_KEY_UPDATE_LAST_CHECK, STORAGE_KEY_UPDATE_LATEST_RELEASE, STORAGE_KEY_AUTO_UPDATE_ENABLED, STORAGE_KEY_DEBUG_UPDATE_DEMO } from '../../infrastructure/config/storageKeys';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 // Check for updates at most once per hour
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
@@ -119,7 +119,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
     if (!enabled) return;
     const loadVersion = async () => {
       try {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const info = await bridge?.getAppInfo?.();
         if (info?.version) {
           setUpdateState((prev) => ({ ...prev, currentVersion: info.version }));
@@ -136,7 +136,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
   // current state instead of showing stale 'idle'.
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     void bridge?.getUpdateStatus?.().then((snapshot) => {
       if (!snapshot || snapshot.status === 'idle') return;
 
@@ -182,7 +182,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
   // These fire automatically when autoDownload=true in the main process.
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
 
     // When electron-updater confirms no update in its feed, don't write
     // STORAGE_KEY_UPDATE_LAST_CHECK — that would throttle the GitHub API
@@ -287,8 +287,8 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
     
     // In demo mode, use a fake version to allow checking
     const effectiveVersion = IS_UPDATE_DEMO_MODE ? '0.0.1' : currentVersion;
-    
-    if (!effectiveVersion || effectiveVersion === '0.0.0') {
+
+    if (!effectiveVersion || isDevVersion(effectiveVersion)) {
       debugLog('Skipping check - invalid version:', effectiveVersion);
       // Skip check for dev builds
       return null;
@@ -316,7 +316,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
           latestRelease: {
             version: '1.0.0',
             tagName: 'v1.0.0',
-            name: 'Netcatty v1.0.0',
+            name: 'LemonSSH v1.0.0',
             body: 'Demo release for testing update notification',
             htmlUrl: 'https://github.com/lemon-casino/LemonSSH/releases',
             publishedAt: new Date().toISOString(),
@@ -419,7 +419,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
 
     // Skip check for dev/invalid builds (demo mode overrides to '0.0.1' inside performCheck)
     const effectiveVersion = IS_UPDATE_DEMO_MODE ? '0.0.1' : currentVersionRef.current;
-    if (!effectiveVersion || effectiveVersion === '0.0.0') {
+    if (!effectiveVersion || isDevVersion(effectiveVersion)) {
       // Dev/invalid build — can't determine update status, reset to idle
       setUpdateState((prev) => ({
         ...prev,
@@ -461,7 +461,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
       //    electron-updater feed may still be reachable. Without this,
       //    environments where api.github.com is blocked would never attempt
       //    the auto-download path.
-      void netcattyBridge.get()?.checkForUpdate?.().then((res) => {
+      void lemonsshBridge.get()?.checkForUpdate?.().then((res) => {
         if (res?.error && res?.supported !== false) {
           // Surface actual download-feed errors; unsupported platforms
           // (res.supported === false) should keep autoDownloadStatus at
@@ -523,7 +523,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
       : getReleaseUrl();
 
     try {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (bridge?.openExternal) {
         await bridge.openExternal(url);
         return;
@@ -536,13 +536,13 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
 
   const installUpdate = useCallback(() => {
     if (!enabled) return;
-    netcattyBridge.get()?.installUpdate?.();
+    lemonsshBridge.get()?.installUpdate?.();
   }, [enabled]);
 
   const startDownload = useCallback(async () => {
     if (!enabled) return;
     if (autoDownloadStatusRef.current === 'downloading' || autoDownloadStatusRef.current === 'ready') return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     try {
       const checkResult = await bridge?.checkForUpdate?.();
       if (!checkResult || checkResult.checking === true || checkResult.ready === true || checkResult.downloading === true) return;
@@ -622,7 +622,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
       return;
     }
 
-    if (!updateState.currentVersion || updateState.currentVersion === '0.0.0') {
+    if (!updateState.currentVersion || isDevVersion(updateState.currentVersion)) {
       return;
     }
 
@@ -687,7 +687,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
       // fallback instead of permanently skipping it — the auto-check may
       // fail silently (check-phase errors aren't broadcast to the renderer).
       try {
-        const snapshot = await netcattyBridge.get()?.getUpdateStatus?.();
+        const snapshot = await lemonsshBridge.get()?.getUpdateStatus?.();
         if (snapshot?.isChecking) {
           debugLog('Main process check still in flight — rescheduling fallback');
           startupCheckTimeoutRef.current = setTimeout(async () => {
@@ -695,7 +695,7 @@ export function useUpdateCheck(options?: { autoUpdateEnabled?: boolean; enabled?
             // Re-check if the main process check is still running to avoid
             // duplicate notifications on very slow networks.
             try {
-              const snap = await netcattyBridge.get()?.getUpdateStatus?.();
+              const snap = await lemonsshBridge.get()?.getUpdateStatus?.();
               if (snap?.isChecking || (snap?.status && snap.status !== 'idle')) return;
             } catch { /* fall through */ }
             debugLog('=== Rescheduled fallback check triggered ===');

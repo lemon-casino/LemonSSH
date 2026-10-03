@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/pty"
-	"github.com/binaricat/netcatty/internal/terminal/supervised"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/supervised"
 )
 
 func verifiedTestHelper(t *testing.T, kind string) string {
@@ -74,7 +74,7 @@ func TestETBundledClientConsumesGoBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bridge, err := newEtBridge(context.Background(), transport, MoshStartRequest{}, temp, nil)
+	bridge, err := newEtBridge(context.Background(), transport, MoshStartRequest{}, temp, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}

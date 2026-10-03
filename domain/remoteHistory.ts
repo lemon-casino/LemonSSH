@@ -1,19 +1,19 @@
 import { RemoteHistoryEntry, RemoteHistorySource } from './models';
 
-/** Marker prefix Netcatty AI uses when executing commands via the PTY bridge. */
-export const NETCATTY_AI_HISTORY_MARKER = '__NCMCP_';
+/** Marker prefix LemonSSH AI uses when executing commands via the PTY bridge. */
+export const LEMONSSH_AI_HISTORY_MARKER = '__NCMCP_';
 
-/** True when a shell history line came from Netcatty AI PTY exec, not the user. */
-export function isNetcattyAiHistoryCommand(command: string): boolean {
-  return command.includes(NETCATTY_AI_HISTORY_MARKER);
+/** True when a shell history line came from LemonSSH AI PTY exec, not the user. */
+export function isLemonsshAiHistoryCommand(command: string): boolean {
+  return command.includes(LEMONSSH_AI_HISTORY_MARKER);
 }
 
-const NETCATTY_MANAGED_STARTUP_COMMAND =
+const LEMONSSH_MANAGED_STARTUP_COMMAND =
   /^(?:sh\s+-c\s+.*printf .*\\033\[H\\033\[2J\\033\[3J.*_nc_docker_err=.*\bdocker\s+inspect\b|printf '\\033\[H\\033\[2J\\033\[3J';\s*(?:_nc_docker_err=.*\bdocker\s+inspect\b|exec\s+(?:docker\s+(?:exec|logs)\b|tmux\s+attach\b)))/;
 
-/** True when a shell history line came from a Netcatty-managed terminal launch. */
-export function isNetcattyManagedStartupHistoryCommand(command: string): boolean {
-  return NETCATTY_MANAGED_STARTUP_COMMAND.test(command.trim());
+/** True when a shell history line came from a LemonSSH-managed terminal launch. */
+export function isLemonSSHManagedStartupHistoryCommand(command: string): boolean {
+  return LEMONSSH_MANAGED_STARTUP_COMMAND.test(command.trim());
 }
 
 const ZSH_EXTENDED_RECORD = /^: (\d+):\d+;([\s\S]*)$/;
@@ -222,8 +222,8 @@ export function mergeRemoteHistory(
   const seen = new Set<string>();
   const merged: RemoteHistoryEntry[] = [];
   for (const { entry } of indexed) {
-    if (isNetcattyAiHistoryCommand(entry.command)) continue;
-    if (isNetcattyManagedStartupHistoryCommand(entry.command)) continue;
+    if (isLemonsshAiHistoryCommand(entry.command)) continue;
+    if (isLemonSSHManagedStartupHistoryCommand(entry.command)) continue;
     if (seen.has(entry.command)) continue;
     seen.add(entry.command);
     merged.push(entry);

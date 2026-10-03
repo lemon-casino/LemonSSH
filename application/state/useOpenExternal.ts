@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 /**
  * Opens a URL in the system browser (never the app WebView). Components use
@@ -8,7 +8,7 @@ import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
  */
 export function useOpenExternal(): (url: string) => Promise<void> {
   return useCallback(async (url: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const opener = bridge?.openExternal;
     if (!opener) {
       window.open(url, '_blank', 'noopener,noreferrer');

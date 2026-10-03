@@ -29,7 +29,7 @@ const FALLBACK_TERMINAL_SETTINGS = {
 import { logger } from '../../lib/logger';
 import { hostStorageAdapter as localStorageAdapter } from '../persistence/hostStorageAdapter';
 import { STORAGE_KEY_PF_RECONNECT_CANCEL } from '../config/storageKeys';
-import { netcattyBridge } from './netcattyBridge';
+import { lemonsshBridge } from './lemonsshBridge';
 
 export interface PortForwardingConnection {
   ruleId: string;
@@ -184,7 +184,7 @@ export const initReconnectCancelListener = (): (() => void) => {
     // Also ask the backend to stop any tunnel for this rule.
     // This catches tunnels still in SSH handshake that aren't yet
     // in the renderer's activeConnections or the backend's list output.
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.stopPortForwardByRuleId) {
       bridge.stopPortForwardByRuleId(ruleId).catch((err: unknown) => {
         logger.warn(`[PortForwardingService] Cross-window stopByRuleId failed for ${ruleId}:`, err);
@@ -335,7 +335,7 @@ export const stopAndCleanupRuleAndWait = (
 
     // Use stopPortForwardByRuleId so every tunnel for this rule is marked
     // cancelled before its sockets are closed.
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.stopPortForwardByRuleId) {
       try {
         const result = await bridge.stopPortForwardByRuleId(ruleId);
@@ -468,7 +468,7 @@ export const fetchPortForwardSnapshot = async (): Promise<{
     cleanupRequired?: boolean;
   }>;
 }> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.getPortForwardSnapshot) {
     try {
       const snapshot = await bridge.getPortForwardSnapshot();
@@ -562,7 +562,7 @@ const subscribeSyncedConnection = async (
   ruleId: string,
   connection: PortForwardingConnection,
 ): Promise<boolean> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge) return activeConnections.get(ruleId) === connection;
 
   if (!connection.unsubscribe) {
@@ -642,7 +642,7 @@ export const syncWithBackend = async (
   options: PortForwardingBackendSyncOptions = {},
 ): Promise<void> => {
   rememberBackendSyncOptions(options);
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
 
   if (!bridge?.getPortForwardSnapshot && !bridge?.listPortForwards) {
     logger.warn('[PortForwardingService] Backend not available for sync');
@@ -715,7 +715,7 @@ export const reconcileWithBackend = async (): Promise<{
     gone: [] as string[],
     appeared: [] as string[],
   };
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
 
   if (!bridge?.getPortForwardSnapshot && !bridge?.listPortForwards) return result;
 
@@ -827,7 +827,7 @@ export const startPortForward = async (
   knownHosts?: KnownHost[],
 ): Promise<{ success: boolean; error?: string }> => {
   const globalTerminalSettings = { ...FALLBACK_TERMINAL_SETTINGS, ...(terminalSettings ?? {}) };
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (rulesPendingCleanup.has(rule.id)) {
     return { success: false, error: 'This port forwarding rule is currently being stopped.' };
   }
@@ -870,7 +870,7 @@ export const startPortForward = async (
     const proxy = host.proxyConfig
       ? resolveProxyConfigAuth(host.proxyConfig, identities)
       : undefined;
-    let jumpHosts: NetcattyJumpHost[] | undefined;
+    let jumpHosts: LemonSSHJumpHost[] | undefined;
     if (host.hostChain?.hostIds?.length) {
       const resolvedJumpHosts = host.hostChain.hostIds.map((hostId) =>
         hosts.find((candidate) => candidate.id === hostId),
@@ -1177,7 +1177,7 @@ export const stopPortForward = async (
   ruleId: string,
   onStatusChange: (status: PortForwardingRule['status'], error?: string) => void
 ): Promise<{ success: boolean; error?: string }> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const conn = activeConnections.get(ruleId);
 
   // User intent takes effect immediately. Do not let an already queued network
@@ -1247,14 +1247,14 @@ export const getPortForwardStatus = async (
  * Check if backend is available
  */
 export const isBackendAvailable = (): boolean => {
-  return !!(netcattyBridge.get()?.startPortForward);
+  return !!(lemonsshBridge.get()?.startPortForward);
 };
 
 /**
  * Stop all active tunnels (cleanup on unmount)
  */
 export const stopAllPortForwards = async (): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   
   // Stop everything the renderer knows about
   for (const [ruleId, conn] of activeConnections) {

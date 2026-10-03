@@ -21,8 +21,8 @@ const toolCallSource = readFileSync(
 
 // Codex (SDK) emits command_execution.command as a STRING that wraps the real
 // command in `<shell> -lc '<full>'`. Under Skills + CLI the real command is a
-// netcatty-tool-cli call. The title must unwrap the shell layer first, else the
-// outer quote leaks (the "netcatty: \"" / "netcatty: …md\"" garbage titles).
+// lemonssh-tool-cli call. The title must unwrap the shell layer first, else the
+// outer quote leaks (the "lemonssh: \"" / "lemonssh: …md\"" garbage titles).
 
 test('unwraps a /bin/zsh -lc string wrapper (codex SDK shape)', () => {
   assert.equal(
@@ -31,10 +31,10 @@ test('unwraps a /bin/zsh -lc string wrapper (codex SDK shape)', () => {
   );
 });
 
-test('codex Skills+CLI exec: unwrap shell + netcatty-cli -> remote command', () => {
+test('codex Skills+CLI exec: unwrap shell + lemonssh-cli -> remote command', () => {
   assert.equal(
     extractDisplayCommand({
-      command: `/bin/zsh -lc '"/abs/netcatty-tool-cli" exec --session X -- "uptime"'`,
+      command: `/bin/zsh -lc '"/abs/lemonssh-tool-cli" exec --session X -- "uptime"'`,
     }),
     'uptime',
   );
@@ -43,20 +43,20 @@ test('codex Skills+CLI exec: unwrap shell + netcatty-cli -> remote command', () 
 test('codex Skills+CLI session subcommand -> friendly title', () => {
   assert.equal(
     extractDisplayCommand({
-      command: `/bin/zsh -lc '"/abs/netcatty-tool-cli" session --session X'`,
+      command: `/bin/zsh -lc '"/abs/lemonssh-tool-cli" session --session X'`,
     }),
-    'netcatty: inspect session',
+    'LemonSSH: inspect session',
   );
 });
 
-test('raw (unwrapped) netcatty-tool-cli exec still works', () => {
+test('raw (unwrapped) lemonssh-tool-cli exec still works', () => {
   assert.equal(
-    extractDisplayCommand({ command: `"/abs/netcatty-tool-cli" exec --session X -- "uptime"` }),
+    extractDisplayCommand({ command: `"/abs/lemonssh-tool-cli" exec --session X -- "uptime"` }),
     'uptime',
   );
 });
 
-test('netcatty-tool-cli.cjs wrapper still unwraps to remote command', () => {
+test('legacy netcatty-tool-cli names still unwrap (replayed history)', () => {
   assert.equal(
     extractDisplayCommand({
       command: `/bin/zsh -lc '"/abs/netcatty-tool-cli.cjs" exec --session X -- "uptime"'`,
@@ -81,7 +81,7 @@ test('netcatty-tool-cli.cmd wrapper still unwraps to remote command', () => {
 });
 
 test('netcatty-tool-cli env -> list sessions', () => {
-  assert.equal(extractDisplayCommand({ command: 'netcatty-tool-cli env' }), 'netcatty: list sessions');
+  assert.equal(extractDisplayCommand({ command: 'netcatty-tool-cli env' }), 'LemonSSH: list sessions');
 });
 
 test('array shell-wrap shape still unwraps (regression)', () => {
@@ -153,7 +153,7 @@ test('extractApprovalExecutionContext surfaces Codex reason for approval review'
 
 test('approvalCommandWasUnwrapped detects Skills+CLI display unwrap', () => {
   const args = {
-    command: `/bin/zsh -lc '"/abs/netcatty-tool-cli" exec --session X -- "uptime"'`,
+    command: `/bin/zsh -lc '"/abs/lemonssh-tool-cli" exec --session X -- "uptime"'`,
   };
   const display = extractDisplayCommand(args);
   assert.equal(display, 'uptime');

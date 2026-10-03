@@ -1,4 +1,7 @@
-export const SDK_SESSION_ID_PREFIX = 'netcatty-sdk-session:';
+export const SDK_SESSION_ID_PREFIX = 'lemonssh-sdk-session:';
+// Pre-rename session ids carry the netcatty prefix; parsing keeps accepting
+// both (mirrors the Go host in cmd/lemonssh/externalAgentService.go).
+export const LEGACY_SDK_SESSION_ID_PREFIX = 'netcatty-sdk-session:';
 
 export type CursorAuthModeIdentity = 'api-key' | 'cli-login';
 export type CursorCliModeIdentity = 'ask' | 'agent';
@@ -62,9 +65,14 @@ export function encodeSdkSessionIdentity(
 
 export function parseSdkSessionIdentity(value: string | undefined | null): SdkSessionIdentityPayload | null {
   const raw = String(value || '').trim();
-  if (!raw.startsWith(SDK_SESSION_ID_PREFIX)) return null;
+  const prefix = raw.startsWith(SDK_SESSION_ID_PREFIX)
+    ? SDK_SESSION_ID_PREFIX
+    : raw.startsWith(LEGACY_SDK_SESSION_ID_PREFIX)
+      ? LEGACY_SDK_SESSION_ID_PREFIX
+      : null;
+  if (!prefix) return null;
   try {
-    const parsed = JSON.parse(decodeURIComponent(raw.slice(SDK_SESSION_ID_PREFIX.length))) as SdkSessionIdentityPayload;
+    const parsed = JSON.parse(decodeURIComponent(raw.slice(prefix.length))) as SdkSessionIdentityPayload;
     if (parsed?.v !== 1 || !parsed.id || !parsed.backend) return null;
     const authMode = normalizeCursorAuthMode(parsed.authMode);
     const cliMode = normalizeCursorCliMode(parsed.cliMode);

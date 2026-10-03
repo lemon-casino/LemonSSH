@@ -174,7 +174,7 @@ export function encryptedObjectStorageAsCloudAdapter(
     rebindSession?: boolean;
     /**
      * When true, skip the host full-byte re-read after writeObject. Use only when
-     * the backing storage already performs Netcatty-grade write verification
+     * the backing storage already performs LemonSSH-grade write verification
      * (WebDAV pad+verify). Plugin providers keep host-owned verify.
      */
     assumeVerifiedWrites?: boolean;

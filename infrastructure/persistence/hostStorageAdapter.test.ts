@@ -30,11 +30,11 @@ function fixture(initial: Record<string, string> = {}) {
 }
 
 test('remote empty values remain authoritative and remote-only keys survive legacy import', async () => {
-  const go = fixture({ 'settings/empty': '', 'vault/netcatty_hosts_v1': '[]', 'settings/remoteOnly': 'retained' });
-  const adapter = storageModule.createCanonicalStorage(go.client, localFixture({ empty: 'stale', netcatty_hosts_v1: '[stale]', legacy: 'imported' }).local);
+  const go = fixture({ 'settings/empty': '', 'vault/lemonssh_hosts_v1': '[]', 'settings/remoteOnly': 'retained' });
+  const adapter = storageModule.createCanonicalStorage(go.client, localFixture({ empty: 'stale', lemonssh_hosts_v1: '[stale]', legacy: 'imported' }).local);
   await adapter.hydrate();
   assert.equal(adapter.readString('empty'), '');
-  assert.equal(adapter.readString('netcatty_hosts_v1'), '[]');
+  assert.equal(adapter.readString('lemonssh_hosts_v1'), '[]');
   assert.equal(adapter.readString('remoteOnly'), 'retained');
   assert.equal(adapter.readString('legacy'), 'imported');
 });
@@ -156,13 +156,13 @@ test('rotation drains earlier failed writes and stale windows cannot append old-
 // These exercise the real adapter; only the external Go RPC and browser storage
 // boundaries are replaced. Reverting to local reads or non-CAS writes breaks them.
 test("boot unions legacy and remote keys, prefers Go, reads memory, and never resurrects deletions", async () => {
-  const go = fixture({ "settings/theme": "remote", "vault/netcatty_hosts_v1": "[hosts]" });
-  const legacy = localFixture({ theme: "stale", localOnly: "legacy", netcatty_ai_sessions_v1: "private" });
+  const go = fixture({ "settings/theme": "remote", "vault/lemonssh_hosts_v1": "[hosts]" });
+  const legacy = localFixture({ theme: "stale", localOnly: "legacy", lemonssh_ai_sessions_v1: "private" });
   const adapter = storageModule.createCanonicalStorage(go.client, legacy.local);
   await adapter.hydrate();
   assert.equal(adapter.readString("theme"), "remote");
   assert.equal(adapter.readString("localOnly"), "legacy");
-  assert.equal(adapter.readString("netcatty_hosts_v1"), "[hosts]");
+  assert.equal(adapter.readString("lemonssh_hosts_v1"), "[hosts]");
   legacy.data.set("theme", "tampered");
   assert.equal(adapter.readString("theme"), "remote");
   adapter.remove("localOnly");
@@ -172,8 +172,8 @@ test("boot unions legacy and remote keys, prefers Go, reads memory, and never re
   await restarted.hydrate();
   assert.equal(restarted.readString("localOnly"), null);
   assert.equal(legacy.data.has("localOnly"), false);
-  assert.equal(restarted.readString("netcatty_ai_sessions_v1"), "private");
-  assert.equal([...go.data.keys()].some(key => key.includes("netcatty_ai_")), false);
+  assert.equal(restarted.readString("lemonssh_ai_sessions_v1"), "private");
+  assert.equal([...go.data.keys()].some(key => key.includes("lemonssh_ai_")), false);
 });
 
 test("all typed reads use cache, rapid writes and delete are serialized, AI stays local", async () => {
@@ -187,16 +187,16 @@ test("all typed reads use cache, rapid writes and delete are serialized, AI stay
   adapter.writeString("sequence", "first");
   adapter.writeString("sequence", "second");
   adapter.remove("sequence");
-  adapter.writeString("netcatty_ai_providers_v1", "secret");
-  adapter.writeString("netcatty.aiDebug.hide", "true");
+  adapter.writeString("lemonssh_ai_providers_v1", "secret");
+  adapter.writeString("lemonssh.aiDebug.hide", "true");
   assert.deepEqual(adapter.read("json"), { a: 1 });
   assert.equal(adapter.readBoolean("flag"), true);
   assert.equal(adapter.readNumber("number"), 42);
   await adapter.flush();
   assert.equal(go.data.has("settings/sequence"), false);
-  assert.equal(go.data.has("settings/netcatty_ai_providers_v1"), false);
-  assert.equal(go.data.has("settings/netcatty.aiDebug.hide"), false);
-  assert.equal(legacy.data.get("netcatty_ai_providers_v1"), "secret");
+  assert.equal(go.data.has("settings/lemonssh_ai_providers_v1"), false);
+  assert.equal(go.data.has("settings/lemonssh.aiDebug.hide"), false);
+  assert.equal(legacy.data.get("lemonssh_ai_providers_v1"), "secret");
 });
 
 test("two actual adapters reject stale same-key edits but preserve unrelated writes", async () => {
@@ -242,13 +242,13 @@ test("hydration and writes surface failures, rollback memory, and allow recovery
 });
 
 test("refresh observes remote deletion despite stale local and excludes remote AI", async () => {
-  const go = fixture({ "settings/theme": "dark", "settings/netcatty_ai_sessions_v1": "remote secret" });
-  const legacy = localFixture({ netcatty_ai_sessions_v1: "local secret" });
+  const go = fixture({ "settings/theme": "dark", "settings/lemonssh_ai_sessions_v1": "remote secret" });
+  const legacy = localFixture({ lemonssh_ai_sessions_v1: "local secret" });
   const adapter = storageModule.createCanonicalStorage(go.client, legacy.local);
   await adapter.hydrate();
   await go.client.write(await go.client.revision(), [{ domain: "settings", key: "theme", delete: true }]);
   await adapter.refresh();
   assert.equal(adapter.readString("theme"), null);
   assert.equal(legacy.data.has("theme"), false);
-  assert.equal(adapter.readString("netcatty_ai_sessions_v1"), "local secret");
+  assert.equal(adapter.readString("lemonssh_ai_sessions_v1"), "local secret");
 });

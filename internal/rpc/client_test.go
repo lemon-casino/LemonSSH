@@ -125,7 +125,7 @@ func TestClientTypedUnavailable(t *testing.T) {
 		if !errors.As(err, &unavailable) {
 			t.Fatalf("missing discovery must be UnavailableError, got %v", err)
 		}
-		if !strings.Contains(err.Error(), "Start Netcatty first") {
+		if !strings.Contains(err.Error(), "Start LemonSSH first") {
 			t.Errorf("unavailable message must be actionable, got %q", err.Error())
 		}
 	}

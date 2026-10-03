@@ -14,7 +14,7 @@ func TestStartAppendStopAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(filepath.Base(path), "netcatty-script-") {
+	if !strings.HasPrefix(filepath.Base(path), "lemonssh-script-") {
 		t.Fatalf("default name: %s", path)
 	}
 	if filepath.Dir(path) != dir {

@@ -2,7 +2,12 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const { Terminal } = require("@xterm/xterm");
-const { Client } = require("ssh2");
+
+// The live stress test only runs when LEMONSSH_TERMINAL_STRESS_TARGETS is
+// set, so the ssh2 transport is required lazily inside the test body. A
+// top-level require would fail the whole file on machines without the
+// optional dependency even though the test is skipped there.
+let Client;
 
 const {
   getFlowController,
@@ -23,10 +28,10 @@ const DEFAULT_STRESS_MS = 12_000;
 const MIN_EXPECTED_BYTES = 8 * 1024 * 1024;
 
 const parseTargets = () => {
-  if (!process.env.NETCATTY_TERMINAL_STRESS_TARGETS) return [];
-  const parsed = JSON.parse(process.env.NETCATTY_TERMINAL_STRESS_TARGETS);
+  if (!process.env.LEMONSSH_TERMINAL_STRESS_TARGETS) return [];
+  const parsed = JSON.parse(process.env.LEMONSSH_TERMINAL_STRESS_TARGETS);
   if (!Array.isArray(parsed)) {
-    throw new TypeError("NETCATTY_TERMINAL_STRESS_TARGETS must be a JSON array");
+    throw new TypeError("LEMONSSH_TERMINAL_STRESS_TARGETS must be a JSON array");
   }
   return parsed;
 };
@@ -95,7 +100,7 @@ try:
         frame += 1
         time.sleep(0.12)
 finally:
-    sys.stdout.write("\x1b[?2026l\x1b[?1049l\r\nNETCATTY_STRESS_DONE frames=%d\r\n" % frame)
+    sys.stdout.write("\x1b[?2026l\x1b[?1049l\r\nLEMONSSH_STRESS_DONE frames=%d\r\n" % frame)
     sys.stdout.flush()
 `;
 
@@ -292,7 +297,7 @@ const runRemoteStress = async (target) => {
       pipelinePending: hasPendingTerminalWrites(term),
       exitCode: closed.code,
       signal: closed.signal,
-      markerSeen: terminalText.includes("NETCATTY_STRESS_DONE"),
+      markerSeen: terminalText.includes("LEMONSSH_STRESS_DONE"),
     };
 
     assert.equal(stderr, "", `remote stderr: ${stderr}`);
@@ -317,13 +322,19 @@ const runRemoteStress = async (target) => {
 
 const targets = parseTargets();
 
-test("live SSH TUI output does not strand the Netcatty terminal pipeline", {
-  skip: targets.length === 0 ? "set NETCATTY_TERMINAL_STRESS_TARGETS" : false,
+test("live SSH TUI output does not strand the LemonSSH terminal pipeline", {
+  skip: targets.length === 0 ? "set LEMONSSH_TERMINAL_STRESS_TARGETS" : false,
   timeout: Math.max(60_000, targets.length * 35_000),
-}, async () => {
+}, async (t) => {
+  try {
+    ({ Client } = require("ssh2"));
+  } catch (error) {
+    t.skip(`ssh2 transport is not installed: ${error.code ?? error.message}`);
+    return;
+  }
   const results = [];
   for (const target of targets) {
     results.push(await runRemoteStress(target));
   }
-  console.log(`NETCATTY_STRESS_RESULTS=${JSON.stringify(results)}`);
+  console.log(`LEMONSSH_STRESS_RESULTS=${JSON.stringify(results)}`);
 });

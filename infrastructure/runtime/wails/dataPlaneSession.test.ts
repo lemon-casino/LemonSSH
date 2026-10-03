@@ -9,7 +9,11 @@ import {
   marshalFrame,
   unmarshalFrame,
 } from "../../terminal/dataplane/frame";
-import { openDataPlaneSession } from "./dataPlaneSession";
+import {
+  createDataPlaneDecoder,
+  openDataPlaneSession,
+  StreamingTextDecoder,
+} from "./dataPlaneSession";
 import type { DataPlaneSocket } from "./dataPlaneSession";
 
 function fakeSocket(): DataPlaneSocket & { sent: Uint8Array[]; closed: boolean } {
@@ -127,4 +131,52 @@ test("dispose closes the socket and ignores later frames", async () => {
   });
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(chunks, []);
+});
+
+test("createDataPlaneDecoder decodes GB18030 output and falls back to UTF-8", () => {
+  const gbkShuJu = new Uint8Array([0xca, 0xfd, 0xbe, 0xdd]); // "数据" in GB18030
+  assert.equal(createDataPlaneDecoder("gb18030").decode(gbkShuJu), "数据");
+  assert.equal(createDataPlaneDecoder("GB18030").decode(gbkShuJu), "数据");
+  assert.equal(createDataPlaneDecoder().decode(new TextEncoder().encode("hello")), "hello");
+  assert.equal(createDataPlaneDecoder("utf-8").decode(new TextEncoder().encode("中文")), "中文");
+  // Unknown labels never break the data plane.
+  assert.equal(createDataPlaneDecoder("klingon").decode(new TextEncoder().encode("x")), "x");
+});
+
+test("StreamingTextDecoder keeps state across frame boundaries", () => {
+  // "数据" splits across two frames mid-sequence: 0xca | 0xfd 0xbe 0xdd.
+  const decoder = new StreamingTextDecoder("gb18030");
+  const first = decoder.decode(new Uint8Array([0xca]));
+  const second = decoder.decode(new Uint8Array([0xfd, 0xbe, 0xdd]));
+  assert.equal(first + second, "数据");
+  // Each fresh instance resets the stream state.
+  const reset = new StreamingTextDecoder("gb18030");
+  assert.equal(reset.decode(new Uint8Array([0xca, 0xfd, 0xbe, 0xdd])), "数据");
+});
+
+test("decoder option decodes output frames with the session charset", async () => {
+  const socket = fakeSocket();
+  const chunks: string[] = [];
+  const gbkShuJu = new Uint8Array([0xca, 0xfd, 0xbe, 0xdd]);
+  const handle = openDataPlaneSession({
+    listenAddr: "127.0.0.1:9",
+    bootstrap: { SessionID: "s1", Generation: 1, DataToken: "tok", UrgentToken: "urg", WindowBytes: RECEIVE_WINDOW_BYTES },
+    onData: (chunk) => chunks.push(chunk),
+    decoder: createDataPlaneDecoder("gb18030"),
+    openSocket: () => socket,
+  });
+  socket.onmessage?.({
+    data: marshalFrame({
+      kind: FRAME_OUTPUT,
+      generation: 1,
+      sequence: 1,
+      creditCost: gbkShuJu.length,
+      correlation: 0,
+      timestampMicros: 0,
+      payload: gbkShuJu,
+    }),
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(chunks, ["数据"]);
+  handle.dispose();
 });

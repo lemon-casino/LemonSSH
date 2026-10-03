@@ -77,7 +77,7 @@ test("terminal user paste auto-uploads a clipboard image in remote sessions", as
   const writes: Array<{ data: string }> = [];
   const readTextCalls: string[] = [];
   const image = {
-    path: "/tmp/netcatty/shot.png",
+    path: "/tmp/lemonssh/shot.png",
     name: "shot.png",
     mediaType: "image/png",
     size: 12,
@@ -111,7 +111,7 @@ test("terminal user paste auto-uploads a clipboard image in remote sessions", as
     },
   });
 
-  assert.deepEqual(writes, [{ data: "/home/alice/.netcatty-paste-images/shot.png" }]);
+  assert.deepEqual(writes, [{ data: "/home/alice/.lemonssh-paste-images/shot.png" }]);
   assert.deepEqual(readTextCalls, []);
 });
 
@@ -153,7 +153,7 @@ test("terminal user paste reports failed uploads instead of pasting text", async
   const results: unknown[] = [];
   const readTextCalls: string[] = [];
   const image = {
-    path: "/tmp/netcatty/shot.png",
+    path: "/tmp/lemonssh/shot.png",
     name: "shot.png",
     mediaType: "image/png",
     size: 12,
@@ -194,7 +194,7 @@ test("terminal user paste reports thrown upload failures instead of pasting text
   const results: unknown[] = [];
   const readTextCalls: string[] = [];
   const image = {
-    path: "/tmp/netcatty/shot.png",
+    path: "/tmp/lemonssh/shot.png",
     name: "shot.png",
     mediaType: "image/png",
     size: 12,

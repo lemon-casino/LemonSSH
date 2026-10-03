@@ -1,6 +1,6 @@
 import type { DiscoveredAgent } from '../../ai/types';
 
-type ResolvedAgentCLI = Awaited<ReturnType<NonNullable<NetcattyBridge['aiResolveCli']>>>;
+type ResolvedAgentCLI = Awaited<ReturnType<NonNullable<LemonSSHBridge['aiResolveCli']>>>;
 
 export interface NativeAgentCLIPathInfo {
   Path?: string;
@@ -98,7 +98,7 @@ function normalize(result: NativeAgentCLIPathInfo | null | undefined): ResolvedA
   };
 }
 
-export function createAgentCliBridge(bindings: NativeAgentCLIBindings | undefined): Partial<NetcattyBridge> {
+export function createAgentCliBridge(bindings: NativeAgentCLIBindings | undefined): Partial<LemonSSHBridge> {
   const required = () => {
     if (!bindings) throw new Error('Native agent CLI discovery is unavailable');
     return bindings;
@@ -112,17 +112,17 @@ export function createAgentCliBridge(bindings: NativeAgentCLIBindings | undefine
     aiCodexGetIntegration: async value => {
       const result = await required().CodexGetIntegration(options(value));
       return {
-        state: result.state as Awaited<ReturnType<NonNullable<NetcattyBridge['aiCodexGetIntegration']>>>['state'],
+        state: result.state as Awaited<ReturnType<NonNullable<LemonSSHBridge['aiCodexGetIntegration']>>>['state'],
         isConnected: result.isConnected,
         rawOutput: result.rawOutput,
         exitCode: result.exitCode ?? null,
-        customConfig: result.customConfig as Awaited<ReturnType<NonNullable<NetcattyBridge['aiCodexGetIntegration']>>>['customConfig'],
+        customConfig: result.customConfig as Awaited<ReturnType<NonNullable<LemonSSHBridge['aiCodexGetIntegration']>>>['customConfig'],
       };
     },
-    aiCodexStartLogin: async value => required().CodexStartLogin(options(value)) as ReturnType<NonNullable<NetcattyBridge['aiCodexStartLogin']>>,
-    aiCodexGetLoginSession: async sessionID => required().CodexGetLoginSession(sessionID) as ReturnType<NonNullable<NetcattyBridge['aiCodexGetLoginSession']>>,
-    aiCodexCancelLogin: async sessionID => required().CodexCancelLogin(sessionID) as ReturnType<NonNullable<NetcattyBridge['aiCodexCancelLogin']>>,
-    aiCodexLogout: async value => required().CodexLogout(options(value)) as ReturnType<NonNullable<NetcattyBridge['aiCodexLogout']>>,
+    aiCodexStartLogin: async value => required().CodexStartLogin(options(value)) as ReturnType<NonNullable<LemonSSHBridge['aiCodexStartLogin']>>,
+    aiCodexGetLoginSession: async sessionID => required().CodexGetLoginSession(sessionID) as ReturnType<NonNullable<LemonSSHBridge['aiCodexGetLoginSession']>>,
+    aiCodexCancelLogin: async sessionID => required().CodexCancelLogin(sessionID) as ReturnType<NonNullable<LemonSSHBridge['aiCodexCancelLogin']>>,
+    aiCodexLogout: async value => required().CodexLogout(options(value)) as ReturnType<NonNullable<LemonSSHBridge['aiCodexLogout']>>,
     aiResolveCli: async params => normalize(await required().Resolve(
       params.command,
       params.customPath ?? '',

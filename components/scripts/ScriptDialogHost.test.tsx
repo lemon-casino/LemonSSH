@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import type { ScriptDialogRequest } from "../../types/global/netcatty-bridge-script.d.ts";
+import type { ScriptDialogRequest } from "../../types/global/lemonssh-bridge-script.d.ts";
 import {
   applyFormValue,
   getDialogFieldDomId,

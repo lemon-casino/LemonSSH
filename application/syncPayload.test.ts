@@ -397,7 +397,7 @@ test("buildSyncPayload omits device-bound encrypted AI API keys", () => {
 test("buildCloudSyncPayload includes decrypted AI API keys for portable cloud sync", async () => {
   Object.defineProperty(globalThis, "window", {
     value: {
-      netcatty: {
+      lemonssh: {
         credentialsDecrypt: async (value: string) => {
           if (value === "enc:v1:djEwUFJPVklERVIAAAAAAAAAAA==") return "sk-provider";
           if (value === "enc:v1:djEwV0VCAAAAAAAAAAAAAAAAAA==") return "sk-web";
@@ -430,7 +430,7 @@ test("buildCloudSyncPayload includes decrypted AI API keys for portable cloud sy
 test("buildCloudSyncPayload fails instead of deleting API keys when decrypt fails", async () => {
   Object.defineProperty(globalThis, "window", {
     value: {
-      netcatty: {
+      lemonssh: {
         credentialsDecrypt: async (value: string) => value,
       },
     },
@@ -513,7 +513,7 @@ test("applySyncPayload restores AI configuration settings", async () => {
 test("applySyncPayload encrypts synced plaintext AI API keys before saving locally", async () => {
   Object.defineProperty(globalThis, "window", {
     value: {
-      netcatty: {
+      lemonssh: {
         credentialsEncrypt: async (value: string) => {
           const body = Buffer.alloc(19, 0);
           Buffer.from("v10", "utf8").copy(body, 0);
@@ -622,7 +622,7 @@ test("applySyncPayload dispatches a same-window AI-state-changed event so the op
 
     await applySyncPayload(payload, { importVaultData: () => {} });
 
-    const events = dispatched.filter((e) => e.type === "netcatty:ai-state-changed");
+    const events = dispatched.filter((e) => e.type === "lemonssh:ai-state-changed");
     const keys = events.map((e) => (e.detail as { key?: string })?.key);
     assert.ok(keys.includes(storageKeys.STORAGE_KEY_AI_PROVIDERS), "providers nudge");
     assert.ok(keys.includes(storageKeys.STORAGE_KEY_AI_AGENT_PROVIDER_MAP), "agentProviderMap nudge");
@@ -905,7 +905,7 @@ test("hasMeaningfulCloudSyncData ignores legacy cloud known hosts", () => {
 
 test("buildLocalVaultPayload includes last-known plugin sidecars for protective backups", () => {
   localStorage.setItem(
-    "netcatty_plugin_sidecars_last_known_v1",
+    "lemonssh_plugin_sidecars_last_known_v1",
     JSON.stringify({
       version: 1,
       entries: [{
@@ -923,7 +923,7 @@ test("buildLocalVaultPayload includes last-known plugin sidecars for protective 
     assert.equal(payload.pluginSidecars?.entries?.[0].value, "dark");
     assert.equal(hasMeaningfulSyncData(payload), true);
   } finally {
-    localStorage.removeItem("netcatty_plugin_sidecars_last_known_v1");
+    localStorage.removeItem("lemonssh_plugin_sidecars_last_known_v1");
   }
 });
 
@@ -931,7 +931,7 @@ test("buildLocalVaultPayloadAsync prefers live empty over last-known for backups
   const previousWindow = (globalThis as { window?: unknown }).window;
   Object.defineProperty(globalThis, "window", {
     value: {
-      netcatty: {
+      lemonssh: {
         collectPluginSyncSidecars: async () => ({ version: 1, entries: [] }),
         pluginHostReady: () => true,
       },
@@ -940,7 +940,7 @@ test("buildLocalVaultPayloadAsync prefers live empty over last-known for backups
     configurable: true,
   });
   localStorage.setItem(
-    "netcatty_plugin_sidecars_last_known_v1",
+    "lemonssh_plugin_sidecars_last_known_v1",
     JSON.stringify({
       version: 1,
       entries: [{
@@ -957,7 +957,7 @@ test("buildLocalVaultPayloadAsync prefers live empty over last-known for backups
     const payload = await buildLocalVaultPayloadAsync(vault([]));
     assert.equal(payload.pluginSidecars?.entries?.length, 0);
   } finally {
-    localStorage.removeItem("netcatty_plugin_sidecars_last_known_v1");
+    localStorage.removeItem("lemonssh_plugin_sidecars_last_known_v1");
     Object.defineProperty(globalThis, "window", {
       value: previousWindow,
       configurable: true,

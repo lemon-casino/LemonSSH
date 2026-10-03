@@ -10,6 +10,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { supplyHelpers, packageHelpers, preserveFile, readSafeFile, assertSafePath, verifyHelper } from "./fetch-wails-helpers.mjs";
+import { generateWindowsSyso, defaultSysoPath } from "./winres.mjs";
 export { verifyHelper } from "./fetch-wails-helpers.mjs";
 
 const GOOS_EXTENSIONS = new Set(["windows", "darwin", "linux"]);
@@ -23,9 +24,26 @@ export function artifactBasename(version, goos, goarch) {
   return `LemonSSH-${version}-${goos}-${goarch}${extension}`;
 }
 
-export function buildLdflags(version) {
+// Hex ed25519 public key (internal/platform/updater.decodePublicKey shape):
+// 64 hex chars encode the 32-byte raw key. Anything else must be rejected
+// before it reaches -X main.updatePublicKey, or every release manifest would
+// fail verification at runtime.
+const UPDATE_PUBLIC_KEY_PATTERN = /^[0-9a-fA-F]{64}$/;
+
+export function normalizeUpdatePublicKey(value) {
+  if (value === undefined || value === null || value === "") return "";
+  const clean = String(value).trim();
+  if (!UPDATE_PUBLIC_KEY_PATTERN.test(clean)) {
+    throw new Error(`--update-public-key must be 64 hex chars (ed25519 public key), got ${clean.length} chars`);
+  }
+  return clean;
+}
+
+export function buildLdflags(version, updatePublicKey = "") {
   const value = String(version).replace(/"/g, "");
-  return `-s -w -X main.version=${value}`;
+  let flags = `-s -w -X main.version=${value}`;
+  if (updatePublicKey) flags += ` -X main.updatePublicKey=${normalizeUpdatePublicKey(updatePublicKey)}`;
+  return flags;
 }
 
 export function windowsGuiLdflags(goos) {
@@ -60,6 +78,7 @@ export function parseArgs(argv) {
     goarch: undefined,
     skipFrontend: false,
     outDir: path.join("dist", "wails"),
+    updatePublicKey: undefined,
   };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
@@ -68,6 +87,7 @@ export function parseArgs(argv) {
     else if (arg === "--goarch") args.goarch = argv[++index];
     else if (arg === "--skip-frontend") args.skipFrontend = true;
     else if (arg === "--out-dir") args.outDir = argv[++index];
+    else if (arg === "--update-public-key") args.updatePublicKey = argv[++index];
     else throw new Error(`unknown argument ${arg}`);
   }
   return args;
@@ -114,12 +134,12 @@ export async function writeProtocolResources(outDir, goos, executable) {
   if (!/^[a-zA-Z0-9._-]+$/.test(executable)) throw new Error("invalid executable name");
   if (goos === "linux") {
     const target = path.join(outDir, "lemonssh.desktop");
-    await writeFile(target, `[Desktop Entry]\nType=Application\nName=LemonSSH\nExec=${executable} %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/netcatty;\n`);
+    await writeFile(target, `[Desktop Entry]\nType=Application\nName=LemonSSH\nExec=${executable} %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/lemonssh;x-scheme-handler/netcatty;\n`);
     return [target];
   }
   if (goos === "darwin") {
     const target = path.join(outDir, "Info.plist");
-    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.lemonssh.desktop</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Netcatty sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
+    await writeFile(target, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.lemonssh.desktop</string><key>CFBundleExecutable</key><string>${executable}</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>LemonSSH sessions</string><key>CFBundleURLSchemes</key><array><string>ssh</string><string>telnet</string><string>lemonssh</string><string>netcatty</string></array></dict></array></dict></plist>\n`);
     return [target];
   }
   return [];
@@ -131,6 +151,27 @@ export function hostTarget() {
   if (!goos) throw new Error(`unsupported host platform ${process.platform}`);
   const goarch = process.arch === "x64" ? "amd64" : process.arch === "arm64" ? "arm64" : process.arch;
   return { goos, goarch };
+}
+
+const WINDOWS_SYSO_ARCHES = new Set(["amd64", "arm64"]);
+
+// stampWindowsVersionResource regenerates cmd/lemonssh/rsrc_windows_<arch>.syso
+// with the packaged version so Windows file properties stop reporting 0.0.0.
+// It returns a restore callback that puts back the committed .syso bytes (or
+// removes a newly created file) so packaging leaves the worktree clean.
+export async function stampWindowsVersionResource({ version, goarch, runCommand = run } = {}) {
+  if (!version) throw new Error("version is required");
+  if (!WINDOWS_SYSO_ARCHES.has(goarch)) throw new Error(`unsupported windows GOARCH ${goarch}`);
+  const out = defaultSysoPath(goarch);
+  const original = await readFile(out).catch((error) => {
+    if (error.code !== "ENOENT") throw error;
+    return null;
+  });
+  await generateWindowsSyso({ version, arch: goarch, out, run: runCommand });
+  return async () => {
+    if (original) await writeFile(out, original);
+    else await rm(out, { force: true });
+  };
 }
 
 export function shouldUseShell(command, platform = process.platform) {
@@ -165,6 +206,21 @@ export async function packageWails(argv = process.argv.slice(2), runCommand = ru
     goos: args.goos ?? goos,
     goarch: args.goarch ?? goarch,
   };
+  // Optional signed-manifest public key: with a key the runtime enforces the
+  // ed25519-signed release-manifest.json (internal/app/updateuse); without
+  // one the build keeps today's checksums.txt-only behavior.
+  let updatePublicKey = "";
+  try {
+    updatePublicKey = normalizeUpdatePublicKey(args.updatePublicKey);
+  } catch (error) {
+    throw new Error(`${error.message} (received via --update-public-key)`);
+  }
+  if (updatePublicKey) {
+    console.log(`[package-wails] stamping update public key: builds will verify release-manifest.json`);
+  } else {
+    console.warn(`[package-wails] no --update-public-key given: signed release-manifest verification stays disabled (checksums.txt only)`);
+  }
+
   const cross = target.goos !== goos || target.goarch !== goarch;
 
   // Fail supply verification before spending time on the frontend / Go build.
@@ -184,14 +240,30 @@ export async function packageWails(argv = process.argv.slice(2), runCommand = ru
     env.CGO_ENABLED = "0";
     console.warn(`[package-wails] cross build for ${target.goos}/${target.goarch}: CGO disabled (qualification binary only)`);
   }
-  await runCommand(`go build -trimpath "-ldflags=${buildLdflags(version)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/netcatty`, null, { env });
+  // Stamp the Windows version resource from the package version so the Go
+  // build links the real file properties; restore the committed bytes after
+  // the build consumes them.
+  let restoreVersionResource = null;
+  if (target.goos === "windows") {
+    restoreVersionResource = await stampWindowsVersionResource({ version, goarch: target.goarch });
+  }
+  try {
+    await runCommand(`go build -trimpath "-ldflags=${buildLdflags(version, updatePublicKey)}${windowsGuiLdflags(target.goos)}" -o "${artifact}" ./cmd/lemonssh`, null, { env });
+  } finally {
+    if (restoreVersionResource) await restoreVersionResource();
+  }
 
   // CLI/MCP retain the console subsystem for JSON and stdio transports.
   const tools = [];
   const nativeTools = [
-    { command: 'netcatty-tool', output: 'LemonSSH-tool' },
-    { command: 'netcatty-mcp', output: 'LemonSSH-mcp' },
+    { command: 'lemonssh-tool', output: 'LemonSSH-tool' },
+    { command: 'lemonssh-mcp', output: 'LemonSSH-mcp' },
   ];
+  // Legacy cleanup list must keep the OLD names: it removes stale
+  // netcatty-tool.exe / netcatty-mcp.exe left by the previous release so the
+  // renamed binaries are not shadowed and the old names never get collected
+  // into the installer payload. Renaming these entries would leak the legacy
+  // executables into the package.
   for (const legacy of ['netcatty-tool', 'netcatty-mcp']) {
     await rm(path.join(args.outDir, legacy + (target.goos === 'windows' ? '.exe' : '')), { force: true });
   }

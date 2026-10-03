@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/binaricat/netcatty/internal/terminal/serialport"
-	"github.com/binaricat/netcatty/internal/terminal/ymodem"
+	"github.com/binaricat/lemonssh/internal/terminal/serialport"
+	"github.com/binaricat/lemonssh/internal/terminal/ymodem"
 )
 
 // SerialStartRequest is the shell-facing serial open payload. The client

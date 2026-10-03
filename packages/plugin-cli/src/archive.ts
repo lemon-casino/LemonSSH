@@ -14,18 +14,37 @@ import {
 import path from "node:path";
 import { once } from "node:events";
 
-import type { IconReference, PluginManifest } from "@netcatty/plugin-contract";
+import type { IconReference } from "@lemonssh/plugin-contract";
+import {
+  PLUGIN_LEGACY_MANIFEST_FILES,
+  PLUGIN_MANIFEST_FILE,
+} from "@lemonssh/plugin-contract";
 import yauzl, { type Entry, type ZipFile } from "yauzl";
 
 import { IGNORED_ROOT_ENTRIES, PACKAGE_LIMITS } from "./constants.js";
 import {
+  isManifestV2,
   parseAndValidateManifestContents,
   readValidatedManifestSource,
   type ValidatedManifestSource,
+  type ValidatedPluginManifest,
 } from "./manifest.js";
 import { assertSafePackagePath, PackagePathRegistry } from "./packagePath.js";
 
 const CRC32_TABLE = new Uint32Array(256);
+
+// The manifest entry inside a plugin package: new packages carry
+// lemonssh.plugin.json; legacy packages may still carry the pre-rename
+// netcatty.plugin.json or the generic manifest.json (mirrors the Go host's
+// three-way acceptance).
+const PACKAGE_MANIFEST_PATHS: readonly string[] = [
+  PLUGIN_MANIFEST_FILE,
+  ...PLUGIN_LEGACY_MANIFEST_FILES,
+];
+
+function isManifestPackagePath(packagePath: string): boolean {
+  return PACKAGE_MANIFEST_PATHS.includes(packagePath);
+}
 const EXECUTABLE_EXTENSIONS = new Set([".bat", ".cmd", ".com", ".exe", ".ps1"]);
 for (let index = 0; index < CRC32_TABLE.length; index += 1) {
   let value = index;
@@ -68,7 +87,7 @@ export interface PackageBuildResult {
 }
 
 export interface PackageValidationResult {
-  readonly manifest: PluginManifest;
+  readonly manifest: ValidatedPluginManifest;
   readonly fileCount: number;
   readonly uncompressedBytes: number;
   readonly contentSha256: string;
@@ -149,7 +168,7 @@ export function computePackageContentSha256(
   entries: readonly PackageContentIdentity[],
 ): string {
   const hash = createHash("sha256");
-  hash.update("netcatty-plugin-content-v1\0", "utf8");
+  hash.update("lemonssh-plugin-content-v1\0", "utf8");
   const ordered = [...entries].sort((left, right) => (
     Buffer.compare(Buffer.from(left.packagePath), Buffer.from(right.packagePath))
   ));
@@ -203,6 +222,24 @@ async function resolveThroughExistingAncestor(targetPath: string): Promise<strin
   }
 }
 
+function requiredManifestPaths(
+  manifest: ValidatedPluginManifest,
+  manifestPackagePath: string,
+): string[] {
+  if (isManifestV2(manifest)) {
+    return [manifestPackagePath, manifest.entrypoint.wasm];
+  }
+  return [
+    manifestPackagePath,
+    manifest.main.browser,
+    manifest.main.node,
+    ...(manifest.contributes?.views ?? []).map(({ entry }) => entry),
+    ...(manifest.contributes?.commands ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
+    ...(manifest.contributes?.menus ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
+    ...(manifest.contributes?.views ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
+  ].filter((entryPath): entryPath is string => Boolean(entryPath));
+}
+
 async function scanPackageDirectory(
   pluginDirectory: string,
   manifestSource: ValidatedManifestSource,
@@ -211,7 +248,7 @@ async function scanPackageDirectory(
   const { manifest } = manifestSource;
   const registry = new PackagePathRegistry();
   const companionPaths = new Map(
-    (manifest.companionExecutables ?? []).flatMap((companion) => (
+    (isManifestV2(manifest) ? [] : manifest.companionExecutables ?? []).flatMap((companion) => (
       companion.variants.map((variant) => [variant.path, variant] as const)
     )),
   );
@@ -287,19 +324,11 @@ async function scanPackageDirectory(
   await visit(pluginDirectory, "");
   assertManifestSnapshotMatches(
     manifestSource,
-    files.find(({ packagePath }) => packagePath === "netcatty.plugin.json"),
+    files.find(({ packagePath }) => packagePath === manifestSource.fileName),
   );
   const packagedPaths = new Set(files.map(({ packagePath }) => packagePath));
-  const requiredPaths = [
-    "netcatty.plugin.json",
-    manifest.main.browser,
-    manifest.main.node,
-    ...(manifest.contributes?.views ?? []).map(({ entry }) => entry),
-    ...(manifest.contributes?.commands ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-    ...(manifest.contributes?.menus ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-    ...(manifest.contributes?.views ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-    ...companionPaths.keys(),
-  ].filter((entryPath): entryPath is string => Boolean(entryPath));
+  const requiredPaths = requiredManifestPaths(manifest, manifestSource.fileName)
+    .concat(...companionPaths.keys());
   for (const requiredPath of requiredPaths) {
     if (!packagedPaths.has(requiredPath)) {
       throw new Error(`Manifest references a missing package file: ${requiredPath}`);
@@ -685,7 +714,7 @@ async function inspectPluginPackage(
             throw new Error(`Plugin file exceeds size limit: ${packagePath}`);
           }
           if (
-            packagePath === "netcatty.plugin.json"
+            isManifestPackagePath(packagePath)
             && entry.uncompressedSize > PACKAGE_LIMITS.manifestBytes
           ) {
             throw new Error(`Plugin manifest exceeds ${PACKAGE_LIMITS.manifestBytes} bytes`);
@@ -697,7 +726,7 @@ async function inspectPluginPackage(
           const result = await readEntry(
             zipFile,
             entry,
-            packagePath === "netcatty.plugin.json",
+            isManifestPackagePath(packagePath),
             extractionDirectory ? path.join(extractionDirectory, ...packagePath.split("/")) : undefined,
           );
           if (result.bytes !== entry.uncompressedSize || result.crc32 !== entry.crc32) {
@@ -718,11 +747,17 @@ async function inspectPluginPackage(
     zipFile.readEntry();
   });
 
-  const manifestEntry = entries.get("netcatty.plugin.json");
-  if (!manifestEntry?.contents) throw new Error("Plugin package is missing netcatty.plugin.json");
+  const manifestPackagePath = PACKAGE_MANIFEST_PATHS
+    .find((candidate) => entries.get(candidate)?.contents);
+  const manifestEntry = manifestPackagePath
+    ? entries.get(manifestPackagePath)
+    : undefined;
+  if (manifestPackagePath === undefined || !manifestEntry?.contents) {
+    throw new Error(`Plugin package is missing ${PLUGIN_MANIFEST_FILE}`);
+  }
   const manifest = parseAndValidateManifestContents(manifestEntry.contents);
   const declaredCompanions = new Map(
-    (manifest.companionExecutables ?? []).flatMap((companion) => (
+    (isManifestV2(manifest) ? [] : manifest.companionExecutables ?? []).flatMap((companion) => (
       companion.variants.map((variant) => [variant.path, variant] as const)
     )),
   );
@@ -732,14 +767,7 @@ async function inspectPluginPackage(
       throw new Error(`Executable file is not declared as a companion: ${packagePath}`);
     }
   }
-  const requiredPaths = [
-    manifest.main.browser,
-    manifest.main.node,
-    ...(manifest.contributes?.views ?? []).map(({ entry }) => entry),
-    ...(manifest.contributes?.commands ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-    ...(manifest.contributes?.menus ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-    ...(manifest.contributes?.views ?? []).flatMap(({ icon }) => packageIconPaths(icon)),
-  ].filter((entryPath): entryPath is string => Boolean(entryPath));
+  const requiredPaths = requiredManifestPaths(manifest, manifestPackagePath);
   for (const requiredPath of requiredPaths) {
     if (!entries.has(requiredPath)) {
       throw new Error(`Manifest references a missing package file: ${requiredPath}`);

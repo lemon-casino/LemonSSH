@@ -9,12 +9,24 @@ import * as ts from "typescript";
 import {
   CancellationError,
   CancellationTokenSource,
+  buildPluginViewDataRequest,
+  buildWasmDispatchRequest,
   definePlugin,
   DisposableStore,
+  parsePluginProviderInvokeRequest,
+  parsePluginProviderListResult,
+  parsePluginViewDataResult,
+  parseWasmDispatchResponse,
+  PROVIDER_INVOKE_DISPATCH_METHOD,
+  PROVIDER_SESSION_EVENT_DISPATCH_METHOD,
+  PROVIDERS_LIST_DISPATCH_METHOD,
   PluginError,
   PLUGIN_ERROR_WIRE_CODES,
   pluginErrorToRpcError,
+  PLUGIN_VIEW_DATA_MAX_BINDINGS,
   throwIfCancellationRequested,
+  WASM_ABI,
+  WASM_HOST_IMPORT_STATUS,
 } from "./index.ts";
 import type { PluginSecretStore, SecretRef } from "./index.ts";
 
@@ -36,7 +48,10 @@ const testSecretStore: PluginSecretStore = {
 
 function assertSdkTypeChecks(source: string) {
   const sdkDirectory = dirname(fileURLToPath(import.meta.url));
-  const fixturePath = join(sdkDirectory, "__provider-overload-fixture.ts");
+  // TypeScript normalizes paths to forward slashes, so compare against a
+  // forward-slash fixture path — a backslash join() result never matches on
+  // Windows and the injected fixture would be reported as missing (TS6053).
+  const fixturePath = join(sdkDirectory, "__provider-overload-fixture.ts").replaceAll("\\", "/");
   const compilerOptions: ts.CompilerOptions = {
     allowImportingTsExtensions: true,
     module: ts.ModuleKind.NodeNext,
@@ -394,4 +409,165 @@ test("CancellationTokenSource finishes disposal when a cancellation listener fai
 
   assert.throws(() => source.dispose(true), AggregateError);
   assert.doesNotThrow(() => source.dispose(true));
+});
+
+test("WASM dispatch request encoding pins the lemonssh-wasm-abi v1 surface", () => {
+  assert.equal(WASM_ABI.version, 1);
+  assert.equal(WASM_ABI.hostModule, "lemonssh");
+  assert.deepEqual(WASM_ABI.guestExports, {
+    alloc: "lemonssh_alloc",
+    free: "lemonssh_free",
+    dispatch: "lemonssh_dispatch",
+  });
+  assert.deepEqual(WASM_ABI.hostImports, {
+    log: "lemonssh_host_log",
+    settingGet: "lemonssh_host_setting_get",
+  });
+  assert.deepEqual(WASM_HOST_IMPORT_STATUS, {
+    ok: 0,
+    permissionDenied: -1,
+    invalidArgument: -2,
+    unavailable: -3,
+  });
+
+  const request = new TextDecoder().decode(
+    buildWasmDispatchRequest("ping", { from: "host" }),
+  );
+  assert.equal(request, `{"method":"ping","payload":{"from":"host"}}`);
+  const bare = new TextDecoder().decode(buildWasmDispatchRequest("ping"));
+  assert.equal(bare, `{"method":"ping"}`);
+  assert.throws(() => buildWasmDispatchRequest(""), PluginError);
+  assert.throws(
+    () => buildWasmDispatchRequest("ping", { blob: "x".repeat(WASM_ABI.maxRequestBytes) }),
+    (error) => error instanceof PluginError && error.code === "invalid_argument",
+  );
+});
+
+test("WASM dispatch response parsing validates both envelope shapes", () => {
+  const success = parseWasmDispatchResponse(
+    new TextEncoder().encode(`{"ok":true,"result":{"pong":true}}`),
+  );
+  assert.deepEqual(success, { ok: true, result: { pong: true } });
+  assert.deepEqual(
+    parseWasmDispatchResponse(new TextEncoder().encode(`{"ok":true}`)),
+    { ok: true },
+  );
+  const failure = parseWasmDispatchResponse(
+    new TextEncoder().encode(
+      `{"ok":false,"error":{"code":"not_found","message":"unknown method"}}`,
+    ),
+  );
+  assert.deepEqual(failure, {
+    ok: false,
+    error: { code: "not_found", message: "unknown method" },
+  });
+
+  assert.throws(
+    () => parseWasmDispatchResponse(new TextEncoder().encode(`{"ok":false}`)),
+    (error) => error instanceof PluginError && error.code === "internal",
+  );
+  assert.throws(
+    () => parseWasmDispatchResponse(new TextEncoder().encode(`{"ok":true,"error":{}}`)),
+    PluginError,
+  );
+  assert.throws(
+    () => parseWasmDispatchResponse(new TextEncoder().encode(`{"ok":1}`)),
+    PluginError,
+  );
+  assert.throws(
+    () => parseWasmDispatchResponse(new TextEncoder().encode(`{broken`)),
+    (error) => error instanceof PluginError && error.code === "internal",
+  );
+  assert.throws(
+    () =>
+      parseWasmDispatchResponse(new Uint8Array(WASM_ABI.maxResponseBytes + 1)),
+    (error) => error instanceof PluginError && error.code === "invalid_argument",
+  );
+});
+
+test("view.data request encoding and result narrowing follow the canonical channel", () => {
+  const request = new TextDecoder().decode(
+    buildPluginViewDataRequest({
+      viewId: "status",
+      bindings: ["demo.greeting", "demo.greeting", "", "rows"],
+    }),
+  );
+  assert.equal(
+    request,
+    `{"method":"view.data","payload":{"viewId":"status","bindings":["demo.greeting","rows"]}}`,
+  );
+  assert.throws(() => buildPluginViewDataRequest({ viewId: "", bindings: [] }), PluginError);
+  assert.throws(
+    () =>
+      buildPluginViewDataRequest({
+        viewId: "status",
+        bindings: Array.from({ length: PLUGIN_VIEW_DATA_MAX_BINDINGS + 1 }, (_, i) => `b${i}`),
+      }),
+    (error) => error instanceof PluginError && error.code === "invalid_argument",
+  );
+
+  assert.deepEqual(
+    parsePluginViewDataResult({ ok: true, result: { "demo.greeting": "hi" } }),
+    { "demo.greeting": "hi" },
+  );
+  assert.equal(parsePluginViewDataResult({ ok: true }), null);
+  assert.equal(
+    parsePluginViewDataResult({ ok: false, error: { code: "not_found", message: "unknown" } }),
+    null,
+  );
+  assert.equal(parsePluginViewDataResult({ ok: true, result: [1, 2] }), null);
+});
+
+test("provider registry protocol constants and decoders mirror the Go host", () => {
+  assert.equal(PROVIDERS_LIST_DISPATCH_METHOD, "providers.list");
+  assert.equal(PROVIDER_INVOKE_DISPATCH_METHOD, "provider.invoke");
+  assert.equal(PROVIDER_SESSION_EVENT_DISPATCH_METHOD, "provider.sessionEvent");
+
+  assert.deepEqual(
+    parsePluginProviderListResult({
+      ok: true,
+      result: { providers: [{ id: "com.demo.accent", label: "Accent", kind: "terminal.theme" }, "junk", { nope: true }] },
+    }),
+    [{ id: "com.demo.accent", label: "Accent", kind: "terminal.theme" }],
+  );
+  assert.deepEqual(parsePluginProviderListResult({ ok: true }), []);
+  assert.deepEqual(
+    parsePluginProviderListResult({ ok: false, error: { code: "not_found", message: "unknown" } }),
+    [],
+  );
+  assert.deepEqual(parsePluginProviderListResult({ ok: true, result: { providers: "nope" } }), []);
+
+  const invoke = parsePluginProviderInvokeRequest({
+    providerId: "com.demo.accent",
+    kind: "terminal.theme",
+    operation: "provideTheme",
+    requestId: "terminal-1",
+    session: { sessionId: "session-1", protocol: "ssh", status: "connected" },
+    payload: { reason: "session-state" },
+    deadlineMs: 1500,
+  });
+  assert.equal(invoke.providerId, "com.demo.accent");
+  assert.equal(invoke.kind, "terminal.theme");
+  assert.equal(invoke.operation, "provideTheme");
+  assert.equal(invoke.requestId, "terminal-1");
+  assert.deepEqual(invoke.session, { sessionId: "session-1", protocol: "ssh", status: "connected" });
+  assert.deepEqual(invoke.payload, { reason: "session-state" });
+  assert.equal(invoke.deadlineMs, 1500);
+
+  assert.throws(() => parsePluginProviderInvokeRequest(undefined), PluginError);
+  assert.throws(() => parsePluginProviderInvokeRequest("nope" as never), PluginError);
+  assert.throws(
+    () => parsePluginProviderInvokeRequest({ kind: "terminal.theme", operation: "x", requestId: "r" }),
+    PluginError,
+  );
+  assert.throws(
+    () =>
+      parsePluginProviderInvokeRequest({
+        providerId: "com.demo.accent",
+        kind: "terminal.theme",
+        operation: "x",
+        requestId: "r",
+      }),
+    PluginError,
+  );
 });

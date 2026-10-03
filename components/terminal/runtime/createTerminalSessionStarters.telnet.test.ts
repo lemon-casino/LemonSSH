@@ -1024,7 +1024,7 @@ test("startTelnet ignores stale replacement failures", async () => {
     execAvailable: () => true,
     startSSHSession: async () => "ssh-session",
     startTelnetSession: async () => {
-      throw new Error("Error invoking remote method 'netcatty:telnet:start': Error: Telnet session start was replaced");
+      throw new Error("Error invoking remote method 'lemonssh:telnet:start': Error: Telnet session start was replaced");
     },
     startMoshSession: async () => "mosh-session",
     startLocalSession: async () => "local-session",

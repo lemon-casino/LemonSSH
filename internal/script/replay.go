@@ -309,8 +309,8 @@ func ParseRecordedScript(source string) ([]ReplayOp, error) {
 	return ops, nil
 }
 
-// sendArg accepts a string literal or variable reference with an optional
-// trailing { sensitive: true } options object.
+// sendArg accepts a single- or double-quoted string literal or a variable
+// reference with an optional trailing { sensitive: true } options object.
 func sendArg(raw string) (ReplayOp, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -321,7 +321,7 @@ func sendArg(raw string) (ReplayOp, error) {
 		raw = strings.TrimSpace(match[1])
 		sensitive = true
 	}
-	if raw != "" && raw[0] == '"' {
+	if raw != "" && (raw[0] == '"' || raw[0] == '\'') {
 		value, err := unquoteJS(raw)
 		if err != nil {
 			return ReplayOp{}, err
@@ -334,14 +334,15 @@ func sendArg(raw string) (ReplayOp, error) {
 	return ReplayOp{}, fmt.Errorf("unsupported send argument: %s", raw)
 }
 
-// sendLineArg accepts either a string literal or a variable reference
-// (sensitive recorded steps read their value from a dialog prompt result).
+// sendLineArg accepts either a quoted string literal (single or double) or a
+// variable reference (sensitive recorded steps read their value from a dialog
+// prompt result).
 func sendLineArg(raw string) (ReplayOp, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return ReplayOp{}, fmt.Errorf("sendLine needs a value")
 	}
-	if raw[0] == '"' {
+	if raw[0] == '"' || raw[0] == '\'' {
 		value, err := unquoteJS(raw)
 		if err != nil {
 			return ReplayOp{}, err

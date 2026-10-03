@@ -22,7 +22,7 @@ function ctxFactory(overrides: Record<string, unknown>) {
     hostById: new Map<string, { id: string; distro?: string; deviceType?: string }>(),
     terminalHosts: [] as Array<{ id: string; distro?: string; deviceType?: string }>,
     getSessionRestoreCwd: () => undefined,
-    netcattyBridge: {
+    lemonsshBridge: {
       get: () => ({
         getSessionPwd: async () => { calls.probed = true; return { success: true, cwd: "/live/probed" }; },
         getSessionRemoteInfo: async () => ({ success: true, remoteSshVersion: "OpenSSH_9.6" }),
@@ -69,7 +69,7 @@ test("local sessions do not query remote SSH metadata", async () => {
   let remoteInfoCalls = 0;
   const { getCtx } = ctxFactory({
     sessions: [{ id: "src", protocol: "local", status: "connected", localStartDir: "/tmp" }],
-    netcattyBridge: {
+    lemonsshBridge: {
       get: () => ({
         getSessionPwd: async () => ({ success: false }),
         getSessionRemoteInfo: async () => { remoteInfoCalls += 1; return { success: true }; },
@@ -132,7 +132,7 @@ test("copyWorkspaceWithCurrentShell captures per-pane cwd and copies the workspa
     getSessionRestoreCwd: () => undefined,
     hostById: new Map(),
     terminalHosts: [],
-    netcattyBridge: { get: () => ({}) },
+    lemonsshBridge: { get: () => ({}) },
     resolveShellSetting: () => ({ command: "bash" }),
     sessions,
     terminalSettings: { localShell: "bash" },
@@ -156,7 +156,7 @@ test("copyWorkspaceWithCurrentShell no-ops when the workspace is gone", async ()
     getSessionRestoreCwd: () => undefined,
     hostById: new Map(),
     terminalHosts: [],
-    netcattyBridge: { get: () => ({}) },
+    lemonsshBridge: { get: () => ({}) },
     resolveShellSetting: () => ({ command: "bash" }),
     sessions: [],
     terminalSettings: { localShell: "bash" },
@@ -180,7 +180,7 @@ test("copyWorkspaceWithCurrentShell no-ops when the workspace closes during cwd 
     getSessionRestoreCwd: () => undefined,
     hostById: new Map(),
     terminalHosts: [],
-    netcattyBridge: { get: () => ({}) },
+    lemonsshBridge: { get: () => ({}) },
     resolveShellSetting: () => ({ command: "bash" }),
     sessions: [{ id: "local", protocol: "local", status: "connected", localStartDir: "/tmp" }],
     terminalSettings: { localShell: "bash" },

@@ -13,7 +13,7 @@
 @font-face {
   font-family: "Symbols Nerd Font Mono";
   /* Absolute path resolves against the document origin in both dev
-     (http://localhost:5173) and packaged (app://netcatty), regardless of
+     (http://localhost:5173) and the packaged app origin, regardless of
      where the bundled CSS file ends up. A relative ./fonts/... would be
      resolved against dist/assets/index-*.css in production and 404. */
   src: url("/fonts/SymbolsNerdFontMono-Regular.ttf") format("truetype");
@@ -162,7 +162,7 @@ html.platform-win32 {
   animation: top-tab-enter 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-@keyframes netcatty-lazy-fade-in {
+@keyframes lemonssh-lazy-fade-in {
   from {
     opacity: 0;
     transform: translateY(2px);
@@ -174,8 +174,8 @@ html.platform-win32 {
   }
 }
 
-.netcatty-lazy-fade-in {
-  animation: netcatty-lazy-fade-in 160ms ease-out both;
+.lemonssh-lazy-fade-in {
+  animation: lemonssh-lazy-fade-in 160ms ease-out both;
 }
 
 .settings-window button:not(:disabled),
@@ -503,7 +503,7 @@ html[data-theme-transition] *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .netcatty-lazy-fade-in {
+  .lemonssh-lazy-fade-in {
     animation: none;
   }
 
@@ -529,7 +529,7 @@ html[data-theme-transition] *::after {
   color: hsl(var(--foreground));
 }
 
-.netcatty-shell {
+.lemonssh-shell {
   position: relative;
   background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 60%, hsl(var(--background) / 0.9) 100%);
 }
@@ -962,7 +962,7 @@ html[data-theme-transition] *::after {
   padding: 3px !important;
 }
 
-.netcatty-mdx-editor {
+.lemonssh-mdx-editor {
   container-type: inline-size;
   /* MDX linkDialog uses position:fixed anchors with coords adjusted whenever
    * getFixedContainingBlock sees container-type. Browsers do not treat
@@ -990,20 +990,20 @@ html[data-theme-transition] *::after {
   color: hsl(var(--foreground));
 }
 
-.netcatty-note-preview-empty {
+.lemonssh-note-preview-empty {
   min-height: calc(100vh - 15rem);
   color: hsl(var(--muted-foreground));
   font-size: 14px;
   line-height: 1.75;
 }
 
-.netcatty-mdx-editor,
-.netcatty-mdx-editor .mdxeditor-root-contenteditable {
+.lemonssh-mdx-editor,
+.lemonssh-mdx-editor .mdxeditor-root-contenteditable {
   min-height: 100%;
   overflow: visible;
 }
 
-.mdxeditor-popup-container.netcatty-mdx-editor {
+.mdxeditor-popup-container.lemonssh-mdx-editor {
   position: fixed;
   inset: 0;
   z-index: 200000;
@@ -1012,25 +1012,25 @@ html[data-theme-transition] *::after {
   pointer-events: none;
 }
 
-.mdxeditor-popup-container.netcatty-mdx-editor [data-radix-popper-content-wrapper],
-.mdxeditor-popup-container.netcatty-mdx-editor [role="dialog"],
-.mdxeditor-popup-container.netcatty-mdx-editor [class*="_tableColumnEditorPopoverContent_"] {
+.mdxeditor-popup-container.lemonssh-mdx-editor [data-radix-popper-content-wrapper],
+.mdxeditor-popup-container.lemonssh-mdx-editor [role="dialog"],
+.mdxeditor-popup-container.lemonssh-mdx-editor [class*="_tableColumnEditorPopoverContent_"] {
   pointer-events: auto;
 }
 
 /*
  * Image edit / insert dialog (MDX ImageDialog via Radix).
- * Match Netcatty popover / form tokens instead of stock MDX chrome.
+ * Match LemonSSH popover / form tokens instead of stock MDX chrome.
  */
-.netcatty-mdx-editor [class*="_dialogOverlay_"] {
+.lemonssh-mdx-editor [class*="_dialogOverlay_"] {
   background: hsl(var(--background) / 0.55) !important;
   backdrop-filter: blur(2px);
   opacity: 1 !important;
   z-index: 200100 !important;
 }
 
-.netcatty-mdx-editor [class*="_dialogContent_"],
-.netcatty-mdx-editor [class*="_largeDialogContent_"] {
+.lemonssh-mdx-editor [class*="_dialogContent_"],
+.lemonssh-mdx-editor [class*="_largeDialogContent_"] {
   min-width: min(22rem, calc(100vw - 2rem));
   max-width: min(26rem, calc(100vw - 2rem));
   padding: 1rem 1.1rem 0.9rem !important;
@@ -1049,8 +1049,8 @@ html[data-theme-transition] *::after {
   font-size: 13px !important;
 }
 
-.netcatty-mdx-editor [class*="_dialogContent_"] > h2,
-.netcatty-mdx-editor [class*="_largeDialogContent_"] > h2 {
+.lemonssh-mdx-editor [class*="_dialogContent_"] > h2,
+.lemonssh-mdx-editor [class*="_largeDialogContent_"] > h2 {
   margin: 0 0 0.15rem !important;
   padding: 0 !important;
   font-size: 0.9375rem !important;
@@ -1060,16 +1060,16 @@ html[data-theme-transition] *::after {
   line-height: 1.3 !important;
 }
 
-.netcatty-mdx-editor form[class*="_multiFieldForm_"] {
+.lemonssh-mdx-editor form[class*="_multiFieldForm_"] {
   padding: 0.15rem 0 0 !important;
   gap: 0.75rem !important;
 }
 
-.netcatty-mdx-editor form[class*="_multiFieldForm_"] [class*="_formField_"] {
+.lemonssh-mdx-editor form[class*="_multiFieldForm_"] [class*="_formField_"] {
   gap: 0.35rem !important;
 }
 
-.netcatty-mdx-editor form[class*="_multiFieldForm_"] [class*="_formField_"] > label {
+.lemonssh-mdx-editor form[class*="_multiFieldForm_"] [class*="_formField_"] > label {
   font-size: 11px !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em;
@@ -1077,9 +1077,9 @@ html[data-theme-transition] *::after {
   line-height: 1.3 !important;
 }
 
-.netcatty-mdx-editor [class*="_textInput_"],
-.netcatty-mdx-editor [class*="_downshiftInput_"],
-.netcatty-mdx-editor [class*="_dialogInput_"] {
+.lemonssh-mdx-editor [class*="_textInput_"],
+.lemonssh-mdx-editor [class*="_downshiftInput_"],
+.lemonssh-mdx-editor [class*="_dialogInput_"] {
   width: 100% !important;
   min-height: 2.1rem !important;
   box-sizing: border-box !important;
@@ -1094,16 +1094,16 @@ html[data-theme-transition] *::after {
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.netcatty-mdx-editor [class*="_textInput_"]:focus,
-.netcatty-mdx-editor [class*="_downshiftInput_"]:focus,
-.netcatty-mdx-editor [class*="_dialogInput_"]:focus,
-.netcatty-mdx-editor [class*="_downshiftInputWrapper_"]:focus-within {
+.lemonssh-mdx-editor [class*="_textInput_"]:focus,
+.lemonssh-mdx-editor [class*="_downshiftInput_"]:focus,
+.lemonssh-mdx-editor [class*="_dialogInput_"]:focus,
+.lemonssh-mdx-editor [class*="_downshiftInputWrapper_"]:focus-within {
   outline: none !important;
   border-color: hsl(var(--primary) / 0.65) !important;
   box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18) !important;
 }
 
-.netcatty-mdx-editor [class*="_downshiftInputWrapper_"] {
+.lemonssh-mdx-editor [class*="_downshiftInputWrapper_"] {
   width: 100% !important;
   border-radius: 0.5rem !important;
   border: 1px solid hsl(var(--border) / 0.75) !important;
@@ -1111,29 +1111,29 @@ html[data-theme-transition] *::after {
   overflow: hidden;
 }
 
-.netcatty-mdx-editor [class*="_downshiftInputWrapper_"] [class*="_downshiftInput_"] {
+.lemonssh-mdx-editor [class*="_downshiftInputWrapper_"] [class*="_downshiftInput_"] {
   border: 0 !important;
   box-shadow: none !important;
   border-radius: 0 !important;
 }
 
-.netcatty-mdx-editor [class*="_downshiftInputWrapper_"]:focus-within {
+.lemonssh-mdx-editor [class*="_downshiftInputWrapper_"]:focus-within {
   border-color: hsl(var(--primary) / 0.65) !important;
   box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18) !important;
 }
 
-.netcatty-mdx-editor [class*="_imageDimensionsContainer_"] {
+.lemonssh-mdx-editor [class*="_imageDimensionsContainer_"] {
   display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem !important;
 }
 
-.netcatty-mdx-editor [class*="_imageDimensionsContainer_"] [class*="_formField_"] {
+.lemonssh-mdx-editor [class*="_imageDimensionsContainer_"] [class*="_formField_"] {
   min-width: 0;
 }
 
 /* Action row at the bottom of the form */
-.netcatty-mdx-editor form[class*="_multiFieldForm_"] > div:last-child {
+.lemonssh-mdx-editor form[class*="_multiFieldForm_"] > div:last-child {
   display: flex !important;
   justify-content: flex-end !important;
   align-items: center !important;
@@ -1143,8 +1143,8 @@ html[data-theme-transition] *::after {
   border-top: 1px solid hsl(var(--border) / 0.55);
 }
 
-.netcatty-mdx-editor [class*="_primaryButton_"],
-.netcatty-mdx-editor [class*="_secondaryButton_"] {
+.lemonssh-mdx-editor [class*="_primaryButton_"],
+.lemonssh-mdx-editor [class*="_secondaryButton_"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1158,33 +1158,33 @@ html[data-theme-transition] *::after {
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
 }
 
-.netcatty-mdx-editor [class*="_primaryButton_"] {
+.lemonssh-mdx-editor [class*="_primaryButton_"] {
   border: 1px solid hsl(var(--primary) / 0.35) !important;
   background: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
 
-.netcatty-mdx-editor [class*="_primaryButton_"]:hover {
+.lemonssh-mdx-editor [class*="_primaryButton_"]:hover {
   background: hsl(var(--primary) / 0.9) !important;
 }
 
-.netcatty-mdx-editor [class*="_secondaryButton_"] {
+.lemonssh-mdx-editor [class*="_secondaryButton_"] {
   border: 1px solid hsl(var(--border) / 0.8) !important;
   background: hsl(var(--secondary) / 0.55) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-.netcatty-mdx-editor [class*="_secondaryButton_"]:hover {
+.lemonssh-mdx-editor [class*="_secondaryButton_"]:hover {
   background: hsl(var(--secondary)) !important;
 }
 
 /* Hide empty "Upload an image" file field chrome when handler is null (hidden input only). */
-.netcatty-mdx-editor form[class*="_multiFieldForm_"] input[type="file"] {
+.lemonssh-mdx-editor form[class*="_multiFieldForm_"] input[type="file"] {
   font-size: 12px;
   color: hsl(var(--muted-foreground));
 }
 
-.netcatty-mdx-content {
+.lemonssh-mdx-content {
   min-height: calc(100vh - 15rem);
   padding: 0;
   color: hsl(var(--foreground) / 0.9);
@@ -1196,86 +1196,86 @@ html[data-theme-transition] *::after {
   outline: none;
 }
 
-.netcatty-mdx-content:focus {
+.lemonssh-mdx-content:focus {
   outline: none;
 }
 
-.netcatty-mdx-content p {
+.lemonssh-mdx-content p {
   margin: 0.55rem 0;
 }
 
-.netcatty-mdx-content[contenteditable="true"] > p:first-child {
+.lemonssh-mdx-content[contenteditable="true"] > p:first-child {
   min-height: 1.85em;
 }
 
-.netcatty-mdx-editor .mdxeditor-root-contenteditable > .netcatty-mdx-content:not([contenteditable]) {
+.lemonssh-mdx-editor .mdxeditor-root-contenteditable > .lemonssh-mdx-content:not([contenteditable]) {
   top: 0;
   padding: 0 !important;
   color: hsl(var(--muted-foreground));
   line-height: 1.75;
 }
 
-.netcatty-mdx-editor .mdxeditor-root-contenteditable > .netcatty-mdx-content:not([contenteditable]) p {
+.lemonssh-mdx-editor .mdxeditor-root-contenteditable > .lemonssh-mdx-content:not([contenteditable]) p {
   margin: 0;
 }
 
-.netcatty-mdx-content h1,
-.netcatty-mdx-content h2,
-.netcatty-mdx-content h3 {
+.lemonssh-mdx-content h1,
+.lemonssh-mdx-content h2,
+.lemonssh-mdx-content h3 {
   color: hsl(var(--foreground));
   font-weight: 650;
   letter-spacing: 0;
 }
 
-.netcatty-mdx-content h1 {
+.lemonssh-mdx-content h1 {
   margin: 1.1rem 0 0.7rem;
   font-size: 1.7rem;
   line-height: 1.2;
 }
 
-.netcatty-mdx-content h2 {
+.lemonssh-mdx-content h2 {
   margin: 1rem 0 0.6rem;
   font-size: 1.3rem;
   line-height: 1.25;
 }
 
-.netcatty-mdx-content h3 {
+.lemonssh-mdx-content h3 {
   margin: 0.85rem 0 0.5rem;
   font-size: 1.05rem;
   line-height: 1.35;
 }
 
-.netcatty-mdx-content ul,
-.netcatty-mdx-content ol {
+.lemonssh-mdx-content ul,
+.lemonssh-mdx-content ol {
   margin: 0.55rem 0;
   padding-left: 1.35rem;
 }
 
-.netcatty-mdx-content ul {
+.lemonssh-mdx-content ul {
   list-style-type: disc;
 }
 
-.netcatty-mdx-content ul ul {
+.lemonssh-mdx-content ul ul {
   list-style-type: circle;
 }
 
-.netcatty-mdx-content ul ul ul {
+.lemonssh-mdx-content ul ul ul {
   list-style-type: square;
 }
 
-.netcatty-mdx-content ol {
+.lemonssh-mdx-content ol {
   list-style-type: decimal;
 }
 
-.netcatty-mdx-content ol ol {
+.lemonssh-mdx-content ol ol {
   list-style-type: lower-alpha;
 }
 
-.netcatty-mdx-content ol ol ol {
+.lemonssh-mdx-content ol ol ol {
   list-style-type: lower-roman;
 }
 
-.netcatty-mdx-content li {
+.lemonssh-mdx-content li {
   margin: 0.25rem 0;
 }
 
@@ -1285,18 +1285,18 @@ html[data-theme-transition] *::after {
  * the first text line, keep a solid hit target, and drop the hanging negative
  * margin so label text lines up cleanly with the control.
  */
-.netcatty-mdx-content ul:has(> li[role="checkbox"]),
-.netcatty-mdx-content ul:has(> li[aria-checked]),
-.netcatty-mdx-content ul:has(> li[class*="_listItemChecked_"]),
-.netcatty-mdx-content ul:has(> li[class*="_listItemUnchecked_"]) {
+.lemonssh-mdx-content ul:has(> li[role="checkbox"]),
+.lemonssh-mdx-content ul:has(> li[aria-checked]),
+.lemonssh-mdx-content ul:has(> li[class*="_listItemChecked_"]),
+.lemonssh-mdx-content ul:has(> li[class*="_listItemUnchecked_"]) {
   list-style: none !important;
   list-style-type: none !important;
   padding-left: 0.15rem;
   margin-left: 0;
 }
 
-.netcatty-mdx-content li[role="checkbox"],
-.netcatty-mdx-content li[aria-checked] {
+.lemonssh-mdx-content li[role="checkbox"],
+.lemonssh-mdx-content li[aria-checked] {
   position: relative;
   list-style: none;
   margin-left: 0 !important;
@@ -1308,8 +1308,8 @@ html[data-theme-transition] *::after {
   cursor: default;
 }
 
-.netcatty-mdx-content li[role="checkbox"]::before,
-.netcatty-mdx-content li[aria-checked]::before {
+.lemonssh-mdx-content li[role="checkbox"]::before,
+.lemonssh-mdx-content li[aria-checked]::before {
   content: "" !important;
   box-sizing: border-box !important;
   position: absolute !important;
@@ -1326,19 +1326,19 @@ html[data-theme-transition] *::after {
   border-radius: 3px !important;
 }
 
-.netcatty-mdx-content li[aria-checked="false"]::before,
-.netcatty-mdx-content li[role="checkbox"][aria-checked="false"]::before {
+.lemonssh-mdx-content li[aria-checked="false"]::before,
+.lemonssh-mdx-content li[role="checkbox"][aria-checked="false"]::before {
   border: 1px solid hsl(var(--border)) !important;
   background-color: transparent !important;
 }
 
-.netcatty-mdx-content li[aria-checked="true"]::before {
+.lemonssh-mdx-content li[aria-checked="true"]::before {
   border: 1px solid hsl(var(--primary) / 0.7) !important;
   background-color: hsl(var(--primary)) !important;
 }
 
 /* Checkmark glyph (MDX draws this with ::after) */
-.netcatty-mdx-content li[aria-checked="true"]::after {
+.lemonssh-mdx-content li[aria-checked="true"]::after {
   top: calc((1.75em - 1rem) / 2 + 0.1rem) !important;
   left: 0.35rem !important;
   width: 0.28rem !important;
@@ -1347,18 +1347,18 @@ html[data-theme-transition] *::after {
 }
 
 /* Preview is readOnly — still show pointer on the control so it feels clickable. */
-.netcatty-mdx-editor--preview .netcatty-mdx-content li[role="checkbox"],
-.netcatty-mdx-editor--preview .netcatty-mdx-content li[aria-checked] {
+.lemonssh-mdx-editor--preview .lemonssh-mdx-content li[role="checkbox"],
+.lemonssh-mdx-editor--preview .lemonssh-mdx-content li[aria-checked] {
   cursor: default;
 }
 
-.netcatty-mdx-editor--preview .netcatty-mdx-content li[role="checkbox"]::before,
-.netcatty-mdx-editor--preview .netcatty-mdx-content li[aria-checked]::before,
-.netcatty-mdx-editor--preview .netcatty-mdx-content li[aria-checked="true"]::after {
+.lemonssh-mdx-editor--preview .lemonssh-mdx-content li[role="checkbox"]::before,
+.lemonssh-mdx-editor--preview .lemonssh-mdx-content li[aria-checked]::before,
+.lemonssh-mdx-editor--preview .lemonssh-mdx-content li[aria-checked="true"]::after {
   cursor: pointer !important;
 }
 
-.netcatty-mdx-content code {
+.lemonssh-mdx-content code {
   border-radius: 4px;
   background: hsl(var(--secondary) / 0.8);
   padding: 0.12rem 0.3rem;
@@ -1366,14 +1366,14 @@ html[data-theme-transition] *::after {
   font-size: var(--note-code-font-size, 0.88em);
 }
 
-.netcatty-mdx-content pre {
+.lemonssh-mdx-content pre {
   border: 0;
   border-radius: 0;
   background: transparent;
   padding: 0;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorWrapper_"] {
+.lemonssh-mdx-editor [class*="_codeMirrorWrapper_"] {
   position: relative !important;
   min-height: 2rem !important;
   margin: 0.35rem 0 0.65rem;
@@ -1384,7 +1384,7 @@ html[data-theme-transition] *::after {
   overflow: visible !important;
 }
 
-.netcatty-note-code-copy {
+.lemonssh-note-code-copy {
   position: absolute !important;
   top: 0.2rem !important;
   right: 0.15rem !important;
@@ -1405,64 +1405,64 @@ html[data-theme-transition] *::after {
   transition: opacity 0.15s, color 0.15s, background-color 0.15s;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorWrapper_"]:hover .netcatty-note-code-copy,
-.netcatty-mdx-editor .cm-editor:hover ~ .netcatty-note-code-copy,
-.netcatty-mdx-editor pre:hover .netcatty-note-code-copy,
-.netcatty-mdx-content pre:hover .netcatty-note-code-copy,
-.netcatty-mdx-editor--preview .netcatty-note-code-copy,
-.netcatty-note-code-copy[data-copied="true"],
-.netcatty-note-code-copy:focus-visible {
+.lemonssh-mdx-editor [class*="_codeMirrorWrapper_"]:hover .lemonssh-note-code-copy,
+.lemonssh-mdx-editor .cm-editor:hover ~ .lemonssh-note-code-copy,
+.lemonssh-mdx-editor pre:hover .lemonssh-note-code-copy,
+.lemonssh-mdx-content pre:hover .lemonssh-note-code-copy,
+.lemonssh-mdx-editor--preview .lemonssh-note-code-copy,
+.lemonssh-note-code-copy[data-copied="true"],
+.lemonssh-note-code-copy:focus-visible {
   opacity: 0.85 !important;
   pointer-events: auto !important;
 }
 
-.netcatty-note-code-copy:hover,
-.netcatty-mdx-editor--preview .netcatty-note-code-copy:hover {
+.lemonssh-note-code-copy:hover,
+.lemonssh-mdx-editor--preview .lemonssh-note-code-copy:hover {
   opacity: 1 !important;
   background: hsl(var(--secondary)) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-.netcatty-note-code-copy[data-copied="true"] {
+.lemonssh-note-code-copy[data-copied="true"] {
   color: hsl(var(--foreground)) !important;
 }
 
-.netcatty-mdx-editor .cm-editor,
-.netcatty-mdx-editor .cm-content,
-.netcatty-mdx-editor [class*="_codeMirrorWrapper_"],
-.netcatty-mdx-editor pre,
-.netcatty-mdx-editor code,
-.netcatty-mdx-editor [class*="_code_"],
-.netcatty-mdx-editor [class*="code_"],
-.netcatty-mdx-editor kbd,
-.netcatty-mdx-editor samp,
-.netcatty-mdx-content pre,
-.netcatty-mdx-content code,
-.netcatty-mdx-content [class*="_code_"],
-.netcatty-mdx-content [class*="code_"],
-.netcatty-mdx-content kbd,
-.netcatty-mdx-content samp,
-.netcatty-source-editor,
-.netcatty-source-editor textarea {
+.lemonssh-mdx-editor .cm-editor,
+.lemonssh-mdx-editor .cm-content,
+.lemonssh-mdx-editor [class*="_codeMirrorWrapper_"],
+.lemonssh-mdx-editor pre,
+.lemonssh-mdx-editor code,
+.lemonssh-mdx-editor [class*="_code_"],
+.lemonssh-mdx-editor [class*="code_"],
+.lemonssh-mdx-editor kbd,
+.lemonssh-mdx-editor samp,
+.lemonssh-mdx-content pre,
+.lemonssh-mdx-content code,
+.lemonssh-mdx-content [class*="_code_"],
+.lemonssh-mdx-content [class*="code_"],
+.lemonssh-mdx-content kbd,
+.lemonssh-mdx-content samp,
+.lemonssh-source-editor,
+.lemonssh-source-editor textarea {
   font-family: var(--note-font-family, var(--font-mono)) !important;
 }
 
-.netcatty-mdx-editor .cm-editor,
-.netcatty-mdx-editor .cm-content,
-.netcatty-mdx-editor pre,
-.netcatty-mdx-content pre,
-.netcatty-source-editor textarea {
+.lemonssh-mdx-editor .cm-editor,
+.lemonssh-mdx-editor .cm-content,
+.lemonssh-mdx-editor pre,
+.lemonssh-mdx-content pre,
+.lemonssh-source-editor textarea {
   font-size: var(--note-code-font-size, 13px) !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorWrapper_"]:has([data-language="latex"]),
-.netcatty-mdx-editor [class*="_codeMirrorWrapper_"]:has([data-language="tex"]) {
+.lemonssh-mdx-editor [class*="_codeMirrorWrapper_"]:has([data-language="latex"]),
+.lemonssh-mdx-editor [class*="_codeMirrorWrapper_"]:has([data-language="tex"]) {
   border: 0 !important;
   background: transparent !important;
   padding: 0 !important;
 }
 
-.netcatty-math-formula-preview {
+.lemonssh-math-formula-preview {
   display: flex;
   align-items: center;
   justify-content: safe center;
@@ -1479,41 +1479,41 @@ html[data-theme-transition] *::after {
   min-height: 2.25rem;
 }
 
-.netcatty-math-formula-preview .katex-display {
+.lemonssh-math-formula-preview .katex-display {
   flex: 0 0 auto;
   margin: 0;
 }
 
-.netcatty-math-formula-preview .katex {
+.lemonssh-math-formula-preview .katex {
   font-size: 1em;
   color: inherit;
 }
 
-.netcatty-math-formula-preview .katex-mathml math {
+.lemonssh-math-formula-preview .katex-mathml math {
   flex: 0 0 auto;
 }
 
-.netcatty-math-reading-mode .cm-editor {
+.lemonssh-math-reading-mode .cm-editor {
   display: none !important;
 }
 
-.netcatty-math-reading-mode {
+.lemonssh-math-reading-mode {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
   margin: 0.4rem 0 !important;
 }
 
-.netcatty-math-reading-mode .netcatty-math-formula-preview {
+.lemonssh-math-reading-mode .lemonssh-math-formula-preview {
   margin: 0;
   background: transparent;
 }
 
-.netcatty-math-reading-mode > .netcatty-note-code-copy {
+.lemonssh-math-reading-mode > .lemonssh-note-code-copy {
   display: none !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"] {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"] {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1524,26 +1524,26 @@ html[data-theme-transition] *::after {
   overflow: visible !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) .netcatty-mdx-content p:has(+ [class*="_codeMirrorWrapper_"]) {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) .lemonssh-mdx-content p:has(+ [class*="_codeMirrorWrapper_"]) {
   margin-bottom: 0.2rem;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-editor {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-editor {
   min-height: 2rem !important;
   background: transparent !important;
   border-radius: 0 !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-content {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-content {
   padding: 0 !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-scroller {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"] .cm-scroller {
   padding-right: 4.8rem !important;
   min-height: 2.2rem !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorToolbar_"] {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorToolbar_"] {
   position: absolute !important;
   top: 0.35rem !important;
   right: 0.35rem !important;
@@ -1565,24 +1565,24 @@ html[data-theme-transition] *::after {
   transition: opacity 0.15s ease !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:hover [class*="_codeMirrorToolbar_"],
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:focus-within [class*="_codeMirrorToolbar_"],
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorToolbar_"]:has([data-state="open"]) {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:hover [class*="_codeMirrorToolbar_"],
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:focus-within [class*="_codeMirrorToolbar_"],
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorToolbar_"]:has([data-state="open"]) {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
 
 /* Language selector trigger in toolbar */
 /* Align the TooltipWrap span wrapper so the language select sits level with action buttons */
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_tooltipTrigger_"] {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_tooltipTrigger_"] {
   display: inline-flex !important;
   align-items: center !important;
   align-self: center !important;
   line-height: 1 !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"],
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"],
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
@@ -1607,13 +1607,13 @@ html[data-theme-transition] *::after {
   transition: background-color 0.15s ease, color 0.15s ease !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"]:hover,
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"]:hover {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"]:hover,
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"]:hover {
   background: hsl(var(--secondary)) !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] [data-radix-select-value],
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] > span:first-child {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] [data-radix-select-value],
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] > span:first-child {
   flex: 0 0 auto;
   overflow: visible;
   max-width: none;
@@ -1622,9 +1622,9 @@ html[data-theme-transition] *::after {
   white-space: nowrap;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectDropdownArrow_"] svg,
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"] svg,
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] svg {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectDropdownArrow_"] svg,
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"] svg,
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] svg {
   width: 10px !important;
   height: 10px !important;
   flex-shrink: 0;
@@ -1632,7 +1632,7 @@ html[data-theme-transition] *::after {
 }
 
 /* Base style for all action buttons (Delete & Copy) in toolbar */
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] button:not([class*="_selectTrigger_"]):not([class*="_toolbarCodeBlockLanguageSelectTrigger_"]) {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] button:not([class*="_selectTrigger_"]):not([class*="_toolbarCodeBlockLanguageSelectTrigger_"]) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1654,43 +1654,43 @@ html[data-theme-transition] *::after {
 }
 
 /* Delete Button specific hover */
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] button:not([class*="_selectTrigger_"]):not([class*="_toolbarCodeBlockLanguageSelectTrigger_"]):not(.netcatty-note-code-copy):hover {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] button:not([class*="_selectTrigger_"]):not([class*="_toolbarCodeBlockLanguageSelectTrigger_"]):not(.lemonssh-note-code-copy):hover {
   background: hsl(var(--destructive) / 0.15) !important;
   color: hsl(var(--destructive)) !important;
 }
 
 /* Copy Button inside toolbar */
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] .netcatty-note-code-copy {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] .lemonssh-note-code-copy {
   position: static !important;
   opacity: 1 !important;
   pointer-events: auto !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] .netcatty-note-code-copy:hover {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] .lemonssh-note-code-copy:hover {
   background: hsl(160 84% 39% / 0.15) !important;
   color: hsl(160 84% 39%) !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] button svg {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] button svg {
   width: 10px !important;
   height: 10px !important;
 }
 
-.netcatty-mdx-editor:not(.netcatty-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:has([class*="_codeMirrorToolbar_"]) > .netcatty-note-code-copy {
+.lemonssh-mdx-editor:not(.lemonssh-mdx-editor--preview) [class*="_codeMirrorWrapper_"]:has([class*="_codeMirrorToolbar_"]) > .lemonssh-note-code-copy {
   display: none !important;
 }
 
-.netcatty-mdx-editor--preview [class*="_codeMirrorToolbar_"] {
+.lemonssh-mdx-editor--preview [class*="_codeMirrorToolbar_"] {
   display: none !important;
 }
 
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"] span {
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_toolbarCodeBlockLanguageSelectTrigger_"] span {
   font-size: inherit !important;
   line-height: inherit !important;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"],
-.netcatty-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectContainer_"] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"],
+.lemonssh-mdx-editor [class*="_codeMirrorToolbar_"] [class*="_selectContainer_"] {
   width: auto !important;
   min-width: max-content !important;
   max-width: none !important;
@@ -1708,14 +1708,14 @@ html[data-theme-transition] *::after {
   filter: none !important;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [data-radix-select-viewport] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [data-radix-select-viewport] {
   width: auto !important;
   min-width: max-content !important;
   max-width: none !important;
   padding: 0 !important;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] {
   font-size: 11px !important;
   line-height: 1.25 !important;
   padding: 0.28rem 0.45rem !important;
@@ -1725,7 +1725,7 @@ html[data-theme-transition] *::after {
   text-overflow: clip;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] [data-radix-select-item-text] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] [data-radix-select-item-text] {
   font-size: 11px !important;
   line-height: 1.25 !important;
   white-space: nowrap;
@@ -1733,7 +1733,7 @@ html[data-theme-transition] *::after {
   text-overflow: clip;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] {
   width: auto !important;
   min-width: max-content !important;
   max-width: none !important;
@@ -1742,13 +1742,13 @@ html[data-theme-transition] *::after {
   overflow-y: auto;
 }
 
-.netcatty-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] {
+.lemonssh-mdx-editor [class*="_toolbarCodeBlockLanguageSelectContent_"] [class*="_selectItem_"] {
   font-size: 11px !important;
   padding: 0.28rem 0.45rem !important;
   min-height: 0 !important;
 }
 
-.netcatty-mdx-editor .cm-editor {
+.lemonssh-mdx-editor .cm-editor {
   --note-code-token-muted: hsl(var(--muted-foreground) / 0.9);
   --note-code-token-keyword: color-mix(in oklab, hsl(var(--primary)) 82%, hsl(var(--foreground)));
   --note-code-token-name: color-mix(in oklab, hsl(var(--primary)) 50%, hsl(var(--foreground)));
@@ -1763,66 +1763,66 @@ html[data-theme-transition] *::after {
   font-size: 13px !important;
 }
 
-.netcatty-mdx-editor .cm-scroller {
+.lemonssh-mdx-editor .cm-scroller {
   background: transparent !important;
   color: hsl(var(--foreground) / 0.9) !important;
   font-family: var(--font-mono);
 }
 
-.netcatty-mdx-editor .cm-content {
+.lemonssh-mdx-editor .cm-content {
   background: transparent !important;
   color: hsl(var(--foreground) / 0.9) !important;
   font-family: var(--font-mono);
   padding: 0 !important;
 }
 
-.netcatty-mdx-editor .cm-line {
+.lemonssh-mdx-editor .cm-line {
   color: inherit !important;
   line-height: 1.45 !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-muted {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-muted {
   color: var(--note-code-token-muted) !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-keyword {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-keyword {
   color: var(--note-code-token-keyword) !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-name,
-.netcatty-mdx-editor .cm-content .netcatty-code-token-variable,
-.netcatty-mdx-editor .cm-content .netcatty-code-token-type,
-.netcatty-mdx-editor .cm-content .netcatty-code-token-property {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-name,
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-variable,
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-type,
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-property {
   color: var(--note-code-token-name) !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-value {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-value {
   color: var(--note-code-token-value) !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-string {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-string {
   color: var(--note-code-token-string) !important;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-link {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-link {
   color: hsl(var(--primary)) !important;
   text-decoration: underline;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-heading,
-.netcatty-mdx-editor .cm-content .netcatty-code-token-strong {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-heading,
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-strong {
   font-weight: 600;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-emphasis {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-emphasis {
   font-style: italic;
 }
 
-.netcatty-mdx-editor .cm-content .netcatty-code-token-invalid {
+.lemonssh-mdx-editor .cm-content .lemonssh-code-token-invalid {
   color: hsl(var(--destructive)) !important;
 }
 
-.netcatty-mdx-editor .cm-gutters {
+.lemonssh-mdx-editor .cm-gutters {
   border-right: 1px solid hsl(var(--border) / 0.35) !important;
   background: transparent !important;
   color: hsl(var(--muted-foreground) / 0.75) !important;
@@ -1832,46 +1832,46 @@ html[data-theme-transition] *::after {
   padding: 0 !important;
 }
 
-.netcatty-mdx-editor .cm-gutterElement {
+.lemonssh-mdx-editor .cm-gutterElement {
   font-size: 13px !important;
   line-height: 1.45 !important;
 }
 
-.netcatty-mdx-editor .cm-lineNumbers .cm-gutterElement {
+.lemonssh-mdx-editor .cm-lineNumbers .cm-gutterElement {
   padding: 0 0.45rem 0 0.55rem !important;
 }
 
-.netcatty-mdx-editor .cm-activeLine,
-.netcatty-mdx-editor .cm-activeLineGutter {
+.lemonssh-mdx-editor .cm-activeLine,
+.lemonssh-mdx-editor .cm-activeLineGutter {
   background: transparent !important;
 }
 
-.netcatty-mdx-editor .cm-editor:focus-within .cm-activeLine,
-.netcatty-mdx-editor .cm-editor:focus-within .cm-activeLineGutter {
+.lemonssh-mdx-editor .cm-editor:focus-within .cm-activeLine,
+.lemonssh-mdx-editor .cm-editor:focus-within .cm-activeLineGutter {
   background: hsl(var(--primary) / 0.08) !important;
 }
 
-.netcatty-mdx-editor .cm-selectionBackground {
+.lemonssh-mdx-editor .cm-selectionBackground {
   background: hsl(var(--primary) / 0.22) !important;
 }
 
-.netcatty-mdx-editor .cm-cursor {
+.lemonssh-mdx-editor .cm-cursor {
   border-left-color: hsl(var(--foreground)) !important;
 }
 
-.netcatty-mdx-content blockquote {
+.lemonssh-mdx-content blockquote {
   margin: 0.7rem 0;
   border-left: 2px solid hsl(var(--border));
   padding-left: 0.85rem;
   color: hsl(var(--muted-foreground));
 }
 
-.netcatty-mdx-content hr {
+.lemonssh-mdx-content hr {
   margin: 1.35rem 0;
   border-color: hsl(var(--border) / 0.45);
 }
 
-.netcatty-mdx-content table:not([class*="_tableEditor_"]) {
+.lemonssh-mdx-content table:not([class*="_tableEditor_"]) {
   margin: 0.9rem 0;
   width: max-content;
   max-width: 100%;
@@ -1879,15 +1879,15 @@ html[data-theme-transition] *::after {
   border: 1px solid hsl(var(--border));
 }
 
-.netcatty-mdx-content table:not([class*="_tableEditor_"]) th,
-.netcatty-mdx-content table:not([class*="_tableEditor_"]) td {
+.lemonssh-mdx-content table:not([class*="_tableEditor_"]) th,
+.lemonssh-mdx-content table:not([class*="_tableEditor_"]) td {
   border: 1px solid hsl(var(--border) / 0.45);
   padding: 0.42rem 0.65rem;
   text-align: left;
   vertical-align: top;
 }
 
-.netcatty-mdx-content table:not([class*="_tableEditor_"]) th {
+.lemonssh-mdx-content table:not([class*="_tableEditor_"]) th {
   font-weight: 650;
 }
 
@@ -1898,9 +1898,9 @@ html[data-theme-transition] *::after {
  * images (e.g. <img height="24">) — that would ignore the presentational size.
  * Do NOT force width:auto — that would ignore a 128px logo preference.
  */
-.netcatty-mdx-content img,
-.netcatty-mdx-editor [class*="_imageWrapper_"] img,
-.netcatty-mdx-editor img {
+.lemonssh-mdx-content img,
+.lemonssh-mdx-editor [class*="_imageWrapper_"] img,
+.lemonssh-mdx-editor img {
   max-width: 100% !important;
   object-fit: contain;
   display: block;
@@ -1910,27 +1910,27 @@ html[data-theme-transition] *::after {
 }
 
 /* Width-only (or no size): keep aspect ratio via height:auto. */
-.netcatty-mdx-content img:not([height]),
-.netcatty-mdx-content img[width],
-.netcatty-mdx-editor [class*="_imageWrapper_"] img:not([height]),
-.netcatty-mdx-editor [class*="_imageWrapper_"] img[width],
-.netcatty-mdx-editor img:not([height]),
-.netcatty-mdx-editor img[width] {
+.lemonssh-mdx-content img:not([height]),
+.lemonssh-mdx-content img[width],
+.lemonssh-mdx-editor [class*="_imageWrapper_"] img:not([height]),
+.lemonssh-mdx-editor [class*="_imageWrapper_"] img[width],
+.lemonssh-mdx-editor img:not([height]),
+.lemonssh-mdx-editor img[width] {
   height: auto !important;
 }
 
 /* Height-only: keep aspect ratio via width:auto (do not force height:auto above). */
-.netcatty-mdx-content img[height]:not([width]),
-.netcatty-mdx-editor [class*="_imageWrapper_"] img[height]:not([width]),
-.netcatty-mdx-editor img[height]:not([width]) {
+.lemonssh-mdx-content img[height]:not([width]),
+.lemonssh-mdx-editor [class*="_imageWrapper_"] img[height]:not([width]),
+.lemonssh-mdx-editor img[height]:not([width]) {
   width: auto !important;
   max-width: 100% !important;
 }
 
 /* Cap MDX image chrome when ImageNode bakes large pixel widths into styles. */
-.netcatty-mdx-editor [class*="_imageWrapper_"],
-.netcatty-mdx-editor [class*="_imageContainer_"],
-.netcatty-mdx-editor [class*="_imageControlWrapper_"] {
+.lemonssh-mdx-editor [class*="_imageWrapper_"],
+.lemonssh-mdx-editor [class*="_imageContainer_"],
+.lemonssh-mdx-editor [class*="_imageControlWrapper_"] {
   max-width: 100% !important;
   height: auto !important;
   overflow: visible !important;
@@ -1943,16 +1943,16 @@ html[data-theme-transition] *::after {
  * combinatorial :has(img[width="N"]) matrix that thrashes style recalc on
  * badge walls. Large screenshots stay block + full-width capped above.
  */
-.netcatty-mdx-content img[data-note-img-size="sm"],
-.netcatty-mdx-editor img[data-note-img-size="sm"] {
+.lemonssh-mdx-content img[data-note-img-size="sm"],
+.lemonssh-mdx-editor img[data-note-img-size="sm"] {
   display: inline-block !important;
   margin: 0.35rem 0.4rem !important;
   vertical-align: middle;
   border-radius: 0.25rem;
 }
 
-.netcatty-mdx-editor [data-editor-block-type="image"][data-note-img-size="sm"],
-.netcatty-mdx-editor [class*="_imageWrapper_"][data-note-img-size="sm"] {
+.lemonssh-mdx-editor [data-editor-block-type="image"][data-note-img-size="sm"],
+.lemonssh-mdx-editor [class*="_imageWrapper_"][data-note-img-size="sm"] {
   display: inline-block !important;
   vertical-align: middle;
   margin: 0.2rem 0.15rem !important;
@@ -1961,15 +1961,15 @@ html[data-theme-transition] *::after {
 }
 
 /* Lone image paragraph marked sm by JS — keep it in the icon row. */
-.netcatty-mdx-content p[data-note-img-size="sm"],
-.netcatty-mdx-editor p[data-note-img-size="sm"] {
+.lemonssh-mdx-content p[data-note-img-size="sm"],
+.lemonssh-mdx-editor p[data-note-img-size="sm"] {
   display: inline !important;
   margin: 0 !important;
 }
 
 /* Image chrome stays out of the image until the image is hovered or focused. */
-.netcatty-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"],
-.netcatty-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] {
+.lemonssh-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"],
+.lemonssh-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] {
   top: 0.375rem;
   right: 0.375rem;
   gap: 0.0625rem;
@@ -1983,8 +1983,8 @@ html[data-theme-transition] *::after {
   transition: opacity 120ms ease;
 }
 
-.netcatty-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button,
-.netcatty-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button {
+.lemonssh-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button,
+.lemonssh-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button {
   display: inline-flex;
   width: 1.375rem;
   height: 1.375rem;
@@ -1993,21 +1993,21 @@ html[data-theme-transition] *::after {
   border-radius: 0.25rem;
 }
 
-.netcatty-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button svg,
-.netcatty-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button svg {
+.lemonssh-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button svg,
+.lemonssh-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button svg {
   width: 0.875rem;
   height: 0.875rem;
 }
 
-.netcatty-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button:hover,
-.netcatty-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button:hover {
+.lemonssh-mdx-editor [data-editor-block-type="image"] [class*="_editImageToolbar_"] button:hover,
+.lemonssh-mdx-editor [class*="_imageWrapper_"] [class*="_editImageToolbar_"] button:hover {
   background: hsl(var(--secondary) / 0.75);
 }
 
-.netcatty-mdx-editor [data-editor-block-type="image"]:hover [class*="_editImageToolbar_"],
-.netcatty-mdx-editor [data-editor-block-type="image"]:focus-within [class*="_editImageToolbar_"],
-.netcatty-mdx-editor [class*="_imageWrapper_"]:hover [class*="_editImageToolbar_"],
-.netcatty-mdx-editor [class*="_imageWrapper_"]:focus-within [class*="_editImageToolbar_"] {
+.lemonssh-mdx-editor [data-editor-block-type="image"]:hover [class*="_editImageToolbar_"],
+.lemonssh-mdx-editor [data-editor-block-type="image"]:focus-within [class*="_editImageToolbar_"],
+.lemonssh-mdx-editor [class*="_imageWrapper_"]:hover [class*="_editImageToolbar_"],
+.lemonssh-mdx-editor [class*="_imageWrapper_"]:focus-within [class*="_editImageToolbar_"] {
   opacity: 1;
   pointer-events: auto;
 }
@@ -2016,32 +2016,32 @@ html[data-theme-transition] *::after {
  * Preserve README-style center alignment from paste (MDX edit path).
  * (<div align="center"> / align=center / text-align:center).
  */
-.netcatty-mdx-content [align="center"],
-.netcatty-mdx-editor [align="center"],
-.netcatty-mdx-content [style*="text-align:center"],
-.netcatty-mdx-content [style*="text-align: center"],
-.netcatty-mdx-editor [style*="text-align:center"],
-.netcatty-mdx-editor [style*="text-align: center"] {
+.lemonssh-mdx-content [align="center"],
+.lemonssh-mdx-editor [align="center"],
+.lemonssh-mdx-content [style*="text-align:center"],
+.lemonssh-mdx-content [style*="text-align: center"],
+.lemonssh-mdx-editor [style*="text-align:center"],
+.lemonssh-mdx-editor [style*="text-align: center"] {
   text-align: center !important;
 }
 
-.netcatty-mdx-content [align="center"] img,
-.netcatty-mdx-editor [align="center"] img,
-.netcatty-mdx-content [align="center"] [class*="_imageWrapper_"],
-.netcatty-mdx-editor [align="center"] [class*="_imageWrapper_"],
-.netcatty-mdx-content [align="center"] [data-editor-block-type="image"],
-.netcatty-mdx-editor [align="center"] [data-editor-block-type="image"] {
+.lemonssh-mdx-content [align="center"] img,
+.lemonssh-mdx-editor [align="center"] img,
+.lemonssh-mdx-content [align="center"] [class*="_imageWrapper_"],
+.lemonssh-mdx-editor [align="center"] [class*="_imageWrapper_"],
+.lemonssh-mdx-content [align="center"] [data-editor-block-type="image"],
+.lemonssh-mdx-editor [align="center"] [data-editor-block-type="image"] {
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
 /* Badge / shield images inside links: keep inline so rows stay horizontal. */
-.netcatty-mdx-content a img,
-.netcatty-mdx-editor a img,
-.netcatty-mdx-content a [class*="_imageWrapper_"],
-.netcatty-mdx-editor a [class*="_imageWrapper_"],
-.netcatty-mdx-content a [data-editor-block-type="image"],
-.netcatty-mdx-editor a [data-editor-block-type="image"] {
+.lemonssh-mdx-content a img,
+.lemonssh-mdx-editor a img,
+.lemonssh-mdx-content a [class*="_imageWrapper_"],
+.lemonssh-mdx-editor a [class*="_imageWrapper_"],
+.lemonssh-mdx-content a [data-editor-block-type="image"],
+.lemonssh-mdx-editor a [data-editor-block-type="image"] {
   display: inline-block !important;
   margin: 0.25rem 0.35rem !important;
   vertical-align: middle;
@@ -2049,29 +2049,29 @@ html[data-theme-transition] *::after {
   height: auto !important;
 }
 
-.netcatty-mdx-content a:has(img),
-.netcatty-mdx-editor a:has(img),
-.netcatty-mdx-content a:has([data-editor-block-type="image"]),
-.netcatty-mdx-editor a:has([data-editor-block-type="image"]) {
+.lemonssh-mdx-content a:has(img),
+.lemonssh-mdx-editor a:has(img),
+.lemonssh-mdx-content a:has([data-editor-block-type="image"]),
+.lemonssh-mdx-editor a:has([data-editor-block-type="image"]) {
   display: inline-block !important;
   text-decoration: none !important;
   vertical-align: middle;
   margin: 0.15rem 0.25rem;
 }
 
-.netcatty-mdx-content a {
+.lemonssh-mdx-content a {
   color: hsl(var(--primary));
   text-decoration: underline;
   text-underline-offset: 0.18em;
 }
 
-.netcatty-mdx-content a[data-netcatty-host-link="true"] {
+.lemonssh-mdx-content a[data-lemonssh-host-link="true"] {
   display: inline-flex;
   align-items: baseline;
   gap: 0.28em;
 }
 
-.netcatty-mdx-content a[data-netcatty-host-link="true"]::before {
+.lemonssh-mdx-content a[data-lemonssh-host-link="true"]::before {
   content: "";
   display: inline-block;
   width: 0.92em;
@@ -2083,40 +2083,40 @@ html[data-theme-transition] *::after {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='16' height='10' x='4' y='5' rx='2'/%3E%3Cpath d='M12 15v4'/%3E%3Cpath d='M8 19h8'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.dark .netcatty-mdx-content table:not([class*="_tableEditor_"]) {
+.dark .lemonssh-mdx-content table:not([class*="_tableEditor_"]) {
   border-color: hsl(var(--foreground) / 0.32);
 }
 
-.dark .netcatty-mdx-content table:not([class*="_tableEditor_"]) th,
-.dark .netcatty-mdx-content table:not([class*="_tableEditor_"]) td {
+.dark .lemonssh-mdx-content table:not([class*="_tableEditor_"]) th,
+.dark .lemonssh-mdx-content table:not([class*="_tableEditor_"]) td {
   border-color: hsl(var(--foreground) / 0.18);
 }
 
-.netcatty-mdx-editor [class*="_tableColumnEditorTrigger_"],
-.netcatty-mdx-editor [class*="_tableRowEditorTrigger_"],
-.netcatty-mdx-editor [class*="_addRowButton_"],
-.netcatty-mdx-editor [class*="_addColumnButton_"],
-.netcatty-mdx-editor [class*="_tableColumnEditorToolbar_"] button {
+.lemonssh-mdx-editor [class*="_tableColumnEditorTrigger_"],
+.lemonssh-mdx-editor [class*="_tableRowEditorTrigger_"],
+.lemonssh-mdx-editor [class*="_addRowButton_"],
+.lemonssh-mdx-editor [class*="_addColumnButton_"],
+.lemonssh-mdx-editor [class*="_tableColumnEditorToolbar_"] button {
   cursor: pointer !important;
 }
 
-.netcatty-mdx-editor [class*="_tableColumnEditorPopoverContent_"] {
+.lemonssh-mdx-editor [class*="_tableColumnEditorPopoverContent_"] {
   z-index: 80;
   background: hsl(var(--popover));
   color: hsl(var(--popover-foreground));
 }
 
-.netcatty-mdx-editor [data-radix-popper-content-wrapper] {
+.lemonssh-mdx-editor [data-radix-popper-content-wrapper] {
   z-index: 90 !important;
 }
 
-.netcatty-mdx-editor [class*="_tableEditor_"] > tbody > tr > td:not([class*="_toolCell_"]),
-.netcatty-mdx-editor [class*="_tableEditor_"] > tbody > tr > th:not([class*="_toolCell_"]):not([data-tool-cell="true"]) {
+.lemonssh-mdx-editor [class*="_tableEditor_"] > tbody > tr > td:not([class*="_toolCell_"]),
+.lemonssh-mdx-editor [class*="_tableEditor_"] > tbody > tr > th:not([class*="_toolCell_"]):not([data-tool-cell="true"]) {
   border-color: hsl(var(--border)) !important;
 }
 
-.dark .netcatty-mdx-editor [class*="_tableEditor_"] > tbody > tr > td:not([class*="_toolCell_"]),
-.dark .netcatty-mdx-editor [class*="_tableEditor_"] > tbody > tr > th:not([class*="_toolCell_"]):not([data-tool-cell="true"]) {
+.dark .lemonssh-mdx-editor [class*="_tableEditor_"] > tbody > tr > td:not([class*="_toolCell_"]),
+.dark .lemonssh-mdx-editor [class*="_tableEditor_"] > tbody > tr > th:not([class*="_toolCell_"]):not([data-tool-cell="true"]) {
   border-color: hsl(var(--foreground) / 0.3) !important;
 }
 

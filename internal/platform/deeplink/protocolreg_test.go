@@ -52,7 +52,8 @@ func TestSetOSProtocolsWritesAllSchemes(t *testing.T) {
 	if err := SetOSProtocols(store, exe, true); err != nil {
 		t.Fatal(err)
 	}
-	for _, scheme := range ProtocolSchemes {
+	// Enable registers both the current and the legacy schemes.
+	for _, scheme := range append(append([]string{}, ProtocolSchemes...), LegacyProtocolSchemes...) {
 		command, err := store.GetString(classesRoot+"\\"+scheme+"\\shell\\open\\command", "")
 		if err != nil {
 			t.Fatalf("scheme %s missing command: %v", scheme, err)
@@ -78,7 +79,8 @@ func TestSetOSProtocolsDisableRemovesTrees(t *testing.T) {
 	if err := SetOSProtocols(store, exe, false); err != nil {
 		t.Fatal(err)
 	}
-	for _, scheme := range ProtocolSchemes {
+	// Disable removes both the current and the legacy scheme trees.
+	for _, scheme := range append(append([]string{}, ProtocolSchemes...), LegacyProtocolSchemes...) {
 		found := false
 		for _, deleted := range store.deleted {
 			if deleted == classesRoot+"\\"+scheme {
@@ -119,5 +121,34 @@ func TestOSProtocolsRegisteredFalseWhenCommandDrifted(t *testing.T) {
 	store.values[keyID(classesRoot+"\\ssh\\shell\\open\\command", "")] = `"C:\Other\ssh.exe" "%1"`
 	if OSProtocolsRegistered(store, exe) {
 		t.Fatal("drifted command must read as not registered")
+	}
+}
+
+// TestOSProtocolsRegisteredWithLegacyOnlyRegistration proves a user who only
+// ever registered the pre-rename netcatty:// scheme still reads as
+// registered after the upgrade — otherwise the settings toggle would show
+// off and push them into re-enabling for nothing.
+func TestOSProtocolsRegisteredWithLegacyOnlyRegistration(t *testing.T) {
+	store := newFakeStore()
+	exe := "C:\\Apps\\LemonSSH.exe"
+	// Only the legacy scheme set is registered (as an old release did).
+	if err := SetOSProtocols(store, exe, true); err != nil {
+		t.Fatal(err)
+	}
+	// Revert the current scheme keys so only netcatty:// remains.
+	for _, scheme := range ProtocolSchemes {
+		_ = store.DeleteTree(classesRoot + "\\" + scheme)
+	}
+	if !OSProtocolsRegistered(store, exe) {
+		t.Fatal("a complete legacy-only registration must read as registered")
+	}
+}
+
+// TestOSProtocolsRegisteredFalseWithoutAnyScheme: nothing registered at all
+// reads as unregistered.
+func TestOSProtocolsRegisteredFalseWithoutAnyScheme(t *testing.T) {
+	store := newFakeStore()
+	if OSProtocolsRegistered(store, "C:\\Apps\\LemonSSH.exe") {
+		t.Fatal("an empty registry must read as not registered")
 	}
 }

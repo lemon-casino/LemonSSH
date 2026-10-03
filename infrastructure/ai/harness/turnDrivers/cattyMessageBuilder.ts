@@ -30,7 +30,7 @@ import { redactSecretsInValueForModel } from '../modelSecretRedaction';
 import { fitLargeUserInputForModel } from '../largeUserInput';
 import type { ToolOutputStore } from '../toolOutputStore';
 
-const OPENAI_CHAT_ASSISTANT_FIELDS = Symbol('netcatty.openAIChatAssistantFields');
+const OPENAI_CHAT_ASSISTANT_FIELDS = Symbol('lemonssh.openAIChatAssistantFields');
 
 type ModelMessageWithOpenAIChatFields = ModelMessage & {
   [OPENAI_CHAT_ASSISTANT_FIELDS]?: OpenAIChatAssistantFields;

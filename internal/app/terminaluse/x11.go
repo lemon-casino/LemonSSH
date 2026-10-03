@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 )
 

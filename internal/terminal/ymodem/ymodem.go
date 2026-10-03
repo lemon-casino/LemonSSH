@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/zmodem"
+	"github.com/binaricat/lemonssh/internal/terminal/zmodem"
 )
 
 // Protocol control bytes.

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import type { Host, Identity, KnownHost, SftpConnection, SftpFileEntry, SftpFilenameEncoding, SSHKey } from "../../../domain/models";
 import { createKnownHostFromHostKeyInfo } from "../../../domain/knownHosts";
 import type { SftpHostKeyInfo, SftpHostKeyVerificationState, SftpPane } from "./types";
@@ -56,13 +56,13 @@ export interface SftpConnectOptions {
   sourceSessionId?: string;
 }
 
-type SftpOpenBridge = Pick<NetcattyBridge, "openSftp"> &
-  Partial<Pick<NetcattyBridge, "openSftpForSession">>;
+type SftpOpenBridge = Pick<LemonSSHBridge, "openSftp"> &
+  Partial<Pick<LemonSSHBridge, "openSftpForSession">>;
 
 interface OpenSftpWithSessionPreferenceParams {
   bridge: SftpOpenBridge | null | undefined;
   sourceSessionId?: string;
-  openOptions: NetcattySSHOptions;
+  openOptions: LemonSSHSSHOptions;
 }
 
 export function takeSftpConnectionMetadataForClose(params: {
@@ -133,7 +133,7 @@ export async function openSftpWithSessionPreference({
 export const openSftpConnectionOnce = openSftpWithSessionPreference;
 
 export function rejectHostKeyVerificationRequest(
-  bridge: Partial<Pick<NetcattyBridge, "respondHostKeyVerification">> | null | undefined,
+  bridge: Partial<Pick<LemonSSHBridge, "respondHostKeyVerification">> | null | undefined,
   requestId: string,
 ): void {
   void bridge?.respondHostKeyVerification?.(requestId, false, false);
@@ -304,7 +304,7 @@ export const useSftpConnections = ({
   }, []);
 
   useEffect(() => {
-    const dispose = netcattyBridge.get()?.onHostKeyVerification?.((request: HostKeyVerificationRequest) => {
+    const dispose = lemonsshBridge.get()?.onHostKeyVerification?.((request: HostKeyVerificationRequest) => {
       const sessionId = request.sessionId;
       if (!sessionId) return;
       const activeSession = activeHostKeySessionsRef.current.get(sessionId);
@@ -324,7 +324,7 @@ export const useSftpConnections = ({
           rightTabsRef.current.tabs,
         );
       } catch {
-        rejectHostKeyVerificationRequest(netcattyBridge.get(), request.requestId);
+        rejectHostKeyVerificationRequest(lemonsshBridge.get(), request.requestId);
         return;
       }
       updateTab(activeSide, activeSession.tabId, (prev) => ({
@@ -350,7 +350,7 @@ export const useSftpConnections = ({
     if (accept && addToKnownHosts) {
       onAddKnownHost?.(createKnownHostFromSftpHostKeyInfo(pending.hostKeyInfo));
     }
-    void netcattyBridge.get()?.respondHostKeyVerification?.(
+    void lemonsshBridge.get()?.respondHostKeyVerification?.(
       pending.requestId,
       accept,
       addToKnownHosts,
@@ -505,7 +505,7 @@ export const useSftpConnections = ({
           sftpSessions: sftpSessionsRef.current,
           connectionCacheKeys: connectionCacheKeyMapRef.current,
           clearCacheForConnection,
-          closeSftp: async (sftpId) => netcattyBridge.get()?.closeSftp(sftpId),
+          closeSftp: async (sftpId) => lemonsshBridge.get()?.closeSftp(sftpId),
           onRemoteSessionClosed: (sftpId) => notifyRemoteSessionClosed(sftpId),
         });
       };
@@ -544,7 +544,7 @@ export const useSftpConnections = ({
           });
           if (!currentPane.connection.isLocal && oldSftpId) {
             try {
-              await netcattyBridge.get()?.closeSftp(oldSftpId);
+              await lemonsshBridge.get()?.closeSftp(oldSftpId);
             } catch {
               // Ignore errors when closing stale SFTP sessions
             }
@@ -672,7 +672,7 @@ export const useSftpConnections = ({
         const sftpSessionId = `sftp-${connectionId}`;
         activeHostKeySessionsRef.current.set(sftpSessionId, { side, tabId: activeTabId });
         let unsubSftpProgress: (() => void) | undefined;
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (bridge?.onSftpConnectionProgress) {
           unsubSftpProgress = bridge.onSftpConnectionProgress((sid, label, status, detail) => {
             if (sid !== sftpSessionId) return;
@@ -743,7 +743,7 @@ export const useSftpConnections = ({
 
           if (!sharedHostCache) {
             // Detect home directory: SSH exec `echo ~` → SFTP realpath('.') → hardcoded fallback
-            const bridge = netcattyBridge.get();
+            const bridge = lemonsshBridge.get();
             let detected = false;
 
             if (bridge?.getSftpHomeDir) {
@@ -1040,7 +1040,7 @@ export const useSftpConnections = ({
       if (pane.connection && !pane.connection.isLocal) {
         if (sftpId) {
           try {
-            await netcattyBridge.get()?.closeSftp(sftpId);
+            await lemonsshBridge.get()?.closeSftp(sftpId);
           } catch {
             // Ignore errors when closing SFTP session during disconnect
           }

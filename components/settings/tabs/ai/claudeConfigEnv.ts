@@ -7,11 +7,11 @@
  */
 
 const CONFIG_DIR_KEY = "CLAUDE_CONFIG_DIR";
-// netcatty marker carrying the claude SDK `settings` option (a settings.json
+// LemonSSH marker carrying the claude SDK `settings` option (a settings.json
 // path or inline JSON). Extracted in the main process and passed to the SDK as
 // `options.settings`; never sent to the agent as a real env var. Additive to —
 // and independent of — CLAUDE_CONFIG_DIR.
-const SETTINGS_KEY = "NETCATTY_CLAUDE_SETTINGS";
+const SETTINGS_KEY = "LEMONSSH_CLAUDE_SETTINGS";
 const MANAGED_KEYS = new Set(["CLAUDE_CODE_EXECUTABLE", CONFIG_DIR_KEY, SETTINGS_KEY]);
 
 export function parseEnvLines(text: string): Record<string, string> {

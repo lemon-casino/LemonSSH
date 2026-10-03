@@ -71,7 +71,7 @@ function installBridge(t: test.TestContext, handlers: {
   });
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { netcatty: handlers },
+    value: { lemonssh: handlers },
   });
 }
 

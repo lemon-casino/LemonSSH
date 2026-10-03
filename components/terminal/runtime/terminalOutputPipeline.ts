@@ -91,8 +91,8 @@ type TerminalInterruptDisplayGate = {
   pendingDisplayControl: string;
 };
 
-const TERMINAL_INTERRUPT_DISPLAY_GATE_KEY = Symbol.for("netcatty.terminalInterruptDisplayGate");
-const TERMINAL_INTERRUPT_DISPLAY_GATES_KEY = Symbol.for("netcatty.terminalInterruptDisplayGates");
+const TERMINAL_INTERRUPT_DISPLAY_GATE_KEY = Symbol.for("lemonssh.terminalInterruptDisplayGate");
+const TERMINAL_INTERRUPT_DISPLAY_GATES_KEY = Symbol.for("lemonssh.terminalInterruptDisplayGates");
 const terminalInterruptDisplayGateStore = globalThis as typeof globalThis & Record<PropertyKey, unknown>;
 const terminalInterruptDisplayGates = (
   terminalInterruptDisplayGateStore[TERMINAL_INTERRUPT_DISPLAY_GATES_KEY] as

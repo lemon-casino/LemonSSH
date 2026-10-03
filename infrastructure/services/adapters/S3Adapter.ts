@@ -16,7 +16,10 @@ import {
   type ProviderAccount,
   type OAuthTokens,
 } from '../../../domain/sync';
-import { netcattyBridge } from '../netcattyBridge';
+// Under Wails this resolves to the runtime client's sync port (Go transport);
+// outside Wails it falls back to the aggregate bridge. Querying the aggregate
+// bridge directly would never reach CloudSyncS3* on the sync port.
+import { cloudSyncBridge as lemonsshBridge } from '../cloudSync/cloudSyncFacade';
 
 const normalizeEndpoint = (endpoint: string): string => {
   const trimmed = endpoint.trim();
@@ -82,7 +85,7 @@ export class S3Adapter {
     if (!this.config) {
       throw new Error('Missing S3 config');
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.cloudSyncS3Initialize) {
       const result = await bridge.cloudSyncS3Initialize(this.config);
       this.resource = result?.resourceId || this.getObjectKey();
@@ -111,7 +114,7 @@ export class S3Adapter {
     if (!this.config) {
       throw new Error('Missing S3 config');
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.cloudSyncS3Upload) {
       const result = await bridge.cloudSyncS3Upload(this.config, syncedFile);
       this.resource = result?.resourceId || this.getObjectKey();
@@ -133,48 +136,56 @@ export class S3Adapter {
     if (!this.config) {
       throw new Error('Missing S3 config');
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.cloudSyncS3Download) {
       const result = await bridge.cloudSyncS3Download(this.config);
       return (result?.syncedFile ?? null) as SyncedFile | null;
     }
     const client = this.getClient();
-    try {
-      const response = await client.send(new GetObjectCommand({
-        Bucket: this.config.bucket,
-        Key: this.getObjectKey(),
-      }));
-      const text = await toBodyString(response.Body);
-      if (!text) return null;
-      return JSON.parse(text) as SyncedFile;
-    } catch (error) {
-      if (this.isNotFound(error)) {
-        return null;
+    // compat#5: prefer the renamed object key, falling back to the legacy
+    // netcatty-vault.json key written by pre-rename builds.
+    for (const key of this.getObjectKeys()) {
+      try {
+        const response = await client.send(new GetObjectCommand({
+          Bucket: this.config.bucket,
+          Key: key,
+        }));
+        const text = await toBodyString(response.Body);
+        if (!text) return null;
+        return JSON.parse(text) as SyncedFile;
+      } catch (error) {
+        if (this.isNotFound(error)) {
+          continue;
+        }
+        throw error;
       }
-      throw error;
     }
+    return null;
   }
 
   async deleteSync(): Promise<void> {
     if (!this.config) {
       return;
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.cloudSyncS3Delete) {
       await bridge.cloudSyncS3Delete(this.config);
       return;
     }
     const client = this.getClient();
-    try {
-      await client.send(new DeleteObjectCommand({
-        Bucket: this.config.bucket,
-        Key: this.getObjectKey(),
-      }));
-    } catch (error) {
-      if (this.isNotFound(error)) {
-        return;
+    // compat#5: the user asked to delete the remote snapshot — remove both
+    // spellings so a legacy-named object cannot resurrect via fallback.
+    for (const key of this.getObjectKeys()) {
+      try {
+        await client.send(new DeleteObjectCommand({
+          Bucket: this.config.bucket,
+          Key: key,
+        }));
+      } catch (error) {
+        if (!this.isNotFound(error)) {
+          throw error;
+        }
       }
-      throw error;
     }
   }
 
@@ -185,7 +196,7 @@ export class S3Adapter {
   private getClient(): S3Client {
     if (!this.config || !this.client) {
       if (this.config?.allowInsecure) {
-        throw new Error('S3 insecure connections require the Netcatty desktop sync bridge');
+        throw new Error('S3 insecure connections require the LemonSSH desktop sync bridge');
       }
       throw new Error('Missing S3 config');
     }
@@ -240,6 +251,22 @@ export class S3Adapter {
       return SYNC_CONSTANTS.SYNC_FILE_NAME;
     }
     return `${prefix}/${SYNC_CONSTANTS.SYNC_FILE_NAME}`;
+  }
+
+  /**
+   * compat#5: read/delete candidates, renamed key first and the legacy
+   * netcatty-vault.json key second. Uploads always target getObjectKey().
+   */
+  private getObjectKeys(): string[] {
+    const current = this.getObjectKey();
+    if (!this.config) {
+      return [current];
+    }
+    const prefix = (this.config.prefix || '').trim().replace(/^\/+|\/+$/g, '');
+    const legacy = prefix
+      ? `${prefix}/${SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME}`
+      : SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME;
+    return [current, legacy];
   }
 
   private buildAccountInfo(config: S3Config | null): ProviderAccount | null {

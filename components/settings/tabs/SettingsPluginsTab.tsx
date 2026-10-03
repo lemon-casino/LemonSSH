@@ -5,13 +5,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { normalizePluginKeyboardEvent } from '../../../application/state/pluginKeybindings';
 import { usePluginContributions } from '../../../application/state/usePluginContributions';
+import {
+  usePluginViewData,
+  type PluginViewDataRequest,
+} from '../../../application/state/usePluginViewData';
 import { useI18n } from '../../../application/i18n/I18nProvider';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { SettingsAnchor, SettingsTabContent } from '../settings-ui';
-import { requestOpenPluginView } from '../../plugins/PluginContributionHost';
 import { parsePluginStructuredSettingValue } from './pluginSettingValues';
 import { PluginStructuredSettingEditor } from './PluginStructuredSettingEditor';
+import { PluginManagerSection } from './PluginManagerSection';
 import { useAvailableFonts } from '../../../application/state/fontStore';
 import { TerminalFontSelect } from '../TerminalFontSelect';
 import {
@@ -29,7 +33,7 @@ export function PluginSettingField({
   availableFonts,
 }: {
   pluginId: string;
-  setting: NetcattyPluginSettingContribution;
+  setting: LemonSSHPluginSettingContribution;
   updateSetting: ReturnType<typeof usePluginContributions>['updateSetting'];
   resetSetting: ReturnType<typeof usePluginContributions>['resetSetting'];
   selectSettingPath: ReturnType<typeof usePluginContributions>['selectSettingPath'];
@@ -285,19 +289,37 @@ export default function SettingsPluginsTab({ declarativePlugins = [] }: { declar
   const { t } = useI18n();
   const availableFonts = useAvailableFonts();
   const scopeCatalog = usePluginSettingScopeCatalog();
-  const [scopeIds, setScopeIds] = useState<Partial<Record<NetcattyPluginSettingScopeKind, string>>>({});
+  const [scopeIds, setScopeIds] = useState<Partial<Record<LemonSSHPluginSettingScopeKind, string>>>({});
   useEffect(() => {
     setScopeIds((current) => resolvePluginSettingScopeSelection(scopeCatalog, current));
   }, [scopeCatalog]);
-  const query = useMemo<NetcattyPluginContributionQuery>(() => ({
-    context: { 'netcatty.surface': 'settings' },
+  const query = useMemo<LemonSSHPluginContributionQuery>(() => ({
+    context: { 'lemonssh.surface': 'settings' },
     scopeIds,
   }), [scopeIds]);
   const contributions = usePluginContributions(query);
   const contextualScopes = useMemo(() => new Set(contributions.snapshot.plugins
     .flatMap((plugin) => plugin.settings.map((setting) => setting.scope))
-    .filter((scope): scope is NetcattyPluginSettingScopeKind => scope !== 'application')),
+    .filter((scope): scope is LemonSSHPluginSettingScopeKind => scope !== 'application')),
   [contributions.snapshot.plugins]);
+  // Declarative settings views render inline: the schema (columns/bindings)
+  // comes from the plugin's validated ui schema, the data layer merges the
+  // plugin's view.data dispatch over its declared settings values.
+  const schemaViewByPlugin = useMemo(() => new Map(declarative.plugins.map(
+    (plugin) => [plugin.pluginId, plugin.schema] as const,
+  )), [declarative.plugins]);
+  const viewDataRequests = useMemo<PluginViewDataRequest[]>(() => (
+    contributions.snapshot.plugins.flatMap((plugin) => (
+      plugin.views
+        .filter((view) => view.visible && view.location === 'settings')
+        .map((view) => ({
+          pluginId: plugin.id,
+          viewId: view.id,
+          bindings: schemaViewByPlugin.get(plugin.id)?.views?.find((schemaView) => schemaView.id === view.id)?.bindings ?? [],
+        }))
+    ))
+  ), [contributions.snapshot.plugins, schemaViewByPlugin]);
+  const viewData = usePluginViewData(viewDataRequests, contributions.snapshot);
   const hasVisibleContributions = contributions.snapshot.plugins.some((plugin) => (
     plugin.settings.some((setting) => setting.visible)
     || plugin.views.some((view) => view.visible && view.location === 'settings')
@@ -330,11 +352,20 @@ export default function SettingsPluginsTab({ declarativePlugins = [] }: { declar
         {contributions.loading && <p className="text-sm text-muted-foreground">{t('settings.plugins.loading')}</p>}
         {!declarative.available && contributions.error && <PluginInstallError error={contributions.error} />}
         {declarative.error != null && <PluginInstallError error={declarative.error} />}
+        <PluginManagerSection />
         {[...declarative.plugins,...declarativePlugins].map(plugin => <DeclarativePluginHost key={plugin.pluginId} {...plugin} />)}
         {contributions.snapshot.plugins.map((plugin) => {
           const settings = plugin.settings.filter((setting) => setting.visible);
           const views = plugin.views.filter((view) => view.visible && view.location === 'settings');
           if (!settings.length && !views.length) return null;
+          const schemaEntry = declarative.plugins.find((candidate) => candidate.pluginId === plugin.id);
+          const schemaViews = views
+            .map((view) => schemaEntry?.schema.views?.find((schemaView) => schemaView.id === view.id))
+            .filter((schemaView): schemaView is NonNullable<typeof schemaView> => Boolean(schemaView));
+          const declarativeData = Object.assign(
+            {},
+            ...views.map((view) => viewData.data[plugin.id]?.[view.id]?.data ?? {}),
+          );
           return (
             <section key={plugin.id} className="space-y-3" aria-labelledby={`plugin-settings-${plugin.id}`}>
               <div>
@@ -352,6 +383,19 @@ export default function SettingsPluginsTab({ declarativePlugins = [] }: { declar
                   availableFonts={availableFonts}
                 />
               ))}
+              {schemaViews.length > 0 && (
+                <div id={`plugin-views-${plugin.id}`} className="space-y-3">
+                  <DeclarativePluginHost
+                    pluginId={plugin.id}
+                    schema={{ views: schemaViews }}
+                    values={schemaEntry.values}
+                    data={declarativeData}
+                    permissions={schemaEntry.permissions}
+                    onGrantPermission={schemaEntry.onGrantPermission}
+                    onSettingChange={schemaEntry.onSettingChange}
+                  />
+                </div>
+              )}
               {views.map((view) => (
                 <div key={view.id} className="flex items-center justify-between rounded-lg border border-border/70 bg-background p-4">
                   <div className="flex min-w-0 items-center gap-3">
@@ -361,10 +405,14 @@ export default function SettingsPluginsTab({ declarativePlugins = [] }: { declar
                     <div className="font-mono text-[10px] text-muted-foreground">{view.id}</div>
                     </div>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => requestOpenPluginView({
-                    viewId: view.id,
-                    context: { 'netcatty.surface': 'settings' },
-                  })}>{t('common.open')}</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document
+                      .getElementById(`plugin-views-${plugin.id}`)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  >{t('common.open')}</Button>
                 </div>
               ))}
             </section>

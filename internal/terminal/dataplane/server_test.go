@@ -28,7 +28,7 @@ func dialData(t *testing.T, server *Server, bootstrap RouteBootstrap) *websocket
 	url := "ws://" + server.Addr() + "/v1/data/" + bootstrap.SessionID + "?generation=" + itoa(int(bootstrap.Generation))
 	connection, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{
 		HTTPHeader:   map[string][]string{"Origin": {"http://localhost:5173"}},
-		Subprotocols: []string{"netcatty-terminal-v1", "route." + bootstrap.DataToken},
+		Subprotocols: []string{"lemonssh-terminal-v1", "route." + bootstrap.DataToken},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestServerAuthRejects(t *testing.T) {
 	// Bad origin.
 	_, response, err := websocket.Dial(ctx, "ws://"+address+"/v1/data/s1?generation=1", &websocket.DialOptions{
 		HTTPHeader:   map[string][]string{"Origin": {"http://evil.example"}},
-		Subprotocols: []string{"netcatty-terminal-v1", "route." + bootstrap.DataToken},
+		Subprotocols: []string{"lemonssh-terminal-v1", "route." + bootstrap.DataToken},
 	})
 	if err == nil {
 		t.Fatal("bad origin accepted")
@@ -100,7 +100,7 @@ func TestServerAuthRejects(t *testing.T) {
 	// Bad token.
 	_, response, err = websocket.Dial(ctx, "ws://"+address+"/v1/data/s1?generation=1", &websocket.DialOptions{
 		HTTPHeader:   map[string][]string{"Origin": {"http://localhost:5173"}},
-		Subprotocols: []string{"netcatty-terminal-v1", "route.0000000000000000000000000000000000000000000000000000000000000000"},
+		Subprotocols: []string{"lemonssh-terminal-v1", "route.0000000000000000000000000000000000000000000000000000000000000000"},
 	})
 	if err == nil {
 		t.Fatal("bad token accepted")
@@ -173,7 +173,7 @@ func TestServerUrgentAck(t *testing.T) {
 	url := "ws://" + server.Addr() + "/v1/urgent/s3?generation=" + itoa(int(bootstrap.Generation))
 	connection, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{
 		HTTPHeader:   map[string][]string{"Origin": {"http://localhost:5173"}},
-		Subprotocols: []string{"netcatty-terminal-v1", "route." + bootstrap.UrgentToken},
+		Subprotocols: []string{"lemonssh-terminal-v1", "route." + bootstrap.UrgentToken},
 	})
 	if err != nil {
 		t.Fatal(err)

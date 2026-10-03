@@ -1,44 +1,44 @@
 import { useCallback } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 export const useTrayPanelBackend = () => {
   const hideTrayPanel = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.hideTrayPanel?.();
   }, []);
 
   const openMainWindow = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.openMainWindow?.();
   }, []);
 
   const quitApp = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.quitApp?.();
   }, []);
 
   const jumpToSession = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.jumpToSessionFromTrayPanel?.(sessionId);
   }, []);
 
   const closeSessionFromTrayPanel = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.closeSessionFromTrayPanel?.(sessionId);
   }, []);
 
   const connectToHostFromTrayPanel = useCallback(async (hostId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.connectToHostFromTrayPanel?.(hostId);
   }, []);
 
   const onTrayPanelCloseRequest = useCallback((callback: () => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onTrayPanelCloseRequest?.(callback);
   }, []);
 
   const onTrayPanelRefresh = useCallback((callback: () => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onTrayPanelRefresh?.(callback);
   }, []);
 
@@ -59,7 +59,7 @@ export const useTrayPanelBackend = () => {
         }>;
       }) => void,
     ) => {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       return bridge?.onTrayPanelMenuData?.(callback);
     },
     [],

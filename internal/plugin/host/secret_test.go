@@ -2,11 +2,12 @@ package host
 
 import (
 	"encoding/json"
-	"errors"
-	"github.com/binaricat/netcatty/internal/platform/credentials"
-	"github.com/binaricat/netcatty/internal/plugin/store"
+	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/binaricat/lemonssh/internal/plugin/store"
 	"strings"
 	"testing"
+
+	keyring "github.com/zalando/go-keyring"
 )
 
 type testKeyring map[string]string
@@ -14,7 +15,9 @@ type testKeyring map[string]string
 func (k testKeyring) Get(s, u string) (string, error) {
 	value, ok := k[s+u]
 	if !ok {
-		return "", errors.New("missing")
+		// Only the canonical "secret absent" signal counts as a miss; the
+		// provider fails closed on every other Get failure.
+		return "", keyring.ErrNotFound
 	}
 	return value, nil
 }

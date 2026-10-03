@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { executeWebSearchProvider, type WebSearchKeyDecrypt } from "./webSearchProviders";
-import type { NetcattyBridge } from "../cattyAgent/executor";
+import type { LemonSSHBridge } from "../cattyAgent/executor";
 import type { WebSearchConfig } from "../types";
 
 const PLACEHOLDER = "__WEB_SEARCH_KEY__";
@@ -19,7 +19,7 @@ interface FakeBridgeOptions {
 }
 
 function createFakeBridge(options: FakeBridgeOptions = {}): {
-  bridge: NetcattyBridge;
+  bridge: LemonSSHBridge;
   fetchCalls: FetchCall[];
   allowlistCalls: string[];
   syncCalls: Array<{ apiHost: string | null; apiKey: string | null }>;
@@ -78,7 +78,7 @@ test("decrypt success sends the real key header and seeds the allowlist once", a
   const results = await executeWebSearchProvider(
     bridge,
     buildConfig(),
-    "netcatty test",
+    "lemonssh test",
     5,
     decrypt,
   );
@@ -104,7 +104,7 @@ test("native sync keeps the encrypted key out of renderer request headers", asyn
   await executeWebSearchProvider(
     bridge,
     buildConfig({ apiHost: undefined }),
-    "netcatty test",
+    "lemonssh test",
     5,
     decrypt,
   );
@@ -136,7 +136,7 @@ test("decrypt failure keeps the placeholder and still sends the request", async 
     const results = await executeWebSearchProvider(
       bridge,
       buildConfig(),
-      "netcatty test",
+      "lemonssh test",
       5,
       decrypt,
     );
@@ -160,7 +160,7 @@ test("decrypt passthrough keeps the placeholder: ciphertext must not go out", as
   const results = await executeWebSearchProvider(
     bridge,
     buildConfig(),
-    "netcatty test",
+    "lemonssh test",
     5,
     decryptPassthrough,
   );
@@ -185,7 +185,7 @@ test("no apiKey behaves as before: placeholder is sent", async () => {
   await executeWebSearchProvider(
     bridge,
     buildConfig({ apiKey: undefined }),
-    "netcatty test",
+    "lemonssh test",
     5,
     decrypt,
   );
@@ -205,7 +205,7 @@ test("allowlist call throwing does not affect the fetch", async () => {
   const results = await executeWebSearchProvider(
     bridge,
     buildConfig(),
-    "netcatty test",
+    "lemonssh test",
     5,
     decrypt,
   );
@@ -223,7 +223,7 @@ test("a preset default host is also registered with the allowlist", async () => 
   await executeWebSearchProvider(
     bridge,
     buildConfig({ apiHost: undefined }),
-    "netcatty test",
+    "lemonssh test",
     5,
     decrypt,
   );

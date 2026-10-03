@@ -1,5 +1,5 @@
 # =============================================================================
-# Allowlist .gitignore (https://github.com/binaricat/Netcatty/issues/2534)
+# Allowlist .gitignore (https://github.com/binaricat/LemonSSH/issues/2534)
 #
 # Layer 1 - default-deny at the repository root
 # Layer 2 - re-include only paths that belong in git
@@ -65,14 +65,14 @@
 !go.mod
 !go.sum
 !cmd/
-/cmd/netcatty/frontend/dist/*
-!/cmd/netcatty/frontend/dist/index.html
-/cmd/netcatty/bin
-/cmd/netcatty-profile-broker/*.exe
+/cmd/lemonssh/frontend/dist/*
+!/cmd/lemonssh/frontend/dist/index.html
+/cmd/lemonssh/bin
+/cmd/lemonssh-profile-broker/*.exe
 !cmd/**
-/cmd/netcatty/frontend/.retired-dist-*
-/cmd/netcatty/frontend/dist.retired-*
-/cmd/netcatty/frontend/dist.vacate-*
+/cmd/lemonssh/frontend/.retired-dist-*
+/cmd/lemonssh/frontend/dist.retired-*
+/cmd/lemonssh/frontend/dist.vacate-*
 !internal/
 !internal/**
 !tools/

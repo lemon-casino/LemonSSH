@@ -3,6 +3,7 @@ package cloudsync
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -125,5 +126,158 @@ func TestWebDAVSendsBasicAuth(t *testing.T) {
 	}
 	if !strings.Contains(fake.lastAuth, "Basic ") {
 		t.Fatal("basic auth header missing")
+	}
+}
+
+// digestServer implements one digest challenge/response cycle: requests
+// without a verifiable Digest Authorization header get a 401 challenge, valid
+// ones succeed. challenges counts served 401s so tests can prove the client
+// caches the challenge instead of re-paying the round trip.
+type digestServer struct {
+	mu         sync.Mutex
+	challenges int
+	algorithm  string
+	authHeader []string
+}
+
+func (s *digestServer) handler(realm, nonce, opaque string, username, password string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		valid := false
+		if strings.HasPrefix(auth, "Digest ") {
+			s.mu.Lock()
+			s.authHeader = append(s.authHeader, auth)
+			s.mu.Unlock()
+			params := parseAuthParams(auth)
+			algorithm := params["algorithm"]
+			if algorithm == "" {
+				algorithm = "MD5"
+			}
+			want := digestResponse(algorithm, username, password, realm, r.Method, r.URL.RequestURI(), nonce, params["nc"], params["cnonce"], params["qop"])
+			valid = params["username"] == username && params["response"] == want
+		}
+		if !valid {
+			s.mu.Lock()
+			s.challenges++
+			s.mu.Unlock()
+			w.Header().Set("WWW-Authenticate", fmt.Sprintf(
+				`Digest realm=%q, nonce=%q, qop="auth", opaque=%q, algorithm=%s`,
+				realm, nonce, opaque, s.algorithm))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func (s *digestServer) challengeCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.challenges
+}
+
+// TestWebDAVDigestAuth proves the client answers one 401 challenge with a
+// server-verifiable RFC 7616 response and then authorizes proactively: the
+// second operation must not trigger another 401.
+func TestWebDAVDigestAuth(t *testing.T) {
+	const (
+		digestUser = "lemon"
+		digestPass = "secret"
+		realm      = "dav@example.com"
+		nonce      = "nonce-abc123"
+		opaque     = "opaque-xyz"
+	)
+	for _, algorithm := range []string{"MD5", "SHA-256"} {
+		t.Run(algorithm, func(t *testing.T) {
+			serverState := &digestServer{algorithm: algorithm}
+			server := httptest.NewServer(serverState.handler(realm, nonce, opaque, digestUser, digestPass))
+			defer server.Close()
+
+			client := NewWebDAVClient(WebDAVConfig{
+				Endpoint: server.URL,
+				AuthType: "digest",
+				Username: digestUser,
+				Password: digestPass,
+			})
+			ctx := context.Background()
+
+			// First operation pays the challenge and retries.
+			if _, err := client.PutSnapshot(ctx, []byte("v1"), ""); err != nil {
+				t.Fatalf("first put: %v", err)
+			}
+			// Second operation reuses the cached challenge.
+			if _, err := client.PutSnapshot(ctx, []byte("v2"), ""); err != nil {
+				t.Fatalf("second put: %v", err)
+			}
+			if _, _, err := client.Snapshot(ctx); err != nil {
+				t.Fatalf("get: %v", err)
+			}
+
+			if got := serverState.challengeCount(); got != 1 {
+				t.Fatalf("challenges = %d, want 1 (challenge must be cached)", got)
+			}
+			header := serverState.authHeader[0]
+			if !strings.Contains(header, `qop=auth`) || !strings.Contains(header, "nc=00000001") {
+				t.Fatalf("first authorization = %q", header)
+			}
+			if !strings.Contains(header, `opaque="`+opaque+`"`) {
+				t.Fatalf("first authorization = %q", header)
+			}
+		})
+	}
+}
+
+// TestWebDAVSendsBearerToken: token configs authorize with Bearer, not basic.
+func TestWebDAVSendsBearerToken(t *testing.T) {
+	var mu sync.Mutex
+	var got string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		got = r.Header.Get("Authorization")
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewWebDAVClient(WebDAVConfig{Endpoint: server.URL, AuthType: "token", Token: "tok-123"})
+	if _, err := client.PutSnapshot(context.Background(), []byte("x"), ""); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if got != "Bearer tok-123" {
+		t.Fatalf("authorization = %q, want Bearer", got)
+	}
+}
+
+// TestWebDAVAllowInsecureSkipsTLSVerify: self-signed endpoints fail closed by
+// default and succeed with AllowInsecure.
+func TestWebDAVAllowInsecureSkipsTLSVerify(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	strict := NewWebDAVClient(WebDAVConfig{Endpoint: server.URL})
+	if _, _, err := strict.Snapshot(context.Background()); err == nil {
+		t.Fatal("expected certificate verification to fail without allowInsecure")
+	}
+
+	lenient := NewWebDAVClient(WebDAVConfig{Endpoint: server.URL, AllowInsecure: true})
+	if _, _, err := lenient.Snapshot(context.Background()); err != nil {
+		t.Fatalf("expected insecure client to succeed, got %v", err)
+	}
+}
+
+// TestWebDAVDefaultSnapshotNameMatchesRenderer pins the remote file name to
+// the renderer's SYNC_CONSTANTS.SYNC_FILE_NAME so switching between the Go
+// transport and the renderer fallback keeps addressing the same snapshot.
+func TestWebDAVDefaultSnapshotNameMatchesRenderer(t *testing.T) {
+	client := NewWebDAVClient(WebDAVConfig{Endpoint: "https://dav.example.com/dav/"})
+	if got := client.snapshotURL(); got != "https://dav.example.com/dav/lemonssh-vault.json" {
+		t.Fatalf("snapshot URL = %q, want .../lemonssh-vault.json", got)
+	}
+	if got := client.snapshotURLByName(LegacyWebDAVSnapshotName); got != "https://dav.example.com/dav/netcatty-vault.json" {
+		t.Fatalf("legacy snapshot URL = %q, want .../netcatty-vault.json", got)
 	}
 }

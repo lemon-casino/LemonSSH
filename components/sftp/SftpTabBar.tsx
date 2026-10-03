@@ -386,7 +386,7 @@ const SftpTabBarInner: React.FC<SftpTabBarProps> = ({
                     onDragOver={(e) => handleTabDragOver(e, tab.id)}
                     onDrop={(e) => handleTabDrop(e, tab.id)}
                     className={cn(
-                      "netcatty-tab relative px-3 min-w-[100px] max-w-[180px] text-xs font-medium cursor-pointer flex items-center justify-between gap-2 flex-shrink-0 border-r border-border/40",
+                      "lemonssh-tab relative px-3 min-w-[100px] max-w-[180px] text-xs font-medium cursor-pointer flex items-center justify-between gap-2 flex-shrink-0 border-r border-border/40",
                       "transition-[color,opacity,transform] duration-100 ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-inset",
                       isActive
                         ? "text-foreground border-b-2"

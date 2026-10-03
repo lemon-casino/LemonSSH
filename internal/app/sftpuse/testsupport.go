@@ -3,11 +3,11 @@ package sftpuse
 import (
 	pkgsftp "github.com/pkg/sftp"
 
-	"github.com/binaricat/netcatty/internal/terminal/sftp"
+	"github.com/binaricat/lemonssh/internal/terminal/sftp"
 )
 
 // Seed helpers for white-box fixtures that live outside this package (the
-// download/temp seam tests in cmd/netcatty). They bypass the normal open paths
+// download/temp seam tests in cmd/lemonssh). They bypass the normal open paths
 // by design; production wiring must never call them.
 
 // SeedClientSessionForTest installs an established SFTP subsystem client, as

@@ -50,7 +50,7 @@ const bridge = {
 };
 
 Object.defineProperty(globalThis, "window", {
-  value: { electron: bridge, netcatty: bridge },
+  value: { electron: bridge, lemonssh: bridge },
   configurable: true,
 });
 
@@ -63,7 +63,7 @@ test.beforeEach(() => {
   clearHistory();
   files.clear();
   bridgeEnabled = true;
-  (window as Window & { netcatty?: unknown }).netcatty = bridge;
+  (window as Window & { lemonssh?: unknown }).lemonssh = bridge;
 });
 
 test("seedLocalShellHistoryFromHistfiles imports zsh history for autocomplete prefix match", async () => {
@@ -115,12 +115,12 @@ test("seedLocalShellHistoryFromHistfiles retries when histfiles were empty", asy
 
 test("seedLocalShellHistoryFromHistfiles no-ops without a bridge and stays retryable", async () => {
   const hostId = "local-terminal";
-  (window as Window & { netcatty?: unknown }).netcatty = undefined;
+  (window as Window & { lemonssh?: unknown }).lemonssh = undefined;
 
   const first = await seedLocalShellHistoryFromHistfiles(hostId, "macos");
   assert.equal(first, 0);
 
-  (window as Window & { netcatty?: unknown }).netcatty = bridge;
+  (window as Window & { lemonssh?: unknown }).lemonssh = bridge;
   files.set("/Users/demo/.zsh_history", ": 1700000000:0;pwd\n");
   const second = await seedLocalShellHistoryFromHistfiles(hostId, "macos");
   assert.equal(second, 1);

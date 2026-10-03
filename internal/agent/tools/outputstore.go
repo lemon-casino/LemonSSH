@@ -125,7 +125,7 @@ type Handle struct {
 const PreviewUnits = DefaultPreviewChars
 
 // SpillSink receives oversized handles for durable storage. Production
-// wires the Netcatty temp manager — never os.TempDir (workspace rule).
+// wires the LemonSSH temp manager — never os.TempDir (workspace rule).
 // nil or a failing sink keeps the bounded in-memory copy.
 type SpillSink interface {
 	Spill(handleID string, content string) (string, error)

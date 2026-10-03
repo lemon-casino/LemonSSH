@@ -26,7 +26,7 @@ function readFixture(name: string): unknown {
 
 test("generated contracts match the Go golden fixtures", () => {
   const serviceError = readFixture("error.json") as ServiceError;
-  assert.equal(serviceError.code, "netcatty.unavailable");
+  assert.equal(serviceError.code, "lemonssh.unavailable");
   assert.equal(serviceError.message, "shell offline");
   assert.equal(serviceError.details?.shell, "wails");
   assert.ok(isServiceErrorCode(serviceError.code));
@@ -51,7 +51,7 @@ test("generated contracts match the Go golden fixtures", () => {
 });
 
 test("code union rejects unknown codes", () => {
-  assert.equal(isServiceErrorCode("netcatty.nope"), false);
+  assert.equal(isServiceErrorCode("lemonssh.nope"), false);
   assert.equal(isServiceErrorCode("err"), false);
 });
 
@@ -59,16 +59,16 @@ test("error mapping follows the Go AsError semantics", () => {
   const unavailable = toServiceError(
     Object.assign(new Error("bridge gone"), { name: "BridgeUnavailableError" }),
   );
-  assert.equal(unavailable.code, "netcatty.unavailable");
+  assert.equal(unavailable.code, "lemonssh.unavailable");
 
   const cancelled = toServiceError(Object.assign(new Error("stop"), { name: "AbortError" }));
-  assert.equal(cancelled.code, "netcatty.cancelled");
+  assert.equal(cancelled.code, "lemonssh.cancelled");
 
   const deadline = toServiceError(Object.assign(new Error("slow"), { name: "TimeoutError" }));
-  assert.equal(deadline.code, "netcatty.deadline_exceeded");
+  assert.equal(deadline.code, "lemonssh.deadline_exceeded");
   assert.equal(deadline.retryable, true);
 
-  assert.equal(toServiceError("boom").code, "netcatty.unknown");
+  assert.equal(toServiceError("boom").code, "lemonssh.unknown");
 });
 
 test("skeleton service shapes satisfy the contract interfaces", () => {
@@ -76,7 +76,7 @@ test("skeleton service shapes satisfy the contract interfaces", () => {
   // payloads produced by internal/app (checked end to end in Go tests).
   const health: HealthStatus = { status: "ok", pid: 1 };
   const version: VersionInfo = {
-    name: "Netcatty",
+    name: "LemonSSH",
     version: "0.0.0-wails-skeleton",
     goos: "windows",
     goarch: "amd64",

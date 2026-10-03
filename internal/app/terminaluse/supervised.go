@@ -18,10 +18,10 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/netcatty/internal/terminal/mosh"
-	"github.com/binaricat/netcatty/internal/terminal/pty"
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
-	"github.com/binaricat/netcatty/internal/terminal/supervised"
+	"github.com/binaricat/lemonssh/internal/terminal/mosh"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/supervised"
 )
 
 // HelperSessionState is queryable after Start/route rebind so early lifecycle
@@ -118,13 +118,14 @@ func sshBootstrapConfig(ctx context.Context, s *Service, request MoshStartReques
 	// sends a weaker verifyHostKeys setting intended for another transport.
 	request.VerifyHostKeys = new(bool)
 	*request.VerifyHostKeys = true
-	config, err := terminalSSHDialConfig(request.SSHConnectRequest, s.knownHosts, nil)
+	// The interactive bundle (MFA per hop, passphrase prompts, changed
+	// host-key confirmation) matches the terminal Connect path.
+	interactive := s.DialInteractive(ctx, request.SSHConnectRequest)
+	config, err := terminalSSHDialConfig(request.SSHConnectRequest, s.knownHosts, interactive)
 	var bindBootstrapPolicy func(*ssh.DialConfig, SSHConnectRequest)
 	bindBootstrapPolicy = func(hop *ssh.DialConfig, input SSHConnectRequest) {
-		hop.HostKeyPolicy = ssh.StrictPolicy(s.knownHosts)
-		if input.EnableMFA {
-			hop.Auth.Challenge = s.interactive.HandlerContext(ctx, input.Hostname)
-		}
+		// Re-pin the bootstrap policy (strict/confirmed owner) on every hop.
+		hop.HostKeyPolicy = ssh.ConfirmPolicy(s.knownHosts, interactive.ConfirmHostKey)
 		for i := range hop.JumpHosts {
 			bindBootstrapPolicy(&hop.JumpHosts[i], input.JumpHosts[i])
 		}
@@ -222,7 +223,7 @@ func (s *Service) startSupervisedTerminal(request MoshStartRequest, kind string)
 			handoff = bridge.ready
 		} else {
 			var connect mosh.Connect
-			// Stock mosh and pinned MoshCatty restart their nonce counter at zero
+			// Stock mosh and the pinned MoshCatty/MoshLemonSSH builds restart their nonce counter at zero
 			// (crypto.cc unique / transport.rs NEXT_PACKET_SEQUENCE).
 			// Reusing a key after process death breaks AES-OCB nonce uniqueness.
 			if kind == "mosh" {

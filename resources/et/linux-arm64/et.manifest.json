@@ -5,7 +5,7 @@
   "arch": "arm64",
   "sha256": "408fe4831b80a0ed89a7cbdcabffccb874c7d1d95b3b16ead09717255e035ea4",
   "provenance": {
-    "repository": "binaricat/Netcatty-et-bin",
+    "repository": "binaricat/LemonSSH-et-bin",
     "tag": "et-bin-6.2.10-1",
     "source": {
       "repository": "MisterTea/EternalTerminal",
@@ -13,13 +13,13 @@
       "commit": "f9a584ac06b2f1730b5bdf0a27150f28478368fb"
     },
     "build": {
-      "repository": "binaricat/Netcatty",
+      "repository": "binaricat/LemonSSH",
       "commit": "c39793d592db59da68a1b4d6eaaf001620ad9464",
       "workflow": ".github/workflows/build-et-binaries.yml",
-      "run": "https://github.com/binaricat/Netcatty/actions/runs/26945446872"
+      "run": "https://github.com/binaricat/LemonSSH/actions/runs/26945446872"
     },
     "archive": {
-      "url": "https://github.com/binaricat/Netcatty-et-bin/releases/download/et-bin-6.2.10-1/et-linux-arm64.tar.gz",
+      "url": "https://github.com/binaricat/LemonSSH-et-bin/releases/download/et-bin-6.2.10-1/et-linux-arm64.tar.gz",
       "assetId": 438206480,
       "sha256": "c0f0fbe18bdd95c409bba11180a98f36876aa03f063ef1fa27048d86471b58ea"
     },

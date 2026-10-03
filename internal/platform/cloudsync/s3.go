@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
@@ -51,6 +52,10 @@ type S3Config struct {
 	// UsePathStyle selects endpoint/bucket/key URLs instead of the default
 	// virtual-host bucket.endpoint/key style (typical for MinIO/localhost).
 	UsePathStyle bool
+	// AllowInsecure skips TLS certificate verification (self-signed
+	// certificates on self-hosted/MinIO endpoints). It never downgrades the
+	// scheme.
+	AllowInsecure bool
 	// Timeout bounds one HTTP round trip (default 30s).
 	Timeout time.Duration
 }
@@ -68,9 +73,15 @@ func NewS3Client(config S3Config) *S3Client {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if config.AllowInsecure {
+		// Explicit user opt-in for self-signed certificates, mirroring the
+		// renderer fallback's https.Agent({rejectUnauthorized: false}).
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402 -- user-requested self-signed support
+	}
 	return &S3Client{
 		config: config,
-		client: &http.Client{Timeout: timeout},
+		client: &http.Client{Timeout: timeout, Transport: transport},
 	}
 }
 

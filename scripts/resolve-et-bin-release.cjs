@@ -8,7 +8,7 @@
 //   1. ET_BIN_RELEASE from workflow input / repository variable.
 //   2. Latest non-draft, non-prerelease GitHub Release whose tag is
 //      et-bin-* in ET_BIN_OWNER/ET_BIN_REPO. By default this is a
-//      dedicated sibling binary repository named Netcatty-et-bin.
+//      dedicated sibling binary repository named LemonSSH-et-bin.
 //
 // In GitHub Actions, the resolved tag is written back to $GITHUB_ENV so
 // later steps can run scripts/fetch-et-binaries.cjs without duplicating
@@ -33,7 +33,7 @@ function validateReleaseTag(tag) {
 
 function parseRepository(env) {
   const owner = env.ET_BIN_OWNER || (env.GITHUB_REPOSITORY || "").split("/")[0] || "binaricat";
-  const repo = env.ET_BIN_REPO || "Netcatty-et-bin";
+  const repo = env.ET_BIN_REPO || "LemonSSH-et-bin";
   return { owner, repo };
 }
 
@@ -78,7 +78,7 @@ function requestJsonWithHeaders(url, env, depth = 0) {
 
     const headers = {
       Accept: "application/vnd.github+json",
-      "User-Agent": "netcatty-et-release-resolver",
+      "User-Agent": "lemonssh-et-release-resolver",
       "X-GitHub-Api-Version": "2022-11-28",
     };
     const token = env.GITHUB_TOKEN || env.GH_TOKEN;

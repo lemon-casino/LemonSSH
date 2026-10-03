@@ -67,13 +67,13 @@ Dual-pane browser with drag & drop, transfer center, pause/resume, directory upl
 
 Local, remote, and dynamic (SOCKS5) tunnels with per-rule lifecycle management, status snapshots, and one-click tray toggles.
 
-### 🤖 AI Agent (Catty)
+### 🤖 AI Agent (LemonSSH)
 
 Natural language server management, real-time diagnostics, multi-host orchestration and one-click complex operations.
 
 ### 🧩 Plugin System
 
-Sandboxed plugins with a declarative UI schema, permission broker, and terminal/SFTP provider extension points.
+Sandboxed plugins with a declarative UI schema, permission broker, and command contributions. Terminal/SFTP provider extension points remain a documented design-stage contract (see [docs/plugin-platform](docs/plugin-platform)) — not yet implemented.
 
 ### 🎨 Personalization
 
@@ -139,7 +139,7 @@ npm run wails:dev
 
 ```bash
 # Build the frontend into the Go binary
-npm run wails:build            # output: bin/netcatty-wails(.exe)
+npm run wails:build            # output: bin/LemonSSH.exe
 
 # Qualification packaging: stamped version, checksums, artifact manifest
 node scripts/package-wails.mjs # output: dist/wails/
@@ -158,7 +158,7 @@ go test ./...                  # Go domain, services and shell
 |----------|------------|
 | Shell | Wails v3 + Go |
 | Frontend | React 19, TypeScript, Vite 7 |
-| Terminal | xterm.js 5, Go ConPTY/Unix PTY, binary loopback WebSocket data plane |
+| Terminal | @xterm/xterm 6, Go ConPTY/Unix PTY, binary loopback WebSocket data plane |
 | SSH/SFTP | golang.org/x/crypto/ssh, pkg/sftp |
 | Persistence | Go transactional profile store (bbolt) |
 | Credentials | OS keyring (Win Credential Manager / macOS Keychain / Linux Secret Service) |

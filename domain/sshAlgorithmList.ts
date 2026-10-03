@@ -1,9 +1,10 @@
 /**
  * User-selectable SSH algorithm lists for the host-level "advanced
- * algorithm overrides" UI. These lists must remain a subset of the
- * algorithms ssh2 actually supports (see `ssh2/lib/protocol/constants.js`);
- * passing an algorithm outside that set causes ssh2 to throw
- * "Unsupported algorithm" before the SSH handshake even starts.
+ * algorithm overrides" UI. Historically these lists had to stay a subset
+ * of what the JS `ssh2` package accepted (it threw "Unsupported algorithm"
+ * before the handshake otherwise); that dependency was retired with the
+ * Wails migration and the lists are now a curated catalog — update them
+ * deliberately, keeping legacy-only entries under the legacy additions.
  *
  * Order in each array is the suggested display / default-priority order
  * (modern + secure first). When the user picks a subset, that subset
@@ -17,17 +18,10 @@ export type SSHAlgorithmCategory =
   | "serverHostKey"
   | "compress";
 
-// IMPORTANT: every algorithm in these lists must also appear in ssh2's
-// `SUPPORTED_*` constant (see `node_modules/ssh2/lib/protocol/constants.js`).
-// ssh2 throws `Unsupported algorithm` synchronously from `Client.connect()`
-// when it sees an algorithm outside its supported set, so exposing a dead
-// choice in the UI would make a host unreachable the moment the user
-// saved it.
-//
 // In particular, OpenSSL 3 disabled `blowfish`, `cast128`, and the
-// `arcfour` family — ssh2's `canUseCipher` filter then drops them from
-// `SUPPORTED_CIPHER` at startup. They are intentionally absent below.
-// `sshAlgorithmList.test.ts` enforces the subset invariant.
+// `arcfour` family in the Electron-era JS stack, so they are intentionally
+// absent below. `sshAlgorithmList.test.ts` enforces the invariant that
+// `effectiveDefaultAlgorithms` output stays within these supported lists.
 
 export const SUPPORTED_KEX_ALGORITHMS: readonly string[] = [
   "curve25519-sha256",
@@ -178,7 +172,7 @@ const LEGACY_DEFAULT_ADDITIONS: Partial<Record<SSHAlgorithmCategory, readonly st
 };
 
 /**
- * Return the algorithm list that NetCatty would actually offer for each
+ * Return the algorithm list that LemonSSH would actually offer for each
  * category at connect time given the current legacy toggle. The advanced
  * override UI seeds an untouched category from this list so a partial
  * customization can't accidentally re-enable algorithms the connection

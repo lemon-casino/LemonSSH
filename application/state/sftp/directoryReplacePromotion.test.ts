@@ -26,8 +26,8 @@ function createPathHarness(initialPaths: string[]) {
 }
 
 const targetPath = "/target/final";
-const stagedPath = "/target/final.netcatty-live.part";
-const backupPath = "/target/final.netcatty-live.backup";
+const stagedPath = "/target/final.lemonssh-live.part";
+const backupPath = "/target/final.lemonssh-live.backup";
 
 test("live directory replace restores an interrupted backup before retrying publication", async () => {
   const harness = createPathHarness([stagedPath, backupPath]);

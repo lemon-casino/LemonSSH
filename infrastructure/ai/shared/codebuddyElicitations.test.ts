@@ -17,7 +17,7 @@ test('CodeBuddy elicitation gate replays, responds, completes, and clears by cha
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         aiSdkAgentElicitationResponse: async (...args: unknown[]) => {
           responses.push(args);
           return { ok: true };

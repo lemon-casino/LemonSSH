@@ -26,7 +26,7 @@ func NewManager(defaultDir string) *Manager {
 }
 
 // Start opens a log file for the session. An empty filePath picks
-// <defaultDir>/netcatty-script-<timestamp>.log. Returns the resolved path.
+// <defaultDir>/lemonssh-script-<timestamp>.log. Returns the resolved path.
 func (m *Manager) Start(sessionID, filePath string) (string, error) {
 	if sessionID == "" {
 		return "", fmt.Errorf("sessionId required")
@@ -38,7 +38,7 @@ func (m *Manager) Start(sessionID, filePath string) (string, error) {
 	}
 	resolved := filePath
 	if resolved == "" {
-		resolved = filepath.Join(m.defaultDir, fmt.Sprintf("netcatty-script-%d.log", time.Now().UnixMilli()))
+		resolved = filepath.Join(m.defaultDir, fmt.Sprintf("lemonssh-script-%d.log", time.Now().UnixMilli()))
 	}
 	if dir := filepath.Dir(resolved); dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {

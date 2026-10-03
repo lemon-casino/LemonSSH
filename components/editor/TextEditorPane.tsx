@@ -28,7 +28,7 @@ import { useClipboardBackend } from '../../application/state/useClipboardBackend
 import { isPrimaryModifierWBinding } from '../../application/state/windowCommandClose';
 import { HotkeyScheme, KeyBinding, matchesKeyBinding } from '../../domain/models';
 import { pasteForMonacoEditorCommand } from '../../infrastructure/monaco/monacoClipboardPaste';
-import { useNetcattyMonacoTheme } from '../../infrastructure/monaco/useNetcattyMonacoTheme';
+import { useLemonsshMonacoTheme } from '../../infrastructure/monaco/useLemonsshMonacoTheme';
 import { getLanguageName, getSupportedLanguages } from '../../lib/sftpFileUtils';
 import { Button } from '../ui/button';
 import { Combobox } from '../ui/combobox';
@@ -179,7 +179,7 @@ const TextEditorPaneInner: React.FC<TextEditorPaneProps> = ({
   const { t } = useI18n();
   const { readClipboardText: readClipboardTextFromBridge } = useClipboardBackend();
   const monaco = useMonaco();
-  const customThemeName = useNetcattyMonacoTheme(monaco);
+  const customThemeName = useLemonsshMonacoTheme(monaco);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 
   // Ref to store the latest save function to avoid stale closure in keyboard shortcut
@@ -258,7 +258,7 @@ const TextEditorPaneInner: React.FC<TextEditorPaneProps> = ({
     const distribute = selections.length > 1 && lines.length === selections.length;
 
     editor.executeEdits(
-      'netcatty-paste',
+      'lemonssh-paste',
       selections.map((selection, i) => ({
         range: selection,
         text: distribute ? lines[i] : text,

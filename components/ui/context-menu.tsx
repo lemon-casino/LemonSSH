@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 const menuCollisionPadding = { top: 36, bottom: 12, left: 12, right: 12 };
-const CONTEXT_MENU_PORTAL_ID = "netcatty-context-menu-root";
+const CONTEXT_MENU_PORTAL_ID = "lemonssh-context-menu-root";
 
 // Dedicated portal root so context menus always sit above every other layer (dialogs, titlebar, overlays)
 const getContextMenuPortalEl = () => {

@@ -8,7 +8,7 @@ import {
 import { updateActiveChromeThemeDeps } from '../state/activeChromeThemeSync';
 import { useActiveChromeTheme } from '../state/useActiveChromeTheme';
 import { useAppearanceChromeStore } from '../state/appearanceChromeStore';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { resolveActiveChromeTheme } from './activeChromeTheme';
 import type { TerminalAppearanceHostScope, ResolvedAppearance } from '../../domain/terminalAppearanceRuntime';
 import type {
@@ -144,7 +144,7 @@ export function AppActiveTabChrome({
     // Title is already memoized by activeTabId; skip redundant IPC when the
     // string did not change (e.g. two tabs sharing the same host label).
     let cancelled = false;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setWindowTitle) return;
     // Defer slightly so the title write does not compete with tab-switch paint.
     const timer = window.setTimeout(() => {

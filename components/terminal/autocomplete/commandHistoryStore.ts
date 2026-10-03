@@ -6,7 +6,7 @@
 
 import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
 
-const STORAGE_KEY = "netcatty:commandHistory";
+const STORAGE_KEY = "lemonssh:commandHistory";
 const MAX_ENTRIES = 10000;
 const MAX_ENTRIES_PER_HOST = 5000;
 

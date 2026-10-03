@@ -29,7 +29,7 @@ type QuickSwitcherItemBase = {
   altCommand?: string;
   shortcut?: string;
   pluginId?: string;
-  icon?: NetcattyPluginIconReference;
+  icon?: LemonSSHPluginIconReference;
 };
 
 type QuickSwitcherItem = QuickSwitcherItemBase & (
@@ -66,7 +66,7 @@ export function shouldUseQuickSwitcherPointerNavigation(
 }
 
 export function buildPluginPaletteItems(
-  plugins: NetcattyPluginContributionSnapshot['plugins'],
+  plugins: LemonSSHPluginContributionSnapshot['plugins'],
   trimmedQuery: string,
 ): QuickSwitcherItem[] {
   return plugins.flatMap((plugin) => {
@@ -190,7 +190,7 @@ const QuickSwitcherInner: React.FC<QuickSwitcherProps> = ({
   const { t } = useI18n();
   const discoveredShells = useDiscoveredShells();
   const pluginContributions = usePluginContributions({
-    context: { 'netcatty.surface': 'commandPalette' },
+    context: { 'lemonssh.surface': 'commandPalette' },
   });
   const quickSwitcherShells = useMemo(() => (
     buildQuickSwitcherShells(
@@ -255,11 +255,11 @@ const QuickSwitcherInner: React.FC<QuickSwitcherProps> = ({
       const target = e.target;
       if (!(target instanceof Node)) return;
       if (containerRef.current?.contains(target)) return;
-      // ContextMenuContent portals to #netcatty-context-menu-root; treat those
+      // ContextMenuContent portals to #lemonssh-context-menu-root; treat those
       // clicks as inside so Connect / Edit host can run before unmount.
       if (
         target instanceof Element &&
-        target.closest("#netcatty-context-menu-root")
+        target.closest("#lemonssh-context-menu-root")
       ) {
         return;
       }
@@ -478,13 +478,13 @@ const QuickSwitcherInner: React.FC<QuickSwitcherProps> = ({
           void pluginContributions.executeCommand(
             useAlternate && item.altCommand ? item.altCommand : item.commandId,
             undefined,
-            { 'netcatty.surface': 'commandPalette' },
+            { 'lemonssh.surface': 'commandPalette' },
           ).catch(() => {});
           onClose();
         }
         break;
       case "plugin-view":
-        requestOpenPluginView({ viewId: item.id, context: { 'netcatty.surface': 'commandPalette' } });
+        requestOpenPluginView({ viewId: item.id, context: { 'lemonssh.surface': 'commandPalette' } });
         onClose();
         break;
     }

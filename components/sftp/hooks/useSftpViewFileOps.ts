@@ -8,7 +8,7 @@ import {
 } from "../../../application/state/sftp/transferConcurrency";
 import { logger } from "../../../lib/logger";
 import { toast } from "../../ui/toast";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { getFileExtension, getLanguageId, FileOpenerType, SystemAppInfo } from "../../../lib/sftpFileUtils";
 import { isNavigableDirectory } from "../utils";
 import { reportSftpUploadResults } from "../reportSftpUploadResults";
@@ -574,7 +574,7 @@ export const useSftpViewFileOps = ({
       const resolvedPath = fullPath ?? sftpRef.current.joinPath(pane.connection.currentPath, file.name);
       toast.info(t("sftp.extract.extracting", { fileName: file.name }), "SFTP");
       try {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         if (pane.connection.isLocal) {
           if (!bridge?.extractLocalArchive) {
             throw new Error("Local extract unavailable");

@@ -12,7 +12,7 @@ export interface TransferSkipIdentity {
   size: number;
   lastModified: number;
   /**
-   * Preferred: adapters declare the unit. Local fs and Netcatty SFTP stats use
+   * Preferred: adapters declare the unit. Local fs and LemonSSH SFTP stats use
    * milliseconds (`Date` / `mtime * 1000`). Raw ssh2 attrs use seconds.
    * When omitted, a magnitude heuristic is used only as a legacy fallback.
    */

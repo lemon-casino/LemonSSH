@@ -10,7 +10,7 @@ const FORCE_SELECTION_OPTION = "macOptionClickForcesSelection";
 const META_OPTION = "macOptionIsMeta".padEnd(FORCE_SELECTION_OPTION.length, " ");
 
 // xterm normally treats macOptionClickForcesSelection and column selection as
-// mutually exclusive. Netcatty needs both when Option is not Meta: Option must
+// mutually exclusive. LemonSSH needs both when Option is not Meta: Option must
 // keep forcing local selection inside mouse-aware programs, and that local
 // selection must retain the standard macOS rectangular shape. Patch the pinned
 // bundles at install time and fail closed if upstream changes the expected code

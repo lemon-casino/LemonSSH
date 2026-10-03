@@ -27,10 +27,10 @@ const validManifest = {
   name: "contract-test",
   version: "1.2.3-beta.1",
   publisher: "example",
-  engines: { netcatty: ">=1.0.0 <2.0.0", api: ">=0.1.0-internal <0.2.0" },
+  engines: { lemonssh: ">=1.0.0 <2.0.0", api: ">=0.1.0-internal <0.2.0" },
   features: {
-    required: ["netcatty.rpc.progress"],
-    optional: ["netcatty.stream.binary"],
+    required: ["lemonssh.rpc.progress"],
+    optional: ["lemonssh.stream.binary"],
   },
   main: { browser: "dist/browser.js" },
   permissions: {
@@ -104,7 +104,7 @@ test("sync provider encrypted-object payloads and results are canonical and boun
   assert.equal(readResult({ found: true, byteLength: 4 }), false);
 
   assert.equal(writePayload({
-    key: "netcatty-vault.json",
+    key: "lemonssh-vault.json",
     operationId: "sync:write:1",
     byteLength: 4,
     encoding: "base64",
@@ -112,7 +112,7 @@ test("sync provider encrypted-object payloads and results are canonical and boun
     expectedRevision: null,
   }), true, JSON.stringify(writePayload.errors));
   assert.equal(writePayload({
-    key: "netcatty-vault.json",
+    key: "lemonssh-vault.json",
     operationId: "sync:write:1",
     byteLength: -1,
   }), false);
@@ -283,6 +283,55 @@ test("Provider configuration schemas use only the host restricted JSON subset", 
 test("terminal interceptor fast-path frames are owned by the canonical schema", () => {
   const validate = validator("TerminalInterceptorFrame");
   assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:ready",
+    sessionId: "session-1",
+    direction: "input",
+    windowBytes: 65_536,
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:chunk",
+    sequence: 1,
+    direction: "output",
+    creditBytes: 262_144,
+    byteLength: 65_536,
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:result",
+    sequence: 1,
+    status: "ok",
+    creditBytes: 65_536,
+    byteLength: 0,
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:result",
+    sequence: 1,
+    status: "failed",
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:chunk",
+    sequence: 0,
+    direction: "input",
+    creditBytes: 1,
+    byteLength: 1,
+  }), false);
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:chunk",
+    sequence: 1,
+    direction: "input",
+    creditBytes: 1,
+    byteLength: 65_537,
+  }), false);
+  assert.equal(validate({
+    type: "lemonssh:terminal-interceptor:result",
+    sequence: 1,
+    status: "failed",
+    byteLength: 0,
+  }), false);
+});
+
+test("legacy netcatty interceptor event types and engines stay schema-compatible", () => {
+  const validate = validator("TerminalInterceptorFrame");
+  assert.equal(validate({
     type: "netcatty:terminal-interceptor:ready",
     sessionId: "session-1",
     direction: "input",
@@ -302,30 +351,37 @@ test("terminal interceptor fast-path frames are owned by the canonical schema", 
     creditBytes: 65_536,
     byteLength: 0,
   }), true, JSON.stringify(validate.errors));
-  assert.equal(validate({
-    type: "netcatty:terminal-interceptor:result",
-    sequence: 1,
-    status: "failed",
-  }), true, JSON.stringify(validate.errors));
-  assert.equal(validate({
-    type: "netcatty:terminal-interceptor:chunk",
-    sequence: 0,
-    direction: "input",
-    creditBytes: 1,
-    byteLength: 1,
-  }), false);
-  assert.equal(validate({
-    type: "netcatty:terminal-interceptor:chunk",
-    sequence: 1,
-    direction: "input",
-    creditBytes: 1,
-    byteLength: 65_537,
-  }), false);
-  assert.equal(validate({
-    type: "netcatty:terminal-interceptor:result",
-    sequence: 1,
-    status: "failed",
-    byteLength: 0,
+
+  const validateEngines = validator("PluginEngines");
+  assert.equal(validateEngines({
+    netcatty: ">=1.0.0 <2.0.0",
+    api: ">=0.1.0-internal <0.2.0",
+  }), true, JSON.stringify(validateEngines.errors));
+  assert.equal(validateEngines({
+    lemonssh: ">=1.0.0 <2.0.0",
+    api: ">=0.1.0-internal <0.2.0",
+  }), true, JSON.stringify(validateEngines.errors));
+  assert.equal(validateEngines({
+    lemonssh: ">=1.0.0 <2.0.0",
+    netcatty: ">=1.0.0 <2.0.0",
+    api: ">=0.1.0-internal <0.2.0",
+  }), true, JSON.stringify(validateEngines.errors));
+  assert.equal(validateEngines({ api: ">=0.1.0-internal <0.2.0" }), false);
+
+  const validateInitialize = validator("RuntimeInitializeParams");
+  assert.equal(validateInitialize({
+    netcattyVersion: "1.2.3",
+    apiVersion: "0.1.0-internal",
+    supportedFeatures: [],
+  }), true, JSON.stringify(validateInitialize.errors));
+  assert.equal(validateInitialize({
+    lemonsshVersion: "1.2.3",
+    apiVersion: "0.1.0-internal",
+    supportedFeatures: [],
+  }), true, JSON.stringify(validateInitialize.errors));
+  assert.equal(validateInitialize({
+    apiVersion: "0.1.0-internal",
+    supportedFeatures: [],
   }), false);
 });
 
@@ -376,7 +432,7 @@ test("manifest header remains forward-readable before version-specific validatio
     id: "com.example.future-plugin",
     version: "2.0.0",
     engines: {
-      netcatty: ">=2.0.0",
+      lemonssh: ">=2.0.0",
       api: ">=2.0.0 <3.0.0",
       futureRuntime: ">=1.0.0",
     },
@@ -457,7 +513,7 @@ test("RPC, stream, permission, and provider schemas validate independently", () 
     id: "init-1",
     method: "plugin.initialize",
     params: {
-      netcattyVersion: "1.0.0",
+      lemonsshVersion: "1.0.0",
       apiVersion: "0.1.0-internal",
       supportedFeatures: [],
     },
@@ -483,7 +539,7 @@ test("RPC, stream, permission, and provider schemas validate independently", () 
       jsonrpc: "2.0",
       method: "plugin.initialize",
       params: {
-        netcattyVersion: "1.0.0",
+        lemonsshVersion: "1.0.0",
         apiVersion: "0.1.0-internal",
         supportedFeatures: [],
       },
@@ -667,12 +723,12 @@ test("RPC, stream, permission, and provider schemas validate independently", () 
     assert.equal(stream(frame), false, `unsafe stream sequence accepted: ${frame.kind}`);
   }
   assert.equal(initialize({
-    netcattyVersion: "1.2.3",
+    lemonsshVersion: "1.2.3",
     apiVersion: "0.1.0-internal",
-    supportedFeatures: ["netcatty.rpc.progress", "netcatty.stream.binary"],
+    supportedFeatures: ["lemonssh.rpc.progress", "lemonssh.stream.binary"],
   }), true, JSON.stringify(initialize.errors));
   assert.equal(initialize({
-    netcattyVersion: "1.2.3-01",
+    lemonsshVersion: "1.2.3-01",
     apiVersion: "0.1.0-internal",
     supportedFeatures: [],
   }), false);
@@ -681,9 +737,9 @@ test("RPC, stream, permission, and provider schemas validate independently", () 
     id: "initialize-1",
     method: "plugin.initialize",
     params: {
-      netcattyVersion: "1.2.3",
+      lemonsshVersion: "1.2.3",
       apiVersion: "0.1.0-internal",
-      supportedFeatures: ["netcatty.rpc.progress"],
+      supportedFeatures: ["lemonssh.rpc.progress"],
     },
   }), true, JSON.stringify(initializeRequest.errors));
   assert.equal(permission({
@@ -1118,10 +1174,10 @@ test("semantic validation enforces owning-plugin namespaces and semver ranges", 
   const { validateManifestValue } = await import("../../plugin-cli/src/manifest.ts");
   const result = validateManifestValue({
     ...validManifest,
-    engines: { netcatty: "not a range", api: ">=0.1.0-internal <0.2.0" },
+    engines: { lemonssh: "not a range", api: ">=0.1.0-internal <0.2.0" },
     features: {
-      required: ["netcatty.rpc.progress"],
-      optional: ["netcatty.rpc.progress"],
+      required: ["lemonssh.rpc.progress"],
+      optional: ["lemonssh.rpc.progress"],
     },
     contributes: {
       commands: [{ id: "com.other.plugin.run", title: "Run" }],
@@ -1130,7 +1186,7 @@ test("semantic validation enforces owning-plugin namespaces and semver ranges", 
   });
   assert.equal(result.valid, false);
   assert.match(result.errors.join("\n"), /owning plugin id/);
-  assert.match(result.errors.join("\n"), /Invalid netcatty engine semver range/);
+  assert.match(result.errors.join("\n"), /Invalid lemonssh engine semver range/);
   assert.match(result.errors.join("\n"), /both required and optional/);
 });
 

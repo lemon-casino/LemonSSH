@@ -3,7 +3,7 @@
 /**
  * Verify @xterm/addon-webgl carries the upstream glyph-atlas safety fixes.
  *
- * Netcatty previously backported these as local string patches. With
+ * LemonSSH previously backported these as local string patches. With
  * @xterm/addon-webgl >= 0.20.0-beta.291 they ship upstream:
  *
  * - xtermjs/xterm.js#6055 — shared atlas: clearTexture bumps _pageLayoutVersion

@@ -1,11 +1,11 @@
 import { useCallback } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 export function subscribeWindowFullscreenChanged(
   cb: (isFullscreen: boolean) => void,
 ): () => void {
   try {
-    return netcattyBridge.get()?.onWindowFullScreenChanged?.(cb) ?? (() => {});
+    return lemonsshBridge.get()?.onWindowFullScreenChanged?.(cb) ?? (() => {});
   } catch {
     return () => {};
   }
@@ -14,7 +14,7 @@ export function subscribeWindowFullscreenChanged(
 export const useWindowControls = () => {
   const notifyRendererReady = useCallback(() => {
     try {
-      netcattyBridge.get()?.rendererReady?.();
+      lemonsshBridge.get()?.rendererReady?.();
     } catch {
       // ignore
     }
@@ -22,7 +22,7 @@ export const useWindowControls = () => {
 
   const notifySettingsPainted = useCallback(() => {
     try {
-      void (netcattyBridge.get() as { notifySettingsPainted?: () => Promise<unknown> } | undefined)
+      void (lemonsshBridge.get() as { notifySettingsPainted?: () => Promise<unknown> } | undefined)
         ?.notifySettingsPainted?.();
     } catch {
       // ignore
@@ -30,49 +30,49 @@ export const useWindowControls = () => {
   }, []);
 
   const closeSettingsWindow = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.closeSettingsWindow?.();
   }, []);
 
   const openSettingsWindow = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.openSettingsWindow?.();
   }, []);
 
   const minimize = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.windowMinimize?.();
   }, []);
 
   const maximize = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.windowMaximize?.();
   }, []);
 
   const close = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.windowClose?.();
   }, []);
 
   const quit = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.quitApp?.();
   }, []);
 
   const isMaximized = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.windowIsMaximized?.();
   }, []);
 
   const isFullscreen = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.windowIsFullscreen?.() ?? false;
   }, []);
 
   const onFullscreenChanged = useCallback(subscribeWindowFullscreenChanged, []);
 
   const onWindowCommandCloseRequested = useCallback((cb: () => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onWindowCommandCloseRequested?.(cb) ?? (() => {});
   }, []);
 

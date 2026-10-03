@@ -1,4 +1,4 @@
-import type { NetcattyBridge } from './cattyAgent/executor';
+import type { LemonSSHBridge } from './cattyAgent/executor';
 import type {
   OpenAIChatAssistantFields,
   ProviderContinuationOptions,
@@ -143,10 +143,19 @@ export type StreamChunk =
   | RawChunk
   | { type: 'reasoning-end' | 'text-start' | 'text-end' | 'start' | 'finish' | 'start-step' | 'finish-step' | 'tool-approval-request'; approvalId?: string; toolCallId?: string; toolName?: string; approved?: boolean; toolCall?: StreamChunkToolCallRef; input?: unknown; args?: unknown };
 
-/** Shape of the netcatty bridge exposed on `window` (panel-specific subset). */
-export interface PanelBridge extends NetcattyBridge {
+/** Shape of the LemonSSH bridge exposed on `window` (panel-specific subset). */
+export interface PanelBridge extends LemonSSHBridge {
   credentialsDecrypt?: (value: string) => Promise<string>;
   aiSyncProviders?: (providers: Array<{ id: string; providerId: string; apiKey?: string; baseURL?: string; enabled: boolean }>) => Promise<{ ok: boolean }>;
+  /** F06: installs/clears the active provider behind the Go turn runtime. */
+  aiSetLiveProvider?: (config: {
+    family: 'openai';
+    endpoint: string;
+    apiKeyHeader: string;
+    apiKeyValue: string;
+    model: string;
+    maxIterations?: number;
+  } | null) => Promise<{ ok: boolean; active?: boolean; error?: string }>;
   aiSyncWebSearch?: (apiHost: string | null, apiKey: string | null) => Promise<{ ok: boolean; error?: string }>;
   aiMcpUpdateSessions?: (sessions: TerminalSessionInfo[], chatSessionId?: string) => Promise<unknown>;
   aiMcpUpdateAttachments?: (
@@ -235,10 +244,10 @@ export function toAssistantModelContent(parts: AssistantContentPart[]): string |
   return parts;
 }
 
-/** Typed accessor for the netcatty bridge on the window object. */
-export function getNetcattyBridge(): PanelBridge | undefined {
+/** Typed accessor for the LemonSSH bridge on the window object. */
+export function getLemonSSHBridge(): PanelBridge | undefined {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (window as any).netcatty as PanelBridge | undefined;
+  return (window as any).lemonssh as PanelBridge | undefined;
 }
 
 // ApprovalInfo and PendingApprovalContext removed — approval is now handled
@@ -258,7 +267,7 @@ interface UserSkillsContextResult {
 
 function buildExplicitUserSkillsFallback(selectedUserSkillSlugs?: string[]): string {
   if (!selectedUserSkillSlugs?.length) return '';
-  return `The user explicitly selected these Netcatty user skills for this request: ${selectedUserSkillSlugs.map((slug) => `/${slug}`).join(', ')}. Honor those selections even if their expanded skill content is unavailable.`;
+  return `The user explicitly selected these LemonSSH user skills for this request: ${selectedUserSkillSlugs.map((slug) => `/${slug}`).join(', ')}. Honor those selections even if their expanded skill content is unavailable.`;
 }
 
 export async function resolveUserSkillsContext(

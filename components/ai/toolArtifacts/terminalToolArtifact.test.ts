@@ -48,7 +48,7 @@ test('parseTerminalToolArtifact maps errors', () => {
 });
 
 test('parseTerminalToolArtifact unwraps Claude MCP text result envelopes', () => {
-  const artifact = parseTerminalToolArtifact('mcp__netcatty-remote-hosts__terminal_read_context', JSON.stringify([
+  const artifact = parseTerminalToolArtifact('mcp__lemonssh-remote-hosts__terminal_read_context', JSON.stringify([
     {
       type: 'text',
       text: JSON.stringify({

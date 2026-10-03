@@ -42,8 +42,8 @@ const MODEL_CACHE_ENV_HINTS = [
   'CLAUDE_CODE_EXECUTABLE',
   'CODEBUDDY_CODE_PATH',
   'CURSOR_API_KEY',
-  'NETCATTY_CURSOR_AUTH_MODE',
-  'NETCATTY_CURSOR_CLI_BIN',
+  'LEMONSSH_CURSOR_AUTH_MODE',
+  'LEMONSSH_CURSOR_CLI_BIN',
 ] as const;
 
 function cloneCatalog(catalog: SdkRuntimeModelCatalog): SdkRuntimeModelCatalog {
@@ -65,7 +65,7 @@ function normalizeSdkRuntimeModelCatalog(catalog: SdkRuntimeModelCatalog): SdkRu
 /**
  * Inject Cursor auth-mode env for list-models IPC.
  * Mirrors run-turn `buildAgentEnvWithStoredApiKey` (without decrypting API keys):
- * persisted `agent.env` strips NETCATTY_CURSOR_* via sanitization, so list-models
+ * persisted `agent.env` strips LEMONSSH_CURSOR_* via sanitization, so list-models
  * must re-inject from `cursorAuthMode` / `command` or main defaults to api-key.
  */
 export function buildCursorListModelsAgentEnv(agent: {
@@ -75,10 +75,10 @@ export function buildCursorListModelsAgentEnv(agent: {
 }): Record<string, string> | undefined {
   const env = { ...(agent.env ?? {}) };
   const authMode = agent.cursorAuthMode === 'cli-login' ? 'cli-login' : 'api-key';
-  env.NETCATTY_CURSOR_AUTH_MODE = authMode;
+  env.LEMONSSH_CURSOR_AUTH_MODE = authMode;
   const cliBin = String(agent.command || '').trim();
   if (authMode === 'cli-login' && cliBin && cliBin !== 'cursor') {
-    env.NETCATTY_CURSOR_CLI_BIN = cliBin;
+    env.LEMONSSH_CURSOR_CLI_BIN = cliBin;
   }
   return Object.keys(env).length > 0 ? env : undefined;
 }
@@ -95,7 +95,7 @@ export function buildSdkRuntimeModelCacheKey(agent: {
 }): string {
   const sdkBackend = agent.sdkBackend || agent.acpCommand || '';
   const envHints = MODEL_CACHE_ENV_HINTS.map((key) => `${key}=${agent.env?.[key] ?? ''}`);
-  // cursorAuthMode is the source of truth when NETCATTY_CURSOR_AUTH_MODE was
+  // cursorAuthMode is the source of truth when LEMONSSH_CURSOR_AUTH_MODE was
   // stripped from persisted env; include it so toggling auth mode busts cache.
   const cursorAuth = sdkBackend === 'cursor'
     ? (agent.cursorAuthMode === 'cli-login' ? 'cli-login' : 'api-key')

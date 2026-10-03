@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 /**
- * OS protocol handoff (SYS-03): whether ssh://, telnet:// and netcatty://
+ * OS protocol handoff (SYS-03): whether ssh://, telnet:// and lemonssh://
  * currently open LemonSSH, plus the toggle that registers or removes the
  * schemes. Windows writes HKCU\Software\Classes (no elevation); other
  * platforms fail closed with the bridge's own message.
@@ -15,7 +15,7 @@ export function useOSProtocolRegistration() {
   const [supported, setSupported] = useState(true);
 
   const refresh = useCallback(async () => {
-    const result = await netcattyBridge.get()?.getOSProtocolStatus?.();
+    const result = await lemonsshBridge.get()?.getOSProtocolStatus?.();
     if (!result) {
       setSupported(false);
       return;
@@ -31,7 +31,7 @@ export function useOSProtocolRegistration() {
   const setEnabled = useCallback(async (enabled: boolean) => {
     setBusy(true);
     try {
-      const result = await netcattyBridge.get()?.setOSProtocol?.(enabled);
+      const result = await lemonsshBridge.get()?.setOSProtocol?.(enabled);
       if (result?.success) {
         setRegistered(Boolean(result.registered));
         setError(null);

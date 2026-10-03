@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,6 +19,13 @@ type AuthMethod struct {
 	// PrivateKeyPEM is an optional PEM private key; Passphrase decrypts it.
 	PrivateKeyPEM []byte
 	Passphrase    string
+	// KeyPath labels the private key in passphrase prompts (file path or the
+	// caller's key identifier). Display only.
+	KeyPath string
+	// RequestPassphrase prompts the renderer when the private key is encrypted
+	// and no stored passphrase (or a wrong one) was supplied. An empty answer
+	// or error fails the auth attempt.
+	RequestPassphrase func(keyPath string, passphraseInvalid bool) (string, error)
 	// Interactive answers keyboard-interactive challenges (MFA). Each
 	// question is surfaced with its echo flag; empty answers are allowed.
 	Interactive func(question string, echo bool) (string, error)
@@ -29,6 +37,11 @@ type AuthMethod struct {
 	// Certificate is an OpenSSH user certificate; requires PrivateKeyPEM.
 	Certificate []byte
 }
+
+// maxPassphraseAttempts bounds the prompt → parse → retry loop so a hung
+// renderer cannot extend the dial indefinitely (each prompt also times out
+// inside its broker).
+const maxPassphraseAttempts = 3
 
 var ErrNoAuthMethod = errors.New("no ssh auth method configured")
 
@@ -47,17 +60,9 @@ func buildAuthMethods(ctx context.Context, method AuthMethod) ([]ssh.AuthMethod,
 		return nil, ErrNoAuthMethod
 	}
 	if len(method.PrivateKeyPEM) > 0 {
-		var signer ssh.Signer
-		var err error
-		if len(method.Certificate) > 0 {
-			signer, err = ParseCertificateSigner(method.PrivateKeyPEM, method.Passphrase, method.Certificate)
-		} else if method.Passphrase != "" {
-			signer, err = ssh.ParsePrivateKeyWithPassphrase(method.PrivateKeyPEM, []byte(method.Passphrase))
-		} else {
-			signer, err = ssh.ParsePrivateKey(method.PrivateKeyPEM)
-		}
+		signer, err := parsePrivateKeyWithPrompt(method)
 		if err != nil {
-			return nil, fmt.Errorf("invalid private key: %w", err)
+			return nil, err
 		}
 		result = append(result, ssh.PublicKeys(signer))
 	}
@@ -98,4 +103,52 @@ func buildAuthMethods(ctx context.Context, method AuthMethod) ([]ssh.AuthMethod,
 		return nil, ErrNoAuthMethod
 	}
 	return result, nil
+}
+
+// parsePrivateKeyWithPrompt parses the configured private key, and when
+// x/crypto reports a missing (or wrong) passphrase it asks RequestPassphrase
+// and retries. Without a prompt callback the legacy fail-closed error is kept.
+func parsePrivateKeyWithPrompt(method AuthMethod) (ssh.Signer, error) {
+	parse := func(passphrase string) (ssh.Signer, error) {
+		if len(method.Certificate) > 0 {
+			return ParseCertificateSigner(method.PrivateKeyPEM, passphrase, method.Certificate)
+		}
+		if passphrase != "" {
+			return ssh.ParsePrivateKeyWithPassphrase(method.PrivateKeyPEM, []byte(passphrase))
+		}
+		return ssh.ParsePrivateKey(method.PrivateKeyPEM)
+	}
+	signer, err := parse(method.Passphrase)
+	if err == nil {
+		return signer, nil
+	}
+	if method.RequestPassphrase == nil || !passphraseRequired(err) {
+		return nil, fmt.Errorf("invalid private key: %w", err)
+	}
+	for attempt := 0; attempt < maxPassphraseAttempts; attempt++ {
+		answer, promptErr := method.RequestPassphrase(method.KeyPath, attempt > 0)
+		if promptErr != nil {
+			return nil, fmt.Errorf("passphrase prompt failed: %w", promptErr)
+		}
+		if answer == "" {
+			return nil, fmt.Errorf("passphrase prompt cancelled: %w", ErrPassphraseCancelled)
+		}
+		signer, err = parse(answer)
+		if err == nil {
+			return signer, nil
+		}
+		if !passphraseRequired(err) {
+			return nil, fmt.Errorf("invalid private key: %w", err)
+		}
+	}
+	return nil, &PassphraseRejectedError{KeyPath: method.KeyPath, Err: err}
+}
+
+// passphraseRequired reports that the key is encrypted and the supplied (or
+// empty) passphrase did not decrypt it: x/crypto returns PassphraseMissingError
+// when no passphrase was given and x509.IncorrectPasswordError when a wrong
+// one was.
+func passphraseRequired(err error) bool {
+	var missing *ssh.PassphraseMissingError
+	return errors.As(err, &missing) || errors.Is(err, x509.IncorrectPasswordError)
 }

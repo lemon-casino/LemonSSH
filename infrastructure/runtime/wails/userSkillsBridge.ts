@@ -4,7 +4,7 @@ export interface NativeUserSkillsBindings {
   BuildContext: (prompt: string, selectedSkillSlugs: string[]) => Promise<{ ok: boolean; context?: string; error?: string }>;
 }
 
-export function createUserSkillsBridge(bindings: NativeUserSkillsBindings | undefined): Partial<NetcattyBridge> {
+export function createUserSkillsBridge(bindings: NativeUserSkillsBindings | undefined): Partial<LemonSSHBridge> {
   const required = () => {
     if (!bindings) throw new Error('Native user skills service is unavailable');
     return bindings;

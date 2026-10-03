@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import {
   scheduleWindowInputFocus,
   type ScheduledWindowInputFocus,
@@ -42,7 +42,7 @@ export function startMainWindowInputFocusRecovery(
   dependencies: MainWindowInputFocusRecoveryDependencies = {
     documentRef: document,
     windowRef: window,
-    bridge: netcattyBridge.get(),
+    bridge: lemonsshBridge.get(),
     scheduleFocus: scheduleWindowInputFocus,
   },
 ): () => void {

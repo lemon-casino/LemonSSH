@@ -29,9 +29,12 @@ import { checkPluginCompatibility } from "./compatibility.ts";
 import { PACKAGE_LIMITS } from "./constants.ts";
 import { initPlugin } from "./commands.ts";
 import {
+  isManifestV2,
+  manifestIdentity,
   parseAndValidateManifestContents,
   readAndValidateManifest,
   validateManifestValue,
+  validateManifestV2Value,
 } from "./manifest.ts";
 import { assertSafePackagePath, PackagePathRegistry } from "./packagePath.ts";
 
@@ -130,7 +133,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     name: "package-test",
     version: "1.0.0",
     publisher: "example",
-    engines: { netcatty: ">=1.0.0 <2.0.0", api: ">=0.1.0-internal <0.2.0" },
+    engines: { lemonssh: ">=1.0.0 <2.0.0", api: ">=0.1.0-internal <0.2.0" },
     main: { browser: "dist/index.js" },
     ...overrides,
   };
@@ -141,7 +144,7 @@ async function createPlugin(root: string): Promise<string> {
   await mkdir(path.join(directory, "dist"), { recursive: true });
   await Promise.all([
     writeFile(
-      path.join(directory, "netcatty.plugin.json"),
+      path.join(directory, "lemonssh.plugin.json"),
       `${JSON.stringify(manifest(), null, 2)}\n`,
     ),
     writeFile(path.join(directory, "dist/index.js"), "export default {};\n"),
@@ -312,7 +315,7 @@ test("Node utility entrypoints require the explicit advanced-runtime permission"
 
 test("manifest byte parsing rejects invalid UTF-8 before JSON validation", () => {
   const validContents = new TextEncoder().encode(JSON.stringify(manifest()));
-  assert.equal(parseAndValidateManifestContents(validContents).id, "com.example.package-test");
+  assert.equal(manifestIdentity(parseAndValidateManifestContents(validContents)).id, "com.example.package-test");
   assert.throws(
     () => parseAndValidateManifestContents(Uint8Array.from([0x7b, 0x22, 0xff, 0x22, 0x7d])),
     /not valid UTF-8 JSON/,
@@ -471,10 +474,10 @@ test("companion executables require an advanced utility placement", () => {
 });
 
 test("packaging treats contributed package icons as required safe files", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-icons-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-icons-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
-  const manifestPath = path.join(directory, "netcatty.plugin.json");
+  const manifestPath = path.join(directory, "lemonssh.plugin.json");
   await writeFile(manifestPath, `${JSON.stringify(manifest({
     permissions: { required: ["commands"] },
     contributes: {
@@ -503,47 +506,47 @@ test("packaging treats contributed package icons as required safe files", async 
   const output = path.join(root, "with-icons.ncpkg");
   await buildPluginPackage(directory, output);
   const result = await validatePluginPackage(output);
-  assert.equal(result.manifest.id, "com.example.package-test");
+  assert.equal(manifestIdentity(result.manifest).id, "com.example.package-test");
 });
 
 test("compatibility checks engine ranges and negotiates declared features", () => {
   const pluginManifest = manifest({
     features: {
-      required: ["netcatty.rpc.progress"],
-      optional: ["netcatty.stream.binary", "netcatty.view.theme"],
+      required: ["lemonssh.rpc.progress"],
+      optional: ["lemonssh.stream.binary", "lemonssh.view.theme"],
     },
   });
   const compatible = checkPluginCompatibility(pluginManifest, {
-    netcattyVersion: "1.4.0",
-    features: ["netcatty.rpc.progress", "netcatty.stream.binary"],
+    lemonsshVersion: "1.4.0",
+    features: ["lemonssh.rpc.progress", "lemonssh.stream.binary"],
   });
   assert.equal(compatible.compatible, true);
   assert.deepEqual(compatible.enabledFeatures, [
-    "netcatty.rpc.progress",
-    "netcatty.stream.binary",
+    "lemonssh.rpc.progress",
+    "lemonssh.stream.binary",
   ]);
 
   const incompatible = checkPluginCompatibility(pluginManifest, {
-    netcattyVersion: "2.0.0",
+    lemonsshVersion: "2.0.0",
     apiVersion: "0.2.0",
     features: [],
   });
   assert.equal(incompatible.compatible, false);
-  assert.deepEqual(incompatible.missingRequiredFeatures, ["netcatty.rpc.progress"]);
+  assert.deepEqual(incompatible.missingRequiredFeatures, ["lemonssh.rpc.progress"]);
   assert.match(incompatible.errors.join("\n"), /does not satisfy/);
   assert.match(incompatible.errors.join("\n"), /Missing required features/);
 
   const nextApiPrerelease = checkPluginCompatibility(pluginManifest, {
-    netcattyVersion: "1.4.0",
+    lemonsshVersion: "1.4.0",
     apiVersion: "0.2.0-alpha.1",
-    features: ["netcatty.rpc.progress"],
+    features: ["lemonssh.rpc.progress"],
   });
   assert.equal(nextApiPrerelease.compatible, false);
   assert.match(nextApiPrerelease.errors.join("\n"), /plugin API version .* does not satisfy/);
 });
 
 test("compatibility CLI checks a validated plugin target", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-compatibility-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-compatibility-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
 
@@ -553,7 +556,7 @@ test("compatibility CLI checks a validated plugin target", async (context) => {
     cliPath,
     "compatibility",
     directory,
-    "--netcatty",
+    "--lemonssh",
     "1.5.0",
   ]);
   assert.match(compatible.stdout, /Compatible: com\.example\.package-test@1\.0\.0/);
@@ -565,59 +568,134 @@ test("compatibility CLI checks a validated plugin target", async (context) => {
       cliPath,
       "compatibility",
       directory,
-      "--netcatty",
+      "--lemonssh",
       "2.0.0",
     ]),
     /Plugin is incompatible/,
   );
 });
 
+test("manifest v2 validation mirrors the Go host contract", () => {
+  const v2 = {
+    apiVersion: 2,
+    name: "demo-plugin",
+    version: "1.0.0",
+    displayName: "Demo",
+    entrypoint: { wasm: "demo.wasm", sha256: "a".repeat(64), memoryMB: 32 },
+    permissions: [{ kind: "terminal", resource: "session", mode: "read" }],
+    contributions: [{ type: "command", id: "demo.run" }],
+    ui: {
+      settings: [{ id: "demo.greeting", type: "text", label: "Greeting" }],
+      views: [{ id: "demo.status", type: "card", title: "Status" }],
+    },
+  };
+  const ok = validateManifestV2Value(v2);
+  assert.equal(ok.valid, true);
+  assert.ok(isManifestV2(ok.manifest));
+
+  // Every deviation the Go host rejects must be rejected here too.
+  for (const [label, patch] of Object.entries({
+    apiVersion: { apiVersion: 1 },
+    name: { name: "Bad_Name" },
+    version: { version: "not-semver" },
+    displayName: { displayName: "  " },
+    wasm: { entrypoint: { wasm: "demo.js", sha256: "a".repeat(64) } },
+    traversal: { entrypoint: { wasm: "../demo.wasm", sha256: "a".repeat(64) } },
+    sha256: { entrypoint: { wasm: "demo.wasm", sha256: "abcd" } },
+    memoryMB: { entrypoint: { wasm: "demo.wasm", sha256: "a".repeat(64), memoryMB: 8 } },
+    permissionKind: { permissions: [{ kind: "audio", resource: "x", mode: "read" }] },
+    permissionMode: { permissions: [{ kind: "terminal", resource: "x", mode: "rw" }] },
+    duplicatePermission: {
+      permissions: [
+        { kind: "terminal", resource: "x", mode: "read" },
+        { kind: "terminal", resource: "x", mode: "read" },
+      ],
+    },
+    contributionType: { contributions: [{ type: "provider", id: "x" }] },
+    contributionId: { contributions: [{ type: "view", id: "9bad" }] },
+    duplicateContribution: {
+      contributions: [
+        { type: "view", id: "x" },
+        { type: "view", id: "x" },
+      ],
+    },
+    injection: {
+      ui: { settings: [{ id: "x", type: "text", label: "<script>alert(1)</script>" }] },
+    },
+    selectWithoutOptions: {
+      ui: { settings: [{ id: "x", type: "select", label: "Pick" }] },
+    },
+  })) {
+    const result = validateManifestV2Value({ ...v2, ...patch });
+    assert.equal(result.valid, false, `${label} must be rejected`);
+  }
+
+  // A v1 document (main.browser present) goes to the v1 contract, never v2.
+  assert.equal(isManifestV2({ apiVersion: 2, name: "x", entrypoint: {}, main: { browser: "a.js" } }), false);
+  assert.equal(isManifestV2({ apiVersion: 2, name: "x", entrypoint: {} }), true);
+});
+
 test("example README commands use repository-root CLI paths", async () => {
   const readme = await readFile(
-    path.join(repositoryRoot, "examples/plugins/hello-netcatty/README.md"),
+    path.join(repositoryRoot, "examples/plugins/hello-lemonssh/README.md"),
     "utf8",
   );
 
   assert.match(readme, /npm run build:plugin-packages/);
   assert.match(
     readme,
-    /npm exec -- netcatty-plugin validate examples\/plugins\/hello-netcatty/,
+    /npm exec -- lemonssh-plugin validate examples\/plugins\/hello-lemonssh/,
   );
   assert.match(
     readme,
-    /npm exec -- netcatty-plugin compatibility examples\/plugins\/hello-netcatty --netcatty 0\.0\.0/,
+    /npm exec -- lemonssh-plugin pack examples\/plugins\/hello-lemonssh --out hello-lemonssh\.ncpkg/,
   );
-  assert.doesNotMatch(readme, /npm exec --workspace @netcatty\/plugin-cli/);
+  assert.doesNotMatch(readme, /npm exec --workspace @lemonssh\/plugin-cli/);
 });
 
-test("init creates a valid TypeScript plugin skeleton", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-init-"));
+test("init creates a valid manifest v2 WASM plugin skeleton", async (context) => {
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-init-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, "created");
 
   await initPlugin(directory, { id: "com.example.created", name: "Created" });
 
   const createdManifest = await readAndValidateManifest(directory);
-  assert.equal(createdManifest.id, "com.example.created");
-  assert.match(await readFile(path.join(directory, "src/index.ts"), "utf8"), /definePlugin/);
+  assert.ok(isManifestV2(createdManifest));
+  assert.equal(createdManifest.name, "com-example-created");
+  assert.equal(createdManifest.apiVersion, 2);
+  assert.equal(createdManifest.entrypoint.wasm, "plugin.wasm");
+  // The scaffolded WASM entrypoint matches its declared checksum.
+  const wasmBytes = await readFile(path.join(directory, "plugin.wasm"));
+  assert.equal(
+    createHash("sha256").update(wasmBytes).digest("hex"),
+    createdManifest.entrypoint.sha256,
+  );
+  // The scaffold validates and packs as a v2 package.
+  const validation = await validatePluginDirectory(directory);
+  assert.equal(isManifestV2(validation.manifest) && validation.manifest.name, "com-example-created");
 });
 
-test("init safely serializes the display name in generated TypeScript", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-init-escape-"));
+test("init safely serializes the display name in generated files", async (context) => {
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-init-escape-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, "created");
   const displayName = 'A "quoted" \\ plugin\nnext line';
 
   await initPlugin(directory, { id: "com.example.escaped", name: displayName });
 
-  const source = await readFile(path.join(directory, "src/index.ts"), "utf8");
-  assert.ok(
-    source.includes(`context.logger.info(${JSON.stringify(`${displayName} activated`)});`),
+  // JSON serialization must round-trip the raw display name exactly.
+  const manifest = JSON.parse(
+    await readFile(path.join(directory, "lemonssh.plugin.json"), "utf8"),
   );
+  assert.equal(manifest.displayName, displayName);
+  const validated = await readAndValidateManifest(directory);
+  assert.ok(isManifestV2(validated));
+  assert.equal(validated.displayName, displayName);
 });
 
 test("packing is deterministic and the archive validates", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-pack-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-pack-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   const first = path.join(root, "first.ncpkg");
@@ -635,7 +713,7 @@ test("packing is deterministic and the archive validates", async (context) => {
   );
   const validation = await validatePluginPackage(first);
   const directoryValidation = await validatePluginDirectory(directory);
-  assert.equal(validation.manifest.id, "com.example.package-test");
+  assert.equal(manifestIdentity(validation.manifest).id, "com.example.package-test");
   assert.equal(validation.fileCount, 3);
   assert.equal(firstResult.contentSha256, validation.contentSha256);
   assert.equal(validation.contentSha256, directoryValidation.contentSha256);
@@ -643,7 +721,7 @@ test("packing is deterministic and the archive validates", async (context) => {
 });
 
 test("logical content identity follows companion declarations across ZIP mode encoders", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-companion-mode-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-companion-mode-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   const companionContents = Buffer.from("portable companion\n");
@@ -651,7 +729,7 @@ test("logical content identity follows companion declarations across ZIP mode en
   await mkdir(path.dirname(companionPath), { recursive: true });
   await writeFile(companionPath, companionContents);
   await writeFile(
-    path.join(directory, "netcatty.plugin.json"),
+    path.join(directory, "lemonssh.plugin.json"),
     `${JSON.stringify(manifest({
       main: { browser: "dist/index.js", node: "dist/index.js" },
       permissions: {
@@ -690,7 +768,7 @@ test("logical content identity follows companion declarations across ZIP mode en
 });
 
 test("validated extraction creates an isolated tree and removes partial output on failure", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-extract-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-extract-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   const archive = path.join(root, "plugin.ncpkg");
@@ -698,7 +776,7 @@ test("validated extraction creates an isolated tree and removes partial output o
   await buildPluginPackage(directory, archive);
 
   const result = await extractPluginPackage(archive, extracted);
-  assert.equal(result.manifest.id, "com.example.package-test");
+  assert.equal(manifestIdentity(result.manifest).id, "com.example.package-test");
   assert.equal(
     await readFile(path.join(extracted, "dist/index.js"), "utf8"),
     "export default {};\n",
@@ -717,11 +795,11 @@ test("validated extraction creates an isolated tree and removes partial output o
 });
 
 test("archive validation rejects oversized manifests before buffering", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-archive-manifest-limit-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-archive-manifest-limit-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const oversizedPath = path.join(root, "oversized-manifest.ncpkg");
   const oversizedBytes = createZipEntry(
-    "netcatty.plugin.json",
+    "lemonssh.plugin.json",
     Buffer.alloc(PACKAGE_LIMITS.manifestBytes + 1, 0x20),
   );
   await writeFile(oversizedPath, oversizedBytes);
@@ -733,7 +811,7 @@ test("archive validation rejects oversized manifests before buffering", async (c
 
   const forgedSizePath = path.join(root, "forged-size-manifest.ncpkg");
   const forgedSizeBytes = createZipEntry(
-    "netcatty.plugin.json",
+    "lemonssh.plugin.json",
     Buffer.alloc(PACKAGE_LIMITS.manifestBytes + 1, 0x20),
     {
       compressionMethod: 8,
@@ -751,7 +829,7 @@ test("archive validation rejects oversized manifests before buffering", async (c
 });
 
 test("archive validation rejects duplicate names and CRC corruption", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-archive-safety-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-archive-safety-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   await Promise.all([
@@ -826,7 +904,7 @@ test("archive validation rejects duplicate names and CRC corruption", async (con
 });
 
 test("packer rejects symbolic links and undeclared executables", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-safety-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-safety-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   await assert.rejects(
@@ -851,7 +929,7 @@ test("packer rejects symbolic links and undeclared executables", async (context)
 });
 
 test("packer ignores root dev artifacts without dropping nested runtime dependencies", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-runtime-deps-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-runtime-deps-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   await Promise.all([
@@ -875,7 +953,7 @@ test("packer ignores root dev artifacts without dropping nested runtime dependen
 });
 
 test("packer rejects outputs inside the plugin source tree", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-output-containment-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-output-containment-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const directory = await createPlugin(root);
   const nestedOutput = path.join(directory, "dist/plugin.ncpkg");
@@ -897,9 +975,9 @@ test("packer rejects outputs inside the plugin source tree", async (context) => 
 });
 
 test("manifest byte limit is enforced before JSON parsing", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-limit-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-limit-"));
   context.after(() => rm(root, { recursive: true, force: true }));
-  const manifestPath = path.join(root, "netcatty.plugin.json");
+  const manifestPath = path.join(root, "lemonssh.plugin.json");
   await writeFile(manifestPath, "{}");
   await truncate(manifestPath, PACKAGE_LIMITS.manifestBytes * 4);
   await assert.rejects(readAndValidateManifest(root), /manifest exceeds/);
@@ -907,11 +985,11 @@ test("manifest byte limit is enforced before JSON parsing", async (context) => {
 
 test("manifest validation refuses symlinked source manifests", async (context) => {
   if (process.platform === "win32") return;
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-manifest-link-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-manifest-link-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const target = path.join(root, "target.json");
   await writeFile(target, JSON.stringify(manifest()));
-  await symlink(target, path.join(root, "netcatty.plugin.json"));
+  await symlink(target, path.join(root, "lemonssh.plugin.json"));
   await assert.rejects(readAndValidateManifest(root), /must be a regular file/);
 });
 
@@ -933,7 +1011,7 @@ test("validated manifest snapshots reject changed package bytes", () => {
 });
 
 test("source hashing enforces its byte budget while reading", async (context) => {
-  const root = await mkdtemp(path.join(tmpdir(), "netcatty-plugin-source-limit-"));
+  const root = await mkdtemp(path.join(tmpdir(), "lemonssh-plugin-source-limit-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const filePath = path.join(root, "growing.bin");
   await writeFile(filePath, "1234");

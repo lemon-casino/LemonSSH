@@ -55,7 +55,7 @@ test('structured table settings render native nested controls instead of a JSON 
         required: ['name', 'targets'],
       },
     },
-  } as NetcattyPluginSettingContribution;
+  } as LemonSSHPluginSettingContribution;
   const html = renderToStaticMarkup(
     <PluginStructuredSettingEditor
       setting={setting}
@@ -92,7 +92,7 @@ test('structured enum controls select deserialized object values by canonical JS
         additionalProperties: false,
       },
     },
-  } as NetcattyPluginSettingContribution;
+  } as LemonSSHPluginSettingContribution;
   const html = renderToStaticMarkup(
     <PluginStructuredSettingEditor
       setting={setting}

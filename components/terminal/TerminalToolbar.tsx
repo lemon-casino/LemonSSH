@@ -418,7 +418,7 @@ export const TerminalToolbar: React.FC<TerminalToolbarProps> = ({
             onDeleteSnippets?.(new Set(ids));
             // Still emit so ScriptsSidePanel can clear multi-select in the popover.
             window.dispatchEvent(
-              new CustomEvent('netcatty:snippets:delete', { detail: { ids } }),
+              new CustomEvent('lemonssh:snippets:delete', { detail: { ids } }),
             );
           }}
         />

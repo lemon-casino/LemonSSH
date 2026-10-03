@@ -141,7 +141,7 @@ export function isSameResolvedTerminalFont(
   );
 }
 
-// Font ids that earlier versions of netcatty exposed in the primary font
+// Font ids that earlier versions of LemonSSH exposed in the primary font
 // dropdown but that are proportional (non-monospace) and produce broken
 // cell-grid alignment when used as a terminal font. Reads should migrate
 // these to a sane default.

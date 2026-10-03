@@ -12,7 +12,7 @@ import type { AutocompleteHistoryScope, Snippet } from '../../../domain/models';
 
 export interface TerminalCompletionProviderRequest {
   input: string;
-  session: NetcattyTerminalSessionSnapshot;
+  session: LemonSSHTerminalSessionSnapshot;
   hostGroup?: string;
   hostOs: 'linux' | 'windows' | 'macos';
   cwdSource?: AutocompleteCwdSource;

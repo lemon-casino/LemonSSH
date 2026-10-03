@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createBridgeFetchForSDK } from './providers.ts';
 
 // Regression (WV3-L195 live smoke): the Wails transition bridge is a PARTIAL
-// NetcattyBridge — aiFetch exists, the Electron streaming channel does not.
+// LemonSSHBridge — aiFetch exists, the Electron streaming channel does not.
 // The old bridge-truthiness guard sent streaming requests into
 // bridge.onAiStreamData(...) and crashed with "o.onAiStreamData is not a
 // function", surfacing as "No output generated" in the chat.
@@ -14,7 +14,7 @@ function withWindowBridge(bridge: FakeBridge | null, fn: () => Promise<void>): P
   const globalAsAny = globalThis as unknown as { window?: unknown };
   const originalWindow = globalAsAny.window;
   const originalFetch = globalThis.fetch;
-  globalAsAny.window = bridge === null ? {} : { netcatty: bridge };
+  globalAsAny.window = bridge === null ? {} : { lemonssh: bridge };
   return (async () => {
     try {
       await fn();

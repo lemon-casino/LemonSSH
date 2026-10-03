@@ -3,7 +3,7 @@
  * Helper functions for file type detection and extension handling
  */
 
-import { netcattyBridge } from "../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../infrastructure/services/lemonsshBridge";
 
 // Known binary file extensions - files that should never be opened as text
 const BINARY_EXTENSIONS = new Set([
@@ -497,7 +497,7 @@ function isWailsShell(): boolean {
  */
 export function getPathForFile(file: File): string | undefined {
   try {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (bridge?.getPathForFile) {
       return bridge.getPathForFile(file);
     }
@@ -599,7 +599,7 @@ export function captureDropPayload(dataTransfer: DataTransfer): CapturedDropPayl
 }
 
 export async function captureNativeDropPayload(paths: string[]): Promise<CapturedDropPayload> {
-  const bridge = netcattyBridge.require();
+  const bridge = lemonsshBridge.require();
   if (!bridge.statLocalPath) throw new Error("Native file drop metadata is unavailable");
   const roots = await Promise.all(paths.map(async (path) => {
     const localPath = normalizeDroppedLocalPath(path);
@@ -611,7 +611,7 @@ export async function captureNativeDropPayload(paths: string[]): Promise<Capture
 
 export async function extractNativeDropEntries(paths: string[]): Promise<DropEntry[]> {
   const payload = await captureNativeDropPayload(paths);
-  const bridge = netcattyBridge.require();
+  const bridge = lemonsshBridge.require();
   if (payload.roots.some((root) => root.isDirectory) && !bridge.listLocalTree) {
     throw new Error("Native folder drop scanning is unavailable");
   }
@@ -849,7 +849,7 @@ export async function extractDropEntries(
   options: MaterializeDropOptions = {},
 ): Promise<DropEntry[]> {
   const payload = captureDropPayload(dataTransfer);
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   return materializeDropEntries(payload, {
     listLocalTree: options.listLocalTree
       ?? (bridge?.listLocalTree

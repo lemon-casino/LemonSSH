@@ -4,7 +4,7 @@
  * which reliably accesses node_modules in both dev and production.
  */
 
-import { netcattyBridge } from '../../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../../infrastructure/services/lemonsshBridge';
 import {
   CURATED_FIG_SPEC_LOADERS,
   CURATED_FIG_SPEC_NAMES,
@@ -57,7 +57,7 @@ interface FigSpecBridge {
 }
 
 function getBridge(): FigSpecBridge | undefined {
-  return netcattyBridge.get() as FigSpecBridge | undefined;
+  return lemonsshBridge.get() as FigSpecBridge | undefined;
 }
 
 // Cache loaded specs

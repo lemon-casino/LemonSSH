@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
 import { DEFAULT_RECORDING_PROMPT_TIMEOUT_MS } from '@/domain/snippetScript.ts';
-import type { ScriptRecordingStep } from '@/types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRecordingStep } from '@/types/global/lemonssh-bridge-script.d.ts';
 import { notify } from '../notification';
 
 export const MAX_PENDING_SCRIPT_RECORDING_INPUT_CHARS = 256 * 1024;
-export const SCRIPT_RECORDING_LIMIT_EVENT = 'netcatty:script:recording:limit';
+export const SCRIPT_RECORDING_LIMIT_EVENT = 'lemonssh:script:recording:limit';
 
 type ScriptRecordingLimitDetail = {
   sessionId: string;
@@ -57,7 +57,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
       }
     }
     const sid = sessionIdRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!sid || !bridge?.scriptRecordingStart) return false;
     await bridge.scriptRecordingStart(sid);
     startedAtRef.current = Date.now();
@@ -75,7 +75,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
   const stopRecording = useCallback(async () => {
     if (stopPromiseRef.current) return stopPromiseRef.current;
     const sid = sessionIdRef.current;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     isStoppingRef.current = true;
     isRecordingRef.current = false;
     isPausedRef.current = false;
@@ -130,7 +130,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
   const appendStep = useCallback(async (step: ScriptRecordingStep) => {
     const sid = sessionIdRef.current;
     if (!sid || !isRecordingRef.current || isPausedRef.current || isStoppingRef.current) return;
-    const result = await netcattyBridge.get()?.scriptRecordingAppendStep?.(sid, step);
+    const result = await lemonsshBridge.get()?.scriptRecordingAppendStep?.(sid, step);
     if (result?.stopped) {
       finishAutomaticStop({
         sessionId: sid,
@@ -159,7 +159,7 @@ export function useScriptRecorder(sessionId: string | undefined) {
     startedAtRef.current = null;
     setIsRecording(false);
     setIsPaused(false);
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     let stopRequest: Promise<ScriptRecordingResult>;
     try {
       stopRequest = bridge?.scriptRecordingStop

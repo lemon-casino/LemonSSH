@@ -2,8 +2,8 @@ import type { TerminalTheme } from '../../../domain/models';
 
 export const coreTerminalThemes: TerminalTheme[] = [
   {
-    id: 'netcatty-dark',
-    name: 'Netcatty Dark',
+    id: 'lemonssh-dark',
+    name: 'LemonSSH Dark',
     type: 'dark',
     colors: {
       background: '#0d1117',
@@ -29,8 +29,8 @@ export const coreTerminalThemes: TerminalTheme[] = [
     }
   },
   {
-    id: 'netcatty-light',
-    name: 'Netcatty Light',
+    id: 'lemonssh-light',
+    name: 'LemonSSH Light',
     type: 'light',
     colors: {
       background: '#f6f8fa',

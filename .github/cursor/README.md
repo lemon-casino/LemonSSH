@@ -23,7 +23,7 @@ re-comments `@codex review` after the author pushes more commits
 
 Optional:
 
-- `TRIAGE_GITHUB_TOKEN` — bot PAT (netcatty-bot) for opening PRs, labels, triage replies.
+- `TRIAGE_GITHUB_TOKEN` — bot PAT (lemonssh-bot) for opening PRs, labels, triage replies.
 - `CODEX_REQUEST_GITHUB_TOKEN` — **maintainer PAT (binaricat)** used only for
   `@codex review` comments so the Codex GitHub connector sees a human identity.
   Falls back to `TRIAGE_GITHUB_TOKEN` / `GITHUB_TOKEN` if unset.
@@ -42,7 +42,7 @@ clone.
 | `CURSOR_TRIAGE_DAILY_LIMIT` | `10` | Daily auto triage for non-collaborators |
 | `CURSOR_FOLLOWUP_DAILY_LIMIT` | `20` | Daily automatic follow-up runs per admitted issue before maintainer handoff |
 | `AUTOMATION_OWN_ACTORS` | `binaricat` | Logins treated as first-party PR authors |
-| `AUTOMATION_ISSUE_BOT_LOGINS` | `netcatty-bot,github-actions[bot]` | Bot logins ignored as issue follow-up authors and recognized in `@bot` mentions |
+| `AUTOMATION_ISSUE_BOT_LOGINS` | `lemonssh-bot,github-actions[bot]` | Bot logins ignored as issue follow-up authors and recognized in `@bot` mentions |
 
 ## Manual retry
 
@@ -117,7 +117,7 @@ Terminal codex_loop outcomes always drop `automation:codex-loop`:
 
 Issue automation is not limited to the opening report. After an issue has been
 admitted, new comments from the issue author are reviewed as additions to the
-same work. The issue author can also explicitly mention `@netcatty-bot`; trusted
+same work. The issue author can also explicitly mention `@lemonssh-bot`; trusted
 repository members may do the same. Untrusted bystanders cannot trigger code
 changes by mentioning the bot, and an unadmitted issue cannot use a bot mention
 to bypass normal triage. A per-issue daily limit hands unusually busy threads to

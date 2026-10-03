@@ -276,8 +276,8 @@ export class KeywordHighlighter implements IDisposable {
     this.originalReset = term.reset.bind(term);
     this.originalClear = term.clear.bind(term);
     this.originalResize = term.resize.bind(term);
-    (term as XTerm & { __netcattyKeywordHighlighter?: KeywordHighlighter })
-      .__netcattyKeywordHighlighter = this;
+    (term as XTerm & { __lemonsshKeywordHighlighter?: KeywordHighlighter })
+      .__lemonsshKeywordHighlighter = this;
     term.write = this.write;
     term.reset = this.reset;
     term.clear = this.clear;
@@ -365,9 +365,9 @@ export class KeywordHighlighter implements IDisposable {
     this.term.clear = this.originalClear;
     this.term.resize = this.originalResize;
     this.serializeAddon.serialize = this.originalSerialize;
-    const patchedTerm = this.term as XTerm & { __netcattyKeywordHighlighter?: KeywordHighlighter };
-    if (patchedTerm.__netcattyKeywordHighlighter === this) {
-      delete patchedTerm.__netcattyKeywordHighlighter;
+    const patchedTerm = this.term as XTerm & { __lemonsshKeywordHighlighter?: KeywordHighlighter };
+    if (patchedTerm.__lemonsshKeywordHighlighter === this) {
+      delete patchedTerm.__lemonsshKeywordHighlighter;
     }
     if (this.catchUpTimer !== null) clearTimeout(this.catchUpTimer);
     this.catchUpTimer = null;

@@ -16,14 +16,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
-	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-type etBootstrapObservation struct{ command, input string }
+type etBootstrapObservation struct {
+	command, input string
+	// requests lists the session channel-request types the fixture observed
+	// before (and including) the exec, in arrival order.
+	requests []string
+}
 
 func etRemoteFixture(t *testing.T) (*terminalssh.Transport, <-chan etBootstrapObservation, <-chan uint32) {
 	t.Helper()
@@ -80,7 +85,9 @@ func etRemoteFixture(t *testing.T) (*terminalssh.Transport, <-chan etBootstrapOb
 					io.Copy(stream, stream)
 					return
 				}
+				var observation etBootstrapObservation
 				for request := range requests {
+					observation.requests = append(observation.requests, request.Type)
 					if request.Type != "exec" {
 						request.Reply(false, nil)
 						continue
@@ -89,7 +96,9 @@ func etRemoteFixture(t *testing.T) (*terminalssh.Transport, <-chan etBootstrapOb
 					ssh.Unmarshal(request.Payload, &command)
 					request.Reply(true, nil)
 					input, _ := io.ReadAll(stream)
-					observed <- etBootstrapObservation{command.Value, string(input)}
+					observation.command = command.Value
+					observation.input = string(input)
+					observed <- observation
 					io.WriteString(stream, "IDPASSKEY:"+strings.Repeat("I", 16)+"/"+strings.Repeat("K", 32)+"\n")
 					stream.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{0}))
 					return
@@ -120,7 +129,7 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bridge, err := newEtBridge(context.Background(), transport, MoshStartRequest{ServerPath: "/opt/et tools/etterminal", ServerFifo: "/run/custom fifo", EtPort: 4044}, temp, nil)
+	bridge, err := newEtBridge(context.Background(), transport, MoshStartRequest{ServerPath: "/opt/et tools/etterminal", ServerFifo: "/run/custom fifo", EtPort: 4044}, temp, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +137,12 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 	observation := <-observed
 	if observation.command != "'/opt/et tools/etterminal' --serverfifo='/run/custom fifo'" || !strings.HasSuffix(observation.input, "_xterm-256color\n") {
 		t.Fatalf("incorrect remote bootstrap command %q", observation.command)
+	}
+	// Forwarding off must not touch the bootstrap session at all.
+	for _, requestType := range observation.requests {
+		if requestType == "auth-agent-req@openssh.com" {
+			t.Fatalf("unexpected agent forwarding request: %v", observation.requests)
+		}
 	}
 	args := strings.Join(bridge.args, " ")
 	for _, secret := range []string{"remote-password", strings.Repeat("K", 32), observation.input[:16]} {
@@ -147,7 +162,7 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := &ssh.ClientConfig{User: "netcatty", Auth: []ssh.AuthMethod{ssh.Password("unauthorized")}, HostKeyCallback: policy, Timeout: time.Second}
+	config := &ssh.ClientConfig{User: "lemonssh", Auth: []ssh.AuthMethod{ssh.Password("unauthorized")}, HostKeyCallback: policy, Timeout: time.Second}
 	if client, err := ssh.Dial("tcp", bridge.bootstrap.Addr().String(), config); err == nil {
 		client.Close()
 		t.Fatal("bootstrap allowed wrong identity")
@@ -161,7 +176,7 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 				i++
 			}
 		}
-		sshArgs = append(sshArgs, "netcatty@127.0.0.1", "ignored-bootstrap-command")
+		sshArgs = append(sshArgs, "lemonssh@127.0.0.1", "ignored-bootstrap-command")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, sshPath, sshArgs...)
@@ -228,6 +243,40 @@ func TestETGoBootstrapNativeSSHandoffAndTunnel(t *testing.T) {
 	}
 }
 
+func TestETGoBootstrapRequestsAgentForwardingWhenEnabled(t *testing.T) {
+	transport, observed, _ := etRemoteFixture(t)
+	temp, err := filesystem.NewTempService(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bridge, err := newEtBridge(context.Background(), transport, MoshStartRequest{EtPort: 4046}, temp, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bridge.Close()
+	observation := <-observed
+	// auth-agent-req@openssh.com must precede the etterminal exec so sshd
+	// exports $SSH_AUTH_SOCK into etterminal's environment. The fixture
+	// rejects the request (no agent channels), so the bootstrap degrades to
+	// plain exec exactly as a server without forwarding support would.
+	agentSeen, execSeen := false, false
+	for _, requestType := range observation.requests {
+		if requestType == "auth-agent-req@openssh.com" {
+			agentSeen = true
+		}
+		if requestType == "exec" {
+			execSeen = true
+			break
+		}
+	}
+	if !agentSeen || !execSeen {
+		t.Fatalf("expected auth-agent-req before exec, got %v", observation.requests)
+	}
+	if !bridge.agentForwarded {
+		t.Fatal("bridge did not retain the agent-forwarded state")
+	}
+}
+
 func TestETAuthMappingAndNativeFallback(t *testing.T) {
 	var request MoshStartRequest
 	if err := json.Unmarshal([]byte(`{"hostname":"target","username":"user","password":"pw","privateKey":"pem","passphrase":"phrase","certificate":"cert","useAgent":true,"enableMfa":true,"identityFilePaths":["/key"],"proxyUrl":"socks5://p:1080","proxyCommand":"connect %h %p","etPort":4044,"sessionId":"s","bootEpoch":9,"jumpHosts":[{"hostname":"jump","username":"hop","password":"hop-pw","certificate":"hop-cert","useAgent":true}]}`), &request); err != nil {
@@ -286,7 +335,7 @@ func TestETTunnelRedialDoesNotBootstrapAnotherShell(t *testing.T) {
 	}
 	redials := 0
 	bridge, err := newEtBridge(context.Background(), first, MoshStartRequest{EtPort: 4045}, temp,
-		func(context.Context) (*terminalssh.Transport, error) { redials++; return second, nil })
+		func(context.Context) (*terminalssh.Transport, error) { redials++; return second, nil }, false)
 	if err != nil {
 		t.Fatal(err)
 	}

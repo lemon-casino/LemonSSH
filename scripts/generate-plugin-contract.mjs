@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -181,6 +182,29 @@ if (!Number.isSafeInteger(syncLimits?.maxObjectBytes)
   || syncLimits.inlineObjectBytes > syncLimits.maxObjectBytes) {
   throw new Error("SyncLimits must define positive bounded object, key, revision, and inline size limits");
 }
+const wasmAbi = schema.$defs.WasmAbi?.const;
+if (wasmAbi?.version !== 1
+  || wasmAbi.hostModule !== "lemonssh"
+  || wasmAbi.guestExports?.alloc !== "lemonssh_alloc"
+  || wasmAbi.guestExports?.free !== "lemonssh_free"
+  || wasmAbi.guestExports?.dispatch !== "lemonssh_dispatch"
+  || wasmAbi.hostImports?.log !== "lemonssh_host_log"
+  || wasmAbi.hostImports?.settingGet !== "lemonssh_host_setting_get"
+  || !Number.isSafeInteger(wasmAbi.maxRequestBytes) || wasmAbi.maxRequestBytes < 1
+  || !Number.isSafeInteger(wasmAbi.maxResponseBytes) || wasmAbi.maxResponseBytes < wasmAbi.maxRequestBytes
+  || !Number.isSafeInteger(wasmAbi.defaultTimeoutMs) || wasmAbi.defaultTimeoutMs < 1
+  || !Number.isSafeInteger(wasmAbi.maxLogBytes) || wasmAbi.maxLogBytes < 1
+  || !Number.isSafeInteger(wasmAbi.maxLogEntries) || wasmAbi.maxLogEntries < 1
+  || !Number.isSafeInteger(wasmAbi.maxSettingKeyBytes) || wasmAbi.maxSettingKeyBytes < 1) {
+  throw new Error("WasmAbi must pin the canonical lemonssh-wasm-abi v1 names and positive bounded limits");
+}
+const wasmHostImportStatus = schema.$defs.WasmHostImportStatus?.const;
+if (wasmHostImportStatus?.ok !== 0
+  || wasmHostImportStatus.permissionDenied !== -1
+  || wasmHostImportStatus.invalidArgument !== -2
+  || wasmHostImportStatus.unavailable !== -3) {
+  throw new Error("WasmHostImportStatus must pin the canonical structured import status codes");
+}
 for (const [name, minimum, maximum] of [
   ["TerminalInterceptorChunkByteLength", 0, terminalInterceptorLimits.maxChunkBytes],
   ["TerminalInterceptorWindowBytes", 1, terminalInterceptorLimits.maxWindowBytes],
@@ -340,6 +364,20 @@ const generatedLimits = [
   `export const PLUGIN_SYNC_MAX_OBJECT_KEY_LENGTH = ${syncLimits.maxObjectKeyLength} as const;`,
   `export const PLUGIN_SYNC_MAX_REVISION_LENGTH = ${syncLimits.maxRevisionLength} as const;`,
   `export const PLUGIN_SYNC_INLINE_OBJECT_BYTES = ${syncLimits.inlineObjectBytes} as const;`,
+  `export const PLUGIN_WASM_ABI_VERSION = ${wasmAbi.version} as const;`,
+  `export const PLUGIN_WASM_HOST_MODULE = ${JSON.stringify(wasmAbi.hostModule)} as const;`,
+  `export const PLUGIN_WASM_EXPORT_ALLOC = ${JSON.stringify(wasmAbi.guestExports.alloc)} as const;`,
+  `export const PLUGIN_WASM_EXPORT_FREE = ${JSON.stringify(wasmAbi.guestExports.free)} as const;`,
+  `export const PLUGIN_WASM_EXPORT_DISPATCH = ${JSON.stringify(wasmAbi.guestExports.dispatch)} as const;`,
+  `export const PLUGIN_WASM_IMPORT_HOST_LOG = ${JSON.stringify(wasmAbi.hostImports.log)} as const;`,
+  `export const PLUGIN_WASM_IMPORT_HOST_SETTING_GET = ${JSON.stringify(wasmAbi.hostImports.settingGet)} as const;`,
+  `export const PLUGIN_WASM_MAX_REQUEST_BYTES = ${wasmAbi.maxRequestBytes} as const;`,
+  `export const PLUGIN_WASM_MAX_RESPONSE_BYTES = ${wasmAbi.maxResponseBytes} as const;`,
+  `export const PLUGIN_WASM_DEFAULT_TIMEOUT_MS = ${wasmAbi.defaultTimeoutMs} as const;`,
+  `export const PLUGIN_WASM_MAX_LOG_BYTES = ${wasmAbi.maxLogBytes} as const;`,
+  `export const PLUGIN_WASM_MAX_LOG_ENTRIES = ${wasmAbi.maxLogEntries} as const;`,
+  `export const PLUGIN_WASM_MAX_SETTING_KEY_BYTES = ${wasmAbi.maxSettingKeyBytes} as const;`,
+  `export const PLUGIN_WASM_HOST_IMPORT_STATUS = ${JSON.stringify(wasmHostImportStatus)} as const;`,
   "",
 ].join("\n");
 const normalizedSchema = `${JSON.stringify(schema, null, 2)}\n`;
@@ -356,10 +394,33 @@ async function assertCurrent(filePath, expected, label) {
   }
 }
 
+// Host-level compatibility: schema artifact consistency alone cannot detect a
+// break between the published example/CLI contract and what the Go host
+// accepts (apiVersion 2, entrypoint.wasm). The Go test installs the shipped
+// hello-lemonssh example through PluginService.InstallPackage and rejects a
+// legacy v1 document, so it is the authority for host-level compatibility.
+function assertHostContractStillAcceptsExamplePlugin() {
+  const result = spawnSync(
+    "go",
+    ["test", "./cmd/lemonssh", "-run", "TestExamplePluginInstallsThroughService"],
+    { cwd: rootDir, encoding: "utf8", windowsHide: true },
+  );
+  if (result.error) {
+    throw new Error(`Host-level plugin contract check could not run go test: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `Host-level plugin contract check failed: the Go host no longer accepts the shipped example plugin.\n${result.stdout ?? ""}${result.stderr ?? ""}`,
+    );
+  }
+}
+
 if (checkOnly) {
   await assertCurrent(generatedTypesPath, generatedTypes, "Generated plugin TypeScript contract");
   await assertCurrent(generatedLimitsPath, generatedLimits, "Generated plugin JSON limits");
+  assertHostContractStillAcceptsExamplePlugin();
   console.log("Plugin contract generated artifacts are current.");
+  console.log("Host-level contract check passed: the Go host installs examples/plugins/hello-lemonssh.");
 } else {
   await mkdir(path.dirname(generatedTypesPath), { recursive: true });
   await Promise.all([

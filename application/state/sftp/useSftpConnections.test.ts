@@ -80,14 +80,14 @@ const openOptions = {
   hostname: "192.168.9.138",
   username: "zhlrs",
   port: 22,
-} as NetcattySSHOptions;
+} as LemonSSHSSHOptions;
 
 test("openSftpWithSessionPreference opens session-backed SFTP before authing again", async () => {
   const calls: string[] = [];
-  let expectedEndpoint: NetcattySSHOptions | undefined;
+  let expectedEndpoint: LemonSSHSSHOptions | undefined;
   const sftpId = await openSftpWithSessionPreference({
     bridge: {
-      openSftpForSession: async (sessionId: string, endpoint?: NetcattySSHOptions) => {
+      openSftpForSession: async (sessionId: string, endpoint?: LemonSSHSSHOptions) => {
         calls.push(`openForSession:${sessionId}`);
         expectedEndpoint = endpoint;
         return "session-backed-sftp";
@@ -114,7 +114,7 @@ test("openSftpWithSessionPreference falls back to normal SFTP when session reuse
         calls.push(`openForSession:${sessionId}`);
         throw new Error("channel unavailable");
       },
-      openSftp: async (options: NetcattySSHOptions) => {
+      openSftp: async (options: LemonSSHSSHOptions) => {
         calls.push(`openSftp:${options.sessionId}`);
         return "fresh-sftp";
       },
@@ -129,10 +129,10 @@ test("openSftpWithSessionPreference falls back to normal SFTP when session reuse
 
 test("openSftpWithSessionPreference tries session reuse for sudo SFTP before fresh auth", async () => {
   const calls: string[] = [];
-  let passedOptions: NetcattySSHOptions | undefined;
+  let passedOptions: LemonSSHSSHOptions | undefined;
   const sftpId = await openSftpWithSessionPreference({
     bridge: {
-      openSftpForSession: async (sessionId: string, options?: NetcattySSHOptions) => {
+      openSftpForSession: async (sessionId: string, options?: LemonSSHSSHOptions) => {
         calls.push(`openForSession:${sessionId}`);
         passedOptions = options;
         return "sudo-session-backed-sftp";
@@ -172,7 +172,7 @@ test("openSftpWithSessionPreference opens normal SFTP without a source session",
         calls.push("openForSession");
         return "session-backed-sftp";
       },
-      openSftp: async (options: NetcattySSHOptions) => {
+      openSftp: async (options: LemonSSHSSHOptions) => {
         calls.push(`openSftp:${options.sessionId}`);
         return "fresh-sftp";
       },

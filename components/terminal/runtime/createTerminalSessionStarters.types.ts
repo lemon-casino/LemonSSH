@@ -20,34 +20,34 @@ export type TerminalBackendApi = {
   serialAvailable: () => boolean;
   pluginConnectionAvailable: () => boolean;
   execAvailable: () => boolean;
-  startSSHSession: (options: NetcattySSHOptions) => Promise<string>;
+  startSSHSession: (options: LemonSSHSSHOptions) => Promise<string>;
   startTelnetSession: (
-    options: Parameters<NonNullable<NetcattyBridge["startTelnetSession"]>>[0],
+    options: Parameters<NonNullable<LemonSSHBridge["startTelnetSession"]>>[0],
   ) => Promise<string>;
   startMoshSession: (
-    options: Parameters<NonNullable<NetcattyBridge["startMoshSession"]>>[0],
+    options: Parameters<NonNullable<LemonSSHBridge["startMoshSession"]>>[0],
   ) => Promise<string>;
   startEtSession: (
-    options: Parameters<NonNullable<NetcattyBridge["startEtSession"]>>[0],
+    options: Parameters<NonNullable<LemonSSHBridge["startEtSession"]>>[0],
   ) => Promise<string>;
   startLocalSession: (
-    options: Parameters<NonNullable<NetcattyBridge["startLocalSession"]>>[0],
+    options: Parameters<NonNullable<LemonSSHBridge["startLocalSession"]>>[0],
   ) => Promise<string>;
   startSerialSession: (
-    options: Parameters<NonNullable<NetcattyBridge["startSerialSession"]>>[0],
+    options: Parameters<NonNullable<LemonSSHBridge["startSerialSession"]>>[0],
   ) => Promise<string>;
-  startPluginConnection: (options: NetcattyPluginConnectionStartRequest & { signal?: AbortSignal }) => Promise<{
+  startPluginConnection: (options: LemonSSHPluginConnectionStartRequest & { signal?: AbortSignal }) => Promise<{
     sessionId: string;
     providerId: string;
     status: "connecting" | "connected";
-    diagnostics: ReadonlyArray<import("@netcatty/plugin-contract").ProviderValidationIssue>;
+    diagnostics: ReadonlyArray<import("@lemonssh/plugin-contract").ProviderValidationIssue>;
   }>;
   cancelPluginExtensionRequest?: (requestId: string) => Promise<boolean> | boolean;
   signalPluginConnection?: (
     sessionId: string,
     signal?: "interrupt" | "terminate" | "kill" | "eof" | "break",
   ) => Promise<unknown>;
-  execCommand: (options: Parameters<NetcattyBridge["execCommand"]>[0]) => Promise<{
+  execCommand: (options: Parameters<LemonSSHBridge["execCommand"]>[0]) => Promise<{
     stdout?: string;
     stderr?: string;
   }>;
@@ -101,7 +101,7 @@ export type TerminalBackendApi = {
     cb: (sessionId: string, sourceSessionId?: string) => void,
   ) => (() => void) | undefined;
   writeToSession: (sessionId: string, data: string, options?: { automated?: boolean; sensitive?: boolean; lineDelayMs?: number; logRewrite?: ProgrammaticCommandLogRewrite }) => void;
-  interruptSession?: (sessionId: string, trace?: NetcattyTerminalInterruptTrace) => void;
+  interruptSession?: (sessionId: string, trace?: LemonSSHTerminalInterruptTrace) => void;
   resizeSession: (sessionId: string, cols: number, rows: number) => void;
   closeSession: (sessionId: string, options?: { bootEpoch?: number }) => void | Promise<void>;
   /** Pause/resume the source stream for output back-pressure (optional). */
@@ -256,9 +256,9 @@ export type TerminalSessionDataMeta = {
   droppedOutputAlternateScreenAction?: 'enter' | 'leave';
   /** True while Mosh is still on the ephemeral SSH handshake PTY. */
   moshHandshake?: boolean;
-  /** The Mosh SSH bootstrap is blocked on input that Netcatty cannot answer automatically. */
+  /** The Mosh SSH bootstrap is blocked on input that LemonSSH cannot answer automatically. */
   moshHandshakeRequiresUserInput?: boolean;
-  terminalPerf?: NetcattyTerminalOutputPerfMeta;
+  terminalPerf?: LemonSSHTerminalOutputPerfMeta;
   /** Original host output units acknowledged even when an interceptor changes display length. */
   pluginPipelineIngressBytes?: number;
   /** Host-owned provenance marker for output already processed by an interceptor. */

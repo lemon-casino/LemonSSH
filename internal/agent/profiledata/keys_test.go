@@ -15,9 +15,24 @@ func TestInventoryCoversRendererKeys(t *testing.T) {
 			t.Errorf("duplicate inventory entry %s", spec.StorageKey)
 		}
 		seen[spec.StorageKey] = true
-		if !strings_HasPrefix(spec.StorageKey, "netcatty_ai_") {
-			t.Errorf("inventory key %s must carry the netcatty_ai_ prefix", spec.StorageKey)
+		if !strings_HasPrefix(spec.StorageKey, "lemonssh_ai_") {
+			t.Errorf("inventory key %s must carry the lemonssh_ai_ prefix", spec.StorageKey)
 		}
+	}
+}
+
+// TestSpecAliasesLegacyRendererKeys proves pre-rename renderer keys
+// (netcatty_ai_*) classify through the alias so snapshots taken before the
+// rename still plan, while unknown keys under either prefix fail closed.
+func TestSpecAliasesLegacyRendererKeys(t *testing.T) {
+	if spec := Spec("netcatty_ai_providers_v1"); spec == nil || spec.StorageKey != "lemonssh_ai_providers_v1" {
+		t.Fatalf("legacy key must alias to the lemonssh entry, got %v", spec)
+	}
+	if spec := Spec("lemonssh_ai_providers_v1"); spec == nil {
+		t.Fatal("current key must resolve directly")
+	}
+	if Spec("netcatty_ai_some_future_key_v9") != nil {
+		t.Fatal("unknown legacy-prefixed key must not classify")
 	}
 }
 

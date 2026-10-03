@@ -9,19 +9,19 @@ Keep the dependency flow one way:
 - `application/` and `application/state/`: orchestration, React hooks, and persistence boundaries.
 - `infrastructure/`: adapters for Wails services, storage, networking, AI, and generated bindings.
 - `components/` and `App.tsx`: presentation and view wiring.
-- `cmd/netcatty/`: Wails application entry point and services exposed to the frontend.
+- `cmd/lemonssh/`: Wails application entry point and services exposed to the frontend.
 - `internal/`: Go implementations for SSH, SFTP, terminal sessions, capabilities, plugins, credentials, and profile storage.
 
 Components must not call native APIs, network services, or persistence directly. Add a typed adapter or application hook first. Keep storage keys in `infrastructure/config/storageKeys.ts` and use `infrastructure/persistence/localStorageAdapter.ts`.
 
 ## Runtime Boundary
 
-The frontend uses the runtime client under `infrastructure/runtime/`. Wails is the only desktop runtime. Native capabilities belong in Go services under `cmd/netcatty/` or `internal/`; expose them through generated Wails bindings and the runtime adapter.
+The frontend uses the runtime client under `infrastructure/runtime/`. Wails is the only desktop runtime. Native capabilities belong in Go services under `cmd/lemonssh/` or `internal/`; expose them through generated Wails bindings and the runtime adapter.
 
 Run this after changing exported Wails service methods:
 
 ```bash
-go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/netcatty
+go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12 generate bindings -d infrastructure/runtime/wails/bindings ./cmd/lemonssh
 ```
 
 Capability metadata is generated from the Go catalog:
@@ -38,7 +38,7 @@ Do not add a second native bridge shape when an existing Wails service or runtim
 
 The capability catalog in `internal/capability/` is the source of truth for generated frontend tool specs. Observer mode blocks writes; confirm mode requests approval for write capabilities.
 
-Tool dispatch, session scope, native approvals and cancellation flow through `AgentHost.dispatch`. Vault tools use the application hook through `AgentVaultRouter`; do not duplicate vault mutations in Go. See `docs/agent-tools.md`. Run `go test ./cmd/netcatty -run TestEveryAdvertisedNativeToolHasAllRPCSurfaces` when changing the catalog or registration.
+Tool dispatch, session scope, native approvals and cancellation flow through `AgentHost.dispatch`. Vault tools use the application hook through `AgentVaultRouter`; do not duplicate vault mutations in Go. See `docs/agent-tools.md`. Run `go test ./cmd/lemonssh -run TestEveryAdvertisedNativeToolHasAllRPCSurfaces` when changing the catalog or registration.
 
 ## Plugin Runtime
 
@@ -53,7 +53,7 @@ npm run test:plugin-runtime
 
 ## Temporary Files
 
-Use Netcatty's dedicated temporary-file service. Do not write application temporary data directly to the operating system temp directory.
+Use LemonSSH's dedicated temporary-file service. Do not write application temporary data directly to the operating system temp directory.
 
 ## Terminal Side Panels
 

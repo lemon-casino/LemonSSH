@@ -594,7 +594,7 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
     { min: TERMINAL_SIDE_PANEL_MIN_WIDTH, max: TERMINAL_SIDE_PANEL_MAX_WIDTH },
   );
   const [sidePanelPosition, setSidePanelPosition] = useStoredString<'left' | 'right'>(
-    'netcatty_side_panel_position',
+    'lemonssh_side_panel_position',
     'left',
     (v): v is 'left' | 'right' => v === 'left' || v === 'right',
   );
@@ -2109,8 +2109,8 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
       if (!snippet) return;
       void handleRunScriptFromPanel(snippet);
     };
-    window.addEventListener('netcatty:scripts:run-on-focused', handler);
-    return () => window.removeEventListener('netcatty:scripts:run-on-focused', handler);
+    window.addEventListener('lemonssh:scripts:run-on-focused', handler);
+    return () => window.removeEventListener('lemonssh:scripts:run-on-focused', handler);
   }, [handleRunScriptFromPanel]);
 
   const handleStartRecordingFromPanel = useCallback(() => {
@@ -2121,14 +2121,14 @@ const TerminalLayerInner: React.FC<TerminalLayerProps> = ({
     }
     const recording = getScriptRecordingSnapshot();
     if (recording.sessionId === sessionId) {
-      window.dispatchEvent(new CustomEvent('netcatty:script:recording:stop', { detail: { sessionId } }));
+      window.dispatchEvent(new CustomEvent('lemonssh:script:recording:stop', { detail: { sessionId } }));
       return;
     }
     if (recording.sessionId) {
       toast.error(t('scripts.recording.alreadyActive'));
       return;
     }
-    window.dispatchEvent(new CustomEvent('netcatty:script:recording:start', { detail: { sessionId } }));
+    window.dispatchEvent(new CustomEvent('lemonssh:script:recording:start', { detail: { sessionId } }));
   }, [getActiveTerminalSessionId, t]);
 
   const handleComposeSend = useCallback((text: string) => {

@@ -7,12 +7,14 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  IconReference,
-  PermissionDeclaration,
-  PluginManifest,
-  PluginPermission,
-} from "@netcatty/plugin-contract";
+import {
+  PLUGIN_LEGACY_MANIFEST_FILES,
+  PLUGIN_MANIFEST_FILE,
+  type IconReference,
+  type PermissionDeclaration,
+  type PluginManifest,
+  type PluginPermission,
+} from "@lemonssh/plugin-contract";
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { valid, validRange } from "semver";
@@ -22,7 +24,7 @@ import { assertSafePackagePath } from "./packagePath.js";
 
 const require = createRequire(import.meta.url);
 const schemaPath = require.resolve(
-  "@netcatty/plugin-contract/schema/plugin-contract.schema.json",
+  "@lemonssh/plugin-contract/schema/plugin-contract.schema.json",
 );
 interface PluginContractSchema extends Record<string, unknown> {
   readonly $defs: {
@@ -62,14 +64,225 @@ const FORBIDDEN_SCHEMA_PROPERTY_NAMES = new Set(["__proto__", "constructor", "pr
 
 export interface ManifestValidationResult {
   readonly valid: boolean;
-  readonly manifest?: PluginManifest;
+  readonly manifest?: ValidatedPluginManifest;
   readonly errors: readonly string[];
 }
 
 export interface ValidatedManifestSource {
-  readonly manifest: PluginManifest;
+  readonly manifest: ValidatedPluginManifest;
+  /** File name of the manifest inside the plugin directory/package. */
+  readonly fileName: string;
   readonly size: number;
   readonly sha256: string;
+}
+
+// ---------------------------------------------------------------------------
+// Manifest v2 (the Go host contract in internal/plugin/manifest/v2.go).
+// The Go host accepts only apiVersion 2 WASM packages; v1 documents are
+// rejected at install time by internal/plugin/v1reject. The CLI therefore
+// validates v2 documents against the same rules instead of the v1 schema.
+// ---------------------------------------------------------------------------
+
+export interface PluginManifestV2Entrypoint {
+  readonly wasm: string;
+  readonly sha256: string;
+  readonly memoryMB?: number;
+}
+
+export interface PluginManifestV2Permission {
+  readonly kind: string;
+  readonly resource: string;
+  readonly mode: "read" | "write";
+}
+
+export interface PluginManifestV2Contribution {
+  readonly type: "command" | "setting" | "view";
+  readonly id: string;
+}
+
+export interface PluginManifestV2UISetting {
+  readonly id: string;
+  readonly type: "text" | "number" | "boolean" | "select" | "password";
+  readonly label: string;
+  readonly default?: string;
+  readonly options?: readonly string[];
+  readonly required?: boolean;
+  readonly description?: string;
+}
+
+export interface PluginManifestV2UIView {
+  readonly id: string;
+  readonly type: "list" | "card";
+  readonly title: string;
+  readonly columns?: readonly string[];
+  readonly bindings?: readonly string[];
+}
+
+export interface PluginManifestV2 {
+  readonly apiVersion: 2;
+  readonly name: string;
+  readonly version: string;
+  readonly displayName: string;
+  readonly description?: string;
+  readonly entrypoint: PluginManifestV2Entrypoint;
+  readonly permissions?: readonly PluginManifestV2Permission[];
+  readonly contributions?: readonly PluginManifestV2Contribution[];
+  readonly minHostVersion?: string;
+  readonly ui?: {
+    readonly settings?: readonly PluginManifestV2UISetting[];
+    readonly views?: readonly PluginManifestV2UIView[];
+  };
+}
+
+export type ValidatedPluginManifest = PluginManifest | PluginManifestV2;
+
+const V2_NAME_PATTERN = /^[a-z][a-z0-9-]{1,63}$/;
+const V2_IDENTIFIER_PATTERN = /^[a-z][a-z0-9._-]{0,127}$/;
+const V2_SHA256_PATTERN = /^[0-9a-fA-F]{64}$/;
+// Mirrors internal/plugin/manifest/v2.go validPermissionKinds: "runtime"
+// gates the lemonssh-wasm-abi host imports (resource "log" write,
+// "settings" read); "provider" registers terminal/extension providers
+// (resource = the contract ProviderKind, e.g. "terminal.theme").
+const V2_PERMISSION_KINDS = new Set(["filesystem", "network", "terminal", "secret", "clipboard", "runtime", "provider"]);
+const V2_INJECTION_VECTORS = [
+  "<script", "</script", "<img ", "<iframe", "javascript:", "onerror=", "onload=", "{{", "${",
+];
+
+export function isManifestV2(value: unknown): value is PluginManifestV2 {
+  if (!plainRecord(value)) return false;
+  if ((value as { main?: unknown }).main !== undefined) return false;
+  if ((value as { apiVersion?: unknown }).apiVersion !== 2) return false;
+  return typeof (value as { name?: unknown }).name === "string"
+    && plainRecord((value as { entrypoint?: unknown }).entrypoint);
+}
+
+export function manifestIdentity(manifest: ValidatedPluginManifest): { id: string; version: string } {
+  return isManifestV2(manifest)
+    ? { id: manifest.name, version: manifest.version }
+    : { id: manifest.id, version: manifest.version };
+}
+
+function v2TextErrors(value: string, field: string, errors: string[]): void {
+  if (value.length > 4096) {
+    errors.push(`${field} exceeds 4096 characters`);
+  }
+  const lower = value.toLowerCase();
+  for (const pattern of V2_INJECTION_VECTORS) {
+    if (lower.includes(pattern)) {
+      errors.push(`${field} contains injection vector ${JSON.stringify(pattern)}`);
+      return;
+    }
+  }
+}
+
+function validateManifestV2ValueErrors(manifest: PluginManifestV2): string[] {
+  const errors: string[] = [];
+  if (manifest.apiVersion !== 2) {
+    errors.push(`apiVersion ${String(manifest.apiVersion)}, want 2`);
+  }
+  if (!V2_NAME_PATTERN.test(manifest.name)) {
+    errors.push(`name ${JSON.stringify(manifest.name)} must match ${V2_NAME_PATTERN.source}`);
+  }
+  if (valid(manifest.version) === null) {
+    errors.push(`Invalid plugin semantic version: ${manifest.version}`);
+  }
+  if (typeof manifest.displayName !== "string" || manifest.displayName.trim() === "") {
+    errors.push("displayName must be a non-empty string");
+  }
+  const entrypoint = manifest.entrypoint;
+  if (typeof entrypoint.wasm !== "string" || !entrypoint.wasm.endsWith(".wasm")
+    || entrypoint.wasm.includes("..")) {
+    errors.push(`entrypoint.wasm ${JSON.stringify(String(entrypoint.wasm))} must be a relative .wasm path`);
+  } else {
+    try {
+      assertSafePackagePath(entrypoint.wasm);
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  if (typeof entrypoint.sha256 !== "string" || !V2_SHA256_PATTERN.test(entrypoint.sha256)) {
+    errors.push("entrypoint.sha256 must be 64 hex characters");
+  }
+  if (entrypoint.memoryMB !== undefined) {
+    if (!Number.isInteger(entrypoint.memoryMB)
+      || entrypoint.memoryMB < 16 || entrypoint.memoryMB > 512) {
+      errors.push("entrypoint.memoryMB must be an integer between 16 and 512");
+    }
+  }
+  const permissionKeys = new Set<string>();
+  for (const permission of manifest.permissions ?? []) {
+    if (!V2_PERMISSION_KINDS.has(permission.kind)) {
+      errors.push(`unknown permission kind ${JSON.stringify(permission.kind)}`);
+    }
+    if (typeof permission.resource !== "string" || permission.resource.trim() === "") {
+      errors.push(`permission ${permission.kind} has an empty resource`);
+    }
+    if (permission.mode !== "read" && permission.mode !== "write") {
+      errors.push(`permission ${permission.kind} mode ${JSON.stringify(String(permission.mode))}`);
+    }
+    const key = `${permission.kind}|${permission.resource}|${permission.mode}`;
+    if (permissionKeys.has(key)) errors.push(`duplicate permission ${key}`);
+    permissionKeys.add(key);
+  }
+  const contributionKeys = new Set<string>();
+  for (const contribution of manifest.contributions ?? []) {
+    if (contribution.type !== "command" && contribution.type !== "setting"
+      && contribution.type !== "view") {
+      errors.push(`unknown contribution type ${JSON.stringify(String(contribution.type))}`);
+    }
+    if (!V2_IDENTIFIER_PATTERN.test(contribution.id)) {
+      errors.push(`contribution id ${JSON.stringify(contribution.id)}`);
+    }
+    const key = `${contribution.type}/${contribution.id}`;
+    if (contributionKeys.has(key)) errors.push(`duplicate contribution ${key}`);
+    contributionKeys.add(key);
+  }
+  if (manifest.minHostVersion !== undefined && valid(manifest.minHostVersion) === null) {
+    errors.push(`Invalid minHostVersion semver: ${manifest.minHostVersion}`);
+  }
+  const ui = manifest.ui;
+  const seenSettingIds = new Set<string>();
+  for (const setting of ui?.settings ?? []) {
+    if (!V2_IDENTIFIER_PATTERN.test(setting.id) || setting.id.length > 128) {
+      errors.push(`invalid ui setting id ${JSON.stringify(setting.id)}`);
+    }
+    if (seenSettingIds.has(setting.id)) errors.push(`duplicate ui setting ${setting.id}`);
+    seenSettingIds.add(setting.id);
+    if (setting.type !== "text" && setting.type !== "number" && setting.type !== "boolean"
+      && setting.type !== "select" && setting.type !== "password") {
+      errors.push(`unknown ui setting type ${JSON.stringify(String(setting.type))}`);
+    }
+    if (setting.type === "select" && !(setting.options?.length)) {
+      errors.push(`select setting ${setting.id} has no options`);
+    }
+    v2TextErrors(String(setting.label), `ui setting ${setting.id} label`, errors);
+    if (setting.description !== undefined) {
+      v2TextErrors(setting.description, `ui setting ${setting.id} description`, errors);
+    }
+  }
+  const seenViewIds = new Set<string>();
+  for (const view of ui?.views ?? []) {
+    if (!V2_IDENTIFIER_PATTERN.test(view.id) || view.id.length > 128) {
+      errors.push(`invalid ui view id ${JSON.stringify(view.id)}`);
+    }
+    if (seenViewIds.has(view.id)) errors.push(`duplicate ui view ${view.id}`);
+    seenViewIds.add(view.id);
+    if (view.type !== "list" && view.type !== "card") {
+      errors.push(`unknown ui view type ${JSON.stringify(String(view.type))}`);
+    }
+    v2TextErrors(String(view.title), `ui view ${view.id} title`, errors);
+  }
+  return errors;
+}
+
+export function validateManifestV2Value(value: unknown): ManifestValidationResult {
+  if (!isManifestV2(value)) {
+    return { valid: false, errors: ["manifest is not an apiVersion 2 document"] };
+  }
+  const errors = validateManifestV2ValueErrors(value);
+  return errors.length === 0
+    ? { valid: true, manifest: value, errors: [] }
+    : { valid: false, errors };
 }
 
 function formatAjvError(error: ErrorObject): string {
@@ -725,7 +938,7 @@ export function validateManifestValue(value: unknown): ManifestValidationResult 
     : { valid: false, errors: semanticErrors };
 }
 
-export function parseAndValidateManifestContents(contents: Uint8Array): PluginManifest {
+export function parseAndValidateManifestContents(contents: Uint8Array): ValidatedPluginManifest {
   if (contents.byteLength > PACKAGE_LIMITS.manifestBytes) {
     throw new Error(`Plugin manifest exceeds ${PACKAGE_LIMITS.manifestBytes} bytes`);
   }
@@ -737,6 +950,16 @@ export function parseAndValidateManifestContents(contents: Uint8Array): PluginMa
       `Plugin manifest is not valid UTF-8 JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+  // v2 documents never reach the v1 schema: the Go host rejects `main`
+  // entrypoints outright, so validating them with the v1 contract would hide
+  // the incompatibility instead of surfacing it.
+  if (isManifestV2(value)) {
+    const v2Result = validateManifestV2Value(value);
+    if (!v2Result.valid || !v2Result.manifest) {
+      throw new Error(`Plugin manifest is invalid:\n- ${v2Result.errors.join("\n- ")}`);
+    }
+    return v2Result.manifest;
+  }
   const result = validateManifestValue(value);
   if (!result.valid || !result.manifest) {
     throw new Error(`Plugin manifest is invalid:\n- ${result.errors.join("\n- ")}`);
@@ -747,7 +970,26 @@ export function parseAndValidateManifestContents(contents: Uint8Array): PluginMa
 export async function readValidatedManifestSource(
   pluginDirectory: string,
 ): Promise<ValidatedManifestSource> {
-  const manifestPath = path.join(pluginDirectory, "netcatty.plugin.json");
+  // Manifest discovery mirrors the Go host (cmd/lemonssh/pluginService.go):
+  // prefer the renamed lemonssh.plugin.json, fall back to the legacy
+  // netcatty.plugin.json and the generic manifest.json.
+  const manifestCandidates = [PLUGIN_MANIFEST_FILE, ...PLUGIN_LEGACY_MANIFEST_FILES];
+  let manifestFileName: string | undefined;
+  for (const candidate of manifestCandidates) {
+    try {
+      const candidateStats = await lstat(path.join(pluginDirectory, candidate));
+      if (candidateStats.isFile()) {
+        manifestFileName = candidate;
+        break;
+      }
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+    }
+  }
+  if (!manifestFileName) {
+    throw new Error(`Plugin manifest is missing: expected one of ${manifestCandidates.join(", ")}`);
+  }
+  const manifestPath = path.join(pluginDirectory, manifestFileName);
   const initialStats = await lstat(manifestPath);
   if (!initialStats.isFile()) {
     throw new Error("Plugin manifest must be a regular file");
@@ -792,6 +1034,7 @@ export async function readValidatedManifestSource(
   }
   return {
     manifest: parseAndValidateManifestContents(contents),
+    fileName: manifestFileName,
     size: contents.byteLength,
     sha256: createHash("sha256").update(contents).digest("hex"),
   };
@@ -799,6 +1042,6 @@ export async function readValidatedManifestSource(
 
 export async function readAndValidateManifest(
   pluginDirectory: string,
-): Promise<PluginManifest> {
+): Promise<ValidatedPluginManifest> {
   return (await readValidatedManifestSource(pluginDirectory)).manifest;
 }

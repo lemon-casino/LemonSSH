@@ -99,8 +99,8 @@ test('restored workspace enters a blank draft when New Chat is clicked', async (
     value: true,
   });
 
-  dom.window.localStorage.setItem('netcatty_ai_sessions_v1', JSON.stringify([RESTORED_SESSION]));
-  dom.window.localStorage.setItem('netcatty_ai_active_session_map_v1', JSON.stringify({
+  dom.window.localStorage.setItem('lemonssh_ai_sessions_v1', JSON.stringify([RESTORED_SESSION]));
+  dom.window.localStorage.setItem('lemonssh_ai_active_session_map_v1', JSON.stringify({
     'terminal:terminal-a': RESTORED_SESSION.id,
     [SCOPE_KEY]: RESTORED_SESSION.id,
   }));

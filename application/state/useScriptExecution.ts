@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { ScriptRunParams } from '@/types/global/netcatty-bridge-script.d.ts';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
+import type { ScriptRunParams } from '@/types/global/lemonssh-bridge-script.d.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
 import {
   getScriptRunsSnapshot,
   subscribeScriptRuns as subscribeScriptRunsStore,
@@ -23,7 +23,7 @@ export function useScriptExecution(options?: { enabled?: boolean }) {
   );
 
   const runScript = useCallback(async (params: ScriptRunParams) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.scriptRun) {
       throw new Error('Script bridge unavailable');
     }
@@ -31,15 +31,15 @@ export function useScriptExecution(options?: { enabled?: boolean }) {
   }, []);
 
   const stopRun = useCallback(async (runId: string) => {
-    await netcattyBridge.get()?.scriptStop?.(runId);
+    await lemonsshBridge.get()?.scriptStop?.(runId);
   }, []);
 
   const pauseRun = useCallback(async (runId: string) => {
-    await netcattyBridge.get()?.scriptPause?.(runId);
+    await lemonsshBridge.get()?.scriptPause?.(runId);
   }, []);
 
   const resumeRun = useCallback(async (runId: string) => {
-    await netcattyBridge.get()?.scriptResume?.(runId);
+    await lemonsshBridge.get()?.scriptResume?.(runId);
   }, []);
 
   const getRunsForSession = useCallback((sessionId: string) => {

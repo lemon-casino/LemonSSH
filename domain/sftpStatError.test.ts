@@ -6,7 +6,7 @@ test("isMissingStatError recognizes ssh2 and Electron-wrapped absence", () => {
   assert.equal(isMissingStatError(new Error("No such file")), true);
   assert.equal(
     isMissingStatError(
-      new Error("Error invoking remote method 'netcatty:sftp:lstat': Error: No such file"),
+      new Error("Error invoking remote method 'lemonssh:sftp:lstat': Error: No such file"),
     ),
     true,
   );

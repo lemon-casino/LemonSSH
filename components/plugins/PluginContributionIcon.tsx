@@ -53,7 +53,7 @@ export function PluginContributionIcon({
   className,
 }: {
   pluginId?: string;
-  icon?: NetcattyPluginIconReference;
+  icon?: LemonSSHPluginIconReference;
   size?: number;
   className?: string;
 }) {

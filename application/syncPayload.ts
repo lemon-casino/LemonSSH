@@ -51,6 +51,7 @@ import {
   parseCustomAccentRecord,
   serializeCustomAccentRecord,
 } from './state/customAccentSync';
+import { normalizeLegacyTerminalThemeId } from '../infrastructure/config/terminalThemes';
 import {
   STORAGE_KEY_THEME,
   STORAGE_KEY_UI_THEME_LIGHT,
@@ -446,15 +447,16 @@ export function collectSyncableSettings(): SyncPayload['settings'] {
   if (noteCodeFontSize != null && noteCodeFontSize >= 10 && noteCodeFontSize <= 32) settings.noteCodeFontSize = noteCodeFontSize;
 
   // Terminal
-  const termTheme = localStorageAdapter.readString(STORAGE_KEY_TERM_THEME);
+  // compat#6: normalize legacy theme ids so uploads only carry the new ids.
+  const termTheme = normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME));
   if (termTheme) settings.terminalTheme = termTheme;
   const followAppTermTheme = localStorageAdapter.readString(STORAGE_KEY_TERM_FOLLOW_APP_THEME);
   if (followAppTermTheme === 'true' || followAppTermTheme === 'false') {
     settings.followAppTerminalTheme = followAppTermTheme === 'true';
   }
-  const termThemeDark = localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_DARK);
+  const termThemeDark = normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_DARK));
   if (termThemeDark) settings.terminalThemeDark = termThemeDark;
-  const termThemeLight = localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_LIGHT);
+  const termThemeLight = normalizeLegacyTerminalThemeId(localStorageAdapter.readString(STORAGE_KEY_TERM_THEME_LIGHT));
   if (termThemeLight) settings.terminalThemeLight = termThemeLight;
   const termFont = localStorageAdapter.readString(STORAGE_KEY_TERM_FONT_FAMILY);
   if (termFont) settings.terminalFontFamily = termFont;
@@ -676,12 +678,14 @@ async function applySyncableSettings(settings: NonNullable<SyncPayload['settings
   }
 
   // Terminal
-  if (settings.terminalTheme != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME, settings.terminalTheme);
+  // compat#6: incoming payloads from pre-rename builds may carry old ids;
+  // normalize before persisting so the new ids win from the first apply.
+  if (settings.terminalTheme != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME, normalizeLegacyTerminalThemeId(settings.terminalTheme));
   if (settings.followAppTerminalTheme != null) {
     localStorageAdapter.writeString(STORAGE_KEY_TERM_FOLLOW_APP_THEME, String(settings.followAppTerminalTheme));
   }
-  if (settings.terminalThemeDark != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME_DARK, settings.terminalThemeDark);
-  if (settings.terminalThemeLight != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME_LIGHT, settings.terminalThemeLight);
+  if (settings.terminalThemeDark != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME_DARK, normalizeLegacyTerminalThemeId(settings.terminalThemeDark));
+  if (settings.terminalThemeLight != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_THEME_LIGHT, normalizeLegacyTerminalThemeId(settings.terminalThemeLight));
   if (settings.terminalFontFamily != null) localStorageAdapter.writeString(STORAGE_KEY_TERM_FONT_FAMILY, settings.terminalFontFamily);
   if (settings.terminalFontSize != null) {
     const existing = parseTerminalFontSizeRecord(

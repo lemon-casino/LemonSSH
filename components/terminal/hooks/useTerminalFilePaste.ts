@@ -2,7 +2,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import type React from "react";
 import { useEffect } from "react";
 
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import type { TerminalSession } from "../../../types";
 import type { RemoteClipboardImageUploadResult } from "../clipboardImagePaste";
@@ -49,7 +49,7 @@ export function useTerminalFilePaste({
     const handlePaste = (event: ClipboardEvent) => {
       if (status !== "connected") return;
 
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
 
       const wantsImageUpload =
         autoUploadClipboardImage && !isLocalConnection && !!bridge?.readClipboardImage;

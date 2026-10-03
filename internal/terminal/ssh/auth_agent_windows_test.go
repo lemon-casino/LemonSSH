@@ -11,7 +11,7 @@ import (
 
 func newAuthAgentListener(t *testing.T) net.Listener {
 	t.Helper()
-	listener, err := winio.ListenPipe(`\\.\pipe\netcatty-agent-test-`+rand.Text(), nil)
+	listener, err := winio.ListenPipe(`\\.\pipe\lemonssh-agent-test-`+rand.Text(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

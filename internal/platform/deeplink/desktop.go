@@ -13,6 +13,8 @@ func DesktopEntry(executable string) (string, error) {
 		return "", fmt.Errorf("protocol registration requires an absolute Unix executable path")
 	}
 	escaped := strings.NewReplacer(`\`, `\\\\`, `"`, `\\\"`, "`", "\\\\`", "$", "\\\\$", "%", "%%").Replace(executable)
-	// Desktop string decoding precedes Exec quoting.
-	return "[Desktop Entry]\nType=Application\nName=LemonSSH\nNoDisplay=true\nExec=\"" + escaped + "\" %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/netcatty;\n", nil
+	// Desktop string decoding precedes Exec quoting. The legacy
+	// x-scheme-handler/netcatty stays registered so pre-rename OS handoffs
+	// keep working.
+	return "[Desktop Entry]\nType=Application\nName=LemonSSH\nNoDisplay=true\nExec=\"" + escaped + "\" %u\nTerminal=false\nMimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/lemonssh;x-scheme-handler/netcatty;\n", nil
 }

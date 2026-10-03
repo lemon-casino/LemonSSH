@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { KnownHost } from "../../domain/models";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import type { HostKeyInfo } from "../../domain/hostKey";
 import {
   createKnownHostFromPortForwardHostKeyInfo,
@@ -22,7 +22,7 @@ export const usePortForwardHostKeyVerification = (
   const pending = pendingQueue[0] ?? null;
 
   useEffect(() => {
-    const dispose = netcattyBridge.get()?.onHostKeyVerification?.((request: PortForwardHostKeyRequest) => {
+    const dispose = lemonsshBridge.get()?.onHostKeyVerification?.((request: PortForwardHostKeyRequest) => {
       const next = toPendingPortForwardHostKeyVerification(request);
       if (!next) return;
       setPendingQueue((queue) => enqueuePortForwardHostKeyVerification(queue, next));
@@ -38,7 +38,7 @@ export const usePortForwardHostKeyVerification = (
     if (accept && addToKnownHosts) {
       onAddKnownHost?.(createKnownHostFromPortForwardHostKeyInfo(pending.hostKeyInfo));
     }
-    void netcattyBridge.get()?.respondHostKeyVerification?.(
+    void lemonsshBridge.get()?.respondHostKeyVerification?.(
       pending.requestId,
       accept,
       addToKnownHosts,

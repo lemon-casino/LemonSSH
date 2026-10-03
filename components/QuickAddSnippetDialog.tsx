@@ -1,6 +1,6 @@
 /**
  * QuickAddSnippetDialog — lightweight "new / edit snippet" modal mounted at the
- * App root and triggered by the `netcatty:snippets:add` / `:edit` window events.
+ * App root and triggered by the `lemonssh:snippets:add` / `:edit` window events.
  *
  * Opens as a centered Dialog so it does not compete with the scripts side panel.
  * Fields: label, command, package, shortkey, multi-line mode.
@@ -92,8 +92,8 @@ export const QuickAddSnippetDialog: React.FC<QuickAddSnippetDialogProps> = ({
       setIsRecordingShortkey(false);
       setOpen(true);
     };
-    window.addEventListener('netcatty:snippets:add', handler);
-    return () => window.removeEventListener('netcatty:snippets:add', handler);
+    window.addEventListener('lemonssh:snippets:add', handler);
+    return () => window.removeEventListener('lemonssh:snippets:add', handler);
   }, []);
 
   // Sibling event for editing an existing snippet from the ScriptsSidePanel
@@ -114,8 +114,8 @@ export const QuickAddSnippetDialog: React.FC<QuickAddSnippetDialogProps> = ({
       setIsRecordingShortkey(false);
       setOpen(true);
     };
-    window.addEventListener('netcatty:snippets:edit', handler);
-    return () => window.removeEventListener('netcatty:snippets:edit', handler);
+    window.addEventListener('lemonssh:snippets:edit', handler);
+    return () => window.removeEventListener('lemonssh:snippets:edit', handler);
   }, []);
 
   // Focus the label field when the modal opens.

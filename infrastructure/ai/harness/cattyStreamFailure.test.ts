@@ -10,7 +10,7 @@ test('a provider rejection reports its cause once without a second NoOutputGener
   const host = globalThis as unknown as { window?: unknown };
   const previous = host.window;
   t.after(() => { host.window = previous; });
-  host.window = { netcatty: {
+  host.window = { lemonssh: {
     aiChatStream: async () => ({ ok: true, statusCode: 401, statusText: 'fixture key rejected' }),
     aiChatCancel: async () => true,
     onAiStreamData: () => () => {},
@@ -76,7 +76,7 @@ test('a provider failure after a successful tool call returns the collected outp
     }));
   };
 
-  host.window = { netcatty: {
+  host.window = { lemonssh: {
     aiChatStream: async (requestId: string) => {
       requestCount += 1;
       if (allowContinuation) {
@@ -233,7 +233,7 @@ test('a turn that reaches its tool-step limit automatically emits a final interp
     }));
   };
 
-  host.window = { netcatty: {
+  host.window = { lemonssh: {
     aiChatStream: async (requestId: string) => {
       requestCount += 1;
       const currentRequest = requestCount;

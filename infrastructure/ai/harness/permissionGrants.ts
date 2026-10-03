@@ -1,4 +1,4 @@
-import cattyToolSpecs from './generated/cattyToolSpecs.json';
+import cattyToolSpecs from './generated/lemonsshToolSpecs.json';
 import {
   buildAlwaysAllowCommandPatterns,
   extractGrantableShellCommandSegments,

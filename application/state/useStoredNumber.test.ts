@@ -12,8 +12,8 @@ test("stored number instances adopt same-window adapter changes", () => {
   });
 
   current = 18;
-  handler(new CustomEvent("netcatty:local-storage-adapter-changed", { detail: { key: "other" } }));
+  handler(new CustomEvent("lemonssh:local-storage-adapter-changed", { detail: { key: "other" } }));
   assert.equal(received, 14);
-  handler(new CustomEvent("netcatty:local-storage-adapter-changed", { detail: { key: "note-size" } }));
+  handler(new CustomEvent("lemonssh:local-storage-adapter-changed", { detail: { key: "note-size" } }));
   assert.equal(received, 18);
 });

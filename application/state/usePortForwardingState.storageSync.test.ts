@@ -58,7 +58,7 @@ function installEnvironment() {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
-      netcatty: {
+      lemonssh: {
         startPortForward: async () => ({ success: true }),
         stopPortForwardByRuleId: async () => ({ stopped: 1, failed: 0, errors: [] }),
         onPortForwardStatus: (_tunnelId: string, listener: typeof statusListener) => {
@@ -191,7 +191,7 @@ test("same-window synchronization preserves an error without a runtime tunnel", 
   });
 
   handlers.handleAdapterChange({
-    type: "netcatty:local-storage-adapter-changed",
+    type: "lemonssh:local-storage-adapter-changed",
     detail: { key: STORAGE_KEY_PORT_FORWARDING },
   } as unknown as CustomEvent<{ key: string }>);
 

@@ -191,7 +191,7 @@ export const AppLockOverlay: React.FC<AppLockOverlayProps> = ({
   // open right-click menus cannot sit above the lock screen (Codex P2).
   useEffect(() => {
     if (!locked) return;
-    const portal = document.getElementById('netcatty-context-menu-root');
+    const portal = document.getElementById('lemonssh-context-menu-root');
     if (!portal) return;
     const prev = portal.style.visibility;
     portal.style.visibility = 'hidden';

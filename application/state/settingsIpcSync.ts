@@ -2,6 +2,7 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { CustomKeyBindings, HotkeyScheme, SessionLogFormat, TerminalSettings, UILanguage } from '../../domain/models';
 import { parseCustomKeyBindingsStorageRecord } from '../../domain/customKeyBindings';
 import { resolveSupportedLocale } from '../../infrastructure/config/i18n';
+import { normalizeLegacyTerminalThemeId } from '../../infrastructure/config/terminalThemes';
 import {
   STORAGE_KEY_ACCENT_MODE,
   STORAGE_KEY_AUTO_UPDATE_ENABLED,
@@ -55,7 +56,7 @@ import {
   normalizeHttpNetworkProxySettings,
   type HttpNetworkProxySettings,
 } from '../../domain/httpNetworkProxy';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   isValidUiFontId,
   migrateIncomingTerminalFontId,
@@ -158,7 +159,7 @@ export function useSettingsIpcSync({
   // Listen for settings changes from other windows via IPC
   useEffect(() => {
     if (!enabled) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onSettingsChanged) return;
     const unsubscribe = bridge.onSettingsChanged((payload) => {
       const { key, value } = payload;
@@ -186,13 +187,13 @@ export function useSettingsIpcSync({
         }
       }
       if (key === STORAGE_KEY_TERM_THEME && typeof value === 'string') {
-        setTerminalThemeId(value);
+        setTerminalThemeId(normalizeLegacyTerminalThemeId(value));
       }
       if (key === STORAGE_KEY_TERM_THEME_DARK && typeof value === 'string') {
-        setTerminalThemeDarkId(value);
+        setTerminalThemeDarkId(normalizeLegacyTerminalThemeId(value));
       }
       if (key === STORAGE_KEY_TERM_THEME_LIGHT && typeof value === 'string') {
-        setTerminalThemeLightId(value);
+        setTerminalThemeLightId(normalizeLegacyTerminalThemeId(value));
       }
       if (key === STORAGE_KEY_TERM_FOLLOW_APP_THEME) {
         const next = value === true || value === 'true';

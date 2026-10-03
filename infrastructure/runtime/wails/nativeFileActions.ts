@@ -1,4 +1,4 @@
-type Stream = NonNullable<NetcattyBridge['startStreamTransfer']>;
+type Stream = NonNullable<LemonSSHBridge['startStreamTransfer']>;
 export interface NativeFileBindings {
     TempFilePath?: (name: string) => Promise<string>;
     ValidateTempFile?: (path: string) => Promise<unknown>;
@@ -75,7 +75,7 @@ export function createNativeFileActions(files: NativeFileBindings | undefined, d
             await files.DeleteTempFile(path);
             return { success: true };
         },
-        async downloadSftpToTempWithProgress(sftpId: string, remotePath: string, fileName: string, encoding: Parameters<NonNullable<NetcattyBridge['downloadSftpToTempWithProgress']>>[3], transferId: string) {
+        async downloadSftpToTempWithProgress(sftpId: string, remotePath: string, fileName: string, encoding: Parameters<NonNullable<LemonSSHBridge['downloadSftpToTempWithProgress']>>[3], transferId: string) {
             if (!files?.TempFilePath || !files.ValidateTempFile || !files.DeleteTempFile)
                 throw new Error('Managed temp download unavailable');
             const localPath = await files.TempFilePath(fileName);

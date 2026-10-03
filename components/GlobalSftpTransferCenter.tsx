@@ -456,7 +456,7 @@ function TransferRow({
       : <ArrowUpFromLine size={15} />;
 
   const openTarget = (forResume = false) => {
-    window.dispatchEvent(new CustomEvent("netcatty:open-sftp-transfer-target", {
+    window.dispatchEvent(new CustomEvent("lemonssh:open-sftp-transfer-target", {
       detail: { task, forResume },
     }));
   };
@@ -766,8 +766,8 @@ export function GlobalSftpTransferCenter() {
   // requiring the user to notice the badge first.
   useEffect(() => {
     const openCenter = () => setOpen(true);
-    window.addEventListener("netcatty:open-sftp-transfer-center", openCenter);
-    return () => window.removeEventListener("netcatty:open-sftp-transfer-center", openCenter);
+    window.addEventListener("lemonssh:open-sftp-transfer-center", openCenter);
+    return () => window.removeEventListener("lemonssh:open-sftp-transfer-center", openCenter);
   }, []);
   const snapshot = useSftpTransferCenterWhenOpen(open);
   const [bucket, setBucket] = useState<GlobalTransferBucket>("all");

@@ -7,7 +7,7 @@ import {
   pasteForMonacoEditorCommand,
   readClipboardTextWithFallbacks,
 } from '@/infrastructure/monaco/monacoClipboardPaste';
-import { useNetcattyMonacoTheme } from '@/infrastructure/monaco/useNetcattyMonacoTheme';
+import { useLemonsshMonacoTheme } from '@/infrastructure/monaco/useLemonsshMonacoTheme';
 import { registerNctMonacoCompletionProvider } from '@/infrastructure/scripts/nctMonacoCompletion.ts';
 
 const viteEnv = import.meta.env ?? { BASE_URL: '/' };
@@ -58,7 +58,7 @@ export const ScriptCodeEditor = React.forwardRef<ScriptCodeEditorHandle, ScriptC
   onSubmitShortcut,
 }, forwardedRef) => {
   const monaco = useMonaco();
-  const themeName = useNetcattyMonacoTheme(monaco ?? undefined);
+  const themeName = useLemonsshMonacoTheme(monaco ?? undefined);
   const { readClipboardText: readClipboardTextFromBridge } = useClipboardBackend();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const completionDisposableRef = useRef<{ dispose: () => void } | null>(null);
@@ -113,7 +113,7 @@ export const ScriptCodeEditor = React.forwardRef<ScriptCodeEditorHandle, ScriptC
     const selections = editor.getSelections();
     if (!selections || selections.length === 0) return;
 
-    editor.executeEdits('netcatty-paste', buildMonacoPasteEdits(text, selections));
+    editor.executeEdits('lemonssh-paste', buildMonacoPasteEdits(text, selections));
     editor.focus();
   }, [readClipboardText]);
 

@@ -70,7 +70,7 @@ const LINUX_LIKE_RUNTIME_PLATFORM_OPTIONS = [
 ] as const;
 
 /**
- * Known network-device vendor IDs that Netcatty can detect from the SSH
+ * Known network-device vendor IDs that LemonSSH can detect from the SSH
  * server identification string. When a host is classified as one of these,
  * features that assume a POSIX shell (e.g. the periodic server stats poll)
  * are disabled, because the stats command would either be rejected outright

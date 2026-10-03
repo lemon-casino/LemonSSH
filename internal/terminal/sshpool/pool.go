@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	netcattyssh "github.com/binaricat/netcatty/internal/terminal/ssh"
+	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -34,7 +34,7 @@ const (
 // CompatibilityKey derives the immutable pool key from endpoint, auth
 // fingerprint and jump chain. Equal keys mean "safe to reuse one
 // authenticated transport".
-func CompatibilityKey(config netcattyssh.DialConfig) (string, error) {
+func CompatibilityKey(config lemonsshssh.DialConfig) (string, error) {
 	authDigest, err := authFingerprint(config)
 	if err != nil {
 		return "", err
@@ -76,7 +76,7 @@ func CompatibilityKey(config netcattyssh.DialConfig) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func authFingerprint(config netcattyssh.DialConfig) (string, error) {
+func authFingerprint(config lemonsshssh.DialConfig) (string, error) {
 	material := struct {
 		Password    string `json:"password,omitempty"`
 		PrivateKey  string `json:"privateKey,omitempty"`
@@ -98,7 +98,7 @@ func authFingerprint(config netcattyssh.DialConfig) (string, error) {
 
 type pooledTransport struct {
 	key         string
-	transport   *netcattyssh.Transport
+	transport   *lemonsshssh.Transport
 	lastUsed    time.Time
 	outstanding int
 	singleUse   bool
@@ -129,7 +129,7 @@ type Pool struct {
 	maxIdle    int
 	transports map[string]*pooledTransport
 	waiters    map[string]*dialGroup
-	dialFunc   func(ctx context.Context, config netcattyssh.DialConfig) (*netcattyssh.Transport, error)
+	dialFunc   func(ctx context.Context, config lemonsshssh.DialConfig) (*lemonsshssh.Transport, error)
 }
 
 type dialGroup struct {
@@ -146,7 +146,7 @@ func WithIdleTTL(ttl time.Duration) Option { return func(p *Pool) { p.idleTTL = 
 func WithMaxIdle(max int) Option { return func(p *Pool) { p.maxIdle = max } }
 
 // New constructs the shared pool. The dial function is injectable for tests.
-func New(dial func(ctx context.Context, config netcattyssh.DialConfig) (*netcattyssh.Transport, error), options ...Option) *Pool {
+func New(dial func(ctx context.Context, config lemonsshssh.DialConfig) (*lemonsshssh.Transport, error), options ...Option) *Pool {
 	pool := &Pool{
 		idleTTL:    5 * time.Minute,
 		maxIdle:    8,
@@ -162,7 +162,7 @@ func New(dial func(ctx context.Context, config netcattyssh.DialConfig) (*netcatt
 
 // Get returns a lease, dialing via single-flight when no live compatible
 // transport exists.
-func (p *Pool) Get(ctx context.Context, config netcattyssh.DialConfig, kind LeaseKind) (*Lease, error) {
+func (p *Pool) Get(ctx context.Context, config lemonsshssh.DialConfig, kind LeaseKind) (*Lease, error) {
 	key, err := CompatibilityKey(config)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func (p *Pool) Get(ctx context.Context, config netcattyssh.DialConfig, kind Leas
 	return &Lease{pool: p, entry: entry, Kind: kind}, nil
 }
 
-func (p *Pool) dial(ctx context.Context, config netcattyssh.DialConfig, key string, group *dialGroup) {
+func (p *Pool) dial(ctx context.Context, config lemonsshssh.DialConfig, key string, group *dialGroup) {
 	transport, err := p.dialFunc(ctx, config)
 	p.mu.Lock()
 	if err == nil {

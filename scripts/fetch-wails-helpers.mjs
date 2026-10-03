@@ -273,14 +273,38 @@ export async function verifyInstalled(lock, asset, resourcesDir = DEFAULT_RESOUR
   return pin;
 }
 
+// Proofs produced before the LemonSSH rename embed the historical upstream
+// repository/tag identifiers; normalize them so pinned pre-rename proofs keep
+// verifying against the renamed lock. Order matters: the -et-bin entry must be
+// rewritten before the bare repository name.
+const LEGACY_UPSTREAM_NAMES = [
+  ["binaricat/MoshCatty", "binaricat/MoshLemonSSH"],
+  ["binaricat/Netcatty-et-bin", "binaricat/LemonSSH-et-bin"],
+  ["binaricat/Netcatty", "binaricat/LemonSSH"],
+  ["moshcatty-", "moshlemonssh-"],
+];
+
+function normalizeUpstreamValue(value) {
+  let out = String(value);
+  for (const [legacy, current] of LEGACY_UPSTREAM_NAMES) out = out.split(legacy).join(current);
+  return out;
+}
+
 export function verifyBuildProvenance(data, release, asset) {
   checkDigest(data, release.buildProvenance.sha256, "build provenance");
   const provenance = JSON.parse(data);
-  if (provenance.release.repository !== release.repository || provenance.release.tag !== release.tag ||
-      provenance.upstream.repository !== release.source.repository || provenance.upstream.ref !== release.source.tag ||
-      provenance.upstream.commit !== release.source.commit || provenance.netcatty.checkoutCommit !== release.build.commit ||
-      provenance.netcatty.workflowRun !== release.build.run ||
-      !provenance.artifacts.some((entry) => entry.name === asset.archive && entry.sha256 === asset.sha256)) {
+  // Build proofs produced before the LemonSSH rename carry the "netcatty"
+  // key; new proofs carry "lemonssh". Accept either so pinned historical
+  // releases keep verifying.
+  const brand = provenance.lemonssh ?? provenance.netcatty;
+  if (normalizeUpstreamValue(provenance.release.repository) !== release.repository
+    || normalizeUpstreamValue(provenance.release.tag) !== release.tag
+    || normalizeUpstreamValue(provenance.upstream.repository) !== release.source.repository
+    || normalizeUpstreamValue(provenance.upstream.ref) !== release.source.tag
+    || provenance.upstream.commit !== release.source.commit
+    || brand?.checkoutCommit !== release.build.commit
+    || normalizeUpstreamValue(brand?.workflowRun) !== release.build.run
+    || !provenance.artifacts.some((entry) => entry.name === asset.archive && entry.sha256 === asset.sha256)) {
     throw new Error("upstream build provenance does not match lock");
   }
 }

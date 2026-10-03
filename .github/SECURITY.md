@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-We actively maintain the latest stable release of Netcatty. Security fixes are applied to the current release only.
+We actively maintain the latest stable release of LemonSSH. Security fixes are applied to the current release only.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,13 +11,13 @@ We actively maintain the latest stable release of Netcatty. Security fixes are a
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Netcatty, **please do not open a public GitHub Issue**.
+If you discover a security vulnerability in LemonSSH, **please do not open a public GitHub Issue**.
 
 Instead, report it privately via one of the following methods:
 
-- **GitHub Private Vulnerability Reporting**: Use the [Security tab](https://github.com/binaricat/Netcatty/security/advisories/new) to submit a private advisory.
-- **Email**: Send details to support@netcatty.com.
-- **GitHub Issues** (for non-sensitive security concerns only): https://github.com/binaricat/Netcatty/issues
+- **GitHub Private Vulnerability Reporting**: Use the [Security tab](https://github.com/binaricat/LemonSSH/security/advisories/new) to submit a private advisory.
+- **Email**: Send details to support@lemonssh.com.
+- **GitHub Issues** (for non-sensitive security concerns only): https://github.com/binaricat/LemonSSH/issues
 
 Please include the following details in your report:
 
@@ -36,7 +36,7 @@ We aim to:
 
 ## Scope
 
-This policy applies to the Netcatty desktop application (`netcatty.app`) and its source code in this repository.
+This policy applies to the LemonSSH desktop application (`lemonssh.app`) and its source code in this repository.
 
 Vulnerabilities in third-party dependencies should be reported directly to the respective upstream projects.
 

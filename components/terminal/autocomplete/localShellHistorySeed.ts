@@ -2,9 +2,9 @@
  * Seed autocomplete command history from the local machine's shell histfiles.
  *
  * Local Terminal sessions previously used a per-session hostId (`local-${sessionId}`),
- * so Netcatty's autocomplete history never accumulated across opens. Even with a
+ * so LemonSSH's autocomplete history never accumulated across opens. Even with a
  * stable hostId, a fresh install / new machine has an empty store until the user
- * types commands inside Netcatty — while Ghostty (and similar terminals) surface
+ * types commands inside LemonSSH — while Ghostty (and similar terminals) surface
  * suggestions from ~/.zsh_history / ~/.bash_history immediately.
  *
  * This module imports those histfiles once per hostId into commandHistoryStore
@@ -12,8 +12,8 @@
  */
 
 import {
-  isNetcattyAiHistoryCommand,
-  isNetcattyManagedStartupHistoryCommand,
+  isLemonsshAiHistoryCommand,
+  isLemonSSHManagedStartupHistoryCommand,
   mergeRemoteHistory,
   parseBashHistory,
   parseFishHistory,
@@ -22,7 +22,7 @@ import {
 import { localStorageAdapter } from "../../../infrastructure/persistence/localStorageAdapter";
 import { flushCommandHistoryStore, recordCommand } from "./commandHistoryStore";
 
-const SEED_FLAG_PREFIX = "netcatty:localHistSeeded:";
+const SEED_FLAG_PREFIX = "lemonssh:localHistSeeded:";
 const MAX_SEED_COMMANDS = 500;
 /** Cap histfile reads so a multi-MB history does not stall Local Terminal mount. */
 const MAX_HISTFILE_BYTES = 512 * 1024;
@@ -38,7 +38,7 @@ type LocalFsBridge = {
 const inFlightSeeds = new Map<string, Promise<number>>();
 
 function getBridge(): LocalFsBridge | undefined {
-  return (window as Window & { netcatty?: LocalFsBridge }).netcatty;
+  return (window as Window & { lemonssh?: LocalFsBridge }).lemonssh;
 }
 
 function joinHomePath(home: string, relativeUnix: string): string {
@@ -125,8 +125,8 @@ async function seedLocalShellHistoryFromHistfilesOnce(
   for (const entry of [...merged].reverse()) {
     const command = entry.command.trim();
     if (!command) continue;
-    if (isNetcattyAiHistoryCommand(command)) continue;
-    if (isNetcattyManagedStartupHistoryCommand(command)) continue;
+    if (isLemonsshAiHistoryCommand(command)) continue;
+    if (isLemonSSHManagedStartupHistoryCommand(command)) continue;
     recordCommand(command, hostId, os);
     recorded += 1;
   }

@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import type { Host, SftpFileEntry, SftpFilenameEncoding } from "../../../domain/models";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import { SftpPane } from "./types";
 import {
@@ -639,14 +639,14 @@ export const useSftpPaneActions = ({
 
       try {
         if (pane.connection.isLocal) {
-          await netcattyBridge.get()?.mkdirLocal?.(fullPath);
+          await lemonsshBridge.get()?.mkdirLocal?.(fullPath);
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
           if (!sftpId) {
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          await netcattyBridge.get()?.mkdirSftp(sftpId, fullPath, pane.filenameEncoding);
+          await lemonsshBridge.get()?.mkdirSftp(sftpId, fullPath, pane.filenameEncoding);
         }
         if (pane.connection.currentPath === path) {
           await refresh(side);
@@ -680,7 +680,7 @@ export const useSftpPaneActions = ({
 
       try {
         if (pane.connection.isLocal) {
-          const bridge = netcattyBridge.get();
+          const bridge = lemonsshBridge.get();
           if (bridge?.writeLocalFile) {
             const emptyBuffer = new ArrayBuffer(0);
             await bridge.writeLocalFile(fullPath, emptyBuffer);
@@ -693,7 +693,7 @@ export const useSftpPaneActions = ({
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          const bridge = netcattyBridge.get();
+          const bridge = lemonsshBridge.get();
           if (bridge?.writeSftpBinary) {
             const emptyBuffer = new ArrayBuffer(0);
             await bridge.writeSftpBinary(sftpId, fullPath, emptyBuffer, pane.filenameEncoding);
@@ -738,7 +738,7 @@ export const useSftpPaneActions = ({
         if (pane.connection.isLocal) {
           await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             const fullPath = joinPath(pane.connection!.currentPath, name);
-            await netcattyBridge.get()?.deleteLocalFile?.(fullPath);
+            await lemonsshBridge.get()?.deleteLocalFile?.(fullPath);
           });
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
@@ -748,7 +748,7 @@ export const useSftpPaneActions = ({
           }
           await runBoundedConcurrency(fileNames, SFTP_DELETE_PARALLELISM, async (name) => {
             const fullPath = joinPath(pane.connection!.currentPath, name);
-            await netcattyBridge.get()?.deleteSftp?.(sftpId, fullPath, pane.filenameEncoding);
+            await lemonsshBridge.get()?.deleteSftp?.(sftpId, fullPath, pane.filenameEncoding);
           });
         }
         await refresh(side);
@@ -775,9 +775,9 @@ export const useSftpPaneActions = ({
       if (!pane?.connection) {
         throw new Error("Source pane is no longer available");
       }
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge) {
-        throw new Error("Netcatty bridge not available");
+        throw new Error("LemonSSH bridge not available");
       }
 
       try {
@@ -858,14 +858,14 @@ export const useSftpPaneActions = ({
 
       try {
         if (pane.connection.isLocal) {
-          await netcattyBridge.get()?.renameLocalFile?.(oldPath, newPath);
+          await lemonsshBridge.get()?.renameLocalFile?.(oldPath, newPath);
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
           if (!sftpId) {
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          await netcattyBridge.get()?.renameSftp?.(sftpId, oldPath, newPath, pane.filenameEncoding);
+          await lemonsshBridge.get()?.renameSftp?.(sftpId, oldPath, newPath, pane.filenameEncoding);
         }
         await refresh(side);
       } catch (err) {
@@ -891,14 +891,14 @@ export const useSftpPaneActions = ({
 
       try {
         if (pane.connection.isLocal) {
-          await netcattyBridge.get()?.renameLocalFile?.(oldPath, newPath);
+          await lemonsshBridge.get()?.renameLocalFile?.(oldPath, newPath);
         } else {
           const sftpId = sftpSessionsRef.current.get(pane.connection.id);
           if (!sftpId) {
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          await netcattyBridge.get()?.renameSftp?.(sftpId, oldPath, newPath, pane.filenameEncoding);
+          await lemonsshBridge.get()?.renameSftp?.(sftpId, oldPath, newPath, pane.filenameEncoding);
         }
         if (pane.connection.currentPath === parentPath) {
           await refresh(side);
@@ -945,7 +945,7 @@ export const useSftpPaneActions = ({
 
       try {
         if (pane.connection.isLocal) {
-          const renameLocalFile = netcattyBridge.get()?.renameLocalFile;
+          const renameLocalFile = lemonsshBridge.get()?.renameLocalFile;
           if (!renameLocalFile) {
             throw new Error("Local rename unavailable");
           }
@@ -959,7 +959,7 @@ export const useSftpPaneActions = ({
             handleSessionError(side, new Error("SFTP session not found"));
             return;
           }
-          const renameSftp = netcattyBridge.get()?.renameSftp;
+          const renameSftp = lemonsshBridge.get()?.renameSftp;
           if (!renameSftp) {
             throw new Error("SFTP rename unavailable");
           }
@@ -1024,7 +1024,7 @@ export const useSftpPaneActions = ({
       }
 
       const sftpId = sftpSessionsRef.current.get(pane.connection.id);
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!sftpId) {
         const error = new Error("SFTP session not found");
         handleSessionError(side, error);

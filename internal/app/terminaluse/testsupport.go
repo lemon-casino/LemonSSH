@@ -1,12 +1,12 @@
 package terminaluse
 
 import (
-	"github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 )
 
 // Seed helpers for white-box fixtures that live outside this package (the SFTP
-// and clipboard seam tests in cmd/netcatty). They bypass the normal start paths
+// and clipboard seam tests in cmd/lemonssh). They bypass the normal start paths
 // by design; production wiring must never call them.
 
 // SeedSessionForTest installs an empty live session.

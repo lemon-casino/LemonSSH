@@ -8,12 +8,34 @@ import type { Host } from '../../../domain/models';
 import {
   TERMINAL_DATA_SUBPROTOCOL,
   buildTerminalSocketUrl,
+  callerWindowName,
   entryToRemoteFile,
   modeToPermissions,
   pickSSHConnectArgs,
   statToSftpStatResult,
   terminalSocketSubprotocols,
 } from "./terminalRoute";
+
+test("callerWindowName maps routes onto Wails window names", () => {
+  assert.equal(callerWindowName(""), "main");
+  assert.equal(callerWindowName("#/vault"), "main");
+  assert.equal(callerWindowName("#/settings"), "settings");
+  // Terminal popups never reach RequestClose (the caller excludes them), so
+  // even a popup hash resolves to the safe main fallback here.
+  assert.equal(callerWindowName("#/terminal-popup"), "main");
+});
+
+test("callerWindowName closes peer session windows by their own identity", () => {
+  // SessionWindowService names each window after its identity and puts it in
+  // the URL query; RequestClose closes that window directly instead of
+  // running the main window's quit guard.
+  assert.equal(
+    callerWindowName("#/session-window", "?sessionWindowId=abc123&sessionWindowToken=tok"),
+    "abc123",
+  );
+  // Missing identity cannot be closed by name — never the main quit guard.
+  assert.equal(callerWindowName("#/session-window", ""), "main");
+});
 
 test("buildTerminalSocketUrl joins loopback host, session and generation", () => {
   assert.equal(
@@ -127,10 +149,12 @@ test("pickSSHConnectArgs normalizes defaults", () => {
       proxyCommand: "",
       enableMfa: false,
       useAgent: false,
+      agentForwarding: false,
       identityFilePaths: [],
       cols: 80,
       rows: 24,
       term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
+      sessionId: "", bootEpoch: 0, sshDebugLogs: false,
       jumpHosts: [],
     },
   );
@@ -160,10 +184,12 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
       proxyCommand: "",
       enableMfa: true,
       useAgent: false,
+      agentForwarding: false,
       identityFilePaths: [],
       cols: 80,
       rows: 24,
       term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
+      sessionId: "", bootEpoch: 0, sshDebugLogs: false,
       jumpHosts: [{
         hostname: "jump",
         username: "bastion",
@@ -176,10 +202,12 @@ test("pickSSHConnectArgs accepts key, MFA, jump and socks proxy", () => {
         proxyCommand: "",
         enableMfa: false,
         useAgent: false,
+        agentForwarding: false,
         identityFilePaths: [],
         cols: 80,
         rows: 24,
         term: "xterm-256color", verifyHostKeys: true, keepaliveInterval: 30, keepaliveCountMax: 3, forwardX11: false, x11Display: "",
+        sessionId: "", bootEpoch: 0, sshDebugLogs: false,
       jumpHosts: [],
       }],
     },
@@ -207,4 +235,18 @@ test("pickSSHConnectArgs maps agent and identity files onto Connect", () => {
   });
   assert.equal(args.useAgent, true);
   assert.deepEqual(args.identityFilePaths, ["~/.ssh/id"]);
+});
+
+test("pickSSHConnectArgs maps agent forwarding per hop", () => {
+  const args = pickSSHConnectArgs({
+    hostname: "h",
+    username: "u",
+    agentForwarding: true,
+    jumpHosts: [{ hostname: "jump", username: "bastion", agentForwarding: true }, { hostname: "plain", username: "u" }],
+  });
+  assert.equal(args.agentForwarding, true);
+  assert.equal(args.jumpHosts[0].agentForwarding, true);
+  assert.equal(args.jumpHosts[1].agentForwarding, false);
+  const off = pickSSHConnectArgs({ hostname: "h", username: "u" });
+  assert.equal(off.agentForwarding, false);
 });

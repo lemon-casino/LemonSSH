@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 import type { TerminalSessionExitEvent } from "./resolveTerminalSessionExitIntent";
 
-type PluginConnectionStartOptions = NetcattyPluginConnectionStartRequest & {
+type PluginConnectionStartOptions = LemonSSHPluginConnectionStartRequest & {
   signal?: AbortSignal;
 };
 
@@ -44,7 +44,7 @@ const raceWithPluginConnectionStartAbort = async <T,>(
 };
 
 export async function startPluginConnectionWithBridge(
-  bridge: Pick<NetcattyBridge, "invokePluginExtensionProvider" | "startPluginConnection">,
+  bridge: Pick<LemonSSHBridge, "invokePluginExtensionProvider" | "startPluginConnection">,
   options: PluginConnectionStartOptions,
 ) {
   if (!bridge?.startPluginConnection) throw new Error("startPluginConnection unavailable");
@@ -83,7 +83,7 @@ export async function startPluginConnectionWithBridge(
 }
 
 export async function signalPluginConnectionWithBridge(
-  bridge: Pick<NetcattyBridge, "controlPluginConnection">,
+  bridge: Pick<LemonSSHBridge, "controlPluginConnection">,
   sessionId: string,
   signal: "interrupt" | "terminate" | "kill" | "eof" | "break" = "interrupt",
 ) {
@@ -93,84 +93,84 @@ export async function signalPluginConnectionWithBridge(
 
 export const useTerminalBackend = () => {
   const telnetAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startTelnetSession;
   }, []);
 
   const moshAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startMoshSession;
   }, []);
 
   const etAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startEtSession;
   }, []);
 
   const localAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startLocalSession;
   }, []);
 
   const serialAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startSerialSession;
   }, []);
 
   const pluginConnectionAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startPluginConnection;
   }, []);
 
   const execAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.execCommand;
   }, []);
 
-  const startSSHSession = useCallback(async (options: NetcattySSHOptions) => {
-    const bridge = netcattyBridge.get();
+  const startSSHSession = useCallback(async (options: LemonSSHSSHOptions) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startSSHSession) throw new Error("startSSHSession unavailable");
     return bridge.startSSHSession(options);
   }, []);
 
-  const startTelnetSession = useCallback(async (options: Parameters<NonNullable<NetcattyBridge["startTelnetSession"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const startTelnetSession = useCallback(async (options: Parameters<NonNullable<LemonSSHBridge["startTelnetSession"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startTelnetSession) throw new Error("startTelnetSession unavailable");
     return bridge.startTelnetSession(options);
   }, []);
 
-  const startMoshSession = useCallback(async (options: Parameters<NonNullable<NetcattyBridge["startMoshSession"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const startMoshSession = useCallback(async (options: Parameters<NonNullable<LemonSSHBridge["startMoshSession"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startMoshSession) throw new Error("startMoshSession unavailable");
     return bridge.startMoshSession(options);
   }, []);
 
-  const startEtSession = useCallback(async (options: Parameters<NonNullable<NetcattyBridge["startEtSession"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const startEtSession = useCallback(async (options: Parameters<NonNullable<LemonSSHBridge["startEtSession"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startEtSession) throw new Error("startEtSession unavailable");
     return bridge.startEtSession(options);
   }, []);
 
-  const startLocalSession = useCallback(async (options: Parameters<NonNullable<NetcattyBridge["startLocalSession"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const startLocalSession = useCallback(async (options: Parameters<NonNullable<LemonSSHBridge["startLocalSession"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startLocalSession) throw new Error("startLocalSession unavailable");
     return bridge.startLocalSession(options);
   }, []);
 
-  const startSerialSession = useCallback(async (options: Parameters<NonNullable<NetcattyBridge["startSerialSession"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const startSerialSession = useCallback(async (options: Parameters<NonNullable<LemonSSHBridge["startSerialSession"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startSerialSession) throw new Error("startSerialSession unavailable");
     return bridge.startSerialSession(options);
   }, []);
 
   const startPluginConnection = useCallback(async (options: PluginConnectionStartOptions) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge) throw new Error("startPluginConnection unavailable");
     return startPluginConnectionWithBridge(bridge, options);
   }, []);
 
   const cancelPluginExtensionRequest = useCallback(async (requestId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.cancelPluginExtensionRequest?.(requestId) ?? false;
   }, []);
 
@@ -178,32 +178,32 @@ export const useTerminalBackend = () => {
     sessionId: string,
     signal: "interrupt" | "terminate" | "kill" | "eof" | "break" = "interrupt",
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge) throw new Error("Plugin connection signaling unavailable");
     return signalPluginConnectionWithBridge(bridge, sessionId, signal);
   }, []);
 
-  const execCommand = useCallback(async (options: Parameters<NetcattyBridge["execCommand"]>[0]) => {
-    const bridge = netcattyBridge.get();
+  const execCommand = useCallback(async (options: Parameters<LemonSSHBridge["execCommand"]>[0]) => {
+    const bridge = lemonsshBridge.get();
     if (!bridge?.execCommand) throw new Error("execCommand unavailable");
     return bridge.execCommand(options);
   }, []);
 
   const setupOsc7Tracking = useCallback(async (sessionId: string, command: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setupOsc7Tracking) {
       return { success: false, error: "setupOsc7Tracking unavailable" };
     }
     return bridge.setupOsc7Tracking(sessionId, command);
   }, []);
 
-  const writeToSession = useCallback((sessionId: string, data: string, options?: Parameters<NonNullable<NetcattyBridge["writeToSession"]>>[2]) => {
-    const bridge = netcattyBridge.get();
+  const writeToSession = useCallback((sessionId: string, data: string, options?: Parameters<NonNullable<LemonSSHBridge["writeToSession"]>>[2]) => {
+    const bridge = lemonsshBridge.get();
     bridge?.writeToSession?.(sessionId, data, options);
   }, []);
 
-  const interruptSession = useCallback((sessionId: string, trace?: NetcattyTerminalInterruptTrace) => {
-    const bridge = netcattyBridge.get();
+  const interruptSession = useCallback((sessionId: string, trace?: LemonSSHTerminalInterruptTrace) => {
+    const bridge = lemonsshBridge.get();
     if (bridge?.interruptSession) {
       bridge.interruptSession(sessionId, trace);
       return;
@@ -212,22 +212,22 @@ export const useTerminalBackend = () => {
   }, []);
 
   const resizeSession = useCallback((sessionId: string, cols: number, rows: number) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.resizeSession?.(sessionId, cols, rows);
   }, []);
 
   const clearSessionPtyBuffer = useCallback((sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.clearSessionPtyBuffer?.(sessionId);
   }, []);
 
   const setSessionFlowPaused = useCallback((sessionId: string, paused: boolean) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.setSessionFlowPaused?.(sessionId, paused);
   }, []);
 
   const setSessionFlowPausedAndWait = useCallback(async (sessionId: string, paused: boolean) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setSessionFlowPausedAndWait) {
       bridge?.setSessionFlowPaused?.(sessionId, paused);
       return paused
@@ -238,7 +238,7 @@ export const useTerminalBackend = () => {
   }, []);
 
   const acquireSessionFlowPauseLease = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.acquireSessionFlowPauseLease) {
       throw new Error("Terminal flow pause leases unavailable");
     }
@@ -247,8 +247,12 @@ export const useTerminalBackend = () => {
       throw new Error(acquired?.error || "Failed to pause terminal output");
     }
     const leaseId = acquired.leaseId;
+    // The Wails bridge mints the attach authorization on the Go side and
+    // returns it with the lease; popup flows pass it to rebind/restore.
+    const authorization = acquired.authorization ?? "";
     let released = false;
     return {
+      authorization,
       release: (options?: { keepPaused?: boolean }) => {
         if (released) return;
         released = true;
@@ -268,21 +272,21 @@ export const useTerminalBackend = () => {
   }, []);
 
   const ackSessionFlow = useCallback((sessionId: string, bytes: number) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.ackSessionFlow?.(sessionId, bytes);
   }, []);
 
   const notifyTerminalSessionDisplayReady = useCallback((sessionId: string) => {
-    netcattyBridge.get()?.notifyTerminalSessionDisplayReady?.(sessionId);
+    lemonsshBridge.get()?.notifyTerminalSessionDisplayReady?.(sessionId);
   }, []);
 
   const closeSession = useCallback(async (sessionId: string, options?: { bootEpoch?: number }) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.closeSession?.(sessionId, options);
   }, []);
 
   const rebindSessionOutput = useCallback(async (sessionId: string, authorization: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.rebindTerminalSessionOutput) {
       return { success: false as const, error: "rebindTerminalSessionOutput unavailable" };
     }
@@ -294,7 +298,7 @@ export const useTerminalBackend = () => {
     webContentsId?: number | null,
     authorization?: string,
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.restoreTerminalSessionOutput) {
       return { success: false as const, error: "restoreTerminalSessionOutput unavailable" };
     }
@@ -302,7 +306,7 @@ export const useTerminalBackend = () => {
   }, []);
 
   const requestSessionSnapshot = useCallback(async (sessionId: string, authorization: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.requestTerminalSessionSnapshot) {
       return { success: false as const, snapshot: "", error: "requestTerminalSessionSnapshot unavailable" };
     }
@@ -317,12 +321,15 @@ export const useTerminalBackend = () => {
       contextViewportSnapshot: string;
       contextScrollbackSnapshot: string;
       alternateScreen: boolean;
-      kittyKeyboardModeState?: NetcattyKittyKeyboardModeState;
+      kittyKeyboardModeState?: LemonSSHKittyKeyboardModeState;
       kittyKeyboardProtocolEnabled?: boolean;
+      passwordPromptActive?: boolean;
+      cwd?: string | null;
+      title?: string | null;
     },
     authorization: string,
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.applyTerminalSessionSnapshot) {
       return { success: false as const, error: "applyTerminalSessionSnapshot unavailable" };
     }
@@ -330,49 +337,49 @@ export const useTerminalBackend = () => {
   }, []);
 
   const setSessionEncoding = useCallback(async (sessionId: string, encoding: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.setSessionEncoding) return { ok: false, encoding };
     return bridge.setSessionEncoding(sessionId, encoding);
   }, []);
 
   const onSessionData = useCallback((
     sessionId: string,
-    cb: Parameters<NetcattyBridge["onSessionData"]>[1],
-    options?: Parameters<NetcattyBridge["onSessionData"]>[2],
+    cb: Parameters<LemonSSHBridge["onSessionData"]>[1],
+    options?: Parameters<LemonSSHBridge["onSessionData"]>[2],
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onSessionData) throw new Error("onSessionData unavailable");
     return bridge.onSessionData(sessionId, cb, options);
   }, []);
 
   const onSessionExit = useCallback((sessionId: string, cb: (evt: TerminalSessionExitEvent) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onSessionExit) throw new Error("onSessionExit unavailable");
     return bridge.onSessionExit(sessionId, cb);
   }, []);
 
   const onTelnetAutoLoginComplete = useCallback((sessionId: string, cb: (evt: { sessionId: string; bootEpoch?: number }) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onTelnetAutoLoginComplete?.(sessionId, cb);
   }, []);
 
   const onTelnetAutoLoginCancelled = useCallback((sessionId: string, cb: (evt: { sessionId: string; bootEpoch?: number }) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onTelnetAutoLoginCancelled?.(sessionId, cb);
   }, []);
 
   const onMoshSessionReady = useCallback((sessionId: string, cb: (evt: { sessionId: string; bootEpoch?: number }) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onMoshSessionReady?.(sessionId, cb);
   }, []);
 
-  const onHelperLifecycle = useCallback((sessionId: string, cb: Parameters<NonNullable<NetcattyBridge["onHelperLifecycle"]>>[1]) => {
-    const bridge = netcattyBridge.get();
+  const onHelperLifecycle = useCallback((sessionId: string, cb: Parameters<NonNullable<LemonSSHBridge["onHelperLifecycle"]>>[1]) => {
+    const bridge = lemonsshBridge.get();
     return bridge?.onHelperLifecycle?.(sessionId, cb);
   }, []);
 
   const restartHelperSession = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.restartHelperSession) {
       return { success: false as const, error: "restartHelperSession unavailable" };
     }
@@ -380,38 +387,38 @@ export const useTerminalBackend = () => {
   }, []);
 
   const onTelnetEchoMode = useCallback((sessionId: string, cb: (evt: { sessionId: string; remoteEcho: boolean; localEcho: boolean }) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onTelnetEchoMode?.(sessionId, cb);
   }, []);
 
   const getTelnetEchoMode = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getTelnetEchoMode) return { success: false as const, error: "getTelnetEchoMode unavailable" };
     return bridge.getTelnetEchoMode(sessionId);
   }, []);
 
   const onChainProgress = useCallback((cb: (sessionId: string, hop: number, total: number, label: string, status: string, error?: string) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onChainProgress?.(cb);
   }, []);
 
   const onConnectionReuseFallback = useCallback((cb: (sessionId: string, sourceSessionId?: string) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onConnectionReuseFallback?.(cb);
   }, []);
 
   const onWindowFullScreenChanged = useCallback((cb: (isFullscreen: boolean) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onWindowFullScreenChanged?.(cb);
   }, []);
 
   const onWindowShown = useCallback((cb: () => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onWindowShown?.(cb);
   }, []);
 
-  const onHostKeyVerification = useCallback((cb: Parameters<NonNullable<NetcattyBridge["onHostKeyVerification"]>>[0]) => {
-    const bridge = netcattyBridge.get();
+  const onHostKeyVerification = useCallback((cb: Parameters<NonNullable<LemonSSHBridge["onHostKeyVerification"]>>[0]) => {
+    const bridge = lemonsshBridge.get();
     return bridge?.onHostKeyVerification?.(cb);
   }, []);
 
@@ -420,7 +427,7 @@ export const useTerminalBackend = () => {
     accept: boolean,
     addToKnownHosts?: boolean,
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.respondHostKeyVerification) {
       return { success: false, error: "respondHostKeyVerification unavailable" };
     }
@@ -428,54 +435,54 @@ export const useTerminalBackend = () => {
   }, []);
 
   const openExternal = useCallback(async (url: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     await bridge?.openExternal?.(url);
   }, []);
 
   const openExternalAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.openExternal;
   }, []);
 
   const backendAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.startSSHSession;
   }, []);
 
   const listSerialPorts = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.listSerialPorts) return [];
     return bridge.listSerialPorts();
   }, []);
 
   const serialYmodemAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.sendSerialYmodem;
   }, []);
 
   const serialYmodemReceiveAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.receiveSerialYmodem;
   }, []);
 
   const selectFileAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.selectFile;
   }, []);
 
   const selectDirectoryAvailable = useCallback(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return !!bridge?.selectDirectory;
   }, []);
 
   const sendSerialYmodem = useCallback(async (sessionId: string, filePath: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.sendSerialYmodem) return { success: false, error: 'sendSerialYmodem unavailable' };
     return bridge.sendSerialYmodem(sessionId, filePath);
   }, []);
 
   const receiveSerialYmodem = useCallback(async (sessionId: string, destinationDir: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.receiveSerialYmodem) return { success: false, error: 'receiveSerialYmodem unavailable' };
     return bridge.receiveSerialYmodem(sessionId, destinationDir);
   }, []);
@@ -485,13 +492,13 @@ export const useTerminalBackend = () => {
     defaultPath?: string,
     filters?: Array<{ name: string; extensions: string[] }>,
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.selectFile) return null;
     return bridge.selectFile(title, defaultPath, filters);
   }, []);
 
   const selectDirectory = useCallback(async (title?: string, defaultPath?: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.selectDirectory) return null;
     return bridge.selectDirectory(title, defaultPath);
   }, []);
@@ -506,7 +513,7 @@ export const useTerminalBackend = () => {
     }>,
     uploadCommand?: string,
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.startZmodemDragDropUpload) {
       return { success: false, error: "startZmodemDragDropUpload unavailable" };
     }
@@ -514,15 +521,15 @@ export const useTerminalBackend = () => {
   }, []);
 
   const cancelZmodem = useCallback((sessionId: string, options?: { interrupt?: boolean }) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     bridge?.cancelZmodem?.(sessionId, options);
   }, []);
 
   const onZmodemEvent = useCallback((
     sessionId: string,
-    cb: Parameters<NonNullable<NetcattyBridge["onZmodemEvent"]>>[1],
+    cb: Parameters<NonNullable<LemonSSHBridge["onZmodemEvent"]>>[1],
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     return bridge?.onZmodemEvent?.(sessionId, cb) ?? (() => {});
   }, []);
 
@@ -530,13 +537,13 @@ export const useTerminalBackend = () => {
     sessionId: string,
     options?: { allowHomeFallback?: boolean; allowLoginShellFallback?: boolean },
   ) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getSessionPwd) return { success: false, error: 'getSessionPwd unavailable' };
     return bridge.getSessionPwd(sessionId, options);
   }, []);
 
   const getSessionRemoteInfo = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getSessionRemoteInfo) {
       return { success: false, error: 'getSessionRemoteInfo unavailable' };
     }
@@ -544,7 +551,7 @@ export const useTerminalBackend = () => {
   }, []);
 
   const getSessionDistroInfo = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getSessionDistroInfo) {
       return { success: false, error: 'getSessionDistroInfo unavailable' };
     }
@@ -552,7 +559,7 @@ export const useTerminalBackend = () => {
   }, []);
 
   const getServerStats = useCallback(async (sessionId: string) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getServerStats) return { success: false, error: 'getServerStats unavailable' };
     return bridge.getServerStats(sessionId);
   }, []);
@@ -643,7 +650,7 @@ export const useTerminalBackend = () => {
         enumerable: true,
         configurable: true,
         get() {
-          const bridge = netcattyBridge.get();
+          const bridge = lemonsshBridge.get();
           if (typeof bridge?.onMoshSessionReady !== "function") {
             return undefined;
           }

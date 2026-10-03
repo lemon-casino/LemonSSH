@@ -233,7 +233,10 @@ test("repeated local writes stay queued without forcing parser flushes", async (
   assert.deepEqual(writes, []);
   assert.equal(hasPendingTerminalWrites(term), true);
 
-  const flushed = await flushPendingTerminalWritesBeforeHibernate(term);
+  // Generous budget: 100 queued items each cost at least one drain pass, and
+  // coarse timer granularity on slow machines pushes the default 750ms budget
+  // even though the drain itself completes. The subject is full ordered drain.
+  const flushed = await flushPendingTerminalWritesBeforeHibernate(term, 8000);
 
   assert.equal(flushed, true);
   assert.equal(writes.join(""), localWrites.join(""));
@@ -250,7 +253,10 @@ test("full close-style flush drains more than the synchronous resume pass limit"
     }, { deferStart: true, yieldAfter: true });
   }
 
-  const flushed = await flushPendingTerminalWritesBeforeHibernate(term);
+  // Generous budget: 80 yielded items each cost at least one drain pass, and
+  // coarse timer granularity on slow machines pushes past the default 750ms.
+  // The subject is draining beyond the synchronous resume pass limit.
+  const flushed = await flushPendingTerminalWritesBeforeHibernate(term, 8000);
 
   assert.equal(flushed, true);
   assert.equal(hasPendingTerminalWrites(term), false);

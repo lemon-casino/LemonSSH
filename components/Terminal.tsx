@@ -119,7 +119,7 @@ import {
 } from "@/domain/hostConnectScripts.ts";
 import { isVaultInitialized } from "@/application/state/vaultInitStore.ts";
 import { useVaultSnapshotField } from "@/application/state/vaultSnapshotStore.ts";
-import { netcattyBridge } from "@/infrastructure/services/netcattyBridge.ts";
+import { lemonsshBridge } from "@/infrastructure/services/lemonsshBridge.ts";
 import { handleTerminalOscNotification } from "@/application/state/oscDesktopNotifications.ts";
 import { OscNotificationStreamScanner } from "@/domain/terminalOscNotifications.ts";
 import { ScriptExecutionOverlay } from "./terminal/ScriptExecutionOverlay";
@@ -418,7 +418,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     () => passwordPromptActiveRef.current,
   ), [sessionId]);
   const sensitivePromptOutputTailRef = useRef("");
-  const [activeScriptRun, setActiveScriptRun] = useState<import('@/types/global/netcatty-bridge-script.d.ts').ScriptRun | undefined>(undefined);
+  const [activeScriptRun, setActiveScriptRun] = useState<import('@/types/global/lemonssh-bridge-script.d.ts').ScriptRun | undefined>(undefined);
   const dismissedScriptRunIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
@@ -1512,7 +1512,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const attachHomeWebContentsIdRef = useRef<number | null | undefined>(undefined);
 
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onTerminalOutputDrainRequest || !bridge?.respondTerminalOutputDrain) return undefined;
     return bridge.onTerminalOutputDrainRequest(sessionId, async (payload) => {
       const term = termRef.current;
@@ -1532,7 +1532,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   // accept reverse snapshots when the observe popup restores the route.
   useEffect(() => {
     if (attachExistingSession) return undefined;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const unsubs: Array<() => void> = [];
     if (bridge?.onTerminalSessionSnapshotRequest && bridge?.respondTerminalSessionSnapshot) {
       unsubs.push(bridge.onTerminalSessionSnapshotRequest(async (payload) => {
@@ -2305,7 +2305,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   });
   pluginTerminalLifecycleRef.current = pluginTerminalLifecycle;
   pluginTerminalSessionExitRef.current = pluginTerminalLifecycle.onSessionExited;
-  const getPluginTerminalSnapshotState = useCallback((): Partial<NetcattyTerminalSessionSnapshot> => {
+  const getPluginTerminalSnapshotState = useCallback((): Partial<LemonSSHTerminalSessionSnapshot> => {
     const term = termRef.current;
     return {
       status: statusRef.current,
@@ -2837,12 +2837,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       setRecordedCode(detail.code ?? '');
       setSaveRecordingOpen(true);
     };
-    window.addEventListener('netcatty:script:recording:start', startHandler);
-    window.addEventListener('netcatty:script:recording:stop', stopHandler);
+    window.addEventListener('lemonssh:script:recording:start', startHandler);
+    window.addEventListener('lemonssh:script:recording:stop', stopHandler);
     window.addEventListener(SCRIPT_RECORDING_LIMIT_EVENT, limitHandler);
     return () => {
-      window.removeEventListener('netcatty:script:recording:start', startHandler);
-      window.removeEventListener('netcatty:script:recording:stop', stopHandler);
+      window.removeEventListener('lemonssh:script:recording:start', startHandler);
+      window.removeEventListener('lemonssh:script:recording:stop', stopHandler);
       window.removeEventListener(SCRIPT_RECORDING_LIMIT_EVENT, limitHandler);
     };
   }, [sessionId, t]);
@@ -3057,7 +3057,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   }, []);
 
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const dispose = bridge?.onScriptSessionInput?.(({ sessionId: sid, data }) => {
       if (sid !== sessionId) return;
       scrollToBottomAfterProgrammaticInput(data);
@@ -3412,7 +3412,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     updateStatus("disconnected");
     setChainProgress(null);
     setIsDisconnectedDialogDismissed(false);
-    window.dispatchEvent(new CustomEvent("netcatty:terminal-session-disconnected", {
+    window.dispatchEvent(new CustomEvent("lemonssh:terminal-session-disconnected", {
       detail: { sessionId },
     }));
     setTimeout(() => setIsCancelling(false), 600);
@@ -3617,7 +3617,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       return;
     }
     // closeSession wiped preload ready listeners; re-arm before startMosh so a
-    // fast handshake cannot emit netcatty:mosh:ready into an empty map.
+    // fast handshake cannot emit lemonssh:mosh:ready into an empty map.
     prepareMoshReadySubscription();
     // Keep the same retry token through the queued writes. If the user cancels /
     // closes / unmounts / kicks off another retry while the chained writes are
@@ -3878,10 +3878,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       return;
     }
     if (recording.sessionId === sessionId) {
-      window.dispatchEvent(new CustomEvent('netcatty:script:recording:stop', { detail: { sessionId } }));
+      window.dispatchEvent(new CustomEvent('lemonssh:script:recording:stop', { detail: { sessionId } }));
       return;
     }
-    window.dispatchEvent(new CustomEvent('netcatty:script:recording:start', { detail: { sessionId } }));
+    window.dispatchEvent(new CustomEvent('lemonssh:script:recording:start', { detail: { sessionId } }));
   }, [sessionId, t]);
 
   const renderControls = useCallback((opts?: { showClose?: boolean; restorePaneLayout?: boolean }) => (
@@ -4340,7 +4340,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         defaultName={`recorded-${new Date().toISOString().slice(0, 10)}`}
         onClose={() => setSaveRecordingOpen(false)}
         onSave={({ name, packagePath, code, editAfterSave }) => {
-          window.dispatchEvent(new CustomEvent('netcatty:scripts:save-recorded', {
+          window.dispatchEvent(new CustomEvent('lemonssh:scripts:save-recorded', {
             detail: { name, packagePath, code, editAfterSave },
           }));
           setSaveRecordingOpen(false);

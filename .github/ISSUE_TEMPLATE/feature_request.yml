@@ -22,7 +22,7 @@ body:
     id: solution
     attributes:
       label: Proposed solution
-      description: What would you like Netcatty to do?
+      description: What would you like LemonSSH to do?
     validations:
       required: true
 

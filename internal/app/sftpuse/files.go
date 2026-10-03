@@ -6,7 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/binaricat/netcatty/internal/terminal/sftp"
+	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/binaricat/lemonssh/internal/terminal/sftp"
 )
 
 // parsePermissions validates an octal permission string (3-4 digits) into a
@@ -38,7 +39,7 @@ func parsePermissions(text string) (os.FileMode, error) {
 }
 
 // Chmod updates the permission bits of one remote path.
-func (s *Service) Chmod(sessionID, target, permissions string) error {
+func (s *Service) Chmod(sessionID, target, permissions, encoding string) error {
 	mode, err := parsePermissions(permissions)
 	if err != nil {
 		return err
@@ -48,7 +49,7 @@ func (s *Service) Chmod(sessionID, target, permissions string) error {
 		return err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, target))
 	if err != nil {
 		return err
 	}
@@ -56,29 +57,44 @@ func (s *Service) Chmod(sessionID, target, permissions string) error {
 }
 
 // List returns one directory listing (directories first, name-ordered).
-func (s *Service) List(sessionID, dir string) ([]sftp.Entry, error) {
+// The encoding argument selects the remote filename charset (auto / utf-8 /
+// gb18030); entry names are transcoded to UTF-8 before crossing the JSON
+// channel, which would otherwise replace legacy bytes with U+FFFD.
+func (s *Service) List(sessionID, dir, encoding string) ([]sftp.Entry, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer done()
-	target, err := sftp.NormalizePath(".", dir)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, dir))
 	if err != nil {
 		return nil, err
 	}
-	entries, err := client.fs.ReadDir(target)
+	entries, err := client.fs.ReadDir(resolved)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, len(entries))
+	for i := range entries {
+		names[i] = entries[i].Name
+	}
+	decoded := s.probeAndDecodeNames(sessionID, names)
+	for i := range entries {
+		entries[i].Name = decoded[i]
+	}
 	sftp.SortEntries(entries)
-	return entries, err
+	return entries, nil
 }
 
-// Stat stats one remote path.
-func (s *Service) Stat(sessionID, target string) (sftp.FileInfo, error) {
+// Stat stats one remote path. The path is encoded to the remote filename
+// charset before the request.
+func (s *Service) Stat(sessionID, target, encoding string) (sftp.FileInfo, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return sftp.FileInfo{}, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, target))
 	if err != nil {
 		return sftp.FileInfo{}, err
 	}
@@ -86,13 +102,13 @@ func (s *Service) Stat(sessionID, target string) (sftp.FileInfo, error) {
 }
 
 // Lstat returns metadata for the remote path without following a final symlink.
-func (s *Service) Lstat(sessionID, target string) (sftp.FileInfo, bool, error) {
+func (s *Service) Lstat(sessionID, target, encoding string) (sftp.FileInfo, bool, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return sftp.FileInfo{}, false, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, target))
 	if err != nil {
 		return sftp.FileInfo{}, false, err
 	}
@@ -103,27 +119,31 @@ func (s *Service) Lstat(sessionID, target string) (sftp.FileInfo, bool, error) {
 	return sftp.FileInfo{Path: resolved, IsDir: info.IsDir(), Size: info.Size(), Mode: info.Mode().String(), ModTime: info.ModTime()}, info.Mode()&os.ModeSymlink != 0, nil
 }
 
-func (s *Service) RealPath(sessionID, target string) (string, error) {
+func (s *Service) RealPath(sessionID, target, encoding string) (string, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return "", err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, target))
 	if err != nil {
 		return "", err
 	}
-	return client.raw.RealPath(resolved)
+	absolute, err := client.raw.RealPath(resolved)
+	if err != nil {
+		return "", err
+	}
+	return charset.Decode(absolute, s.resolvedEncoding(sessionID)), nil
 }
 
 // Mkdir creates a remote directory.
-func (s *Service) Mkdir(sessionID, dir string) error {
+func (s *Service) Mkdir(sessionID, dir, encoding string) error {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return err
 	}
 	defer done()
-	target, err := sftp.NormalizePath(".", dir)
+	target, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, dir))
 	if err != nil {
 		return err
 	}
@@ -131,13 +151,13 @@ func (s *Service) Mkdir(sessionID, dir string) error {
 }
 
 // Remove deletes a remote file or directory tree.
-func (s *Service) Remove(sessionID, target string) error {
+func (s *Service) Remove(sessionID, target, encoding string) error {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", target)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, target))
 	if err != nil {
 		return err
 	}
@@ -145,17 +165,17 @@ func (s *Service) Remove(sessionID, target string) error {
 }
 
 // Rename moves or renames a remote path.
-func (s *Service) Rename(sessionID, oldPath, newPath string) error {
+func (s *Service) Rename(sessionID, oldPath, newPath, encoding string) error {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return err
 	}
 	defer done()
-	from, err := sftp.NormalizePath(".", oldPath)
+	from, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, oldPath))
 	if err != nil {
 		return err
 	}
-	to, err := sftp.NormalizePath(".", newPath)
+	to, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, newPath))
 	if err != nil {
 		return err
 	}
@@ -163,13 +183,13 @@ func (s *Service) Rename(sessionID, oldPath, newPath string) error {
 }
 
 // Read returns a remote file as UTF-8 text.
-func (s *Service) Read(sessionID, remotePath string) (string, error) {
+func (s *Service) Read(sessionID, remotePath, encoding string) (string, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return "", err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return "", err
 	}
@@ -185,13 +205,13 @@ func (s *Service) Read(sessionID, remotePath string) (string, error) {
 	return string(data), nil
 }
 
-func (s *Service) ReadBinary(sessionID, remotePath string) ([]byte, error) {
+func (s *Service) ReadBinary(sessionID, remotePath, encoding string) ([]byte, error) {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return nil, err
 	}
@@ -204,13 +224,13 @@ func (s *Service) ReadBinary(sessionID, remotePath string) ([]byte, error) {
 }
 
 // WriteText writes UTF-8 text to a remote file, creating or truncating it.
-func (s *Service) WriteText(sessionID, remotePath, content string) error {
+func (s *Service) WriteText(sessionID, remotePath, content, encoding string) error {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return err
 	}
@@ -223,13 +243,13 @@ func (s *Service) WriteText(sessionID, remotePath, content string) error {
 	return err
 }
 
-func (s *Service) WriteBinary(sessionID, remotePath string, content []byte) error {
+func (s *Service) WriteBinary(sessionID, remotePath string, content []byte, encoding string) error {
 	client, done, err := s.acquire(sessionID)
 	if err != nil {
 		return err
 	}
 	defer done()
-	resolved, err := sftp.NormalizePath(".", remotePath)
+	resolved, err := sftp.NormalizePath(".", s.encodePath(sessionID, encoding, remotePath))
 	if err != nil {
 		return err
 	}

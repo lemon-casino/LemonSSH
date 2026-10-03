@@ -7,7 +7,7 @@ import (
 )
 
 func TestHealthAndVersion(t *testing.T) {
-	application := New("Netcatty", "0.0.0-skeleton")
+	application := New("LemonSSH", "0.0.0-skeleton")
 	ctx := context.Background()
 
 	health, err := application.Health(ctx)
@@ -22,7 +22,7 @@ func TestHealthAndVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version: %v", err)
 	}
-	if version.Name != "Netcatty" || version.Version != "0.0.0-skeleton" {
+	if version.Name != "LemonSSH" || version.Version != "0.0.0-skeleton" {
 		t.Fatalf("unexpected version payload: %+v", version)
 	}
 	if version.GOOS == "" || version.GOARCH == "" || version.GoVersion == "" {
@@ -31,7 +31,7 @@ func TestHealthAndVersion(t *testing.T) {
 }
 
 func TestResolveWindowRole(t *testing.T) {
-	application := New("Netcatty", "0.0.0-skeleton")
+	application := New("LemonSSH", "0.0.0-skeleton")
 	ctx := context.Background()
 
 	main, err := application.ResolveWindowRole(ctx, WindowRoleMain)
@@ -58,7 +58,7 @@ func TestResolveWindowRole(t *testing.T) {
 }
 
 func TestContextCancellation(t *testing.T) {
-	application := New("Netcatty", "0.0.0-skeleton")
+	application := New("LemonSSH", "0.0.0-skeleton")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

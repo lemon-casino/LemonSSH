@@ -1,4 +1,4 @@
-import type { ScriptRun } from '@/types/global/netcatty-bridge-script.d.ts';
+import type { ScriptRun } from '@/types/global/lemonssh-bridge-script.d.ts';
 
 type Listener = () => void;
 

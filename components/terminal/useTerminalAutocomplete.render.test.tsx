@@ -84,7 +84,7 @@ test('mounted completion discards async results after session or cwd changes', a
 for (const mode of ['popup', 'inline'] as const) {
   test(`mounted ${mode} uses active Wails runtime for empty-history paths and successive children`, async () => {
     // The external boundary is native RPC; everything above it is production code.
-    // A real filesystem fixture supplies native-shaped JSON, without window.netcatty.
+    // A real filesystem fixture supplies native-shaped JSON, without window.lemonssh.
     const fixture = mkdtempSync(join(process.cwd(), '.completion-fixture-'));
     mkdirSync(join(fixture, 'data/Mihomo/config'), { recursive: true });
     mkdirSync(join(fixture, 'other/Next'), { recursive: true });

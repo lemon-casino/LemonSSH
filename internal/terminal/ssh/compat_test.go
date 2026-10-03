@@ -63,8 +63,8 @@ func TestRSACertificateSignerNegotiation(t *testing.T) {
 		Key:             userSigner.PublicKey(),
 		Serial:          1,
 		CertType:        ssh.UserCert,
-		KeyId:           "netcatty-compat-test",
-		ValidPrincipals: []string{"netcatty"},
+		KeyId:           "lemonssh-compat-test",
+		ValidPrincipals: []string{"lemonssh"},
 		ValidAfter:      uint64(time.Now().Add(-time.Minute).Unix()),
 		ValidBefore:     uint64(time.Now().Add(time.Hour).Unix()),
 	}

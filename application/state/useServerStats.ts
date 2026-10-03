@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 
 export interface DiskInfo {
   capacityKey?: string;       // Filesystem or shared-pool identity for deduplication
@@ -240,7 +240,7 @@ async function fetchSharedServerStats(session: SharedServerStatsSession, force =
   if (session.givenUp && !force) return;
   if (getActiveServerStatsClients(session).length === 0) return;
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.getServerStats) return;
 
   if (force) {

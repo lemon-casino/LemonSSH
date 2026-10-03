@@ -286,13 +286,13 @@ export function cancelApprovalTimeout(toolCallId: string): void {
   // MCP cancel drops idle but keeps the absolute creation deadline.
   if (toolCallId.startsWith('mcp_approval_')) {
     const bridge = (window as unknown as {
-      netcatty?: { cancelMcpApprovalTimeout?: (id: string) => Promise<unknown> };
-    }).netcatty;
+      lemonssh?: { cancelMcpApprovalTimeout?: (id: string) => Promise<unknown> };
+    }).lemonssh;
     void bridge?.cancelMcpApprovalTimeout?.(toolCallId);
   } else if (toolCallId.startsWith('codex_interaction_')) {
     const bridge = (window as unknown as {
-      netcatty?: { cancelCodexAppServerInteractionTimeout?: (id: string) => Promise<unknown> };
-    }).netcatty;
+      lemonssh?: { cancelCodexAppServerInteractionTimeout?: (id: string) => Promise<unknown> };
+    }).lemonssh;
     void bridge?.cancelCodexAppServerInteractionTimeout?.(toolCallId);
   }
 }
@@ -344,7 +344,7 @@ export function resolveApproval(
 
   // MCP tool call: also forward response to main process via IPC
   if (toolCallId.startsWith('mcp_approval_')) {
-    const bridge = (window as unknown as { netcatty?: { respondMcpApproval?: (id: string, approved: boolean) => Promise<unknown> } }).netcatty;
+    const bridge = (window as unknown as { lemonssh?: { respondMcpApproval?: (id: string, approved: boolean) => Promise<unknown> } }).lemonssh;
     bridge?.respondMcpApproval?.(toolCallId, approved);
   }
 }
@@ -464,7 +464,7 @@ export function clearAllPendingApprovals(chatSessionId?: string): void {
  */
 export function setupMcpApprovalBridge(): () => void {
   const bridge = (window as unknown as {
-    netcatty?: {
+    lemonssh?: {
       onMcpApprovalRequest?: (cb: (payload: {
         approvalId: string;
         toolName: string;
@@ -475,7 +475,7 @@ export function setupMcpApprovalBridge(): () => void {
         approvalIds: string[];
       }) => void) => () => void;
     };
-  }).netcatty;
+  }).lemonssh;
   if (!bridge?.onMcpApprovalRequest) return () => {};
 
   const unsubRequest = bridge.onMcpApprovalRequest((payload) => {

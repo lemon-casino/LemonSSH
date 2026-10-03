@@ -1,5 +1,5 @@
-type StreamOptions = Parameters<NonNullable<NetcattyBridge['startStreamTransfer']>>[0];
-type TransferEvent = Parameters<Parameters<NonNullable<NetcattyBridge['onGlobalSftpTransferEvent']>>[0]>[0];
+type StreamOptions = Parameters<NonNullable<LemonSSHBridge['startStreamTransfer']>>[0];
+type TransferEvent = Parameters<Parameters<NonNullable<LemonSSHBridge['onGlobalSftpTransferEvent']>>[0]>[0];
 export interface TransferProgress {
   taskId: string;
   state: string;
@@ -21,7 +21,7 @@ export interface TransferProgress {
   direction?: 'upload' | 'download' | 'remote-to-remote';
 }
 export interface TransferBindings {
-  Start(request: { taskId: string; sourceSessionId: string; targetSessionId: string; sourcePath: string; targetPath: string; sourceHostId?: string; targetHostId?: string; parentTaskId?: string; directoryEntryIndex?: number; directoryEntryIdentity?: string }): Promise<TransferProgress>;
+  Start(request: { taskId: string; sourceSessionId: string; targetSessionId: string; sourcePath: string; targetPath: string; sourceHostId?: string; targetHostId?: string; parentTaskId?: string; directoryEntryIndex?: number; directoryEntryIdentity?: string; sourceEncoding?: string; targetEncoding?: string }): Promise<TransferProgress>;
   StartCompressed?(request: Parameters<TransferBindings['Start']>[0]): Promise<TransferProgress>;
   Progress(taskId: string): Promise<TransferProgress>;
   List?(): Promise<TransferProgress[]>;
@@ -98,7 +98,10 @@ export function createTransferBridge(bindings: TransferBindings | undefined, pol
         targetSessionId: options.targetType === 'sftp' ? options.targetSftpId! : '',
         sourcePath: options.sourcePath, targetPath: options.targetPath,
         sourceHostId: options.sourceHostId, targetHostId: options.targetHostId,
-        parentTaskId: options.parentTaskId, directoryEntryIndex: options.directoryEntryIndex, directoryEntryIdentity: options.directoryEntryIdentity };
+        parentTaskId: options.parentTaskId, directoryEntryIndex: options.directoryEntryIndex, directoryEntryIdentity: options.directoryEntryIdentity,
+        // Filename charsets for the SFTP endpoint(s); Go re-resolves + encodes.
+        sourceEncoding: options.sourceType === 'sftp' ? options.sourceEncoding : undefined,
+        targetEncoding: options.targetType === 'sftp' ? options.targetEncoding : undefined };
       try {
         let progress = await service.Start(request);
         for (;;) {
@@ -114,7 +117,7 @@ export function createTransferBridge(bindings: TransferBindings | undefined, pol
         throw error;
       } finally { active.delete(id); }
     },
-    async startCompressedUpload(options: Parameters<NonNullable<NetcattyBridge['startCompressedUpload']>>[0]) {
+    async startCompressedUpload(options: Parameters<NonNullable<LemonSSHBridge['startCompressedUpload']>>[0]) {
       const id=options.compressionId;
       try {
         const service=requireBindings();

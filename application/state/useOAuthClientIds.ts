@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   getGoogleClientSecretSnapshot,
   getOAuthClientIdsSnapshot,
@@ -15,7 +15,7 @@ export type { OAuthProvider } from '../../infrastructure/services/cloudSync/oaut
 
 /** Opens the provider's OAuth app console through the allow-listed bridge opener. */
 function openProviderConsole(provider: OAuthProvider): Promise<void> {
-  const opener = netcattyBridge.get()?.openProviderConsole;
+  const opener = lemonsshBridge.get()?.openProviderConsole;
   if (!opener) {
     console.error('Provider console bridge is unavailable');
     return Promise.resolve();

@@ -14,7 +14,7 @@ const {
 } = require("./resolve-et-bin-release.cjs");
 
 function makeTmp(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "netcatty-resolve-et-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lemonssh-resolve-et-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
@@ -26,10 +26,10 @@ test("validateReleaseTag accepts only et binary release tags", () => {
 });
 
 test("parseRepository falls back to the dedicated et binary repository", () => {
-  assert.deepEqual(parseRepository({}), { owner: "binaricat", repo: "Netcatty-et-bin" });
+  assert.deepEqual(parseRepository({}), { owner: "binaricat", repo: "LemonSSH-et-bin" });
   assert.deepEqual(parseRepository({ GITHUB_REPOSITORY: "owner/project" }), {
     owner: "owner",
-    repo: "Netcatty-et-bin",
+    repo: "LemonSSH-et-bin",
   });
   assert.deepEqual(
     parseRepository({ GITHUB_REPOSITORY: "owner/project", ET_BIN_OWNER: "bin", ET_BIN_REPO: "binaries" }),

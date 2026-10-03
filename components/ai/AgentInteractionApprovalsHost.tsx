@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ToolCall } from '../ai-elements/tool-call';
+import { ApprovalOverlayStack } from './ApprovalOverlayStack';
 import { useI18n } from '../../application/i18n/I18nProvider';
 import { getAgentInteractionBridge } from '../../application/agentInteractionBridge';
 
@@ -72,10 +73,7 @@ export const AgentInteractionApprovalCards: React.FC<{
 }> = ({ requests, onRespond }) => {
   if (requests.length === 0) return null;
   return (
-    <div
-      className="pointer-events-auto fixed bottom-4 right-4 z-[80] flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2"
-      data-testid="agent-interaction-approvals-host"
-    >
+    <ApprovalOverlayStack stackId="agent-interaction-approvals-host">
       <div className="rounded-lg border border-border/60 bg-background/95 p-3 shadow-lg backdrop-blur-sm">
         <CardTitle />
         <div className="space-y-2">
@@ -95,7 +93,7 @@ export const AgentInteractionApprovalCards: React.FC<{
           ))}
         </div>
       </div>
-    </div>
+    </ApprovalOverlayStack>
   );
 };
 

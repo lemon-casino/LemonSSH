@@ -2,7 +2,7 @@ import type { Host, Identity, KnownHost, SSHKey, TerminalSettings, TransferTask 
 import { validateTransferResumeSource } from "../../../domain/sftpTransferCenter";
 import { STORAGE_KEY_SFTP_TRANSFER_CONCURRENCY } from "../../../infrastructure/config/storageKeys";
 import { hostStorageAdapter as localStorageAdapter } from "../../../infrastructure/persistence/hostStorageAdapter";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { buildSftpHostCredentials } from "./useSftpHostCredentials";
 import {
   getSftpTransferResourceKeys,
@@ -144,7 +144,7 @@ export async function openTransferSftpSession(
   options?: OpenTransferSftpSessionOptions,
 ): Promise<string> {
   return withDedicatedSessionOpenSlot(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.openSftp) throw new Error("SFTP bridge unavailable");
 
     const wantDedicated = options?.dedicated !== false;
@@ -189,7 +189,7 @@ export async function openTransferSftpSession(
 async function closeDedicatedSftpSession(sftpId: string | undefined): Promise<void> {
   if (!sftpId) return;
   try {
-    await netcattyBridge.get()?.closeSftp?.(sftpId);
+    await lemonsshBridge.get()?.closeSftp?.(sftpId);
   } catch {
     // Best-effort cleanup of transfer-owned sessions.
   }
@@ -540,7 +540,7 @@ export function resolveResumeHosts(
 }
 
 async function openSessionBackedSftp(sessionId: string): Promise<string> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.openSftpForSession) {
     throw new Error("Session-backed SFTP open is unavailable");
   }
@@ -619,7 +619,7 @@ async function resumeSingleFileWithDedicatedSession(
   onProgress?: (progress: DedicatedResumeProgress) => void,
   shouldAbort?: () => boolean,
 ): Promise<DedicatedResumeResult> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.startStreamTransfer) {
     return { success: false, error: "Transfer bridge unavailable" };
   }
@@ -760,7 +760,7 @@ async function listRemoteFilesRecursive(
   traversalBudget?: SftpDirectoryTraversalBudget,
 ): Promise<DirectoryResumeTraversal> {
   if (shouldAbort?.()) throw new Error("Transfer cancelled");
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.listSftp) throw new Error("SFTP list unavailable");
   const traversal = traversalBudget ?? createSftpDirectoryTraversalBudget();
   const canonicalPath = await bridge.realpathSftp?.(sftpId, rootPath, "auto")
@@ -839,7 +839,7 @@ async function collectDirectoryResumeFiles(
   sourceSftpId: string | undefined,
   shouldAbort?: () => boolean,
 ): Promise<{ files: DirectoryResumeFilePlan[]; directoryTargetPaths: string[] }> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const destRoot = resolveDirectoryResumeTargetRoot(parent);
   if (shouldAbort?.()) throw new Error("Transfer cancelled");
 
@@ -896,7 +896,7 @@ async function collectDirectoryResumeFiles(
 /** Atomically promote a replace-mode staged directory to the final target path. */
 function expectedDirectoryReplaceStage(parent: Pick<TransferTask, "id" | "targetPath">): string {
   const safeId = String(parent.id).replace(/[^A-Za-z0-9_-]/g, "_");
-  return `${parent.targetPath}.netcatty-${safeId}.part`;
+  return `${parent.targetPath}.lemonssh-${safeId}.part`;
 }
 
 function assertSafeDirectoryReplaceStage(parent: TransferTask): void {
@@ -916,10 +916,10 @@ async function promoteDirectoryReplaceStage(
   const staged = parent.stagedTargetPath;
   if (!staged || staged === parent.targetPath) return;
   assertSafeDirectoryReplaceStage(parent);
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge) throw new Error("Transfer bridge unavailable");
   const safeId = String(parent.id).replace(/[^A-Za-z0-9_-]/g, "_");
-  const backupPath = `${parent.targetPath}.netcatty-${safeId}.backup`;
+  const backupPath = `${parent.targetPath}.lemonssh-${safeId}.backup`;
   if (endpoints.isDownload) {
     if (!bridge.statLocal || !bridge.renameLocalFile || !bridge.deleteLocalFile) {
       throw new Error("Local directory replacement is unavailable");
@@ -950,14 +950,14 @@ async function promoteDirectoryReplaceStage(
 
 async function ensureLocalDir(dirPath: string): Promise<void> {
   if (!dirPath) return;
-  const mkdirLocal = netcattyBridge.get()?.mkdirLocal;
+  const mkdirLocal = lemonsshBridge.get()?.mkdirLocal;
   if (!mkdirLocal) throw new Error("Local directory creation is unavailable");
   await mkdirLocal(dirPath);
 }
 
 async function ensureRemoteDir(sftpId: string, dirPath: string): Promise<void> {
   if (!dirPath || dirPath === "/") return;
-  const mkdirSftp = netcattyBridge.get()?.mkdirSftp;
+  const mkdirSftp = lemonsshBridge.get()?.mkdirSftp;
   if (!mkdirSftp) throw new Error("Remote directory creation is unavailable");
   await mkdirSftp(sftpId, dirPath, "auto");
 }
@@ -974,7 +974,7 @@ async function resetDirectoryReplaceStage(
   const staged = parent.stagedTargetPath;
   if (!staged || staged === parent.targetPath) return;
   assertSafeDirectoryReplaceStage(parent);
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge) throw new Error("Transfer bridge unavailable");
 
   try {
@@ -1000,7 +1000,7 @@ async function resumeDirectoryWithDedicatedSession(
   onProgress?: (progress: DedicatedResumeProgress) => void,
   options?: DedicatedResumeOptions,
 ): Promise<DedicatedResumeResult> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.startStreamTransfer) {
     return { success: false, error: "Transfer bridge unavailable" };
   }

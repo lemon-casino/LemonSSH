@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { useI18n } from '../i18n/I18nProvider';
 import { toast } from '../../components/ui/toast';
 
-type ReceiveBridge = Pick<NetcattyBridge, 'selectDirectory' | 'receiveZmodem'>;
+type ReceiveBridge = Pick<LemonSSHBridge, 'selectDirectory' | 'receiveZmodem'>;
 export async function receiveZmodemIntoDirectory(bridge: ReceiveBridge, sessionId: string, title: string, notifyReady: () => void): Promise<void> {
   if (!bridge.selectDirectory || !bridge.receiveZmodem) throw new Error('ZMODEM receive unavailable');
   const directory = await bridge.selectDirectory(title);
@@ -16,7 +16,7 @@ export async function receiveZmodemIntoDirectory(bridge: ReceiveBridge, sessionI
 export function useZmodemReceive(sessionId: string, connected: boolean) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const receive = useCallback(() => {
     if (!bridge || busy) return;
     setBusy(true);

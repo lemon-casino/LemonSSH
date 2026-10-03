@@ -30,7 +30,7 @@ import {
   unregisterPluginProviderIdImpl,
 } from './stateAndSecurityMethods';
 
-const SYNC_REMOTE_ANCHOR_STORAGE_KEY = 'netcatty_sync_remote_anchor_v1';
+const SYNC_REMOTE_ANCHOR_STORAGE_KEY = 'lemonssh_sync_remote_anchor_v1';
 
 export function clearProviderMergeStateImpl(this: any, provider: CloudProvider): void {
   this.removeFromStorage(this.syncBaseKey(provider));
@@ -322,7 +322,7 @@ export async function connectConfigProviderImpl(this: any,
 
 /**
  * Connect a namespaced plugin sync Provider. Configuration is opaque plugin-
- * owned JSON; Netcatty still owns encryption and only forwards encrypted objects.
+ * owned JSON; LemonSSH still owns encryption and only forwards encrypted objects.
  */
 export async function connectPluginProviderImpl(
   this: any,

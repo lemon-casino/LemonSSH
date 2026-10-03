@@ -2,7 +2,7 @@
 
 Status: experimental end-to-end implementation.
 
-Issue: [#2245](https://github.com/binaricat/Netcatty/issues/2245)
+Issue: [#2245](https://github.com/binaricat/LemonSSH/issues/2245)
 
 ## Compatibility contract
 
@@ -11,7 +11,7 @@ A v2 cloud file remains a normal `SyncedFile`. Its plaintext metadata adds only
 metadata, conflicts, and candidate values remain inside the existing
 AES-256-GCM ciphertext.
 
-The decrypted payload keeps all v1 fields so an older Netcatty client can read
+The decrypted payload keeps all v1 fields so an older LemonSSH client can read
 hosts, keys, snippets, settings, and other synchronized collections without a
 new parser. The adjacent `convergentSync` envelope records causal metadata and
 concurrent alternatives. For a visible entity field or settings leaf, the
@@ -161,21 +161,21 @@ Materialization exposes retained conflicts by register address. Choosing a
 candidate writes a new device value whose context observes every candidate;
 the resolution therefore dominates stale replicas and propagates through the
 normal provider state machine. If propagation discovers additional concurrent
-provider writes, Netcatty applies the final canonical materialization locally
+provider writes, LemonSSH applies the final canonical materialization locally
 before releasing the same Web Lock. Secret-bearing fields are detected from
 their address and nested field names, including objects nested inside atomic
 arrays. Their UI renders only “set” or “empty”; values are never formatted,
 logged, or inserted into DOM text.
 
 Explicit downgrade holds the same Web Lock and downloads every connected
-provider before writing anything. Netcatty first converts edits made while v2
+provider before writing anything. LemonSSH first converts edits made while v2
 was paused into causal writes over the local replica, then joins those writes
 with every remote state. It applies the joined payload behind a protective
 backup and blocks downgrade until any newly discovered field conflicts are
 resolved. It then writes the joined materialized v1 snapshot to every provider,
 downloads it again, and verifies both the absence of v2 metadata and equality
 of cloud data.
-Only after every provider verifies does Netcatty clear the local replica,
+Only after every provider verifies does LemonSSH clear the local replica,
 provider baselines, and experimental configuration, still inside the same Web
 Lock. A partial downgrade keeps the joined local v2 state and refreshed
 provider baselines so the user can retry safely without losing remote-only

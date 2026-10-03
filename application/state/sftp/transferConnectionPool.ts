@@ -68,7 +68,7 @@ export interface TransferPoolKeyInput {
   protocol?: string;
   sftpSudo?: boolean;
   /** Full resolved transport identity; kept private inside the in-memory pool. */
-  connectionOptions?: NetcattySSHOptions;
+  connectionOptions?: LemonSSHSSHOptions;
 }
 
 export interface TransferPoolKeyCache {

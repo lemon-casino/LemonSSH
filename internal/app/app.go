@@ -1,8 +1,8 @@
-// Package app exposes the shell-neutral Netcatty application use cases.
+// Package app exposes the shell-neutral LemonSSH application use cases.
 //
 // Per the Wails v3 migration (P1-02), this package is the future canonical
 // owner of application coordination. It must never import Wails: the
-// cmd/netcatty main is the only place allowed to adapt these use cases to a
+// cmd/lemonssh main is the only place allowed to adapt these use cases to a
 // shell (Wails today, Electron during the controlled dual-shell transition).
 package app
 

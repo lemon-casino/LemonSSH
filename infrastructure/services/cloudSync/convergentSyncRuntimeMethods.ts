@@ -31,7 +31,7 @@ import { detectSuspiciousShrink } from '../../../domain/syncGuards';
 import { EncryptionService } from '../EncryptionService';
 import type { CloudAdapter } from '../adapters';
 
-const CONVERGENT_SYNC_LOCK = 'netcatty-convergent-sync-v2';
+const CONVERGENT_SYNC_LOCK = 'lemonssh-convergent-sync-v2';
 const MAX_VERIFY_ROUNDS = 3;
 const MAX_JITTER_MS = 180;
 

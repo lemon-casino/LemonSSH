@@ -138,11 +138,11 @@ async function buildAgentEnvWithStoredApiKey(
   const env = { ...(config.env ?? {}) };
   if (sdkBackend === 'cursor') {
     const authMode = config.cursorAuthMode === 'cli-login' ? 'cli-login' : 'api-key';
-    env.NETCATTY_CURSOR_AUTH_MODE = authMode;
+    env.LEMONSSH_CURSOR_AUTH_MODE = authMode;
     const cliBin = String(config.command || '').trim();
     if (authMode === 'cli-login') {
       if (cliBin && cliBin !== 'cursor') {
-        env.NETCATTY_CURSOR_CLI_BIN = cliBin;
+        env.LEMONSSH_CURSOR_CLI_BIN = cliBin;
       }
       return Object.keys(env).length > 0 ? env : undefined;
     }
@@ -261,7 +261,7 @@ export async function runSdkAgentTurn(
   const agentEnv = sdkBackend === 'grok'
     ? {
         ...baseAgentEnv,
-        NETCATTY_GROK_RUNTIME: config.grokRuntime === 'streaming-json' ? 'streaming-json' : 'acp',
+        LEMONSSH_GROK_RUNTIME: config.grokRuntime === 'streaming-json' ? 'streaming-json' : 'acp',
       }
     : baseAgentEnv;
   const agentCommand = getManualAgentCommand(config);

@@ -96,7 +96,7 @@ import {
 export { NoteSourceEditor, type NoteSourceEditorHandle };
 
 const NOTE_HEADING_SELECTOR = [1, 2, 3, 4, 5, 6]
-  .map((level) => `.netcatty-mdx-content h${level}`)
+  .map((level) => `.lemonssh-mdx-content h${level}`)
   .join(", ");
 
 export const getRenderedNoteHeadingText = (element: HTMLElement): string => {
@@ -305,21 +305,21 @@ const NOTE_CODE_BLOCK_LANGUAGES = {
 } satisfies Record<string, string>;
 
 const noteCodeHighlightStyle = HighlightStyle.define([
-  { tag: tags.meta, class: "netcatty-code-token-muted" },
-  { tag: tags.link, class: "netcatty-code-token-link" },
-  { tag: tags.heading, class: "netcatty-code-token-heading" },
-  { tag: tags.emphasis, class: "netcatty-code-token-emphasis" },
-  { tag: tags.strong, class: "netcatty-code-token-strong" },
-  { tag: [tags.keyword, tags.regexp, tags.escape, tags.special(tags.string)], class: "netcatty-code-token-keyword" },
-  { tag: [tags.atom, tags.bool, tags.url, tags.labelName], class: "netcatty-code-token-name" },
-  { tag: [tags.literal, tags.inserted, tags.number], class: "netcatty-code-token-value" },
-  { tag: [tags.string, tags.deleted], class: "netcatty-code-token-string" },
-  { tag: [tags.variableName, tags.propertyName], class: "netcatty-code-token-variable" },
-  { tag: [tags.definition(tags.variableName), tags.local(tags.variableName)], class: "netcatty-code-token-variable" },
-  { tag: [tags.typeName, tags.namespace, tags.className, tags.macroName], class: "netcatty-code-token-type" },
-  { tag: [tags.definition(tags.propertyName), tags.special(tags.variableName)], class: "netcatty-code-token-property" },
-  { tag: tags.comment, class: "netcatty-code-token-muted" },
-  { tag: tags.invalid, class: "netcatty-code-token-invalid" },
+  { tag: tags.meta, class: "lemonssh-code-token-muted" },
+  { tag: tags.link, class: "lemonssh-code-token-link" },
+  { tag: tags.heading, class: "lemonssh-code-token-heading" },
+  { tag: tags.emphasis, class: "lemonssh-code-token-emphasis" },
+  { tag: tags.strong, class: "lemonssh-code-token-strong" },
+  { tag: [tags.keyword, tags.regexp, tags.escape, tags.special(tags.string)], class: "lemonssh-code-token-keyword" },
+  { tag: [tags.atom, tags.bool, tags.url, tags.labelName], class: "lemonssh-code-token-name" },
+  { tag: [tags.literal, tags.inserted, tags.number], class: "lemonssh-code-token-value" },
+  { tag: [tags.string, tags.deleted], class: "lemonssh-code-token-string" },
+  { tag: [tags.variableName, tags.propertyName], class: "lemonssh-code-token-variable" },
+  { tag: [tags.definition(tags.variableName), tags.local(tags.variableName)], class: "lemonssh-code-token-variable" },
+  { tag: [tags.typeName, tags.namespace, tags.className, tags.macroName], class: "lemonssh-code-token-type" },
+  { tag: [tags.definition(tags.propertyName), tags.special(tags.variableName)], class: "lemonssh-code-token-property" },
+  { tag: tags.comment, class: "lemonssh-code-token-muted" },
+  { tag: tags.invalid, class: "lemonssh-code-token-invalid" },
 ]);
 
 const NOTE_CODE_MIRROR_EXTENSIONS = [syntaxHighlighting(noteCodeHighlightStyle)];
@@ -667,7 +667,7 @@ function createCopyButton(
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.noteCodeCopy = "true";
-  button.className = "netcatty-note-code-copy";
+  button.className = "lemonssh-note-code-copy";
   button.title = copyLabel;
   button.setAttribute("aria-label", copyLabel);
   button.innerHTML = COPY_ICON_SVG;
@@ -827,7 +827,7 @@ export const annotateMathFormulaBlocks = (container: HTMLElement, editorMode: st
 
     const isMathBlock = shouldRenderNoteMathFormula(lang);
     if (!isMathBlock) {
-      const existingPreview = wrapper.querySelector(".netcatty-math-formula-preview");
+      const existingPreview = wrapper.querySelector(".lemonssh-math-formula-preview");
       if (existingPreview) existingPreview.remove();
       wrapper.classList.remove("netcatty-math-reading-mode");
       return;
@@ -835,13 +835,13 @@ export const annotateMathFormulaBlocks = (container: HTMLElement, editorMode: st
 
     const formulaSource = text;
     if (!formulaSource) {
-      const existingPreview = wrapper.querySelector(".netcatty-math-formula-preview");
+      const existingPreview = wrapper.querySelector(".lemonssh-math-formula-preview");
       if (existingPreview) existingPreview.remove();
       wrapper.classList.remove("netcatty-math-reading-mode");
       return;
     }
 
-    let preview = wrapper.querySelector(".netcatty-math-formula-preview") as HTMLElement | null;
+    let preview = wrapper.querySelector(".lemonssh-math-formula-preview") as HTMLElement | null;
     if (!preview) {
       preview = document.createElement("div");
       preview.className = "netcatty-math-formula-preview";
@@ -1444,7 +1444,7 @@ export const InlineMarkdownEditor = React.memo(
     if (!container) return;
     const hostsSnapshot = hostsRef.current;
 
-    container.querySelectorAll<HTMLAnchorElement>(".netcatty-mdx-content a[href]").forEach((link) => {
+    container.querySelectorAll<HTMLAnchorElement>(".lemonssh-mdx-content a[href]").forEach((link) => {
       const renderedHref = link.getAttribute("href") || link.href;
       const label = link.textContent?.trim() || renderedHref;
       if (!renderedHref) return;
@@ -1455,10 +1455,10 @@ export const InlineMarkdownEditor = React.memo(
       });
 
       if (host) {
-        link.dataset.netcattyHostLink = "true";
+        link.dataset.lemonsshHostLink = "true";
         link.title = `打开主机 ${label}`;
       } else {
-        delete link.dataset.netcattyHostLink;
+        delete link.dataset.lemonsshHostLink;
         link.removeAttribute("title");
       }
     });
@@ -2107,7 +2107,7 @@ export const InlineMarkdownEditor = React.memo(
           readOnly={editorMode === "preview"}
           className={cn(
             "netcatty-mdx-editor",
-            editorMode === "preview" && "netcatty-mdx-editor--preview",
+            editorMode === "preview" && "lemonssh-mdx-editor--preview",
           )}
           contentEditableClassName="netcatty-mdx-content"
           onChange={commitMarkdown}

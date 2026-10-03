@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   mergeRemoteHistory,
   parseBashHistory,
@@ -63,7 +63,7 @@ export function useRemoteHistoryState(): UseRemoteHistoryState {
   const fetch = useCallback(async (sessionId: string, hostId: string) => {
     if (!sessionId || !hostId) return;
     const key = cacheKey(hostId, sessionId);
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.readRemoteHistory) {
       setByKey((prev) => ({
         ...prev,

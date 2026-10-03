@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { FileConflict, TransferStatus, TransferTask } from "../../../domain/models";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import { globalSftpTransferScheduler } from "./globalTransferScheduler";
 import type { TransferResult } from "./useSftpTransfers.types";
@@ -68,7 +68,7 @@ export function useSftpTransferTaskOps({
       }
     }
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const cancelTransferAtBackend = bridge?.cancelTransfer;
     const cancelCompressedUpload = bridge?.cancelCompressedUpload;
     if (!cancelTransferAtBackend && !cancelCompressedUpload) return;

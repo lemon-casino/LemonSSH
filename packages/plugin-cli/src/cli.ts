@@ -4,15 +4,16 @@ import process from "node:process";
 
 import { checkPluginCompatibility } from "./compatibility.js";
 import { buildPlugin, initPlugin, packPlugin, validateTarget } from "./commands.js";
+import { manifestIdentity } from "./manifest.js";
 
-const USAGE = `Netcatty plugin CLI (API 0.1.0-internal)
+const USAGE = `LemonSSH plugin CLI (API 0.1.0-internal)
 
 Usage:
-  netcatty-plugin init <directory> --id <reverse.dns.id> [--name <display name>]
-  netcatty-plugin validate <directory|package.ncpkg>
-  netcatty-plugin compatibility <directory|package.ncpkg> --netcatty <version> [--api <version>] [--features <id,id,...>]
-  netcatty-plugin build <directory>
-  netcatty-plugin pack <directory> [--out <package.ncpkg>]
+  lemonssh-plugin init <directory> --id <reverse.dns.id> [--name <display name>]
+  lemonssh-plugin validate <directory|package.ncpkg>
+  lemonssh-plugin compatibility <directory|package.ncpkg> --lemonssh <version> [--api <version>] [--features <id,id,...>]
+  lemonssh-plugin build <directory>
+  lemonssh-plugin pack <directory> [--out <package.ncpkg>]
 `;
 
 function optionValue(args: readonly string[], name: string): string | undefined {
@@ -40,15 +41,16 @@ async function main(args: readonly string[]): Promise<void> {
   }
   if (command === "validate") {
     const result = await validateTarget(target);
+    const identity = manifestIdentity(result.manifest);
     process.stdout.write(
-      `Valid ${result.kind}: ${result.manifest.id}@${result.manifest.version}\n`,
+      `Valid ${result.kind}: ${identity.id}@${identity.version}\n`,
     );
     return;
   }
   if (command === "compatibility") {
-    const netcattyVersion = optionValue(args, "--netcatty");
-    if (!netcattyVersion) {
-      throw new Error("compatibility requires --netcatty <version>");
+    const lemonsshVersion = optionValue(args, "--lemonssh");
+    if (!lemonsshVersion) {
+      throw new Error("compatibility requires --lemonssh <version>");
     }
     const targetResult = await validateTarget(target);
     const features = optionValue(args, "--features")
@@ -56,7 +58,7 @@ async function main(args: readonly string[]): Promise<void> {
       .map((feature) => feature.trim())
       .filter(Boolean);
     const result = checkPluginCompatibility(targetResult.manifest, {
-      netcattyVersion,
+      lemonsshVersion,
       apiVersion: optionValue(args, "--api"),
       features,
     });
@@ -66,8 +68,9 @@ async function main(args: readonly string[]): Promise<void> {
     const featureSummary = result.enabledFeatures.length > 0
       ? result.enabledFeatures.join(", ")
       : "none";
+    const identity = manifestIdentity(targetResult.manifest);
     process.stdout.write(
-      `Compatible: ${targetResult.manifest.id}@${targetResult.manifest.version}\nEnabled features: ${featureSummary}\n`,
+      `Compatible: ${identity.id}@${identity.version}\nEnabled features: ${featureSummary}\n`,
     );
     return;
   }

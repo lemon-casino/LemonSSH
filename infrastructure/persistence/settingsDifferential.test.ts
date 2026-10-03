@@ -99,9 +99,9 @@ test("differential acceptance envelope: three domains round-trip", async () => {
   await hydrateHostProfile();
 
   const cases: Array<[string, string]> = [
-    ["netcatty_theme_v1", "midnight"],
-    ["netcatty_term_font_size_v1", "14"],
-    ["netcatty_show_sftp_tab_v1", "true"],
+    ["lemonssh_theme_v1", "midnight"],
+    ["lemonssh_term_font_size_v1", "14"],
+    ["lemonssh_show_sftp_tab_v1", "true"],
   ];
   for (const [key, value] of cases) {
     hostStorageAdapter.writeString(key, value);

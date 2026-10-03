@@ -1,4 +1,4 @@
-type Session = Parameters<NonNullable<NetcattyBridge['aiMcpUpdateSessions']>>[0][number];
+type Session = Parameters<NonNullable<LemonSSHBridge['aiMcpUpdateSessions']>>[0][number];
 type Attachment = { filename: string; mediaType: string; base64Data: string; filePath: string; sizeBytes: number };
 
 function eventPayload<T>(event: { data?: unknown }): T {
@@ -7,9 +7,18 @@ function eventPayload<T>(event: { data?: unknown }): T {
 }
 
 export interface NativeAgentToolBindings {
-  AgentExternalStatus?: () => ReturnType<NonNullable<NetcattyBridge['externalMcpGetStatus']>>;
+  AgentExternalStatus?: () => ReturnType<NonNullable<LemonSSHBridge['externalMcpGetStatus']>>;
   AgentExternalSetEnabled?: (enabled: boolean) => Promise<Record<string, unknown>>;
   AgentExternalSetConfig?: (config: { mode?: string; idleTimeoutMinutes?: number; sessionIdleTimeoutMinutes?: number }) => Promise<Record<string, unknown>>;
+  // Per-client external MCP setup (Codex CLI / Claude Code / Grok CLI): the
+  // Go side probes and incrementally merges the lemonssh-external entry into
+  // each client's config file (never a wholesale overwrite, .bak before write).
+  AgentExternalMcpCodexGetStatus?: () => Promise<Record<string, unknown>>;
+  AgentExternalMcpCodexAdd?: () => Promise<Record<string, unknown>>;
+  AgentExternalMcpClaudeGetStatus?: () => Promise<Record<string, unknown>>;
+  AgentExternalMcpClaudeAdd?: () => Promise<Record<string, unknown>>;
+  AgentExternalMcpGrokGetStatus?: () => Promise<Record<string, unknown>>;
+  AgentExternalMcpGrokAdd?: () => Promise<Record<string, unknown>>;
   AgentCapability?: (method: string, params: Record<string, unknown>, chat: string) => Promise<unknown>;
   AgentUpdateSessions?: (chat: string, sessions: Array<Session & { nativeSessionId: string }>, merge: boolean) => Promise<void>;
   AgentSetCancelled?: (chat: string, cancelled: boolean) => Promise<void>;
@@ -19,13 +28,21 @@ export interface NativeAgentToolBindings {
   AgentRegisterChatAttachments?: (chat: string, attachments: Attachment[]) => Promise<void>;
   AgentRespondVault?: (id: string, result: Record<string, unknown>) => Promise<void>;
   AgentVaultRequestPending?: (id: string) => Promise<boolean>;
+  AgentSetLiveProvider?: (config: {
+    family: string;
+    endpoint: string;
+    apiKeyHeader: string;
+    apiKeyValue: string;
+    model: string;
+    maxIterations?: number;
+  } | null) => Promise<{ ok?: boolean; active?: boolean; error?: string }>;
 }
 
 export function createAgentToolBridge(
   bindings: NativeAgentToolBindings | undefined,
   on: (name: string, callback: (event: { data?: unknown }) => void) => () => void,
   nativeSessionId: (id: string) => string,
-): Partial<NetcattyBridge> {
+): Partial<LemonSSHBridge> {
   function method<K extends keyof NativeAgentToolBindings>(name: K): NonNullable<NativeAgentToolBindings[K]> {
     const fn = bindings?.[name];
     if (!fn) throw new Error(`Native agent method ${name} is unavailable`);
@@ -47,11 +64,17 @@ export function createAgentToolBridge(
     externalMcpGetStatus: () => method('AgentExternalStatus')(),
     externalMcpSetEnabled: enabled => method('AgentExternalSetEnabled')(enabled),
     externalMcpSetConfig: config => method('AgentExternalSetConfig')(config),
+    externalMcpCodexGetStatus: () => method('AgentExternalMcpCodexGetStatus')(),
+    externalMcpCodexAdd: () => method('AgentExternalMcpCodexAdd')(),
+    externalMcpClaudeGetStatus: () => method('AgentExternalMcpClaudeGetStatus')(),
+    externalMcpClaudeAdd: () => method('AgentExternalMcpClaudeAdd')(),
+    externalMcpGrokGetStatus: () => method('AgentExternalMcpGrokGetStatus')(),
+    externalMcpGrokAdd: () => method('AgentExternalMcpGrokAdd')(),
     onAgentInteractionCleared: callback => on('agent:interaction-cleared', event => callback(eventPayload(event))),
     aiCapability: capability,
     aiExec: async (id, command, chat) => {
       try {
-        const result = await capability('netcatty/exec', { sessionId: id, command }, chat) as {
+        const result = await capability('lemonssh/exec', { sessionId: id, command }, chat) as {
           ok: boolean; stdout?: string; stderr?: string; output?: string; exitCode?: number; exitCodeKnown?: boolean;
         };
         return { ...result, stdout: result.stdout ?? result.output ?? '', stderr: result.stderr ?? '', exitCode: result.exitCodeKnown === false ? null : result.exitCode };
@@ -76,5 +99,20 @@ export function createAgentToolBridge(
     onVaultAgentRequest: callback => on('agent:vault-request', event => callback(eventPayload(event))),
     isVaultAgentRequestPending: id => method('AgentVaultRequestPending')(id),
     respondVaultAgent: async (id, result) => { await method('AgentRespondVault')(id, result); return { ok: true }; },
+    // F06: pushes the active Settings→AI provider into the Go turn runtime.
+    // null clears the installed driver (provider removed / unsupported family).
+    aiSetLiveProvider: async config => {
+      const result = await method('AgentSetLiveProvider')(config
+        ? {
+            family: config.family,
+            endpoint: config.endpoint,
+            apiKeyHeader: config.apiKeyHeader,
+            apiKeyValue: config.apiKeyValue,
+            model: config.model,
+            maxIterations: config.maxIterations ?? 0,
+          }
+        : null);
+      return { ok: result.ok !== false && !result.error, active: result.active ?? false, error: result.error || undefined };
+    },
   };
 }

@@ -81,14 +81,14 @@ export async function respondCodebuddyElicitation(
   content?: Record<string, unknown>,
 ): Promise<void> {
   const bridge = (window as unknown as {
-    netcatty?: {
+    lemonssh?: {
       aiSdkAgentElicitationResponse?: (
         id: string,
         responseAction: CodebuddyElicitationAction,
         responseContent?: Record<string, unknown>,
       ) => Promise<{ ok: boolean; error?: string }>;
     };
-  }).netcatty;
+  }).lemonssh;
   if (!bridge?.aiSdkAgentElicitationResponse) {
     throw new Error('CodeBuddy elicitation bridge is unavailable');
   }

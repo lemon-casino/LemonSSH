@@ -1,6 +1,10 @@
 package credentials
 
-import keyring "github.com/zalando/go-keyring"
+import (
+	"errors"
+
+	keyring "github.com/zalando/go-keyring"
+)
 
 // OSKeyring adapts go-keyring's platform implementations to Keyring.
 type OSKeyring struct{}
@@ -19,3 +23,11 @@ func (OSKeyring) Delete(service, user string) error {
 // when the platform keyring cannot be reached; callers must not fall back to
 // plaintext or localStorage.
 func NewOSProvider() Provider { return New(OSKeyring{}) }
+
+// IsKeyringNotFound reports whether err is the canonical "secret absent"
+// signal. Only this counts as a miss when reading purpose keys; every other
+// Get failure is treated as an unavailable keyring so the provider fails
+// closed instead of silently minting replacement keys.
+func IsKeyringNotFound(err error) bool {
+	return errors.Is(err, keyring.ErrNotFound)
+}

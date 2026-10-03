@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/coder/websocket"
 )
 
 // Server is the production authenticated loopback WebSocket transport. The
@@ -26,6 +28,7 @@ type Server struct {
 	http          *http.Server
 	listener      net.Listener
 	outputs       map[string]*outputQueue
+	connections   map[string]map[*websocket.Conn]struct{}
 	urgentHandler UrgentHandler
 }
 
@@ -47,8 +50,9 @@ func NewServer(controller *RouteController, listenAddr string, options ...Server
 		controller:      controller,
 		listenAddr:      listenAddr,
 		allowedOrigins:  map[string]struct{}{},
-		dataSubprotocol: "netcatty-terminal-v1",
+		dataSubprotocol: "lemonssh-terminal-v1",
 		outputs:         make(map[string]*outputQueue),
+		connections:     make(map[string]map[*websocket.Conn]struct{}),
 	}
 	for _, option := range options {
 		option(server)

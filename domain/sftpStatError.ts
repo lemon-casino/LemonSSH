@@ -25,6 +25,6 @@ export const isMissingStatError = (error: unknown): boolean => {
 
   // ssh2 StatusCodeError is "No such file". ipcRenderer.invoke strips `code`
   // and wraps it as:
-  // Error invoking remote method 'netcatty:sftp:lstat': Error: No such file
+  // Error invoking remote method 'lemonssh:sftp:lstat': Error: No such file
   return ABSENCE_KIND.test(unwrapStatErrorMessage(message));
 };

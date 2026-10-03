@@ -3,7 +3,7 @@ package syncengine
 import (
 	"testing"
 
-	"github.com/binaricat/netcatty/internal/profile/store"
+	"github.com/binaricat/lemonssh/internal/profile/store"
 )
 
 // P6-01 integration: proves syncengine + profile store work together as the

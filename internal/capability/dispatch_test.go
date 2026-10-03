@@ -60,7 +60,7 @@ func TestDispatchUnknownMethodDenied(t *testing.T) {
 func TestDispatchMissingHandlerFailsClosed(t *testing.T) {
 	dispatcher := newTestDispatcher(Default(), nil, nil)
 	delete(dispatcher.Handlers, "meta.status")
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/getStatus", map[string]any{})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/getStatus", map[string]any{})
 	if ErrDispatchCode(err) != CodeHandlerMissing {
 		t.Fatalf("unregistered capability must fail with HANDLER_MISSING, got %v", err)
 	}
@@ -83,7 +83,7 @@ func TestDispatchPlannedCapabilityNotImplemented(t *testing.T) {
 
 func TestDispatchObserverDenied(t *testing.T) {
 	dispatcher := newTestDispatcher(Default(), nil, nil)
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	// confirm mode with no approval gate configured fails closed.
 	if ErrDispatchCode(err) != CodeApprovalGateUnavailable {
 		t.Fatalf("confirm write without gate must fail closed, got %v", err)
@@ -91,7 +91,7 @@ func TestDispatchObserverDenied(t *testing.T) {
 
 	observer := dispatcher
 	observer.Approval = &stubApproval{approved: false}
-	req := Request{RPCMethod: "netcatty/exec", PermissionMode: ModeObserver, Params: map[string]any{"chatSessionId": "chat-1"}}
+	req := Request{RPCMethod: "lemonssh/exec", PermissionMode: ModeObserver, Params: map[string]any{"chatSessionId": "chat-1"}}
 	if decision := Default().Evaluate(req); decision.Allowed {
 		t.Fatalf("observer must deny exec at policy layer")
 	}
@@ -100,7 +100,7 @@ func TestDispatchObserverDenied(t *testing.T) {
 func TestDispatchApprovalApprovedThenExecutes(t *testing.T) {
 	approval := &stubApproval{approved: true}
 	dispatcher := newTestDispatcher(Default(), approval, nil)
-	result, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	result, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	if err != nil || result != "executed" {
 		t.Fatalf("approved exec must run, got %v, %v", result, err)
 	}
@@ -112,7 +112,7 @@ func TestDispatchApprovalApprovedThenExecutes(t *testing.T) {
 func TestDispatchApprovalDenied(t *testing.T) {
 	approval := &stubApproval{approved: false}
 	dispatcher := newTestDispatcher(Default(), approval, nil)
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	if ErrDispatchCode(err) != CodeUserDenied {
 		t.Fatalf("denied exec must fail with USER_DENIED, got %v", err)
 	}
@@ -121,7 +121,7 @@ func TestDispatchApprovalDenied(t *testing.T) {
 func TestDispatchApprovalGateErrorFailsClosed(t *testing.T) {
 	approval := &stubApproval{err: errors.New("gate exploded")}
 	dispatcher := newTestDispatcher(Default(), approval, nil)
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	if ErrDispatchCode(err) != CodeUserDenied {
 		t.Fatalf("gate error must fail closed like a denial, got %v", err)
 	}
@@ -131,7 +131,7 @@ func TestDispatchGrantSkipsApproval(t *testing.T) {
 	approval := &stubApproval{}
 	grants := []Grant{terminalGrant("grant-1", "ls *")}
 	dispatcher := newTestDispatcher(Default(), approval, func() []Grant { return grants })
-	result, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{
+	result, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{
 		"chatSessionId": "chat-1", "sessionId": "session-a", "command": "ls -la",
 	})
 	if err != nil || result != "executed" {
@@ -152,7 +152,7 @@ func TestDispatchGrantRevokedDuringApproval(t *testing.T) {
 		store.grants = nil // revoked while the prompt was open
 	}
 	dispatcher := newTestDispatcher(Default(), approval, store.Grants)
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{
 		"chatSessionId": "chat-1", "sessionId": "session-a", "command": "ls -la",
 	})
 	if ErrDispatchCode(err) != CodeGrantRevoked {
@@ -172,7 +172,7 @@ func TestDispatchChatCancelledDuringApproval(t *testing.T) {
 	dispatcher := newTestDispatcher(Default(), approval, nil)
 	dispatcher.ChatCancelled = func() bool { return cancelled }
 
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	if ErrDispatchCode(err) != CodePolicyDenied {
 		t.Fatalf("stop during approval must deny at re-check, got %v", err)
 	}
@@ -185,7 +185,7 @@ func TestDispatchCancelBeforeEntryDeniesWithoutApproval(t *testing.T) {
 	dispatcher := newTestDispatcher(Default(), approval, nil)
 	dispatcher.ChatCancelled = func() bool { return true }
 
-	_, err := dispatcher.Dispatch(context.Background(), "netcatty/exec", map[string]any{"chatSessionId": "chat-1"})
+	_, err := dispatcher.Dispatch(context.Background(), "lemonssh/exec", map[string]any{"chatSessionId": "chat-1"})
 	if ErrDispatchCode(err) != CodePolicyDenied {
 		t.Fatalf("cancelled chat must deny at entry, got %v", err)
 	}
@@ -211,17 +211,17 @@ func TestResolveRPCTimeouts(t *testing.T) {
 		opts   TimeoutOptions
 		want   time.Duration
 	}{
-		{"short no approval", "netcatty/getStatus", ModeAuto, TimeoutOptions{}, DefaultRPCTimeout},
-		{"short with approval wait", "netcatty/getStatus", ModeConfirm, TimeoutOptions{}, DefaultRPCTimeout},
-		{"longrunning auto", "netcatty/exec", ModeAuto, TimeoutOptions{}, DefaultOperationTime + RPCTimeoutBuffer},
-		{"longrunning confirm approval", "netcatty/exec", ModeConfirm, TimeoutOptions{}, DefaultApprovalTimeout + DefaultOperationTime + RPCTimeoutBuffer},
-		{"bridge overrides", "netcatty/exec", ModeConfirm, TimeoutOptions{
+		{"short no approval", "lemonssh/getStatus", ModeAuto, TimeoutOptions{}, DefaultRPCTimeout},
+		{"short with approval wait", "lemonssh/getStatus", ModeConfirm, TimeoutOptions{}, DefaultRPCTimeout},
+		{"longrunning auto", "lemonssh/exec", ModeAuto, TimeoutOptions{}, DefaultOperationTime + RPCTimeoutBuffer},
+		{"longrunning confirm approval", "lemonssh/exec", ModeConfirm, TimeoutOptions{}, DefaultApprovalTimeout + DefaultOperationTime + RPCTimeoutBuffer},
+		{"bridge overrides", "lemonssh/exec", ModeConfirm, TimeoutOptions{
 			BridgeCommandTimeout:  200 * time.Second,
 			BridgeApprovalTimeout: 20 * time.Second,
 		}, 200*time.Second + 20*time.Second + RPCTimeoutBuffer},
 		// sftp rows carry the long-running default, so they stack both windows.
-		{"sftp write confirm approval", "netcatty/sftp/write", ModeConfirm, TimeoutOptions{}, DefaultApprovalTimeout + DefaultOperationTime + RPCTimeoutBuffer},
-		{"sftp write observer", "netcatty/sftp/write", ModeObserver, TimeoutOptions{}, DefaultOperationTime + RPCTimeoutBuffer},
+		{"sftp write confirm approval", "lemonssh/sftp/write", ModeConfirm, TimeoutOptions{}, DefaultApprovalTimeout + DefaultOperationTime + RPCTimeoutBuffer},
+		{"sftp write observer", "lemonssh/sftp/write", ModeObserver, TimeoutOptions{}, DefaultOperationTime + RPCTimeoutBuffer},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

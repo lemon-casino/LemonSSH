@@ -5,7 +5,7 @@
 import type { RemoteFile } from "../../../domain/models/workspace";
 
 /** Subprotocol namespace announced by the Go data plane server. */
-export const TERMINAL_DATA_SUBPROTOCOL = "netcatty-terminal-v1";
+export const TERMINAL_DATA_SUBPROTOCOL = "lemonssh-terminal-v1";
 
 /** Minimal structural view of the generated sftp.Entry binding model. */
 export interface WailsSftpEntry {
@@ -132,6 +132,8 @@ export interface WailsSSHConnectArgs {
   proxyCommand: string;
   enableMfa: boolean;
   useAgent: boolean;
+  /** Exposes the local SSH agent to the remote host (ForwardAgent yes). */
+  agentForwarding: boolean;
   identityFilePaths: string[];
   cols: number;
   rows: number;
@@ -141,6 +143,12 @@ export interface WailsSSHConnectArgs {
   keepaliveCountMax: number;
   forwardX11: boolean;
   x11Display: string;
+  /** Renderer session alias echoed back on interactive prompts. */
+  sessionId: string;
+  /** Boot generation echoed back so prompts can reject stale boots. */
+  bootEpoch: number;
+  /** Syncs the process-global ssh-debug.log toggle at dial time. */
+  sshDebugLogs?: boolean;
   jumpHosts: WailsSSHConnectArgs[];
 }
 
@@ -166,6 +174,8 @@ export interface WailsSSHConnectOptions {
   requiresMfa?: boolean;
   term?: string;
   env?: Record<string, string>;
+  /** Exposes the local SSH agent to the remote host (ForwardAgent yes). */
+  agentForwarding?: boolean;
   verifyHostKeys?: boolean;
   /** Seconds, already resolved against host overrides by the caller. */
   keepaliveInterval?: number;
@@ -177,6 +187,12 @@ export interface WailsSSHConnectOptions {
   proxy?: WailsProxyConfig;
   useSshAgent?: boolean;
   identityFilePaths?: string[];
+  /** Renderer session alias correlated onto passphrase/host-key prompts. */
+  sessionId?: string;
+  /** Boot generation for the same correlation (terminal boots only). */
+  bootEpoch?: number;
+  /** Syncs the process-global ssh-debug.log toggle at dial time. */
+  sshDebugLogEnabled?: boolean;
 }
 
 /** Builds a socks5:// or http:// URL. Returns "" for command proxies. */
@@ -201,7 +217,31 @@ export function formatProxyCommand(proxy?: WailsProxyConfig): string {
 }
 
 /**
- * Normalizes the Electron NetcattySSHOptions to the Go Connect binding.
+ * Resolves the Wails window name of the calling renderer from its route hash
+ * (and query string). The settings window is a fixed name; peer session
+ * windows (#/session-window) carry their Wails window name in the URL query
+ * (SessionWindowService names each window after its identity); every other
+ * route is the main window. (Terminal popups are excluded by the caller: they
+ * keep the hide-self contract and must not reach RequestClose.) Feeds
+ * WindowLifecycleService.RequestClose so the main window's title-bar X runs
+ * the Go-side quit guard, session windows close themselves, and other windows
+ * keep their own close contract.
+ */
+export function callerWindowName(hash: string, search: string = ''): string {
+  if (hash.startsWith('#/settings')) {
+    return 'settings';
+  }
+  if (hash.startsWith('#/session-window')) {
+    // A session window whose identity is missing from the URL must never run
+    // the main window's quit guard, but there is no better name to close by —
+    // fall through to main and let RequestClose behave as before.
+    return new URLSearchParams(search).get('sessionWindowId') ?? 'main';
+  }
+  return 'main';
+}
+
+/**
+ * Normalizes the Electron LemonSSHSSHOptions to the Go Connect binding.
  * Host/port proxies become proxyUrl; command proxies ride ProxyCommand
  * semantics on the Go dialer.
  */
@@ -219,6 +259,7 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     proxyCommand,
     enableMfa: Boolean(options.requiresMfa),
     useAgent: Boolean(options.useSshAgent),
+    agentForwarding: options.agentForwarding === true,
     identityFilePaths: options.identityFilePaths ?? [],
     cols: options.cols ?? 80,
     rows: options.rows ?? 24,
@@ -228,6 +269,11 @@ export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHCon
     keepaliveCountMax: options.keepaliveCountMax ?? 3,
     forwardX11: options.x11Forwarding ?? options.forwardX11 ?? false,
     x11Display: options.x11Display ?? "",
+    // Interactive prompts (passphrase, host-key confirmation) echo these back
+    // so the renderer can route them to the session that started the dial.
+    sessionId: options.sessionId ?? "",
+    bootEpoch: typeof options.bootEpoch === "number" && Number.isFinite(options.bootEpoch) ? options.bootEpoch : 0,
+    sshDebugLogs: options.sshDebugLogEnabled === true,
     jumpHosts: (options.jumpHosts ?? []).map((hop) => pickSSHConnectArgs(hop)),
   };
 }

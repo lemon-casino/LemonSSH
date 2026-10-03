@@ -16,9 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/platform/filesystem"
-	"github.com/binaricat/netcatty/internal/terminal/mosh"
-	terminalssh "github.com/binaricat/netcatty/internal/terminal/ssh"
+	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
+	"github.com/binaricat/lemonssh/internal/terminal/mosh"
+	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -47,6 +48,9 @@ type etBridge struct {
 	temp           *filesystem.TempService
 	ready          chan struct{}
 	stopTransport  func() bool
+	// agentForwarded records that the carrier transport has the local agent
+	// wired (ForwardAgentToClient); the bootstrap session request rides it.
+	agentForwarded bool
 }
 
 func (s *Service) prepareEt(ctx context.Context, request MoshStartRequest) (*etBridge, error) {
@@ -61,22 +65,35 @@ func (s *Service) prepareEt(ctx context.Context, request MoshStartRequest) (*etB
 	if err != nil {
 		return nil, err
 	}
+	// ET carries agent forwarding the same way Connect does: wire the local
+	// agent onto the carrier transport so remote agent-channel opens succeed.
+	// The remote half is requested on the etterminal bootstrap session (see
+	// bootstrapET); a missing local agent degrades to no forwarding instead of
+	// failing the dial — OpenSSH parity with the Connect path.
+	agentForwarded := false
+	if config.ForwardAgent {
+		if err := terminalssh.ForwardAgentToClient(transport.Client, ""); err != nil {
+			sshdebug.LogError("et agent forwarding unavailable host=%s err=%v", request.Hostname, err)
+		} else {
+			agentForwarded = true
+		}
+	}
 	b, err := newEtBridge(ctx, transport, request, s.helperTemp, func(ctx context.Context) (*terminalssh.Transport, error) {
 		config, err := sshBootstrapConfig(ctx, s, request)
 		if err != nil {
 			return nil, err
 		}
 		return terminalssh.Dial(ctx, config)
-	})
+	}, agentForwarded)
 	if err != nil {
 		transport.Close()
 	}
 	return b, err
 }
 
-func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request MoshStartRequest, temp *filesystem.TempService, redial func(context.Context) (*terminalssh.Transport, error)) (_ *etBridge, err error) {
+func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request MoshStartRequest, temp *filesystem.TempService, redial func(context.Context) (*terminalssh.Transport, error), agentForwarded bool) (_ *etBridge, err error) {
 	ctx, cancel := context.WithCancel(ctx)
-	b := &etBridge{ctx: ctx, cancel: cancel, transport: transport, redial: redial, temp: temp, connections: make(map[net.Conn]struct{}), ready: make(chan struct{})}
+	b := &etBridge{ctx: ctx, cancel: cancel, transport: transport, redial: redial, temp: temp, connections: make(map[net.Conn]struct{}), ready: make(chan struct{}), agentForwarded: agentForwarded}
 	b.stopTransport = context.AfterFunc(ctx, b.closeTransport)
 	defer func() {
 		if err != nil {
@@ -95,7 +112,7 @@ func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request 
 	if err != nil {
 		return nil, err
 	}
-	block, err := ssh.MarshalPrivateKey(private, "netcatty-et-loopback")
+	block, err := ssh.MarshalPrivateKey(private, "lemonssh-et-loopback")
 	if err != nil {
 		return nil, err
 	}
@@ -131,23 +148,27 @@ func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request 
 		return nil, err
 	}
 	_, etPort, _ := net.SplitHostPort(b.tcp.Addr().String())
-	b.args = []string{"netcatty@127.0.0.1", "--port", etPort, "--terminal-path", "netcatty-et-bootstrap", "--silent", "--telemetry=false"}
+	b.args = []string{"lemonssh@127.0.0.1", "--port", etPort, "--terminal-path", "lemonssh-et-bootstrap", "--silent", "--telemetry=false"}
 	// ET and its SSH child run in directory. Relative artifact names avoid
 	// nested quoting in ET's Windows subprocess parser (including spaces in HOME).
-	options := []string{"Port=" + sshPort, "HostName=127.0.0.1", "User=netcatty", "IdentityFile=identity", "IdentitiesOnly=yes", "IdentityAgent=none", "UserKnownHostsFile=known_hosts", "GlobalKnownHostsFile=known_hosts", "StrictHostKeyChecking=yes", "BatchMode=yes", "ProxyCommand=none", "ProxyJump=none", "ForwardAgent=no", "ClearAllForwardings=yes", "LogLevel=ERROR"}
+	// ForwardAgent stays "no": this loopback hop reaches LemonSSH's own bootstrap
+	// server, not the remote host — remote agent forwarding rides the Go carrier
+	// transport wired by prepareEt, so forwarding here would only hit a server
+	// that serves a single exec and no agent channels.
+	options := []string{"Port=" + sshPort, "HostName=127.0.0.1", "User=lemonssh", "IdentityFile=identity", "IdentitiesOnly=yes", "IdentityAgent=none", "UserKnownHostsFile=known_hosts", "GlobalKnownHostsFile=known_hosts", "StrictHostKeyChecking=yes", "BatchMode=yes", "ProxyCommand=none", "ProxyJump=none", "ForwardAgent=no", "ClearAllForwardings=yes", "LogLevel=ERROR"}
 	for _, option := range options {
 		b.args = append(b.args, "--ssh-option", option)
 	}
 	b.env = map[string]string{"TERM": "xterm-256color", "HOME": b.directory, "USERPROFILE": b.directory, "TMPDIR": b.directory, "TEMP": b.directory, "TMP": b.directory}
 	serverConfig := &ssh.ServerConfig{PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-		if conn.User() != "netcatty" || !bytes.Equal(key.Marshal(), identity.PublicKey().Marshal()) {
+		if conn.User() != "lemonssh" || !bytes.Equal(key.Marshal(), identity.PublicKey().Marshal()) {
 			return nil, errors.New("invalid bootstrap identity")
 		}
 		return nil, nil
 	}}
 	serverConfig.AddHostKey(hostSigner)
 	// Go runs etterminal with input on its SSH channel, never via echo argv.
-	pair, err := bootstrapET(ctx, transport.Client, request)
+	pair, err := bootstrapET(ctx, transport.Client, request, b.agentForwarded)
 	if err != nil {
 		return nil, err
 	}
@@ -157,12 +178,20 @@ func newEtBridge(ctx context.Context, transport *terminalssh.Transport, request 
 	return b, nil
 }
 
-func bootstrapET(ctx context.Context, client *ssh.Client, request MoshStartRequest) (string, error) {
+func bootstrapET(ctx context.Context, client *ssh.Client, request MoshStartRequest, agentForwarded bool) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		return "", err
 	}
 	defer session.Close()
+	// auth-agent-req@openssh.com must precede the exec so sshd exports
+	// $SSH_AUTH_SOCK into etterminal's environment; the user's shell spawned
+	// by etterminal inherits it. Failure degrades to no forwarding.
+	if agentForwarded {
+		if err := terminalssh.RequestAgentForwarding(session); err != nil {
+			sshdebug.LogError("et agent forwarding request failed host=%s err=%v", request.Hostname, err)
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	stop := context.AfterFunc(ctx, func() { _ = session.Close() })
@@ -333,6 +362,15 @@ func (b *etBridge) dialRemote(ctx context.Context, address string) (net.Conn, er
 	b.transport = replacement
 	b.transportMu.Unlock()
 	transport.Close()
+	// The replacement carrier carries the session from here on: re-wire the
+	// local agent so forwarding survives roaming. A failure here only degrades
+	// forwarding on the new carrier; the existing remote $SSH_AUTH_SOCK stays
+	// bound to the carrier that died, so a fresh shell is needed after roam.
+	if b.agentForwarded {
+		if err := terminalssh.ForwardAgentToClient(replacement.Client, ""); err != nil {
+			sshdebug.LogError("et agent forwarding rewire failed err=%v", err)
+		}
+	}
 	return replacement.Client.DialContext(ctx, "tcp", address)
 }
 

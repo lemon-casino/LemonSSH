@@ -1,3 +1,17 @@
+import {
+  PLUGIN_WASM_ABI_VERSION,
+  PLUGIN_WASM_DEFAULT_TIMEOUT_MS,
+  PLUGIN_WASM_EXPORT_ALLOC,
+  PLUGIN_WASM_EXPORT_DISPATCH,
+  PLUGIN_WASM_EXPORT_FREE,
+  PLUGIN_WASM_HOST_IMPORT_STATUS,
+  PLUGIN_WASM_HOST_MODULE,
+  PLUGIN_WASM_IMPORT_HOST_LOG,
+  PLUGIN_WASM_IMPORT_HOST_SETTING_GET,
+  PLUGIN_WASM_MAX_REQUEST_BYTES,
+  PLUGIN_WASM_MAX_RESPONSE_BYTES,
+} from "@lemonssh/plugin-contract";
+
 import type {
   AuthenticationBeginPayload,
   AuthenticationResponsePayload,
@@ -19,6 +33,7 @@ import type {
   ImporterParsePayload,
   ImporterParseResult,
   JsonValue,
+  LocalizedText,
   PluginErrorData,
   PluginErrorName,
   PluginId,
@@ -43,9 +58,12 @@ import type {
   SyncWriteObjectPayload,
   SyncWriteObjectResult,
   TerminalSessionSnapshot,
-} from "@netcatty/plugin-contract";
+  WasmDispatchError,
+  WasmDispatchRequest,
+  WasmDispatchResponse,
+} from "@lemonssh/plugin-contract";
 
-export type * from "@netcatty/plugin-contract";
+export type * from "@lemonssh/plugin-contract";
 
 export interface Disposable {
   dispose(): void;
@@ -727,7 +745,7 @@ export interface PluginStreams {
 
 export interface PluginContext {
   readonly pluginId: PluginId;
-  readonly netcattyVersion: SemanticVersion;
+  readonly lemonsshVersion: SemanticVersion;
   readonly apiVersion: SemanticVersion;
   readonly enabledFeatures: ReadonlySet<FeatureId>;
   readonly subscriptions: DisposableStore;
@@ -748,7 +766,7 @@ export interface PluginContext {
   readonly logger: PluginLogger;
 }
 
-export interface NetcattyPlugin {
+export interface LemonsshPlugin {
   activate(context: PluginContext): void | Disposable | Promise<void | Disposable>;
   deactivate?(): void | Promise<void>;
 }
@@ -915,10 +933,254 @@ export class CancellationTokenSource implements Disposable {
   }
 }
 
-export function definePlugin<T extends NetcattyPlugin>(plugin: T): T {
+export function definePlugin<T extends LemonsshPlugin>(plugin: T): T {
   return plugin;
 }
 
 export function throwIfCancellationRequested(token: CancellationToken): void {
   if (token.isCancellationRequested) throw new CancellationError();
+}
+
+// ---------------------------------------------------------------------------
+// lemonssh-wasm-abi v1 (Go WASM host dispatch channel)
+//
+// The Go host (internal/plugin/wasm) exchanges one JSON envelope per call
+// through the guest's lemonssh_alloc/lemonssh_dispatch/lemonssh_free exports;
+// the host module lemonssh provides the broker-gated lemonssh_host_* imports.
+// These helpers give tooling and test harnesses a typed encoding surface;
+// see docs/plugin-platform/isolated-runtime.md.
+// ---------------------------------------------------------------------------
+
+export const WASM_ABI = {
+  version: PLUGIN_WASM_ABI_VERSION,
+  hostModule: PLUGIN_WASM_HOST_MODULE,
+  guestExports: {
+    alloc: PLUGIN_WASM_EXPORT_ALLOC,
+    free: PLUGIN_WASM_EXPORT_FREE,
+    dispatch: PLUGIN_WASM_EXPORT_DISPATCH,
+  },
+  hostImports: {
+    log: PLUGIN_WASM_IMPORT_HOST_LOG,
+    settingGet: PLUGIN_WASM_IMPORT_HOST_SETTING_GET,
+  },
+  maxRequestBytes: PLUGIN_WASM_MAX_REQUEST_BYTES,
+  maxResponseBytes: PLUGIN_WASM_MAX_RESPONSE_BYTES,
+  defaultTimeoutMs: PLUGIN_WASM_DEFAULT_TIMEOUT_MS,
+} as const;
+
+export const WASM_HOST_IMPORT_STATUS = PLUGIN_WASM_HOST_IMPORT_STATUS;
+
+/** Encodes one dispatch request envelope for the host to write into guest memory. */
+export function buildWasmDispatchRequest(method: string, payload?: JsonValue): Uint8Array {
+  if (method.length === 0) {
+    throw new PluginError("invalid_argument", "dispatch method is required");
+  }
+  const request: WasmDispatchRequest = payload === undefined ? { method } : { method, payload };
+  const bytes = new TextEncoder().encode(JSON.stringify(request));
+  if (bytes.byteLength > PLUGIN_WASM_MAX_REQUEST_BYTES) {
+    throw new PluginError(
+      "invalid_argument",
+      `dispatch request exceeds ${PLUGIN_WASM_MAX_REQUEST_BYTES} bytes`,
+    );
+  }
+  return bytes;
+}
+
+function assertWasmDispatchError(value: unknown, path: string): WasmDispatchError {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new PluginError("internal", `${path} must be an object`);
+  }
+  const { code, message, data } = value as Record<string, unknown>;
+  if (typeof code !== "string" || code.length === 0) {
+    throw new PluginError("internal", `${path}.code must be a non-empty string`);
+  }
+  if (typeof message !== "string") {
+    throw new PluginError("internal", `${path}.message must be a string`);
+  }
+  if (data !== undefined) {
+    return { code, message, data } as WasmDispatchError;
+  }
+  return { code, message };
+}
+
+/** Validates an already-parsed dispatch response envelope. */
+export function assertWasmDispatchResponse(value: unknown): WasmDispatchResponse {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new PluginError("internal", "dispatch response must be an object");
+  }
+  const { ok, result, error } = value as Record<string, unknown>;
+  if (ok === true) {
+    if (error !== undefined) {
+      throw new PluginError("internal", "successful dispatch response must not carry an error");
+    }
+    return result === undefined ? { ok: true } : { ok: true, result } as WasmDispatchResponse;
+  }
+  if (ok === false) {
+    if (result !== undefined) {
+      throw new PluginError("internal", "failed dispatch response must not carry a result");
+    }
+    return { ok: false, error: assertWasmDispatchError(error, "error") };
+  }
+  throw new PluginError("internal", `dispatch response ok must be boolean, got ${String(ok)}`);
+}
+
+/** Decodes and validates the response payload the host copied out of guest memory. */
+export function parseWasmDispatchResponse(bytes: Uint8Array): WasmDispatchResponse {
+  if (bytes.byteLength > PLUGIN_WASM_MAX_RESPONSE_BYTES) {
+    throw new PluginError(
+      "invalid_argument",
+      `dispatch response exceeds ${PLUGIN_WASM_MAX_RESPONSE_BYTES} bytes`,
+    );
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch (error) {
+    throw new PluginError(
+      "internal",
+      "dispatch response is not valid UTF-8 JSON",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+  return assertWasmDispatchResponse(value);
+}
+
+// ---------------------------------------------------------------------------
+// Declarative view data (host pull channel)
+//
+// The host renderer pulls ViewDef.Bindings data from an enabled plugin through
+// the same WASM dispatch channel using the canonical "view.data" method. The
+// request payload is { viewId, bindings }; a successful response result is a
+// plain object mapping binding keys to display values (list rows are objects
+// keyed by the view's declared columns). When the dispatch fails or omits a
+// binding the host falls back to the plugin's declared non-secret settings
+// values. See docs/plugin-platform/ui-contributions.md.
+// ---------------------------------------------------------------------------
+
+export const VIEW_DATA_DISPATCH_METHOD = "view.data";
+
+/** Mirrors the Go host's ui.maxViewKeys install-time cap. */
+export const PLUGIN_VIEW_DATA_MAX_BINDINGS = 64 as const;
+
+export interface PluginViewDataRequest {
+  viewId: string;
+  bindings: ReadonlyArray<string>;
+}
+
+/** Encodes one view.data dispatch request for the host to write into guest memory. */
+export function buildPluginViewDataRequest({ viewId, bindings }: PluginViewDataRequest): Uint8Array {
+  if (viewId.length === 0) {
+    throw new PluginError("invalid_argument", "view data request requires a view id");
+  }
+  const unique = [...new Set(bindings)].filter((binding) => binding.length > 0);
+  if (unique.length > PLUGIN_VIEW_DATA_MAX_BINDINGS) {
+    throw new PluginError(
+      "invalid_argument",
+      `view data request exceeds ${PLUGIN_VIEW_DATA_MAX_BINDINGS} bindings`,
+    );
+  }
+  return buildWasmDispatchRequest(VIEW_DATA_DISPATCH_METHOD, { viewId, bindings: unique });
+}
+
+/**
+ * Narrows a view.data dispatch response to the binding map the host renderer
+ * consumes. Failed envelopes and non-object results yield null so the caller
+ * can fall back to settings values.
+ */
+export function parsePluginViewDataResult(response: WasmDispatchResponse): Record<string, JsonValue> | null {
+  if (!response.ok) return null;
+  const { result } = response;
+  if (result === undefined || result === null || typeof result !== "object" || Array.isArray(result)) {
+    return null;
+  }
+  return result as Record<string, JsonValue>;
+}
+
+// ---------------------------------------------------------------------------
+// Provider registry protocol (host pull channel)
+//
+// The Go host registry (internal/plugin/providers) enumerates provider
+// declarations over the same lemonssh-wasm-abi v1 dispatch channel:
+//   providers.list          -> {"providers": [ProviderContribution, …]}
+//   provider.invoke         -> one provider operation; the result is the
+//                              operation-specific JSON value
+//   provider.sessionEvent   -> terminal session lifecycle notification
+// A declaration is only accepted while the plugin's manifest declares the
+// kind ("provider" permission) and the fail-closed broker holds the grant.
+// ---------------------------------------------------------------------------
+
+export const PROVIDERS_LIST_DISPATCH_METHOD = "providers.list";
+export const PROVIDER_INVOKE_DISPATCH_METHOD = "provider.invoke";
+export const PROVIDER_SESSION_EVENT_DISPATCH_METHOD = "provider.sessionEvent";
+
+/** One provider declaration a plugin returns for providers.list. */
+export interface PluginProviderDeclaration {
+  readonly id: string;
+  readonly label: LocalizedText;
+  readonly description?: LocalizedText;
+  readonly kind: ProviderKind;
+  readonly capabilities?: readonly string[];
+  readonly configurationSchema?: JsonValue;
+}
+
+function isProviderDeclaration(value: unknown): value is PluginProviderDeclaration {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "string" && candidate.id.length > 0
+    && (typeof candidate.label === "string"
+      || (candidate.label !== null && typeof candidate.label === "object" && !Array.isArray(candidate.label)))
+    && typeof candidate.kind === "string" && candidate.kind.length > 0;
+}
+
+/**
+ * Narrows a providers.list dispatch response to the declared providers.
+ * Failed envelopes and malformed entries yield an empty list so the host's
+ * fail-closed registry keeps the plugin unlisted.
+ */
+export function parsePluginProviderListResult(response: WasmDispatchResponse): readonly PluginProviderDeclaration[] {
+  if (!response.ok) return [];
+  const { result } = response;
+  if (!result || typeof result !== "object" || Array.isArray(result)) return [];
+  const providers = (result as { providers?: unknown }).providers;
+  if (!Array.isArray(providers)) return [];
+  return providers.filter(isProviderDeclaration);
+}
+
+/** The provider.invoke request payload the host writes into guest memory. */
+export interface PluginProviderInvokeRequest {
+  readonly providerId: string;
+  readonly kind: ProviderKind;
+  readonly operation: string;
+  readonly requestId: string;
+  readonly session: TerminalSessionSnapshot;
+  readonly payload?: JsonValue;
+  readonly deadlineMs?: number;
+}
+
+/** Decodes and validates one provider.invoke request payload. */
+export function parsePluginProviderInvokeRequest(payload: JsonValue | undefined): PluginProviderInvokeRequest {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new PluginError("invalid_argument", "provider invoke payload must be an object");
+  }
+  const candidate = payload as Record<string, unknown>;
+  for (const field of ["providerId", "kind", "operation", "requestId"] as const) {
+    if (typeof candidate[field] !== "string" || (candidate[field] as string).length === 0) {
+      throw new PluginError("invalid_argument", `provider invoke payload.${field} must be a non-empty string`);
+    }
+  }
+  const session = candidate.session;
+  if (!session || typeof session !== "object" || Array.isArray(session)
+    || typeof (session as Record<string, unknown>).sessionId !== "string"
+    || ((session as Record<string, unknown>).sessionId as string).length === 0) {
+    throw new PluginError("invalid_argument", "provider invoke payload.session requires a sessionId");
+  }
+  return {
+    providerId: candidate.providerId as string,
+    kind: candidate.kind as ProviderKind,
+    operation: candidate.operation as string,
+    requestId: candidate.requestId as string,
+    session: session as TerminalSessionSnapshot,
+    ...(candidate.payload !== undefined ? { payload: candidate.payload as JsonValue } : {}),
+    ...(candidate.deadlineMs !== undefined ? { deadlineMs: candidate.deadlineMs as number } : {}),
+  };
 }

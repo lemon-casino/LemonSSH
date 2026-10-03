@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// cattyCapabilityDenylist excludes implemented, CLI-only or meta
+// lemonsshCapabilityDenylist excludes implemented, CLI-only or meta
 // capabilities from both agent kinds even when they have schemas.
-var cattyCapabilityDenylist = map[string]bool{
+var lemonsshCapabilityDenylist = map[string]bool{
 	"meta.status":    true,
 	"session.cancel": true,
 	"session.resume": true,
@@ -27,10 +27,10 @@ func (d *Definition) MCPToolName() string {
 	return ""
 }
 
-// CattyToolName resolves the sidebar tool name: renderer-local name first,
+// LemonSSHToolName resolves the sidebar tool name: renderer-local name first,
 // then MCP name, then the dotted ID flattened.
-func (d *Definition) CattyToolName() string {
-	if binding, ok := d.Surfaces[SurfaceCatty]; ok && binding.ToolName != "" {
+func (d *Definition) LemonSSHToolName() string {
+	if binding, ok := d.Surfaces[SurfaceLemonSSH]; ok && binding.ToolName != "" {
 		return binding.ToolName
 	}
 	if mcp := d.MCPToolName(); mcp != "" {
@@ -50,7 +50,7 @@ func (d *Definition) agentToolName(kind AgentKind) string {
 		}
 		return strings.ReplaceAll(d.ID, ".", "_")
 	}
-	return d.CattyToolName()
+	return d.LemonSSHToolName()
 }
 
 // AgentRPCMethod resolves the rpc method an agent dispatches to: builtin,
@@ -82,7 +82,7 @@ func (d *Definition) IsAgentLocalOnlyCapability(kind AgentKind) bool {
 		binding, ok := d.Surfaces[SurfaceGlobalAgent]
 		local = ok && binding.ToolName != ""
 	} else {
-		binding, ok := d.Surfaces[SurfaceCatty]
+		binding, ok := d.Surfaces[SurfaceLemonSSH]
 		local = ok && binding.ToolName != ""
 	}
 	return local && d.AgentRPCMethod() == "" && d.MCPToolName() == ""
@@ -111,7 +111,7 @@ func (d *Definition) agentEligibleForKind(kind AgentKind, skipAgentKindCheck boo
 	if d.Status != StatusImplemented {
 		return false
 	}
-	if cattyCapabilityDenylist[d.ID] {
+	if lemonsshCapabilityDenylist[d.ID] {
 		return false
 	}
 	if !skipAgentKindCheck {
@@ -148,7 +148,7 @@ func (d *Definition) IsAgentEligibleForKind(kind AgentKind) bool {
 }
 
 // AgentToolSpec is one projected agent tool; JSON tags and field order
-// match the generated cattyToolSpecs.json / globalAgentToolSpecs.json.
+// match the generated lemonsshToolSpecs.json / globalAgentToolSpecs.json.
 type AgentToolSpec struct {
 	CapabilityID   string                    `json:"capabilityId"`
 	ToolName       string                    `json:"toolName"`
@@ -228,12 +228,12 @@ type ToolSurface struct {
 	Description     string                    `json:"description"`
 	Policy          Policy                    `json:"policy"`
 	InputShape      map[string]ToolInputField `json:"inputShape"`
-	CattyEnabled    bool                      `json:"cattyEnabled"`
+	LemonSSHEnabled bool                      `json:"lemonsshEnabled"`
 }
 
 // ListToolSurfaces projects the catalog onto one surface. status filters to
-// one baseline status; includeCatty mirrors the CJS flag of the same name.
-func (r *Registry) ListToolSurfaces(surface Surface, status Status, includeCatty bool) []ToolSurface {
+// one baseline status; includeLemonssh mirrors the CJS flag of the same name.
+func (r *Registry) ListToolSurfaces(surface Surface, status Status, includeLemonssh bool) []ToolSurface {
 	var tools []ToolSurface
 	for _, def := range r.List(ListOptions{}) {
 		if def.Status != status {
@@ -251,7 +251,7 @@ func (r *Registry) ListToolSurfaces(surface Surface, status Status, includeCatty
 		}
 
 		mcpTool := def.MCPToolName()
-		if !includeCatty && mcpTool == "" {
+		if !includeLemonssh && mcpTool == "" {
 			continue
 		}
 
@@ -273,14 +273,14 @@ func (r *Registry) ListToolSurfaces(surface Surface, status Status, includeCatty
 		tools = append(tools, ToolSurface{
 			CapabilityID:    def.ID,
 			Domain:          def.Domain,
-			ToolName:        def.CattyToolName(),
+			ToolName:        def.LemonSSHToolName(),
 			MCPTool:         nullableString(mcpTool),
 			RPCMethod:       rpcMethod,
 			PublicRPCMethod: publicRPCMethod,
 			Description:     def.ToolDescription(),
 			Policy:          def.Policy,
 			InputShape:      fields,
-			CattyEnabled:    includeCatty && (HasToolInputFields(def.ID) || mcpTool != ""),
+			LemonSSHEnabled: includeLemonssh && (HasToolInputFields(def.ID) || mcpTool != ""),
 		})
 	}
 	return tools

@@ -151,8 +151,8 @@ test("note outline jumps to the matching rendered heading", () => {
   } as unknown as HTMLElement;
   const root = {
     querySelectorAll: (selector: string) => {
-      assert.match(selector, /\.netcatty-mdx-content h1/);
-      assert.match(selector, /\.netcatty-mdx-content h6/);
+      assert.match(selector, /\.lemonssh-mdx-content h1/);
+      assert.match(selector, /\.lemonssh-mdx-content h6/);
       return [first, second];
     },
   };
@@ -392,7 +392,7 @@ test("note editor exposes its modes from a borderless title-row dropdown", () =>
   // Preview and edit both use MDXEditor (readOnly in preview).
   assert.match(source, /readOnly=\{editorMode === "preview"\}/);
   assert.match(source, /key=\{editorMode\}/);
-  assert.match(source, /netcatty-mdx-editor--preview/);
+  assert.match(source, /lemonssh-mdx-editor--preview/);
   assert.doesNotMatch(source, /NoteMarkdownPreview|react-markdown|github-markdown/);
   assert.match(source, /editorMode = controlledEditorMode \?\? "edit"/);
   assert.doesNotMatch(source, /data-note-mode-switch/);
@@ -424,13 +424,13 @@ test("note markdown toolbar remains usable in narrow panes", () => {
 
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s*\{[^}]*container-type:\s*inline-size;/s,
+    /\.lemonssh-mdx-editor\s*\{[^}]*container-type:\s*inline-size;/s,
   );
   // Keep fixed-containing-block in sync with MDX linkDialog coordinate math
   // (container-type alone is not a fixed CB in browsers).
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s*\{[^}]*transform:\s*translateZ\(0\);/s,
+    /\.lemonssh-mdx-editor\s*\{[^}]*transform:\s*translateZ\(0\);/s,
   );
   // The app-owned NoteToolbar scrolls horizontally when the pane is narrow so
   // formatting buttons are never clipped; the scrollbar stays visible.
@@ -493,15 +493,15 @@ test("pasting inside code blocks keeps CodeMirror in control", () => {
 test("note code block editor colors follow the app theme", () => {
   const styles = readFileSync(new URL("../../index.css", import.meta.url), "utf8");
 
-  assert.match(styles, /\.netcatty-mdx-editor\s+\.cm-editor/);
-  assert.match(styles, /\.netcatty-mdx-editor\s+\.cm-gutters/);
+  assert.match(styles, /\.lemonssh-mdx-editor\s+\.cm-editor/);
+  assert.match(styles, /\.lemonssh-mdx-editor\s+\.cm-gutters/);
   assert.match(styles, /background:\s*hsl\(var\(--secondary\)/);
   assert.match(styles, /color:\s*hsl\(var\(--foreground\)/);
   assert.match(styles, /--note-code-token-keyword:\s*color-mix\(in oklab,\s*hsl\(var\(--primary\)\)/);
-  assert.match(styles, /\.netcatty-mdx-editor\s+\.cm-content\s+\.netcatty-code-token-keyword/);
-  assert.match(styles, /\.netcatty-mdx-editor\s+\.cm-content\s+\.netcatty-code-token-string/);
+  assert.match(styles, /\.lemonssh-mdx-editor\s+\.cm-content\s+\.lemonssh-code-token-keyword/);
+  assert.match(styles, /\.lemonssh-mdx-editor\s+\.cm-content\s+\.lemonssh-code-token-string/);
   assert.doesNotMatch(styles, /span\[class\*="ͼ"\]/);
-  assert.doesNotMatch(styles, /\.netcatty-mdx-editor\s+\.cm-line\s+span/);
+  assert.doesNotMatch(styles, /\.lemonssh-mdx-editor\s+\.cm-line\s+span/);
 });
 
 test("note code block active line is highlighted only while focused", () => {
@@ -509,11 +509,11 @@ test("note code block active line is highlighted only while focused", () => {
 
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-activeLine,\s*\.netcatty-mdx-editor\s+\.cm-activeLineGutter\s*\{[^}]*background:\s*transparent/s,
+    /\.lemonssh-mdx-editor\s+\.cm-activeLine,\s*\.lemonssh-mdx-editor\s+\.cm-activeLineGutter\s*\{[^}]*background:\s*transparent/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-editor:focus-within\s+\.cm-activeLine,\s*\.netcatty-mdx-editor\s+\.cm-editor:focus-within\s+\.cm-activeLineGutter\s*\{[^}]*background:\s*hsl\(var\(--primary\)\s*\/\s*0\.08\)/s,
+    /\.lemonssh-mdx-editor\s+\.cm-editor:focus-within\s+\.cm-activeLine,\s*\.lemonssh-mdx-editor\s+\.cm-editor:focus-within\s+\.cm-activeLineGutter\s*\{[^}]*background:\s*hsl\(var\(--primary\)\s*\/\s*0\.08\)/s,
   );
 });
 
@@ -522,71 +522,71 @@ test("note code block frame is borderless and language picker is compact", () =>
 
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;[^}]*padding:\s*0\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;[^}]*padding:\s*0\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-editor\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\.cm-editor\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-content\s+pre\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*padding:\s*0;/s,
+    /\.lemonssh-mdx-content\s+pre\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*padding:\s*0;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-note-code-copy\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;[^}]*box-shadow:\s*none\s*!important;/s,
+    /\.lemonssh-note-code-copy\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important;[^}]*box-shadow:\s*none\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor:not\(\.netcatty-mdx-editor--preview\)\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*position:\s*absolute\s*!important;/s,
+    /\.lemonssh-mdx-editor:not\(\.lemonssh-mdx-editor--preview\)\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*position:\s*absolute\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor \[class\*="_codeMirrorToolbar_"\] \[class\*="_selectTrigger_"\]\s*\{[^}]*height:\s*1\.45rem\s*!important;[^}]*font-size:\s*11px\s*!important;/s,
+    /\.lemonssh-mdx-editor \[class\*="_codeMirrorToolbar_"\] \[class\*="_selectTrigger_"\]\s*\{[^}]*height:\s*1\.45rem\s*!important;[^}]*font-size:\s*11px\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor \[class\*="_codeMirrorToolbar_"\] \[class\*="_tooltipTrigger_"\]\s*\{[^}]*display:\s*inline-flex\s*!important;[^}]*align-items:\s*center\s*!important;[^}]*align-self:\s*center\s*!important;/s,
+    /\.lemonssh-mdx-editor \[class\*="_codeMirrorToolbar_"\] \[class\*="_tooltipTrigger_"\]\s*\{[^}]*display:\s*inline-flex\s*!important;[^}]*align-items:\s*center\s*!important;[^}]*align-self:\s*center\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor \[class\*="_codeMirrorToolbar_"\]\s+\[class\*="_selectTrigger_"\]\s*\{[^}]*width:\s*auto\s*!important;[^}]*min-width:\s*0\s*!important;/s,
+    /\.lemonssh-mdx-editor \[class\*="_codeMirrorToolbar_"\]\s+\[class\*="_selectTrigger_"\]\s*\{[^}]*width:\s*auto\s*!important;[^}]*min-width:\s*0\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor \[class\*="_toolbarCodeBlockLanguageSelectContent_"\][\s\S]*width:\s*auto\s*!important;[\s\S]*min-width:\s*max-content\s*!important;/s,
+    /\.lemonssh-mdx-editor \[class\*="_toolbarCodeBlockLanguageSelectContent_"\][\s\S]*width:\s*auto\s*!important;[\s\S]*min-width:\s*max-content\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor \[class\*="_toolbarCodeBlockLanguageSelectContent_"\] \[class\*="_selectItem_"\][\s\S]*font-size:\s*11px\s*!important;/s,
+    /\.lemonssh-mdx-editor \[class\*="_toolbarCodeBlockLanguageSelectContent_"\] \[class\*="_selectItem_"\][\s\S]*font-size:\s*11px\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-editor\s*\{[^}]*font-size:\s*13px\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\.cm-editor\s*\{[^}]*font-size:\s*13px\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-line\s*\{[^}]*line-height:\s*1\.45\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\.cm-line\s*\{[^}]*line-height:\s*1\.45\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-gutterElement\s*\{[^}]*font-size:\s*13px\s*!important;[^}]*line-height:\s*1\.45\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\.cm-gutterElement\s*\{[^}]*font-size:\s*13px\s*!important;[^}]*line-height:\s*1\.45\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor:not\(\.netcatty-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*gap:\s*0;[^}]*margin:\s*0\.25rem\s+0\s+0\.55rem;/s,
+    /\.lemonssh-mdx-editor:not\(\.lemonssh-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*gap:\s*0;[^}]*margin:\s*0\.25rem\s+0\s+0\.55rem;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor:not\(\.netcatty-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s+\.cm-content\s*\{[^}]*padding:\s*0\s*!important;/s,
+    /\.lemonssh-mdx-editor:not\(\.lemonssh-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s+\.cm-content\s*\{[^}]*padding:\s*0\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\.cm-gutters\s*\{[^}]*background:\s*transparent\s*!important;[^}]*padding:\s*0\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\.cm-gutters\s*\{[^}]*background:\s*transparent\s*!important;[^}]*padding:\s*0\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor--preview\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*display:\s*none\s*!important;/s,
+    /\.lemonssh-mdx-editor--preview\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*display:\s*none\s*!important;/s,
   );
 });
 
@@ -596,20 +596,20 @@ test("note formulas render without framed surfaces", () => {
   assert.doesNotMatch(styles, /data-language="math"/);
   assert.match(
     styles,
-    /\.netcatty-math-formula-preview\s*\{[^}]*background:\s*transparent;[^}]*border:\s*0;/s,
+    /\.lemonssh-math-formula-preview\s*\{[^}]*background:\s*transparent;[^}]*border:\s*0;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-math-reading-mode\s*\{[^}]*background:\s*transparent\s*!important;[^}]*border:\s*none\s*!important;[^}]*padding:\s*0\s*!important;/s,
+    /\.lemonssh-math-reading-mode\s*\{[^}]*background:\s*transparent\s*!important;[^}]*border:\s*none\s*!important;[^}]*padding:\s*0\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-math-reading-mode\s+\.netcatty-math-formula-preview\s*\{[^}]*background:\s*transparent;/s,
+    /\.lemonssh-math-reading-mode\s+\.lemonssh-math-formula-preview\s*\{[^}]*background:\s*transparent;/s,
   );
-  assert.match(styles, /\.netcatty-math-formula-preview\s*\{[^}]*justify-content:\s*safe center;[^}]*overflow-x:\s*auto;/s);
+  assert.match(styles, /\.lemonssh-math-formula-preview\s*\{[^}]*justify-content:\s*safe center;[^}]*overflow-x:\s*auto;/s);
   assert.match(
     styles,
-    /\.netcatty-math-reading-mode\s*>\s*\.netcatty-note-code-copy\s*\{[^}]*display:\s*none\s*!important;/s,
+    /\.lemonssh-math-reading-mode\s*>\s*\.lemonssh-note-code-copy\s*\{[^}]*display:\s*none\s*!important;/s,
   );
 });
 
@@ -696,30 +696,30 @@ test("note preview uses MDX readOnly with code-copy chrome", () => {
   assert.match(source, /annotateNoteCodeBlockCopyButtons/);
   assert.match(source, /MutationObserver/);
   assert.match(source, /setAttribute\("aria-label", copiedLabel\)/);
-  assert.match(styles, /\.netcatty-note-code-copy/);
+  assert.match(styles, /\.lemonssh-note-code-copy/);
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\[class\*="_codeMirrorWrapper_"\]:hover\s+\.netcatty-note-code-copy/s,
+    /\.lemonssh-mdx-editor\s+\[class\*="_codeMirrorWrapper_"\]:hover\s+\.lemonssh-note-code-copy/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor:not\(\.netcatty-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*display:\s*flex;/s,
+    /\.lemonssh-mdx-editor:not\(\.lemonssh-mdx-editor--preview\)\s+\[class\*="_codeMirrorWrapper_"\]\s*\{[^}]*display:\s*flex;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor:not\(\.netcatty-mdx-editor--preview\)\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*justify-content:\s*flex-end;/s,
+    /\.lemonssh-mdx-editor:not\(\.lemonssh-mdx-editor--preview\)\s+\[class\*="_codeMirrorToolbar_"\]\s*\{[^}]*justify-content:\s*flex-end;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\]\s+\[class\*="_selectTrigger_"\]\s*\{[^}]*font-size:\s*11px\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\]\s+\[class\*="_selectTrigger_"\]\s*\{[^}]*font-size:\s*11px\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\]\s+button[^{]*\{[^}]*height:\s*1\.4rem\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\]\s+button[^{]*\{[^}]*height:\s*1\.4rem\s*!important;/s,
   );
   assert.match(
     styles,
-    /\.netcatty-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\][^{]*svg\s*\{[^}]*width:\s*10px\s*!important;/s,
+    /\.lemonssh-mdx-editor\s+\[class\*="_codeMirrorToolbar_"\][^{]*svg\s*\{[^}]*width:\s*10px\s*!important;/s,
   );
 });
 

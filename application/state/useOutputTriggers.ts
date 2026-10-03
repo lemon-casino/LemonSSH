@@ -6,7 +6,7 @@ import {
   createTerminalOutputTriggerFilter,
   getTerminalAlternateScreenAction,
 } from '@/domain/terminalOutputTriggerFilter.ts';
-import { netcattyBridge } from '@/infrastructure/services/netcattyBridge.ts';
+import { lemonsshBridge } from '@/infrastructure/services/lemonsshBridge.ts';
 import { getActiveScriptRunForSession } from '@/application/state/scriptAutomationCoordinator.ts';
 
 const OUTPUT_TRIGGER_SCAN_DELAY_MS = 16;
@@ -837,9 +837,9 @@ export function setupScriptBridgeListeners(
   const disposers: Array<() => void> = [];
 
   disposers.push(
-    netcattyBridge.get()?.onScriptScreenSnapshotRequest?.(({ requestId, sessionId }) => {
+    lemonsshBridge.get()?.onScriptScreenSnapshotRequest?.(({ requestId, sessionId }) => {
       const snapshot = getSnapshot(sessionId);
-      void netcattyBridge.get()?.scriptScreenSnapshotResponse?.(requestId, snapshot);
+      void lemonsshBridge.get()?.scriptScreenSnapshotResponse?.(requestId, snapshot);
     }) ?? (() => {}),
   );
 

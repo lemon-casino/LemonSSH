@@ -89,7 +89,7 @@ test('prepareTurnContext skips reinjection when no compaction occurred', async (
   assert.equal(prepared.didAdjust, false);
   assert.equal(events.length, 0);
   const serialized = JSON.stringify(prepared.messages);
-  assert.doesNotMatch(serialized, /Netcatty session context/);
+  assert.doesNotMatch(serialized, /LemonSSH session context/);
   assert.doesNotMatch(serialized, /Permission mode: confirm/);
 });
 

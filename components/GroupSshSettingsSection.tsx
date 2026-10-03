@@ -17,10 +17,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GroupSshSettingsSectionProps = Record<string, any>;
 
-const ToggleRow: React.FC<{ label: string; hint?: React.ReactNode; enabled: boolean; onToggle: () => void }> = ({ label, hint, enabled, onToggle }) => {
+const ToggleRow: React.FC<{ label: string; hint?: React.ReactNode; enabled: boolean; disabled?: boolean; onToggle: () => void }> = ({ label, hint, enabled, disabled, onToggle }) => {
   return (
     <HostDetailsSettingRow label={label} hint={hint}>
-      <Switch checked={enabled} onCheckedChange={() => onToggle()} />
+      <Switch checked={enabled} disabled={disabled} onCheckedChange={() => onToggle()} />
     </HostDetailsSettingRow>
   );
 };
@@ -356,7 +356,7 @@ export const GroupSshSettingsSection: React.FC<GroupSshSettingsSectionProps> = (
                         size="icon"
                         className="h-8 w-8 shrink-0"
                         onClick={async () => {
-                          const bridge = (window as unknown as { netcatty?: NetcattyBridge }).netcatty;
+                          const bridge = (window as unknown as { lemonssh?: LemonSSHBridge }).lemonssh;
                           if (!bridge?.selectFile) return;
                           const filePath = await bridge.selectFile(
                             "Select SSH Private Key",
@@ -390,8 +390,9 @@ export const GroupSshSettingsSection: React.FC<GroupSshSettingsSectionProps> = (
 
             <ToggleRow
               label={t("hostDetails.agentForwarding")}
-              hint={t("hostDetails.agentForwarding.desc")}
+              hint={form.moshEnabled ? t("hostDetails.agentForwarding.moshUnsupported") : t("hostDetails.agentForwarding.desc")}
               enabled={!!form.agentForwarding}
+              disabled={!!form.moshEnabled}
               onToggle={() => update("agentForwarding", !form.agentForwarding)}
             />
 
@@ -552,7 +553,16 @@ export const GroupSshSettingsSection: React.FC<GroupSshSettingsSectionProps> = (
             <ToggleRow
               label="Mosh"
               enabled={!!form.moshEnabled}
-              onToggle={() => update("moshEnabled", !form.moshEnabled)}
+              onToggle={() => {
+                if (!form.moshEnabled) {
+                  // Mosh's UDP protocol cannot carry agent channels; a group
+                  // mosh default must not drag the forwarding flag along.
+                  update("moshEnabled", true);
+                  update("agentForwarding", false);
+                  return;
+                }
+                update("moshEnabled", false);
+              }}
             />
             {form.moshEnabled && (
               <Input

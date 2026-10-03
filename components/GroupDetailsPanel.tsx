@@ -476,7 +476,7 @@ const GroupDetailsPanel: React.FC<GroupDetailsPanelPropsWithResize> = ({
 
   // Same idea for the algorithm-override lists themselves: surface what
   // this group would inherit from its parent so the editor can warn that
-  // a local Reset falls back to the parent's lists, not NetCatty's
+  // a local Reset falls back to the parent's lists, not LemonSSH's
   // defaults.
   const inheritedAlgorithmOverrides = useMemo(() => {
     if (!parentGroup || groupConfigs.length === 0) return undefined;

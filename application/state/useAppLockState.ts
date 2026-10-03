@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   normalizeAppLockSettings,
   type AppLockSettings,
 } from '../../domain/appLock';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import {
   normalizeRuntimeAppLockState,
   useAppLockRuntime,
@@ -113,10 +113,103 @@ export function getIdleLockDelayMs(
   return Math.max(0, timeoutMs - (now - lastActivityAt));
 }
 
+export interface IdleLockDecision {
+  /** True when the merged activity clock says the idle timeout elapsed. */
+  lock: boolean;
+  /** The freshest activity timestamp across local input and the Go clock. */
+  activityAt: number;
+  /** Remaining idle budget in ms; `null` when idle locking is disabled. */
+  delayMs: number | null;
+}
+
+/**
+ * Merges the local renderer activity clock with the Go-side cross-window
+ * clock (the real idle source: every window's ReportActivity lands there)
+ * and decides whether the app should lock after idle right now.
+ */
+export function resolveIdleLockDecision(input: {
+  settings: AppLockSettings;
+  localLastActivityAt: number;
+  crossWindowLastActivityAt: number | null;
+  now: number;
+}): IdleLockDecision {
+  const activityAt = Math.max(input.localLastActivityAt, input.crossWindowLastActivityAt ?? 0);
+  return {
+    lock: shouldLockAfterIdle(input.settings, activityAt, input.now),
+    activityAt,
+    delayMs: getIdleLockDelayMs(input.settings, activityAt, input.now),
+  };
+}
+
+export interface IdleLockWatchdogOptions {
+  settings: AppLockSettings;
+  bridge: Pick<LemonSSHBridge, 'getAppLockRuntimeState' | 'setAppLockRuntimeLocked'> | null | undefined;
+  lastActivityRef: { current: number };
+  scheduleTimeout: (callback: () => void, delayMs: number) => unknown;
+  cancelTimeout: (handle: unknown) => void;
+  now: () => number;
+}
+
+/**
+ * Arms and evaluates the renderer-side idle auto-lock schedule; returns a
+ * disposer. Go owns the authoritative idle timer (it sees every window's
+ * ReportActivity), so this watchdog never locks on its own clock: before
+ * requesting the "idle" lock it re-checks shouldLockAfterIdle against Go's
+ * cross-window activity clock, and Go re-verifies the request server-side.
+ */
+export function createIdleLockWatchdog(options: IdleLockWatchdogOptions): () => void {
+  const { settings, bridge, lastActivityRef, scheduleTimeout, cancelTimeout, now } = options;
+  let cancelled = false;
+  let timer: unknown;
+  const arm = () => {
+    if (cancelled) return;
+    if (timer !== undefined) cancelTimeout(timer);
+    const decision = resolveIdleLockDecision({
+      settings,
+      localLastActivityAt: lastActivityRef.current,
+      crossWindowLastActivityAt: null,
+      now: now(),
+    });
+    if (decision.delayMs === null) return;
+    timer = scheduleTimeout(() => { void evaluate(); }, decision.delayMs);
+  };
+  const evaluate = async () => {
+    if (cancelled) return;
+    timer = undefined;
+    let crossWindowLastActivityAt: number | null = null;
+    try {
+      const state = await bridge?.getAppLockRuntimeState?.();
+      if (state && typeof state.lastActivityAt === 'number') {
+        crossWindowLastActivityAt = state.lastActivityAt;
+      }
+    } catch {
+      // Keep the local anchor when the runtime state cannot be read.
+    }
+    if (cancelled) return;
+    const decision = resolveIdleLockDecision({
+      settings,
+      localLastActivityAt: lastActivityRef.current,
+      crossWindowLastActivityAt,
+      now: now(),
+    });
+    lastActivityRef.current = Math.max(lastActivityRef.current, decision.activityAt);
+    if (!decision.lock) {
+      arm();
+      return;
+    }
+    void bridge?.setAppLockRuntimeLocked?.('idle');
+  };
+  arm();
+  return () => {
+    cancelled = true;
+    if (timer !== undefined) cancelTimeout(timer);
+  };
+}
+
 export async function resolveUnlockAttempt(password: string): Promise<AppLockUnlockResult> {
   if (!password) return { ok: false, error: 'empty' };
   try {
-    return await netcattyBridge.get()?.requestAppLockUnlock?.(password) ?? { ok: false, error: 'incorrect' };
+    return await lemonsshBridge.get()?.requestAppLockUnlock?.(password) ?? { ok: false, error: 'incorrect' };
   } catch {
     return { ok: false, error: 'incorrect' };
   }
@@ -147,11 +240,15 @@ export function createOptimisticUnlockedRuntimeState(
 export function useAppLockState(settings: AppLockSettings) {
   const normalizedSettings = useMemo(() => normalizeAppLockSettings(settings), [settings]);
   const systemUnlockRefreshKey = `${normalizedSettings.enabled}:${normalizedSettings.systemUnlockEnabled}:${Boolean(normalizedSettings.passwordVerifier)}`;
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const { runtimeState, refreshRuntimeState, setRuntimeState } = useAppLockRuntime(bridge);
   const [systemUnlockStatus, setSystemUnlockStatus] = useState<AppLockSystemUnlockStatus>(
     DEFAULT_APP_LOCK_SYSTEM_UNLOCK_STATUS,
   );
+  // Local idle clock. Renderer input only covers this window, so the idle
+  // watchdog below always re-checks against the Go-side cross-window clock
+  // (every window's reportAppLockActivity lands there) before locking.
+  const lastActivityRef = useRef<number>(Date.now());
   const normalizedRuntimeState = useMemo(
     () => normalizeRuntimeAppLockState(runtimeState),
     [runtimeState],
@@ -177,7 +274,18 @@ export function useAppLockState(settings: AppLockSettings) {
     void bridge?.setAppLockRuntimeLocked?.(reason);
   }, [bridge, normalizedSettings]);
 
+  // Merge the Go-side activity clock into the local one whenever a fresher
+  // runtime state arrives (pull or push). Declared before the watchdog so a
+  // state update lands before the next idle schedule is computed.
+  useEffect(() => {
+    const crossWindowActivityAt = normalizedRuntimeState.lastActivityAt;
+    if (typeof crossWindowActivityAt === 'number') {
+      lastActivityRef.current = Math.max(lastActivityRef.current, crossWindowActivityAt);
+    }
+  }, [normalizedRuntimeState]);
+
   const recordActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
     if (effectiveRuntimeState.locked) return;
     void bridge?.reportAppLockActivity?.();
   }, [bridge, effectiveRuntimeState.locked]);
@@ -186,6 +294,8 @@ export function useAppLockState(settings: AppLockSettings) {
     const result = await resolveUnlockAttempt(password);
     if (result.ok) {
       const unlockedAt = Date.now();
+      // Unlocking proves presence: restart the local idle clock like Go does.
+      lastActivityRef.current = Math.max(lastActivityRef.current, unlockedAt);
       setRuntimeState((current) => createOptimisticUnlockedRuntimeState(current, unlockedAt));
       await refreshRuntimeState().catch(() => {});
     }
@@ -208,6 +318,7 @@ export function useAppLockState(settings: AppLockSettings) {
     const result = normalizeAppLockSystemUnlockResult(await bridge?.requestAppLockSystemUnlock?.());
     if (result.ok) {
       const unlockedAt = Date.now();
+      lastActivityRef.current = Math.max(lastActivityRef.current, unlockedAt);
       setRuntimeState((current) => createOptimisticUnlockedRuntimeState(current, unlockedAt));
       await refreshRuntimeState().catch(() => {});
     }
@@ -224,6 +335,7 @@ export function useAppLockState(settings: AppLockSettings) {
       throw new Error(result.error);
     }
     const unlockedAt = Date.now();
+    lastActivityRef.current = Math.max(lastActivityRef.current, unlockedAt);
     setRuntimeState((current) => createOptimisticUnlockedRuntimeState(current, unlockedAt));
     await refreshRuntimeState().catch(() => {});
   }, [bridge, refreshRuntimeState, setRuntimeState]);
@@ -261,6 +373,23 @@ export function useAppLockState(settings: AppLockSettings) {
     void bridge?.reportAppLockActivity?.();
     return undefined;
   }, [bridge, normalizedSettings]);
+
+  // Idle auto-lock watchdog (see createIdleLockWatchdog): schedules the
+  // configured timeout and requests the Go-verified "idle" lock when the
+  // merged activity clock says the app went idle.
+  useEffect(() => {
+    if (!shouldLockOnStartup(normalizedSettings)) return undefined;
+    if (effectiveRuntimeState.locked) return undefined;
+    if (typeof window === 'undefined') return undefined;
+    return createIdleLockWatchdog({
+      settings: normalizedSettings,
+      bridge,
+      lastActivityRef,
+      scheduleTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      cancelTimeout: (handle) => window.clearTimeout(handle as number),
+      now: () => Date.now(),
+    });
+  }, [bridge, normalizedSettings, effectiveRuntimeState.locked]);
 
   useEffect(() => {
     void refreshSystemUnlockStatus();

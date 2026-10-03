@@ -140,8 +140,9 @@
 
     /* Main app only: opaque splash fill. Tray overlay stays clear (#2505).
        --splash-background / --splash-accent come from the boot-theme mirror
-       (netcatty_boot_theme_v1, written by applyThemeTokens) so the splash
-       matches the real UI theme instead of the builtin fallback palette. */
+       (lemonssh_boot_theme_v1, legacy netcatty_boot_theme_v1 fallback; written
+       by applyThemeTokens) so the splash matches the real UI theme instead of
+       the builtin fallback palette. */
     html:not(.tray-window) .splash-screen {
       background: var(--splash-background, hsl(var(--background)));
     }
@@ -182,10 +183,19 @@
   <script>
     (function () {
       try {
-        var theme = localStorage.getItem('netcatty_theme_v1');
-        var accentMode = localStorage.getItem('netcatty_accent_mode_v1');
-        var accentColor = localStorage.getItem('netcatty_color_v1');
-        var lang = localStorage.getItem('netcatty_ui_language_v1');
+        // compat#3: read the renamed lemonssh_* keys first, falling back to the
+        // legacy netcatty_* keys (read-only) so the splash keeps the real theme
+        // on the first launch of the renamed build — before the storage-key
+        // migration has run in the renderer.
+        function readStored(newKey, legacyKey) {
+          var value = localStorage.getItem(newKey);
+          if (value === null && legacyKey) value = localStorage.getItem(legacyKey);
+          return value;
+        }
+        var theme = readStored('lemonssh_theme_v1', 'netcatty_theme_v1');
+        var accentMode = readStored('lemonssh_accent_mode_v1', 'netcatty_accent_mode_v1');
+        var accentColor = readStored('lemonssh_color_v1', 'netcatty_color_v1');
+        var lang = readStored('lemonssh_ui_language_v1', 'netcatty_ui_language_v1');
         var root = document.documentElement;
 
         // Resolve 'system' (or absent — default is 'system') via OS preference
@@ -216,7 +226,7 @@
         // Boot-theme mirror: tint the splash with the real UI theme palette
         // for the resolved scheme (written by applyThemeTokens on last run).
         try {
-          var mirror = JSON.parse(localStorage.getItem('netcatty_boot_theme_v1') || 'null');
+          var mirror = JSON.parse(readStored('lemonssh_boot_theme_v1', 'netcatty_boot_theme_v1') || 'null');
           var palette = mirror && mirror[resolved];
           if (palette && palette.background) {
             root.style.setProperty('--splash-background', 'hsl(' + palette.background + ')');

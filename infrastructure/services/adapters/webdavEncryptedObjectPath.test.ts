@@ -98,7 +98,7 @@ describe('WebDAV EncryptedObjectStorage production path', () => {
 
     // Without network, initializeSync fails; still prove resourceId is not
     // overwritten to the bare DEFAULT key before connect runs.
-    assert.notEqual(adapter.resourceId, 'netcatty-vault.json');
+    assert.notEqual(adapter.resourceId, 'lemonssh-vault.json');
   });
 
   it('WebDAV-style adapters round-trip encrypted SyncedFile bytes through EncryptedObjectStorage', async () => {

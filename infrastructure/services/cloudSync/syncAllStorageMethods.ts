@@ -77,8 +77,8 @@ async function downloadRemoteForSyncAllImpl(this: any,
   return result;
 }
 
-const SYNC_HISTORY_STORAGE_KEY = 'netcatty_sync_history_v1';
-const SYNC_SNAPSHOTS_STORAGE_KEY = 'netcatty_sync_snapshots_v1';
+const SYNC_HISTORY_STORAGE_KEY = 'lemonssh_sync_history_v1';
+const SYNC_SNAPSHOTS_STORAGE_KEY = 'lemonssh_sync_snapshots_v1';
 
 async function loadRawSyncBase(this: any, provider?: CloudProvider): Promise<SyncPayload | null> {
   const key = this.state.unlockedKey?.derivedKey;
@@ -849,7 +849,7 @@ export function syncBaseKeyImpl(this: any,provider?: CloudProvider): string {
   }
 
 export function providerAccountIdKeyImpl(this: any,provider: CloudProvider): string {
-    return `netcatty.sync.accountId.${provider}`;
+    return `lemonssh.sync.accountId.${provider}`;
   }
 
 export function loadProviderAccountIdImpl(this: any,provider: CloudProvider): string | null {

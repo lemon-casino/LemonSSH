@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/platform/monitoring"
+	"github.com/binaricat/lemonssh/internal/platform/monitoring"
 )
 
 // Extended monitoring request DTOs are kept in the application layer so the

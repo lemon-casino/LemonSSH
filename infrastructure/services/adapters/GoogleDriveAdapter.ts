@@ -21,7 +21,7 @@ import {
 } from '../../../domain/sync';
 import { resolveOAuthClientId, resolveOAuthClientSecret } from '../cloudSync/oauthClientIds';
 import { arrayBufferToBase64, generateRandomBytes } from '../EncryptionService';
-import { cloudSyncBridge as netcattyBridge } from '../cloudSync/cloudSyncFacade';
+import { cloudSyncBridge as lemonsshBridge } from '../cloudSync/cloudSyncFacade';
 
 // ============================================================================
 // Types
@@ -127,7 +127,7 @@ export const exchangeCodeForTokens = async (
   codeVerifier: string,
   redirectUri: string
 ): Promise<OAuthTokens> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const exchangeViaMain = bridge?.googleExchangeCodeForTokens;
   if (!exchangeViaMain) {
     throw new Error(
@@ -148,7 +148,7 @@ export const exchangeCodeForTokens = async (
  * Refresh access token
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTokens> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const refreshViaMain = bridge?.googleRefreshAccessToken;
   if (!refreshViaMain) {
     throw new Error(
@@ -171,7 +171,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<OAuthTok
  * Get authenticated user info
  */
 export const getUserInfo = async (accessToken: string): Promise<ProviderAccount> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const userInfoViaMain = bridge?.googleGetUserInfo;
   if (userInfoViaMain) {
     const user = await userInfoViaMain({ accessToken });
@@ -208,7 +208,7 @@ export const getUserInfo = async (accessToken: string): Promise<ProviderAccount>
  */
 export const validateToken = async (accessToken: string): Promise<boolean> => {
   try {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const userInfoViaMain = bridge?.googleGetUserInfo;
     if (userInfoViaMain) {
       await userInfoViaMain({ accessToken });
@@ -230,21 +230,36 @@ export const validateToken = async (accessToken: string): Promise<boolean> => {
 
 /**
  * Find sync file in appDataFolder
+ *
+ * compat#5: look for the renamed lemonssh-vault.json first and fall back to
+ * the legacy netcatty-vault.json name so pre-rename remote artifacts keep
+ * syncing (updates go to the found resource id; the name is never migrated).
  */
 export const findSyncFile = async (accessToken: string): Promise<string | null> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const findViaMain = bridge?.googleDriveFindSyncFile;
   if (findViaMain) {
     const { fileId } = await findViaMain({
       accessToken,
       fileName: SYNC_CONSTANTS.SYNC_FILE_NAME,
     });
-    return fileId || null;
+    if (fileId) return fileId;
+    const legacy = await findViaMain({
+      accessToken,
+      fileName: SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME,
+    });
+    return legacy.fileId || null;
   }
 
+  const current = await findDriveFileId(accessToken, SYNC_CONSTANTS.SYNC_FILE_NAME);
+  if (current) return current;
+  return findDriveFileId(accessToken, SYNC_CONSTANTS.LEGACY_SYNC_FILE_NAME);
+};
+
+const findDriveFileId = async (accessToken: string, fileName: string): Promise<string | null> => {
   const params = new URLSearchParams({
     spaces: 'appDataFolder',
-    q: `name = '${SYNC_CONSTANTS.SYNC_FILE_NAME}'`,
+    q: `name = '${fileName}'`,
     fields: 'files(id, name, modifiedTime)',
   });
 
@@ -289,7 +304,7 @@ export const createSyncFile = async (
   accessToken: string,
   syncedFile: SyncedFile
 ): Promise<string> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const createViaMain = bridge?.googleDriveCreateSyncFile;
   if (createViaMain) {
     const { fileId } = await createViaMain({
@@ -355,7 +370,7 @@ export const updateSyncFile = async (
   fileId: string,
   syncedFile: SyncedFile
 ): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const updateViaMain = bridge?.googleDriveUpdateSyncFile;
   if (updateViaMain) {
     await updateViaMain({ accessToken, fileId, syncedFile });
@@ -399,7 +414,7 @@ export const downloadSyncFile = async (
   accessToken: string,
   fileId: string
 ): Promise<SyncedFile | null> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const downloadViaMain = bridge?.googleDriveDownloadSyncFile;
   if (downloadViaMain) {
     const { syncedFile } = await downloadViaMain({ accessToken, fileId });
@@ -445,7 +460,7 @@ export const deleteSyncFile = async (
   accessToken: string,
   fileId: string
 ): Promise<void> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const deleteViaMain = bridge?.googleDriveDeleteSyncFile;
   if (deleteViaMain) {
     await deleteViaMain({ accessToken, fileId });
@@ -485,7 +500,7 @@ export const getRevisionHistory = async (
   accessToken: string,
   fileId: string
 ): Promise<Array<{ version: string; date: Date }>> => {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (bridge?.googleDriveGetRevisionHistory) {
     const entries = await bridge.googleDriveGetRevisionHistory({ accessToken, fileId });
     return (entries ?? []).map(h => ({ version: h.version, date: new Date(h.date) }));
@@ -749,7 +764,7 @@ export class GoogleDriveAdapter {
     }
     if (!this.fileId) return null;
 
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.googleDriveDownloadSyncFile) {
       // Renderer fallback has no revision parameter; only the native path
       // can address a specific Drive revision.

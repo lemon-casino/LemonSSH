@@ -127,7 +127,7 @@ test('attachTokenRefreshPersistence persists Google tokens refreshed mid-session
   const g = globalThis as typeof globalThis & { window?: unknown };
   const originalWindow = g.window;
   g.window = {
-    netcatty: {
+    lemonssh: {
       // Google's refresh response omits refresh_token — the adapter must carry
       // the previous one forward so the persisted connection stays refreshable.
       googleRefreshAccessToken: async () => ({

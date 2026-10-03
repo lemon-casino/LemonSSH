@@ -92,7 +92,7 @@ test("lock requires source/build/archive/binary provenance and safe names", asyn
     (lock) => { lock.assets[0].sha256 = ""; },
     (lock) => { lock.assets[0].files[0].sha256 = ""; },
     (lock) => { lock.assets[0].files[0].path = "../escape.exe"; },
-    (lock) => { lock.releases.mosh.tag = "moshcatty-0.1.7"; },
+    (lock) => { lock.releases.mosh.tag = "moshlemonssh-0.1.7"; },
     (lock) => { lock.releases.et.licenses[0].url = "https://raw.githubusercontent.com/owner/repo/main/LICENSE"; },
   ]) {
     const lock = structuredClone(original); change(lock);
@@ -179,7 +179,7 @@ test("upstream build provenance must agree with source, workflow and archive pin
   const proof = {
     release: { repository: release.repository, tag: release.tag },
     upstream: { repository: release.source.repository, ref: release.source.tag, commit: release.source.commit },
-    netcatty: { checkoutCommit: release.build.commit, workflowRun: release.build.run },
+    lemonssh: { checkoutCommit: release.build.commit, workflowRun: release.build.run },
     artifacts: [{ name: asset.archive, sha256: asset.sha256 }],
   };
   const bytes = Buffer.from(JSON.stringify(proof));
@@ -190,6 +190,32 @@ test("upstream build provenance must agree with source, workflow and archive pin
   const bad = Buffer.from(JSON.stringify(proof));
   release.buildProvenance.sha256 = sha256(bad);
   assert.throws(() => verifyBuildProvenance(bad, release, asset), /provenance does not match/);
+});
+
+test("legacy build provenance proofs keyed by netcatty still verify", async () => {
+  const lock = await loadLock();
+  const asset = lock.assets.find((entry) => entry.kind === "et");
+  const release = structuredClone(lock.releases.et);
+  // Simulate a pre-rename proof: the historical binary-repo name, the legacy
+  // "netcatty" provenance key and a run URL pointing at the old repo slug.
+  // The third-party source repository is unchanged by the rename.
+  const legacyRepository = "binaricat/Netcatty-et-bin";
+  const legacyRun = "https://github.com/binaricat/Netcatty/actions/runs/26945446872";
+  const proof = {
+    release: { repository: legacyRepository, tag: release.tag },
+    upstream: { repository: release.source.repository, ref: release.source.tag, commit: release.source.commit },
+    netcatty: { checkoutCommit: release.build.commit, workflowRun: legacyRun },
+    artifacts: [{ name: asset.archive, sha256: asset.sha256 }],
+  };
+  const bytes = Buffer.from(JSON.stringify(proof));
+  release.buildProvenance.sha256 = sha256(bytes);
+  verifyBuildProvenance(bytes, release, asset);
+  // A genuinely wrong commit must still be rejected.
+  const bad = structuredClone(proof);
+  bad.upstream.commit = "0".repeat(40);
+  const badBytes = Buffer.from(JSON.stringify(bad));
+  release.buildProvenance.sha256 = sha256(badBytes);
+  assert.throws(() => verifyBuildProvenance(badBytes, release, asset), /provenance does not match/);
 });
 
 test("fetch checks pinned bytes before publishing cache and refuses corrupt cache", async (t) => {
@@ -205,9 +231,9 @@ test("fetch checks pinned bytes before publishing cache and refuses corrupt cach
 });
 
 test("gh transport preserves exact release tag, asset name and source commit", () => {
-  assert.deepEqual(githubDownloadArgs("https://github.com/binaricat/MoshCatty/releases/download/moshcatty-0.1.8/SHA256SUMS"),
-    ["release", "download", "moshcatty-0.1.8", "--repo", "binaricat/MoshCatty", "--pattern", "SHA256SUMS", "--output", "-"]);
-  assert.throws(() => githubDownloadArgs("https://github.com/binaricat/MoshCatty/releases/latest"), /pinned GitHub URL/);
+  assert.deepEqual(githubDownloadArgs("https://github.com/binaricat/MoshLemonSSH/releases/download/moshlemonssh-0.1.8/SHA256SUMS"),
+    ["release", "download", "moshlemonssh-0.1.8", "--repo", "binaricat/MoshLemonSSH", "--pattern", "SHA256SUMS", "--output", "-"]);
+  assert.throws(() => githubDownloadArgs("https://github.com/binaricat/MoshLemonSSH/releases/latest"), /pinned GitHub URL/);
   assert.throws(() => githubDownloadArgs("https://raw.githubusercontent.com/owner/repo/main/LICENSE"), /pinned GitHub URL/);
 });
 

@@ -482,7 +482,7 @@ test('buildManagedAgentState only rewrites settings-managed discovered agents', 
     agents,
     'my-codex-wrapper',
     'codex',
-    { path: '/opt/netcatty/codex', version: 'Bundled legacy adapter', available: true },
+    { path: '/opt/lemonssh/codex', version: 'Bundled legacy adapter', available: true },
   );
 
   assert.deepEqual(

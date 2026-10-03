@@ -1,6 +1,6 @@
 import type { SyncedFile } from '../../../domain/sync';
 import { getActiveRuntimeClient } from '../../runtime/runtimeClient';
-import { netcattyBridge } from '../netcattyBridge';
+import { lemonsshBridge } from '../lemonsshBridge';
 
 type FileOptions = { accessToken: string; fileId?: string; fileName?: string; syncedFile?: SyncedFile; revision?: string };
 type FileResult = { fileId: string | null };
@@ -10,7 +10,7 @@ type UserInfo = { id: string; email: string; name: string; picture?: string };
 // Additional typed GitHub ports fill the renderer-only REST gap. Kept beside
 // this facade until the coordinator regenerates the central port inventory.
 declare global {
-  interface NetcattyBridge {
+  interface LemonSSHBridge {
     githubGetUserInfo?(options: { accessToken: string }): Promise<UserInfo>;
     githubFindSyncFile?(options: FileOptions): Promise<FileResult>;
     githubUploadSyncFile?(options: FileOptions): Promise<FileResult>;
@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-export type CloudOAuthFacade = Required<Pick<NetcattyBridge,
+export type CloudOAuthFacade = Required<Pick<LemonSSHBridge,
   | 'prepareOAuthCallback' | 'awaitOAuthCallback' | 'cancelOAuthCallback' | 'openExternal'
   | 'githubStartDeviceFlow' | 'githubPollDeviceFlowToken' | 'githubCancelDeviceFlowPoll' | 'githubDownloadGistRawContent'
   | 'githubGetUserInfo' | 'githubFindSyncFile' | 'githubUploadSyncFile' | 'githubDownloadSyncFile' | 'githubDeleteSyncFile' | 'githubGetGistHistory'
@@ -101,8 +101,8 @@ export function nativeCloudSyncRequired(): boolean {
 
 /** Wails never falls back to renderer fetch when a provider port is missing. */
 export const cloudSyncBridge = {
-  get(): Partial<NetcattyBridge> | undefined {
-    if (!nativeCloudSyncRequired()) return netcattyBridge.get();
+  get(): Partial<LemonSSHBridge> | undefined {
+    if (!nativeCloudSyncRequired()) return lemonsshBridge.get();
     const port = getActiveRuntimeClient()?.sync;
     return new Proxy(port ?? {}, {
       get(target, key) {

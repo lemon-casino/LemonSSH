@@ -49,7 +49,7 @@ import {
   type VaultImportFormat,
 } from '../../domain/vaultImport';
 import { resolveHostAuth } from '../../domain/sshAuth';
-import { netcattyBridge } from '../services/netcattyBridge';
+import { lemonsshBridge } from '../services/lemonsshBridge';
 import {
   createPortForwardingRule,
   duplicatePortForwardingRule,
@@ -394,7 +394,7 @@ async function executeSnippetOrScriptRun(
     return { ok: false, error: `Missing snippet variable "${applied.missing.join('", "')}".` };
   }
   const command = applied.command;
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.aiExec) {
     return { ok: false, error: 'Terminal execution bridge is unavailable.' };
   }
@@ -510,9 +510,9 @@ async function registerOpenedSessionInMcpScope(
   host: Host,
   chatSessionId?: string,
 ): Promise<void> {
-  let bridge: ReturnType<typeof netcattyBridge.get> | undefined;
+  let bridge: ReturnType<typeof lemonsshBridge.get> | undefined;
   try {
-    bridge = netcattyBridge.get();
+    bridge = lemonsshBridge.get();
   } catch {
     // Node unit tests / non-renderer contexts have no window.
     return;
@@ -1215,7 +1215,7 @@ export async function handleVaultAgentOp(
       return { ok: true, reference: getScriptApiReference() };
     }
     case 'scripts.runs.list': {
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       if (!bridge?.scriptGetRuns) {
         return { ok: false, error: 'Script runs bridge is unavailable.' };
       }
@@ -1443,7 +1443,7 @@ export function registerVaultAgentHandler(handler: VaultAgentHandler | null): vo
 }
 
 export function setupVaultAgentBridge(): () => void {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.onVaultAgentRequest || !bridge.respondVaultAgent) {
     return () => {};
   }

@@ -42,10 +42,10 @@ test("openTransferSftpSession defaults to dedicated vault open (ignores terminal
   };
 
   try {
-    // netcattyBridge reads window.electron — ensure adapter path works via mock.
-    const { netcattyBridge } = await import("../../../infrastructure/services/netcattyBridge.ts");
-    const restore = netcattyBridge.get;
-    (netcattyBridge as { get: () => unknown }).get = () => ({
+    // lemonsshBridge reads window.electron — ensure adapter path works via mock.
+    const { lemonsshBridge } = await import("../../../infrastructure/services/lemonsshBridge.ts");
+    const restore = lemonsshBridge.get;
+    (lemonsshBridge as { get: () => unknown }).get = () => ({
       openSftp: async () => {
         openSftpCalls += 1;
         return "dedicated-sftp";
@@ -66,7 +66,7 @@ test("openTransferSftpSession defaults to dedicated vault open (ignores terminal
       assert.equal(openSftpCalls, 1);
       assert.equal(openForSessionCalls, 0, "dedicated bulk path must not use terminal session channel");
     } finally {
-      (netcattyBridge as { get: typeof restore }).get = restore;
+      (lemonsshBridge as { get: typeof restore }).get = restore;
     }
   } finally {
     if (original === undefined) delete (globalThis as { window?: unknown }).window;
@@ -78,12 +78,12 @@ test("openTransferSftpSession defaults to dedicated vault open (ignores terminal
 test("openTransferSftpSession can use terminal session only when dedicated:false", async () => {
   resetDedicatedSessionOpenGateForTests();
   let openForSessionCalls = 0;
-  let expectedEndpoint: NetcattySSHOptions | undefined;
-  const { netcattyBridge } = await import("../../../infrastructure/services/netcattyBridge.ts");
-  const restore = netcattyBridge.get;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  let expectedEndpoint: LemonSSHSSHOptions | undefined;
+  const { lemonsshBridge } = await import("../../../infrastructure/services/lemonsshBridge.ts");
+  const restore = lemonsshBridge.get;
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
-    openSftpForSession: async (_sessionId: string, endpoint?: NetcattySSHOptions) => {
+    openSftpForSession: async (_sessionId: string, endpoint?: LemonSSHSSHOptions) => {
       openForSessionCalls += 1;
       expectedEndpoint = endpoint;
       return "session-sftp";
@@ -100,19 +100,19 @@ test("openTransferSftpSession can use terminal session only when dedicated:false
     assert.equal(expectedEndpoint?.hostname, host.hostname);
     assert.equal(expectedEndpoint?.password, host.password);
   } finally {
-    (netcattyBridge as { get: typeof restore }).get = restore;
+    (lemonsshBridge as { get: typeof restore }).get = restore;
     resetDedicatedSessionOpenGateForTests();
   }
 });
 
 test("non-dedicated transfer without a terminal keeps unified transport reuse enabled", async () => {
   resetDedicatedSessionOpenGateForTests();
-  const seen: NetcattySSHOptions[] = [];
+  const seen: LemonSSHSSHOptions[] = [];
   let openForSessionCalls = 0;
-  const { netcattyBridge } = await import("../../../infrastructure/services/netcattyBridge.ts");
-  const restore = netcattyBridge.get;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
-    openSftp: async (options: NetcattySSHOptions) => {
+  const { lemonsshBridge } = await import("../../../infrastructure/services/lemonsshBridge.ts");
+  const restore = lemonsshBridge.get;
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
+    openSftp: async (options: LemonSSHSSHOptions) => {
       seen.push(options);
       return "pooled-sftp";
     },
@@ -132,7 +132,7 @@ test("non-dedicated transfer without a terminal keeps unified transport reuse en
     assert.equal(seen.length, 1);
     assert.notEqual(seen[0]?.reuseTransport, false);
   } finally {
-    (netcattyBridge as { get: typeof restore }).get = restore;
+    (lemonsshBridge as { get: typeof restore }).get = restore;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -145,11 +145,11 @@ test("dedicated transfer delegates key and password fallback to one main-process
     identityFilePaths: ["/tmp/id_ed25519"],
     password: "fallback-password",
   } as Host;
-  const seen: NetcattySSHOptions[] = [];
-  const { netcattyBridge } = await import("../../../infrastructure/services/netcattyBridge.ts");
-  const restore = netcattyBridge.get;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
-    openSftp: async (options: NetcattySSHOptions) => {
+  const seen: LemonSSHSSHOptions[] = [];
+  const { lemonsshBridge } = await import("../../../infrastructure/services/lemonsshBridge.ts");
+  const restore = lemonsshBridge.get;
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
+    openSftp: async (options: LemonSSHSSHOptions) => {
       seen.push(options);
       throw new Error("All configured authentication methods failed");
     },
@@ -163,7 +163,7 @@ test("dedicated transfer delegates key and password fallback to one main-process
     assert.equal(seen[0]?.password, "fallback-password");
     assert.deepEqual(seen[0]?.identityFilePaths, ["/tmp/id_ed25519"]);
   } finally {
-    (netcattyBridge as { get: typeof restore }).get = restore;
+    (lemonsshBridge as { get: typeof restore }).get = restore;
     resetDedicatedSessionOpenGateForTests();
   }
 });

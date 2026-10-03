@@ -20,7 +20,7 @@ import {
 } from "../../../domain/sftpTransferConflicts";
 import { useI18n } from "../../i18n/I18nProvider";
 import { notify } from "../../notification";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { logger } from "../../../lib/logger";
 import { sftpTransferCenterStore } from "../sftpTransferCenterStore";
 import { SftpPane } from "./types";
@@ -407,7 +407,7 @@ export const useSftpTransfers = ({
     const targetSftpId = targetPane?.connection && !targetPane.connection.isLocal
       ? sftpSessionsRef.current.get(targetPane.connection.id)
       : undefined;
-    await netcattyBridge.get()?.cleanupTransferArtifacts?.({
+    await lemonsshBridge.get()?.cleanupTransferArtifacts?.({
       transferId: task.id,
       sourcePath: task.sourcePath,
       targetPath: task.targetPath,
@@ -622,7 +622,7 @@ export const useSftpTransfers = ({
         if (task.totalBytes > 0 || !!task.sourceLastModified) return;
 
         if (sourcePane.connection?.isLocal) {
-          const stat = await netcattyBridge.get()?.statLocal?.(task.sourcePath);
+          const stat = await lemonsshBridge.get()?.statLocal?.(task.sourcePath);
           if (stat) {
             if (!task.sourceLastModified && stat.lastModified) {
               task.sourceLastModified = stat.lastModified;
@@ -637,7 +637,7 @@ export const useSftpTransfers = ({
         }
 
         if (sourceSftpId) {
-          const stat = await netcattyBridge.get()?.statSftp?.(
+          const stat = await lemonsshBridge.get()?.statSftp?.(
             sourceSftpId,
             task.sourcePath,
             sourceEncoding,
@@ -856,7 +856,7 @@ export const useSftpTransfers = ({
         if (cancelledTasksRef.current.has(task.id)) {
           throw new Error("Transfer cancelled");
         }
-        const result = await netcattyBridge.require().sameHostCopyDirectory!(
+        const result = await lemonsshBridge.require().sameHostCopyDirectory!(
           sourceSftpId,
           task.sourcePath,
           task.targetPath,
@@ -876,7 +876,7 @@ export const useSftpTransfers = ({
         // Child file tasks are registered in transfers array with their own byte progress.
 
         const stagedTargetPath = task.replaceExistingTarget
-          ? `${task.targetPath}.netcatty-${task.id.replace(/[^A-Za-z0-9_-]/g, "_")}.part`
+          ? `${task.targetPath}.lemonssh-${task.id.replace(/[^A-Za-z0-9_-]/g, "_")}.part`
           : undefined;
         const directoryTask = stagedTargetPath ? { ...task, targetPath: stagedTargetPath } : task;
         if (stagedTargetPath) updateTask({ stagedTargetPath });
@@ -896,8 +896,8 @@ export const useSftpTransfers = ({
         if (dirErrors > 0) {
           dirPartialFailure = true;
         } else if (stagedTargetPath) {
-          const bridge = netcattyBridge.require();
-          const backupPath = `${task.targetPath}.netcatty-${task.id.replace(/[^A-Za-z0-9_-]/g, "_")}.backup`;
+          const bridge = lemonsshBridge.require();
+          const backupPath = `${task.targetPath}.lemonssh-${task.id.replace(/[^A-Za-z0-9_-]/g, "_")}.backup`;
           if (targetPane.connection!.isLocal) {
             if (!bridge.statLocal || !bridge.renameLocalFile || !bridge.deleteLocalFile) {
               throw new Error("Local directory replacement is unavailable");
@@ -1307,7 +1307,7 @@ export const useSftpTransfers = ({
 
   const prioritizeTransfer = useCallback((transferId: string) => {
     globalSftpTransferScheduler.prioritize(transferId);
-    void netcattyBridge.get()?.prioritizeTransfer?.(transferId);
+    void lemonsshBridge.get()?.prioritizeTransfer?.(transferId);
     setTransfers((prev) => {
       const nextPriority = prev.reduce((max, task) => Math.max(max, task.priority ?? 0), 0) + 1;
       return prev.map((task) => task.id === transferId ? { ...task, priority: nextPriority } : task);
@@ -1336,13 +1336,13 @@ export const useSftpTransfers = ({
               ? (hostId, id) => acquireTransferSession(hostId, id)
               : undefined,
             startStreamTransfer: async (options) => {
-              const bridge = netcattyBridge.get();
+              const bridge = lemonsshBridge.get();
               if (!bridge?.startStreamTransfer) {
                 return { error: "Stream transfer is unavailable" };
               }
               return bridge.startStreamTransfer(options);
             },
-            clearPendingCancel: (id) => netcattyBridge.get()?.clearPendingTransferCancel?.(id),
+            clearPendingCancel: (id) => lemonsshBridge.get()?.clearPendingTransferCancel?.(id),
             cleanupArtifacts: cleanupTaskArtifacts,
             getTask: (id) => sftpTransferCenterStore.getTask(id)
               ?? transfersRef.current.find((row) => row.id === id),

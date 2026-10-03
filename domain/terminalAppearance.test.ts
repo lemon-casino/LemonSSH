@@ -213,7 +213,7 @@ test("follow-theme resolver: dark + auto follows the active dark UI preset", () 
       resolvedTheme: "dark",
       lightUiThemeId: "snow",
       darkUiThemeId: "midnight",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "ui-midnight",
   );
@@ -225,7 +225,7 @@ test("follow-theme resolver: light + auto follows the active light UI preset", (
       resolvedTheme: "light",
       lightUiThemeId: "snow",
       darkUiThemeId: "midnight",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "ui-snow",
   );
@@ -237,7 +237,7 @@ test("follow-theme resolver: imported system presets follow the active light or 
       resolvedTheme: "light",
       lightUiThemeId: "github",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "system-github-light",
   );
@@ -246,7 +246,7 @@ test("follow-theme resolver: imported system presets follow the active light or 
       resolvedTheme: "dark",
       lightUiThemeId: "github",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "system-github-dark",
   );
@@ -258,7 +258,7 @@ test("follow-theme resolver: explicit dark override is ignored while following a
       resolvedTheme: "dark",
       lightUiThemeId: "snow",
       darkUiThemeId: "midnight",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "ui-midnight",
   );
@@ -272,7 +272,7 @@ test("manual-theme resolver: explicit per-mode theme wins when not following app
       terminalThemeLightId: TERMINAL_THEME_AUTO,
       lightUiThemeId: "snow",
       darkUiThemeId: "midnight",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "dracula",
   );
@@ -283,7 +283,7 @@ test("manual-theme resolver: explicit per-mode theme wins when not following app
       terminalThemeLightId: "solarized-light",
       lightUiThemeId: "snow",
       darkUiThemeId: "midnight",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "solarized-light",
   );
@@ -309,7 +309,7 @@ test("follow-app sidebar pick resolves with the target mode before resolvedTheme
       resolvedTheme: "dark",
       lightUiThemeId: "flexoki",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     "system-flexoki-light",
   );
@@ -321,7 +321,7 @@ test("follow-app pick settles once ui theme and resolved mode match the selectio
       resolvedTheme: "dark",
       lightUiThemeId: "snow",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     false,
   );
@@ -330,7 +330,7 @@ test("follow-app pick settles once ui theme and resolved mode match the selectio
       resolvedTheme: "light",
       lightUiThemeId: "snow",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     false,
   );
@@ -339,7 +339,7 @@ test("follow-app pick settles once ui theme and resolved mode match the selectio
       resolvedTheme: "light",
       lightUiThemeId: "flexoki",
       darkUiThemeId: "github",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
     true,
   );
@@ -384,8 +384,8 @@ test("follow-theme resolver: auto with no UI match falls back to fallbackThemeId
       resolvedTheme: "dark",
       lightUiThemeId: "no-such-ui-theme",
       darkUiThemeId: "no-such-ui-theme",
-      fallbackThemeId: "netcatty-dark",
+      fallbackThemeId: "lemonssh-dark",
     }),
-    "netcatty-dark",
+    "lemonssh-dark",
   );
 });

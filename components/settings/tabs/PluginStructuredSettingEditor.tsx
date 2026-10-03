@@ -246,7 +246,7 @@ export function PluginStructuredSettingEditor({
   onCommit,
   labels,
 }: {
-  setting: NetcattyPluginSettingContribution;
+  setting: LemonSSHPluginSettingContribution;
   value: unknown;
   disabled: boolean;
   onChange(value: unknown[]): void;

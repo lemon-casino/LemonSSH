@@ -32,6 +32,13 @@ import {
   shouldOfferOsc7SetupAction,
 } from "./osc7Setup";
 
+// The POSIX-snippet tests drive real /bin/sh, /bin/bash, zsh and fish. Those
+// shells do not exist at these paths on Windows; skip there, matching the
+// per-shell t.skip() convention below for missing zsh/fish.
+const posixShellSkip: string | false = process.platform === "win32"
+  ? "requires a POSIX shell (/bin/sh, /bin/bash), unavailable on win32"
+  : false;
+
 const runSetup = (env: NodeJS.ProcessEnv) => {
   execFileSync("/bin/sh", ["-c", buildOsc7SetupCommand()], {
     env: { ...process.env, ZDOTDIR: "", XDG_CONFIG_HOME: "", ...env },
@@ -120,7 +127,7 @@ test("runOsc7SetupAction configures in the background and only sends a small rel
       setupArgs = { sessionId, command };
       return {
         success: true,
-        stdout: "__NETCATTY_OSC7_SETUP_SHELL__=bash\n__NETCATTY_OSC7_SETUP_CONFIG__=/home/me/.bashrc\n\u001b]7;file://host/home/me\u0007",
+        stdout: "__LEMONSSH_OSC7_SETUP_SHELL__=bash\n__LEMONSSH_OSC7_SETUP_CONFIG__=/home/me/.bashrc\n\u001b]7;file://host/home/me\u0007",
         stderr: "",
         code: 0,
       };
@@ -158,14 +165,14 @@ test("runOsc7SetupAction stages the script and types a short runner for user-swi
         return {
           success: false,
           stdout: `${OSC7_SETUP_OTHER_USER_MARKER}bash\n`,
-          stderr: "Netcatty OSC 7 setup: the active terminal shell belongs to another user\n",
+          stderr: "LemonSSH OSC 7 setup: the active terminal shell belongs to another user\n",
           code: 5,
-          error: "Netcatty OSC 7 setup: the active terminal shell belongs to another user",
+          error: "LemonSSH OSC 7 setup: the active terminal shell belongs to another user",
         };
       }
       return {
         success: true,
-        stdout: `${OSC7_SETUP_STAGED_MARKER}/tmp/.netcatty-osc7-setup.abc123\n`,
+        stdout: `${OSC7_SETUP_STAGED_MARKER}/tmp/.lemonssh-osc7-setup.abc123\n`,
         stderr: "",
         code: 0,
       };
@@ -185,8 +192,8 @@ test("runOsc7SetupAction stages the script and types a short runner for user-swi
   assert.equal(writes.length, 1);
   assert.equal(writes[0].sessionId, "session-1");
   assert.equal(writes[0].automated, true);
-  assert.match(writes[0].data, /NETCATTY_OSC7_FORCE_SHELL=bash/);
-  assert.match(writes[0].data, /'\/tmp\/\.netcatty-osc7-setup\.abc123'/);
+  assert.match(writes[0].data, /LEMONSSH_OSC7_FORCE_SHELL=bash/);
+  assert.match(writes[0].data, /'\/tmp\/\.lemonssh-osc7-setup\.abc123'/);
   assert.match(writes[0].data, /\.bashrc/);
   // Single line: one history entry, so the appended bash cleanup deletes it.
   assert.doesNotMatch(writes[0].data.slice(0, -1), /[\r\n]/);
@@ -274,8 +281,8 @@ test("runOsc7SetupAction fails without reload metadata instead of reporting a pa
   assert.deepEqual(localData, []);
 });
 
-test("buildOsc7SetupCommand configures bash once and prompt loading stays idempotent", () => {
-  withTempHome("netcatty-osc7-bash-", (home) => {
+test("buildOsc7SetupCommand configures bash once and prompt loading stays idempotent", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     runSetup({ HOME: home, SHELL: "/bin/bash" });
 
@@ -283,8 +290,8 @@ test("buildOsc7SetupCommand configures bash once and prompt loading stays idempo
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.equal(markerCount(bashrc), 2);
     assert.match(bashrc, /PROMPT_COMMAND/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
     assert.match(bashrc, /declare -\[A-Za-z\]\*a|declare -p PROMPT_COMMAND/);
 
     const output = execFileSync(
@@ -298,26 +305,26 @@ test("buildOsc7SetupCommand configures bash once and prompt loading stays idempo
 
     assert.match(output, /existing/);
     // Guarded hook installed once even after double-source.
-    assert.equal(output.split("declare -F __netcatty_osc7_prompt").length - 1, 1);
+    assert.equal(output.split("declare -F __lemonssh_osc7_prompt").length - 1, 1);
     // Bare v1 hook must not remain in PROMPT_COMMAND (only the function body may mention osc7_cwd).
     assert.doesNotMatch(output, /(^|\n)osc7_cwd(\n|$)/);
   });
 });
 
-test("buildOsc7SetupCommand upgrades legacy bash snippet in place", () => {
-  withTempHome("netcatty-osc7-bash-upgrade-", (home) => {
+test("buildOsc7SetupCommand upgrades legacy bash snippet in place", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-upgrade-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# user preamble",
         "",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "osc7_cwd() {",
         "  printf 'legacy'\\n",
         "}",
         'PROMPT_COMMAND="osc7_cwd"',
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
         "",
         "# user epilogue",
         "",
@@ -328,8 +335,8 @@ test("buildOsc7SetupCommand upgrades legacy bash snippet in place", () => {
 
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.equal(markerCount(bashrc), 2);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
     assert.match(bashrc, /# user preamble/);
     assert.match(bashrc, /# user epilogue/);
     assert.doesNotMatch(bashrc, /printf 'legacy'/);
@@ -341,14 +348,14 @@ test("buildOsc7SetupCommand upgrades legacy bash snippet in place", () => {
   });
 });
 
-test("buildOsc7SetupCommand does not truncate bashrc when start marker lacks end", () => {
-  withTempHome("netcatty-osc7-bash-incomplete-", (home) => {
+test("buildOsc7SetupCommand does not truncate bashrc when start marker lacks end", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-incomplete-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# keep-me-before",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "osc7_cwd() { :; }",
         "# important-user-config-after-open-marker",
         "alias ll='ls -la'",
@@ -362,24 +369,24 @@ test("buildOsc7SetupCommand does not truncate bashrc when start marker lacks end
     assert.match(bashrc, /# keep-me-before/);
     assert.match(bashrc, /# important-user-config-after-open-marker/);
     assert.match(bashrc, /alias ll=/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
     // Open region kept + complete v2 appended (no truncation of user lines).
-    assert.equal((bashrc.match(/# >>> Netcatty OSC 7 cwd tracking >>>/g) || []).length, 2);
-    assert.equal((bashrc.match(/# <<< Netcatty OSC 7 cwd tracking <<</g) || []).length, 1);
+    assert.equal((bashrc.match(/# >>> LemonSSH OSC 7 cwd tracking >>>/g) || []).length, 2);
+    assert.equal((bashrc.match(/# <<< LemonSSH OSC 7 cwd tracking <<</g) || []).length, 1);
   });
 });
 
-test("buildOsc7SetupCommand appends when markers are present but unbalanced", () => {
-  withTempHome("netcatty-osc7-bash-unbalanced-", (home) => {
+test("buildOsc7SetupCommand appends when markers are present but unbalanced", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-unbalanced-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# orphan end first",
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
         "# user config",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "alias ll='ls -la'",
         "",
       ].join("\n"),
@@ -391,23 +398,23 @@ test("buildOsc7SetupCommand appends when markers are present but unbalanced", ()
     assert.match(bashrc, /# orphan end first/);
     assert.match(bashrc, /# user config/);
     assert.match(bashrc, /alias ll=/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
     // Original markers kept; complete v2 appended.
-    assert.equal((bashrc.match(/# >>> Netcatty OSC 7 cwd tracking >>>/g) || []).length, 2);
-    assert.equal((bashrc.match(/# <<< Netcatty OSC 7 cwd tracking <<</g) || []).length, 2);
+    assert.equal((bashrc.match(/# >>> LemonSSH OSC 7 cwd tracking >>>/g) || []).length, 2);
+    assert.equal((bashrc.match(/# <<< LemonSSH OSC 7 cwd tracking <<</g) || []).length, 2);
   });
 });
 
-test("buildOsc7SetupCommand recovers from partial v2 write missing end marker", () => {
-  withTempHome("netcatty-osc7-bash-partial-v2-", (home) => {
+test("buildOsc7SetupCommand recovers from partial v2 write missing end marker", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-partial-v2-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# keep-me",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
-        "# netcatty-osc7-version: 2",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
+        "# lemonssh-osc7-version: 2",
         "osc7_cwd() { :; }",
         "# interrupted before end marker",
         "",
@@ -420,23 +427,23 @@ test("buildOsc7SetupCommand recovers from partial v2 write missing end marker", 
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.match(bashrc, /# keep-me/);
     assert.match(bashrc, /# interrupted before end marker/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
-    assert.match(bashrc, /declare -F __netcatty_osc7_prompt/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
+    assert.match(bashrc, /declare -F __lemonssh_osc7_prompt/);
     // Partial open kept + one recovered complete block; second setup is a no-op.
-    assert.equal((bashrc.match(/# <<< Netcatty OSC 7 cwd tracking <<</g) || []).length, 1);
-    assert.equal((bashrc.match(/# netcatty-osc7-version: 2/g) || []).length, 2);
+    assert.equal((bashrc.match(/# <<< LemonSSH OSC 7 cwd tracking <<</g) || []).length, 1);
+    assert.equal((bashrc.match(/# lemonssh-osc7-version: 2/g) || []).length, 2);
   });
 });
 
-test("buildOsc7SetupCommand preserves user lines after mid-construct interruption", () => {
-  withTempHome("netcatty-osc7-bash-mid-construct-", (home) => {
+test("buildOsc7SetupCommand preserves user lines after mid-construct interruption", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-mid-construct-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# keep-me",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
-        "# netcatty-osc7-version: 2",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
+        "# lemonssh-osc7-version: 2",
         "osc7_cwd() {",
         "alias keep_user_alias='yes'",
         "",
@@ -449,21 +456,21 @@ test("buildOsc7SetupCommand preserves user lines after mid-construct interruptio
     // Do not rewrite/truncate even if the partial body is already unusable.
     assert.match(bashrc, /# keep-me/);
     assert.match(bashrc, /alias keep_user_alias=/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
   });
 });
 
-test("buildOsc7SetupCommand recovers when version line exists with unbalanced markers", () => {
-  withTempHome("netcatty-osc7-bash-version-unbalanced-", (home) => {
+test("buildOsc7SetupCommand recovers when version line exists with unbalanced markers", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-version-unbalanced-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     // Orphan end + open start with version: grepping version+end alone would
     // falsely treat this as complete; balanced/complete-v2 checks must force append.
     writeFileSync(
       bashrcPath,
       [
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
-        "# netcatty-osc7-version: 2",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
+        "# lemonssh-osc7-version: 2",
         "osc7_cwd() { :; }",
         "# interrupted before end marker",
         "",
@@ -475,23 +482,23 @@ test("buildOsc7SetupCommand recovers when version line exists with unbalanced ma
 
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.match(bashrc, /# interrupted before end marker/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
-    assert.match(bashrc, /declare -F __netcatty_osc7_prompt/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
+    assert.match(bashrc, /declare -F __lemonssh_osc7_prompt/);
     // Orphan end + one recovered complete block; second run no-ops.
-    assert.equal((bashrc.match(/# <<< Netcatty OSC 7 cwd tracking <<</g) || []).length, 2);
-    assert.equal((bashrc.match(/# netcatty-osc7-version: 2/g) || []).length, 2);
+    assert.equal((bashrc.match(/# <<< LemonSSH OSC 7 cwd tracking <<</g) || []).length, 2);
+    assert.equal((bashrc.match(/# lemonssh-osc7-version: 2/g) || []).length, 2);
   });
 });
 
-test("buildOsc7SetupCommand ignores marker text embedded in echo commands", () => {
-  withTempHome("netcatty-osc7-bash-echo-marker-", (home) => {
+test("buildOsc7SetupCommand ignores marker text embedded in echo commands", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-echo-marker-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
-        'echo "# >>> Netcatty OSC 7 cwd tracking >>>"',
+        'echo "# >>> LemonSSH OSC 7 cwd tracking >>>"',
         "alias keep_me='yes'",
-        'echo "# <<< Netcatty OSC 7 cwd tracking <<<"',
+        'echo "# <<< LemonSSH OSC 7 cwd tracking <<<"',
         "",
       ].join("\n"),
     );
@@ -500,23 +507,23 @@ test("buildOsc7SetupCommand ignores marker text embedded in echo commands", () =
 
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.match(bashrc, /alias keep_me=/);
-    assert.match(bashrc, /echo "# >>> Netcatty OSC 7 cwd tracking >>>"/);
-    assert.match(bashrc, /echo "# <<< Netcatty OSC 7 cwd tracking <<<"/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
+    assert.match(bashrc, /echo "# >>> LemonSSH OSC 7 cwd tracking >>>"/);
+    assert.match(bashrc, /echo "# <<< LemonSSH OSC 7 cwd tracking <<<"/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
   });
 });
 
-test("buildOsc7SetupCommand upgrades a legacy block wrapped in control flow in place", () => {
-  withTempHome("netcatty-osc7-bash-if-wrap-", (home) => {
+test("buildOsc7SetupCommand upgrades a legacy block wrapped in control flow in place", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-if-wrap-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "if true; then",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "osc7_cwd() { :; }",
         'PROMPT_COMMAND="osc7_cwd"',
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
         "fi",
         "echo after",
         "",
@@ -527,29 +534,29 @@ test("buildOsc7SetupCommand upgrades a legacy block wrapped in control flow in p
 
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.match(bashrc, /if true; then/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
     assert.match(bashrc, /^fi$/m);
     assert.match(bashrc, /echo after/);
     // v2 stays inside the if/fi, not only after it.
     const ifIdx = bashrc.indexOf("if true; then");
     const fiIdx = bashrc.indexOf("\nfi\n");
-    const v2Idx = bashrc.indexOf("netcatty-osc7-version: 2");
+    const v2Idx = bashrc.indexOf("lemonssh-osc7-version: 2");
     assert.ok(ifIdx >= 0 && fiIdx > ifIdx && v2Idx > ifIdx && v2Idx < fiIdx);
     execFileSync("/bin/bash", ["-n", bashrcPath], { stdio: "pipe" });
   });
 });
 
-test("buildOsc7SetupCommand upgrades a read-only legacy bashrc in one atomic write", () => {
-  withTempHome("netcatty-osc7-bash-readonly-", (home) => {
+test("buildOsc7SetupCommand upgrades a read-only legacy bashrc in one atomic write", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-readonly-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     writeFileSync(
       bashrcPath,
       [
         "# before",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "legacy",
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
         "# after",
         "",
       ].join("\n"),
@@ -562,14 +569,14 @@ test("buildOsc7SetupCommand upgrades a read-only legacy bashrc in one atomic wri
     const bashrc = readFileSync(bashrcPath, "utf8");
     assert.match(bashrc, /# before/);
     assert.match(bashrc, /# after/);
-    assert.match(bashrc, /netcatty-osc7-version: 2/);
-    assert.match(bashrc, /__netcatty_osc7_prompt/);
+    assert.match(bashrc, /lemonssh-osc7-version: 2/);
+    assert.match(bashrc, /__lemonssh_osc7_prompt/);
     assert.doesNotMatch(bashrc, /^legacy$/m);
   });
 });
 
-test("buildOsc7SetupCommand upgrades through a symlinked bashrc without replacing the link", () => {
-  withTempHome("netcatty-osc7-bash-symlink-", (home) => {
+test("buildOsc7SetupCommand upgrades through a symlinked bashrc without replacing the link", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-symlink-", (home) => {
     const realPath = join(home, "dotfiles", "bashrc.real");
     const midLink = join(home, "dotfiles", "bashrc.link");
     const bashrcPath = join(home, ".bashrc");
@@ -578,12 +585,12 @@ test("buildOsc7SetupCommand upgrades through a symlinked bashrc without replacin
       realPath,
       [
         "# managed-preamble",
-        "# >>> Netcatty OSC 7 cwd tracking >>>",
+        "# >>> LemonSSH OSC 7 cwd tracking >>>",
         "osc7_cwd() {",
         "  printf 'legacy'\\n",
         "}",
         'PROMPT_COMMAND="osc7_cwd"',
-        "# <<< Netcatty OSC 7 cwd tracking <<<",
+        "# <<< LemonSSH OSC 7 cwd tracking <<<",
         "# managed-epilogue",
         "",
       ].join("\n"),
@@ -605,14 +612,14 @@ test("buildOsc7SetupCommand upgrades through a symlinked bashrc without replacin
     const content = readFileSync(realPath, "utf8");
     assert.match(content, /# managed-preamble/);
     assert.match(content, /# managed-epilogue/);
-    assert.match(content, /netcatty-osc7-version: 2/);
-    assert.match(content, /__netcatty_osc7_prompt/);
+    assert.match(content, /lemonssh-osc7-version: 2/);
+    assert.match(content, /__lemonssh_osc7_prompt/);
     assert.doesNotMatch(content, /printf 'legacy'/);
   });
 });
 
-test("bash snippet does not error when PROMPT_COMMAND is inherited without osc7_cwd", () => {
-  withTempHome("netcatty-osc7-bash-su-inherit-", (home) => {
+test("bash snippet does not error when PROMPT_COMMAND is inherited without osc7_cwd", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-su-inherit-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     const bashrcPath = join(home, ".bashrc");
 
@@ -642,13 +649,13 @@ test("bash snippet does not error when PROMPT_COMMAND is inherited without osc7_
   });
 });
 
-test("bash snippet still emits OSC 7 when functions are defined", () => {
-  withTempHome("netcatty-osc7-bash-emit-", (home) => {
+test("bash snippet still emits OSC 7 when functions are defined", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-emit-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     const bashrcPath = join(home, ".bashrc");
     const output = execFileSync(
       "/bin/bash",
-      ["-lc", `source ${JSON.stringify(bashrcPath)}; __netcatty_osc7_prompt; true`],
+      ["-lc", `source ${JSON.stringify(bashrcPath)}; __lemonssh_osc7_prompt; true`],
       { env: { ...process.env, HOME: home, PWD: home }, cwd: home },
     ).toString("utf8");
 
@@ -657,8 +664,8 @@ test("bash snippet still emits OSC 7 when functions are defined", () => {
   });
 });
 
-test("bash snippet preserves an intentional PROMPT_COMMAND export", () => {
-  withTempHome("netcatty-osc7-bash-export-", (home) => {
+test("bash snippet preserves an intentional PROMPT_COMMAND export", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-export-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     const bashrcPath = join(home, ".bashrc");
     const output = execFileSync(
@@ -678,8 +685,8 @@ test("bash snippet preserves an intentional PROMPT_COMMAND export", () => {
   });
 });
 
-test("bash snippet dedupes hooks across array PROMPT_COMMAND elements", () => {
-  withTempHome("netcatty-osc7-bash-array-pc-", (home) => {
+test("bash snippet dedupes hooks across array PROMPT_COMMAND elements", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-array-pc-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     const bashrcPath = join(home, ".bashrc");
     const output = execFileSync(
@@ -700,13 +707,13 @@ test("bash snippet dedupes hooks across array PROMPT_COMMAND elements", () => {
 
     assert.match(output, /first/);
     assert.match(output, /echo KEEP/);
-    assert.equal(output.split("declare -F __netcatty_osc7_prompt").length - 1, 1);
+    assert.equal(output.split("declare -F __lemonssh_osc7_prompt").length - 1, 1);
     assert.doesNotMatch(output, /\[1\]="osc7_cwd"/);
   });
 });
 
-test("bash snippet handles exported array PROMPT_COMMAND", () => {
-  withTempHome("netcatty-osc7-bash-ax-pc-", (home) => {
+test("bash snippet handles exported array PROMPT_COMMAND", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-bash-ax-pc-", (home) => {
     runSetup({ HOME: home, SHELL: "/bin/bash" });
     const bashrcPath = join(home, ".bashrc");
     const output = execFileSync(
@@ -726,13 +733,13 @@ test("bash snippet handles exported array PROMPT_COMMAND", () => {
     ).toString("utf8");
 
     assert.match(output, /echo one/);
-    assert.equal(output.split("declare -F __netcatty_osc7_prompt").length - 1, 1);
+    assert.equal(output.split("declare -F __lemonssh_osc7_prompt").length - 1, 1);
     assert.doesNotMatch(output, /osc7_cwd"/);
   });
 });
 
-test("buildOsc7SetupCommand preserves setup failure status", () => {
-  withTempHome("netcatty-osc7-unsupported-shell-", (home) => {
+test("buildOsc7SetupCommand preserves setup failure status", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-unsupported-shell-", (home) => {
     const result = spawnSync("/bin/sh", ["-c", buildOsc7SetupCommand()], {
       env: {
         ...process.env,
@@ -749,15 +756,15 @@ test("buildOsc7SetupCommand preserves setup failure status", () => {
   });
 });
 
-test("buildOsc7SetupExecCommand configures bash through a background exec shell", () => {
-  withTempHome("netcatty-osc7-exec-bash-", (home) => {
+test("buildOsc7SetupExecCommand configures bash through a background exec shell", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-exec-bash-", (home) => {
     const output = execFileSync("/bin/sh", ["-c", buildOsc7SetupExecCommand()], {
       env: { ...process.env, HOME: home, SHELL: "/bin/bash" },
       stdio: "pipe",
     }).toString("utf8");
 
-    assert.match(output, /__NETCATTY_OSC7_SETUP_SHELL__=bash/);
-    assert.match(output, new RegExp(`__NETCATTY_OSC7_SETUP_CONFIG__=${home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\.bashrc`));
+    assert.match(output, /__LEMONSSH_OSC7_SETUP_SHELL__=bash/);
+    assert.match(output, new RegExp(`__LEMONSSH_OSC7_SETUP_CONFIG__=${home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\.bashrc`));
     const bashrc = readFileSync(join(home, ".bashrc"), "utf8");
     assert.equal(markerCount(bashrc), 2);
   });
@@ -779,15 +786,15 @@ const withStagedSetupScript = (fn: (scriptPath: string) => void) => {
 test("buildOsc7TypedSetupCommand stays a single line for reliable history cleanup", async () => {
   const sha256 = await getOsc7StagedScriptSha256();
   for (const shell of ["bash", "zsh", "fish"] as const) {
-    const command = buildOsc7TypedSetupCommand(shell, "/tmp/.netcatty-osc7-setup.abc123", sha256);
+    const command = buildOsc7TypedSetupCommand(shell, "/tmp/.lemonssh-osc7-setup.abc123", sha256);
     assert.ok(command.endsWith("\r"), shell);
     assert.doesNotMatch(command.slice(0, -1), /[\r\n]/, shell);
   }
 });
 
-test("buildOsc7TypedSetupCommand configures bash and removes the staged script", async () => {
+test("buildOsc7TypedSetupCommand configures bash and removes the staged script", { skip: posixShellSkip }, async () => {
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-bash-", (home) => {
+  withTempHome("lemonssh-osc7-typed-bash-", (home) => {
     withStagedSetupScript((scriptPath) => {
       const command = buildOsc7TypedSetupCommand("bash", scriptPath, sha256).replace(/\r/g, "\n");
       const output = execFileSync("/bin/bash", ["-c", command], {
@@ -798,16 +805,16 @@ test("buildOsc7TypedSetupCommand configures bash and removes the staged script",
       const bashrc = readFileSync(join(home, ".bashrc"), "utf8");
       assert.equal(markerCount(bashrc), 2);
       assert.match(bashrc, /PROMPT_COMMAND/);
-      assert.doesNotMatch(output, /__NETCATTY_OSC7_SETUP_SHELL__|__NETCATTY_OSC7_SETUP_CONFIG__/);
+      assert.doesNotMatch(output, /__LEMONSSH_OSC7_SETUP_SHELL__|__LEMONSSH_OSC7_SETUP_CONFIG__/);
       assert.ok(output.includes("\u001b]7;file://"), "expected OSC 7 output");
       assert.equal(existsSync(scriptPath), false, "staged script should be removed");
     });
   });
 });
 
-test("buildOsc7TypedSetupCommand refuses to run a tampered staged script", async () => {
+test("buildOsc7TypedSetupCommand refuses to run a tampered staged script", { skip: posixShellSkip }, async () => {
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-tampered-", (home) => {
+  withTempHome("lemonssh-osc7-typed-tampered-", (home) => {
     withStagedSetupScript((scriptPath) => {
       writeFileSync(scriptPath, `echo pwned > "$HOME/pwned"\n`);
       const command = buildOsc7TypedSetupCommand("bash", scriptPath, sha256).replace(/\r/g, "\n");
@@ -825,9 +832,9 @@ test("buildOsc7TypedSetupCommand refuses to run a tampered staged script", async
   });
 });
 
-test("buildOsc7TypedSetupCommand does not leave the typed runner in bash history", async () => {
+test("buildOsc7TypedSetupCommand does not leave the typed runner in bash history", { skip: posixShellSkip }, async () => {
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-history-bash-", (home) => {
+  withTempHome("lemonssh-osc7-typed-history-bash-", (home) => {
     withStagedSetupScript((scriptPath) => {
       const dumpPath = join(home, "bash-history-dump");
       const output = runInteractiveHistoryProbe({
@@ -844,14 +851,14 @@ test("buildOsc7TypedSetupCommand does not leave the typed runner in bash history
       });
 
       assert.match(output, /echo keepme/);
-      assert.doesNotMatch(output, /NETCATTY_OSC7_FORCE_SHELL|__netcatty_osc7|history -d/);
+      assert.doesNotMatch(output, /LEMONSSH_OSC7_FORCE_SHELL|__netcatty_osc7|history -d/);
     });
   });
 });
 
-test("buildOsc7TypedSetupCommand stays idempotent for bash", async () => {
+test("buildOsc7TypedSetupCommand stays idempotent for bash", { skip: posixShellSkip }, async () => {
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-bash-idempotent-", (home) => {
+  withTempHome("lemonssh-osc7-typed-bash-idempotent-", (home) => {
     const env = { ...process.env, HOME: home, SHELL: "/bin/bash", ZDOTDIR: "", XDG_CONFIG_HOME: "" };
     for (let run = 0; run < 2; run += 1) {
       withStagedSetupScript((scriptPath) => {
@@ -872,7 +879,7 @@ test("buildOsc7TypedSetupCommand honors shell-local unexported zsh ZDOTDIR", asy
   }
 
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-zsh-", (home) => {
+  withTempHome("lemonssh-osc7-typed-zsh-", (home) => {
     const zdotdir = join(home, ".config", "zsh");
     withStagedSetupScript((scriptPath) => {
       const command = buildOsc7TypedSetupCommand("zsh", scriptPath, sha256).replace(/\r/g, "\n");
@@ -900,7 +907,7 @@ test("buildOsc7TypedSetupCommand configures fish through its typed fallback", as
   }
 
   const sha256 = await getOsc7StagedScriptSha256();
-  withTempHome("netcatty-osc7-typed-fish-", (home) => {
+  withTempHome("lemonssh-osc7-typed-fish-", (home) => {
     withStagedSetupScript((scriptPath) => {
       const command = buildOsc7TypedSetupCommand("fish", scriptPath, sha256).replace(/\r/g, "\n");
       const output = execFileSync(fishPath, ["-c", command], {
@@ -919,17 +926,17 @@ test("buildOsc7TypedSetupCommand configures fish through its typed fallback", as
 test("buildOsc7SetupExecCommand carries the expected cwd for current-tab matching", () => {
   const command = buildOsc7SetupExecCommand("/srv/app's cwd");
 
-  assert.match(command, /NETCATTY_OSC7_EXPECTED_CWD='\/srv\/app'\\''s cwd'/);
+  assert.match(command, /LEMONSSH_OSC7_EXPECTED_CWD='\/srv\/app'\\''s cwd'/);
 });
 
-test("buildOsc7SetupExecCommand honors exported zsh ZDOTDIR fallback", (t) => {
+test("buildOsc7SetupExecCommand honors exported zsh ZDOTDIR fallback", { skip: posixShellSkip }, (t) => {
   const zshPath = existingShells(["/bin/zsh", "/usr/bin/zsh"])[0];
   if (!zshPath) {
     t.skip("zsh is not installed on this runner");
     return;
   }
 
-  withTempHome("netcatty-osc7-exec-zsh-", (home) => {
+  withTempHome("lemonssh-osc7-exec-zsh-", (home) => {
     const zdotdir = join(home, ".config", "zsh");
     const output = execFileSync("/bin/sh", ["-c", buildOsc7SetupExecCommand()], {
       env: { ...process.env, HOME: home, SHELL: zshPath, ZDOTDIR: zdotdir },
@@ -937,20 +944,20 @@ test("buildOsc7SetupExecCommand honors exported zsh ZDOTDIR fallback", (t) => {
     }).toString("utf8");
 
     const zshrcPath = join(zdotdir, ".zshrc");
-    assert.match(output, /__NETCATTY_OSC7_SETUP_SHELL__=zsh/);
-    assert.match(output, new RegExp(`__NETCATTY_OSC7_SETUP_CONFIG__=${zshrcPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+    assert.match(output, /__LEMONSSH_OSC7_SETUP_SHELL__=zsh/);
+    assert.match(output, new RegExp(`__LEMONSSH_OSC7_SETUP_CONFIG__=${zshrcPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     assert.equal(markerCount(readFileSync(zshrcPath, "utf8")), 2);
   });
 });
 
-test("buildOsc7SetupCommand honors zsh ZDOTDIR captured from the current shell", (t) => {
+test("buildOsc7SetupCommand honors zsh ZDOTDIR captured from the current shell", { skip: posixShellSkip }, (t) => {
   const zshPath = existingShells(["/bin/zsh", "/usr/bin/zsh"])[0];
   if (!zshPath) {
     t.skip("zsh is not installed on this runner");
     return;
   }
 
-  withTempHome("netcatty-osc7-zsh-", (home) => {
+  withTempHome("lemonssh-osc7-zsh-", (home) => {
     const zdotdir = join(home, ".config", "zsh");
     runSetup({ HOME: home, SHELL: zshPath, ZDOTDIR: zdotdir });
     runSetup({ HOME: home, SHELL: zshPath, ZDOTDIR: zdotdir });
@@ -959,8 +966,8 @@ test("buildOsc7SetupCommand honors zsh ZDOTDIR captured from the current shell",
     const zshrc = readFileSync(zshrcPath, "utf8");
     assert.equal(markerCount(zshrc), 2);
     assert.match(zshrc, /precmd_functions/);
-    assert.match(zshrc, /netcatty-osc7-version: 2/);
-    assert.match(zshrc, /__netcatty_osc7_prompt/);
+    assert.match(zshrc, /lemonssh-osc7-version: 2/);
+    assert.match(zshrc, /__lemonssh_osc7_prompt/);
     assert.equal(existsSync(join(home, ".zshrc")), false);
 
     const precmd = execFileSync(
@@ -971,14 +978,14 @@ test("buildOsc7SetupCommand honors zsh ZDOTDIR captured from the current shell",
         stdio: "pipe",
       },
     ).toString("utf8");
-    assert.match(precmd, /__netcatty_osc7_prompt/);
-    assert.equal(precmd.trim().split(/\s+/).filter((name) => name === "__netcatty_osc7_prompt").length, 1);
+    assert.match(precmd, /__lemonssh_osc7_prompt/);
+    assert.equal(precmd.trim().split(/\s+/).filter((name) => name === "__lemonssh_osc7_prompt").length, 1);
     assert.doesNotMatch(precmd, /(?:^|\s)osc7_cwd(?:\s|$)/);
   });
 });
 
-test("buildOsc7SetupCommand configures fish once with valid fish syntax", () => {
-  withTempHome("netcatty-osc7-fish-", (home) => {
+test("buildOsc7SetupCommand configures fish once with valid fish syntax", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-fish-", (home) => {
     const fishPath = existingShells(["/opt/homebrew/bin/fish", "/usr/bin/fish"])[0] ?? "/usr/bin/fish";
     runSetup({ HOME: home, SHELL: fishPath });
     runSetup({ HOME: home, SHELL: fishPath });
@@ -990,7 +997,7 @@ test("buildOsc7SetupCommand configures fish once with valid fish syntax", () => 
 
     if (existsSync(fishPath)) {
       execFileSync(fishPath, ["-n", fishConfigPath], { stdio: "pipe" });
-      execFileSync(fishPath, ["-c", `source ${JSON.stringify(fishConfigPath)}; functions -q __netcatty_osc7_cwd`], {
+      execFileSync(fishPath, ["-c", `source ${JSON.stringify(fishConfigPath)}; functions -q __lemonssh_osc7_cwd`], {
         env: { ...process.env, HOME: home },
         stdio: "pipe",
       });
@@ -998,7 +1005,7 @@ test("buildOsc7SetupCommand configures fish once with valid fish syntax", () => 
   });
 });
 
-test("buildOsc7SetupCommand can be pasted into supported shells", () => {
+test("buildOsc7SetupCommand can be pasted into supported shells", { skip: posixShellSkip }, () => {
   const shells = supportedShells();
 
   if (process.env.CI) {
@@ -1006,7 +1013,7 @@ test("buildOsc7SetupCommand can be pasted into supported shells", () => {
   }
 
   for (const shellPath of shells) {
-    withTempHome(`netcatty-osc7-${basename(shellPath)}-`, (home) => {
+    withTempHome(`lemonssh-osc7-${basename(shellPath)}-`, (home) => {
       const zdotdir = join(home, "zdot");
       const xdgConfigHome = join(home, "xdg");
       const specialCwd = join(home, "space dir#frag?query%pct");
@@ -1038,8 +1045,8 @@ test("buildOsc7SetupCommand can be pasted into supported shells", () => {
   }
 });
 
-test("buildOsc7ReloadCommand does not leave reload command in bash history", () => {
-  withTempHome("netcatty-osc7-reload-history-bash-", (home) => {
+test("buildOsc7ReloadCommand does not leave reload command in bash history", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-reload-history-bash-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     const dumpPath = join(home, "bash-history-dump");
     mkdirSync(home, { recursive: true });
@@ -1068,8 +1075,8 @@ test("buildOsc7ReloadCommand does not leave reload command in bash history", () 
   });
 });
 
-test("buildOsc7ReloadCommand preserves bash nounset", () => {
-  withTempHome("netcatty-osc7-reload-nounset-bash-", (home) => {
+test("buildOsc7ReloadCommand preserves bash nounset", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-reload-nounset-bash-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     const optionDumpPath = join(home, "bash-options-dump");
     mkdirSync(home, { recursive: true });
@@ -1096,8 +1103,8 @@ test("buildOsc7ReloadCommand preserves bash nounset", () => {
   });
 });
 
-test("buildOsc7ReloadCommand does not delete bash history when reload is not recorded", () => {
-  withTempHome("netcatty-osc7-reload-ignored-history-bash-", (home) => {
+test("buildOsc7ReloadCommand does not delete bash history when reload is not recorded", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-reload-ignored-history-bash-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     const dumpPath = join(home, "bash-history-dump");
     mkdirSync(home, { recursive: true });
@@ -1111,7 +1118,7 @@ test("buildOsc7ReloadCommand does not delete bash history when reload is not rec
       env: {
         HOME: home,
         HISTFILE: join(home, ".bash_history"),
-        HISTIGNORE: "*__netcatty_osc7_history_cleanup_marker__=1*",
+        HISTIGNORE: "*__lemonssh_osc7_history_cleanup_marker__=1*",
         SHELL: "/bin/bash",
       },
       input: `echo keepme\n${buildOsc7ReloadCommand({ shell: "bash", configPath: bashrcPath }) ?? ""}`,
@@ -1122,8 +1129,8 @@ test("buildOsc7ReloadCommand does not delete bash history when reload is not rec
   });
 });
 
-test("buildOsc7ReloadCommand bypasses custom bash history wrappers", () => {
-  withTempHome("netcatty-osc7-reload-wrapped-history-bash-", (home) => {
+test("buildOsc7ReloadCommand bypasses custom bash history wrappers", { skip: posixShellSkip }, () => {
+  withTempHome("lemonssh-osc7-reload-wrapped-history-bash-", (home) => {
     const bashrcPath = join(home, ".bashrc");
     const dumpPath = join(home, "bash-history-dump");
     mkdirSync(home, { recursive: true });
@@ -1151,9 +1158,9 @@ test("buildOsc7ReloadCommand bypasses custom bash history wrappers", () => {
   });
 });
 
-test("buildOsc7SetupCommand runs under strict unset-variable mode", () => {
+test("buildOsc7SetupCommand runs under strict unset-variable mode", { skip: posixShellSkip }, () => {
   for (const shellPath of existingShells(["/bin/bash", "/bin/zsh"])) {
-    withTempHome(`netcatty-osc7-strict-${basename(shellPath)}-`, (home) => {
+    withTempHome(`lemonssh-osc7-strict-${basename(shellPath)}-`, (home) => {
       execFileSync(shellPath, ["-uc", buildOsc7SetupCommand()], {
         env: {
           ...process.env,

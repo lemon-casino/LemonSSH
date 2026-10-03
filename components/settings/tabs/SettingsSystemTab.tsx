@@ -7,7 +7,7 @@ import { useI18n } from "../../../application/i18n/I18nProvider";
 import type { AppLockSystemUnlockStatus } from "../../../application/state/useAppLockState";
 import type { AppLockSettings, AppLockSettingsChangeError, AppLockTimeoutMinutes } from "../../../domain/appLock";
 import { getCredentialProtectionAvailability } from "../../../infrastructure/services/credentialProtection";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import type { UpdateState } from '../../../application/state/useUpdateCheck';
 import { SessionLogFormat, keyEventToString } from "../../../domain/models";
 import type { HttpNetworkProxyMode, HttpNetworkProxySettings } from "../../../domain/httpNetworkProxy";
@@ -106,7 +106,7 @@ interface SettingsSystemTabProps {
   setSshDebugLogsEnabled: (enabled: boolean) => void;
   sshDeepLinkEnabled: boolean;
   setSshDeepLinkEnabled: (enabled: boolean) => void;
-  /** SYS-03: whether ssh/telnet/netcatty URL schemes currently open LemonSSH. */
+  /** SYS-03: whether ssh/telnet/lemonssh URL schemes (legacy netcatty kept) currently open LemonSSH. */
   osProtocolRegistered: boolean;
   osProtocolBusy: boolean;
   onSetOSProtocol: (enabled: boolean) => void;
@@ -212,7 +212,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
 
   // Load app version on mount
   useEffect(() => {
-    const promise = netcattyBridge.get()?.getAppInfo?.();
+    const promise = lemonsshBridge.get()?.getAppInfo?.();
     if (promise) {
       promise.then((info) => {
         setAppVersion(info?.version ?? '');
@@ -221,7 +221,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, []);
 
   const loadTempDirInfo = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getTempDirInfo) return;
 
     setIsLoading(true);
@@ -254,7 +254,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [loadCredentialProtectionStatus]);
 
   const loadCrashLogs = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getCrashLogs) return;
     setIsLoadingCrashLogs(true);
     try {
@@ -272,7 +272,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [loadCrashLogs]);
 
   const loadSshDebugLogInfo = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.getSshDebugLogInfo) return;
     setIsLoadingSshDebugLogInfo(true);
     try {
@@ -289,6 +289,19 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
     void loadSshDebugLogInfo();
   }, [loadSshDebugLogInfo, sshDebugLogsEnabled]);
 
+  // The toggle must reach the Go process so ssh-debug.log actually receives
+  // events; persisting it in frontend storage alone kept the size at 0. The
+  // effect also syncs the persisted value once on mount.
+  React.useEffect(() => {
+    const apply = lemonsshBridge.get()?.setSshDebugLogsEnabled?.(sshDebugLogsEnabled);
+    if (!apply) return;
+    apply
+      .then((info) => {
+        if (info && typeof info === "object") setSshDebugLogInfo(info);
+      })
+      .catch(() => undefined);
+  }, [sshDebugLogsEnabled]);
+
   const expandRequestRef = React.useRef(0);
   const handleExpandCrashLog = useCallback(async (fileName: string) => {
     if (expandedLog === fileName) {
@@ -296,7 +309,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
       setLogEntries([]);
       return;
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.readCrashLog) return;
     const requestId = ++expandRequestRef.current;
     // Optimistically show expanded state while loading
@@ -314,7 +327,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [expandedLog]);
 
   const handleClearCrashLogs = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.clearCrashLogs) return;
     setIsClearingCrashLogs(true);
     setCrashLogClearResult(null);
@@ -333,13 +346,13 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [loadCrashLogs]);
 
   const handleOpenCrashLogsDir = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.openCrashLogsDir) return;
     await bridge.openCrashLogsDir();
   }, []);
 
   const handleClearTempFiles = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.clearTempDir) return;
 
     setIsClearing(true);
@@ -357,13 +370,13 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [loadTempDirInfo]);
 
   const handleOpenTempDir = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!tempDirInfo?.path || !bridge?.openTempDir) return;
     await bridge.openTempDir();
   }, [tempDirInfo]);
 
   const handleSelectSessionLogsDir = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.selectSessionLogsDir) return;
 
     try {
@@ -377,7 +390,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [setSessionLogsDir]);
 
   const handleOpenSessionLogsDir = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!sessionLogsDir || !bridge?.openSessionLogsDir) return;
 
     try {
@@ -388,7 +401,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [sessionLogsDir]);
 
   const handleClearSessionLogs = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!sessionLogsDir || !bridge?.clearSessionLogsDir) return;
     if (!window.confirm(t("settings.sessionLogs.clearConfirm"))) return;
 
@@ -407,7 +420,7 @@ const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
   }, [sessionLogsDir, t]);
 
   const handleOpenSshDebugLogDir = useCallback(async () => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.openSshDebugLogDir) return;
     await bridge.openSshDebugLogDir();
   }, []);

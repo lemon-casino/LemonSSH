@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { SftpFilenameEncoding, TransferTask } from "../../../domain/models";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import { isMissingStatError } from "./errors";
 import type { SftpPane } from "./types";
 import { getParentPath, joinPath } from "./utils";
@@ -27,7 +27,7 @@ export function useSftpTransferConflictOps() {
 
       try {
         if (targetPane.connection.isLocal) {
-          const bridge = netcattyBridge.get();
+          const bridge = lemonsshBridge.get();
           const stat = await (bridge?.lstatLocal ?? bridge?.statLocal)?.(targetPath);
           if (!stat) return null;
           return {
@@ -38,7 +38,7 @@ export function useSftpTransferConflictOps() {
         }
 
         if (!targetSftpId) return null;
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const stat = await (bridge?.lstatSftp ?? bridge?.statSftp)?.(
           targetSftpId,
           targetPath,
@@ -94,13 +94,13 @@ export function useSftpTransferConflictOps() {
     ) => {
       if (!targetPane.connection) return;
       if (targetPane.connection.isLocal) {
-        const deleteLocalFile = netcattyBridge.get()?.deleteLocalFile;
+        const deleteLocalFile = lemonsshBridge.get()?.deleteLocalFile;
         if (!deleteLocalFile) throw new Error("Local delete unavailable");
         await deleteLocalFile(task.targetPath, expectedType);
         return;
       }
       if (!targetSftpId) throw new Error("Target SFTP session not found");
-      const deleteSftp = netcattyBridge.get()?.deleteSftp;
+      const deleteSftp = lemonsshBridge.get()?.deleteSftp;
       if (!deleteSftp) throw new Error("SFTP delete unavailable");
       await deleteSftp(targetSftpId, task.targetPath, targetEncoding, expectedType);
     },

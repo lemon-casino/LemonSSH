@@ -1,4 +1,4 @@
-type Method<K extends keyof NetcattyBridge> = NonNullable<NetcattyBridge[K]>;
+type Method<K extends keyof LemonSSHBridge> = NonNullable<LemonSSHBridge[K]>;
 export interface MonitoringBindings {
   GetServerStats?: Method<'getServerStats'>;
   ProbeSystemCapabilities?: Method<'probeSystemCapabilities'>;

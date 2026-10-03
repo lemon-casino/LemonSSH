@@ -1,15 +1,15 @@
-type PluginRuntimeBridge = Pick<NetcattyBridge, "getPluginRuntimeStatus">;
+type PluginRuntimeBridge = Pick<LemonSSHBridge, "getPluginRuntimeStatus">;
 
 interface StatusCacheEntry {
-  value?: NetcattyPluginRuntimeStatus;
-  pending?: Promise<NetcattyPluginRuntimeStatus>;
+  value?: LemonSSHPluginRuntimeStatus;
+  pending?: Promise<LemonSSHPluginRuntimeStatus>;
 }
 
 let statusByBridge = new WeakMap<object, StatusCacheEntry>();
 
 export async function getSharedPluginRuntimeStatus(
   bridge: PluginRuntimeBridge,
-): Promise<NetcattyPluginRuntimeStatus> {
+): Promise<LemonSSHPluginRuntimeStatus> {
   const key = bridge as object;
   let entry = statusByBridge.get(key);
   if (!entry) {

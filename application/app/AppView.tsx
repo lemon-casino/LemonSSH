@@ -37,7 +37,7 @@ import { useAppThemeStyle } from './useAppThemeStyle';
 import { useMainWindowInputFocusRecovery } from '../state/useMainWindowInputFocusRecovery';
 import { useExternalMcpToggleState } from '../state/useExternalMcpToggleState';
 import { selectPluginThemeTokens } from '../state/pluginContributionEnvironment';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { resolveEffectiveTerminalHost } from '../../domain/terminalHostResolution';
 import { getAvailablePaneMagnificationController } from '../../domain/paneMagnification';
 import { pluginViewTabStore, usePluginViewTabs } from '../state/pluginViewTabStore';
@@ -70,7 +70,7 @@ const TextEditorTabFallback = ({ tabId }: { tabId: string }) => {
         zIndex: 20,
         left: hostTreeLayoutWidth,
       }}
-      className="netcatty-lazy-fade-in absolute top-0 right-0 bottom-0 min-h-0 flex flex-col bg-background"
+      className="lemonssh-lazy-fade-in absolute top-0 right-0 bottom-0 min-h-0 flex flex-col bg-background"
       aria-hidden="true"
     />
   );
@@ -495,14 +495,14 @@ function AppViewInner({ domains }: AppViewProps) {
       sessions,
       deviceLabel: t('settings.plugins.thisDevice'),
     });
-    void netcattyBridge.get()?.setPluginScopeCatalog?.(catalog).catch(() => {});
+    void lemonsshBridge.get()?.setPluginScopeCatalog?.(catalog).catch(() => {});
   }, [hosts, sessions, t, workspaces]);
 
   return (
     <SnippetExecutionProvider>
     <UnsavedChangesProvider>
       {() => (
-    <div className="flex flex-col h-screen text-foreground font-sans netcatty-shell" data-terminal-appearance-root onContextMenu={handleRootContextMenu}>
+    <div className="flex flex-col h-screen text-foreground font-sans lemonssh-shell" data-terminal-appearance-root onContextMenu={handleRootContextMenu}>
       {layoutMode === 'classic' ? (
       <TopTabs
         theme={resolvedTheme}
@@ -873,7 +873,7 @@ function AppViewInner({ domains }: AppViewProps) {
       </div>
 
       {/* Global "quick add / edit snippet" modal, triggered by the
-          netcatty:snippets:add and :edit window events (from ScriptsSidePanel
+          lemonssh:snippets:add and :edit window events (from ScriptsSidePanel
           "+" button and right-click menu). Delete is handled by a sibling
           useEffect above — it does not need a dialog. */}
       <QuickAddSnippetDialog

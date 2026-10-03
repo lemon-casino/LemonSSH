@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"math"
 
-	"github.com/binaricat/netcatty/internal/platform/monitoring"
+	"github.com/binaricat/lemonssh/internal/platform/monitoring"
 	"strings"
 	"testing"
 )

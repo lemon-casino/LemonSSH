@@ -1,6 +1,6 @@
 /**
  * Shared encrypted-object storage surface for built-in cloud adapters and
- * plugin sync Providers. Netcatty always encrypts before write and decrypts
+ * plugin sync Providers. LemonSSH always encrypts before write and decrypts
  * after read; implementations only handle already-encrypted bytes.
  */
 
@@ -67,5 +67,10 @@ export interface EncryptedObjectStorage {
   deleteObject(key: string, options?: EncryptedObjectDeleteOptions): Promise<EncryptedObjectDeleteResult>;
 }
 
-/** Default object key used when adapting the legacy single-file CloudAdapter path. */
-export const DEFAULT_ENCRYPTED_SYNC_OBJECT_KEY = 'netcatty-vault.json';
+/**
+ * Default object key used when adapting the legacy single-file CloudAdapter path.
+ * compat#5: read paths fall back to LEGACY_ENCRYPTED_SYNC_OBJECT_KEY for objects
+ * written by pre-rename builds; writes always use the new key.
+ */
+export const DEFAULT_ENCRYPTED_SYNC_OBJECT_KEY = 'lemonssh-vault.json';
+export const LEGACY_ENCRYPTED_SYNC_OBJECT_KEY = 'netcatty-vault.json';

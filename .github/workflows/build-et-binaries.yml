@@ -6,7 +6,7 @@ name: build-et-binaries
 #    Artifacts upload as workflow artifacts only; *no* release.
 #  - Manual `workflow_dispatch` with `release_tag` publishes the binaries +
 #    SHA256SUMS to the dedicated binary repository
-#    (`binaricat/Netcatty-et-bin` by default).
+#    (`binaricat/LemonSSH-et-bin` by default).
 #
 # `paths` keeps unrelated commits (UI, bridges, etc) from rebuilding the et
 # binaries on every push.
@@ -24,7 +24,7 @@ on:
       release_repo:
         description: "Repository that stores et binary releases."
         type: string
-        default: "binaricat/Netcatty-et-bin"
+        default: "binaricat/LemonSSH-et-bin"
   push:
     branches:
       - main

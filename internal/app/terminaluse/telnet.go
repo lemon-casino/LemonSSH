@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/telnet"
+	"github.com/binaricat/lemonssh/internal/terminal/telnet"
 )
 
 // TelnetStartRequest is the shell-facing telnet dial payload. Auto-login

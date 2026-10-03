@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtemp, readFile, writeFile, realpath } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -13,9 +13,11 @@ import {
   buildLdflags,
   checksumEntries,
   helperResourcePath,
+  normalizeUpdatePublicKey,
   parseArgs,
   purityInventory,
   shouldUseShell,
+  stampWindowsVersionResource,
   windowsGuiLdflags,
   verifyHelper,
   writeProtocolResources,
@@ -38,6 +40,29 @@ test("buildLdflags strips the quote characters", () => {
   assert.equal(buildLdflags('a"b'), "-s -w -X main.version=ab");
 });
 
+test("buildLdflags injects the update public key only when provided", () => {
+  // Without a key (the common no-secret environment) behavior is unchanged
+  // and the runtime keeps checksums.txt-only verification.
+  const key = "a".repeat(64);
+  assert.equal(buildLdflags("1.2.3", ""), "-s -w -X main.version=1.2.3");
+  assert.equal(buildLdflags("1.2.3"), "-s -w -X main.version=1.2.3");
+  assert.equal(
+    buildLdflags("1.2.3", key),
+    `-s -w -X main.version=1.2.3 -X main.updatePublicKey=${key}`,
+  );
+});
+
+test("normalizeUpdatePublicKey enforces the ed25519 hex shape", () => {
+  assert.equal(normalizeUpdatePublicKey(undefined), "");
+  assert.equal(normalizeUpdatePublicKey(""), "");
+  assert.equal(normalizeUpdatePublicKey(null), "");
+  const key = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
+  assert.equal(normalizeUpdatePublicKey(` ${key.toLowerCase()} `), key.toLowerCase(), "trims and lowercases");
+  assert.throws(() => normalizeUpdatePublicKey("short"), /64 hex chars/);
+  assert.throws(() => normalizeUpdatePublicKey("z".repeat(64)), /64 hex chars/);
+  assert.throws(() => normalizeUpdatePublicKey("a".repeat(65)), /64 hex chars/);
+});
+
 test("windowsGuiLdflags hides the console on Windows GUI builds", () => {
   assert.equal(windowsGuiLdflags("windows"), " -H windowsgui");
   assert.equal(windowsGuiLdflags("linux"), "");
@@ -45,13 +70,14 @@ test("windowsGuiLdflags hides the console on Windows GUI builds", () => {
 });
 
 test("parseArgs accepts the documented flags", () => {
-  const args = parseArgs(["--version", "9.9.9", "--goos", "linux", "--goarch", "arm64", "--skip-frontend", "--out-dir", "out"]);
+  const args = parseArgs(["--version", "9.9.9", "--goos", "linux", "--goarch", "arm64", "--skip-frontend", "--out-dir", "out", "--update-public-key", "a".repeat(64)]);
   assert.deepEqual(args, {
     version: "9.9.9",
     goos: "linux",
     goarch: "arm64",
     skipFrontend: true,
     outDir: "out",
+    updatePublicKey: "a".repeat(64),
   });
   assert.throws(() => parseArgs(["--nonsense"]), /unknown argument/);
 });
@@ -128,11 +154,11 @@ test("protocol resources register all supported schemes", async () => {
   const linux = await writeProtocolResources(dir, "linux", "LemonSSH");
   const desktop = await readFile(linux[0], "utf8");
   assert.match(desktop, /Exec=LemonSSH %u/);
-  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(desktop.includes(`x-scheme-handler/${scheme};`));
+  for (const scheme of ["ssh", "telnet", "lemonssh", "netcatty"]) assert.ok(desktop.includes(`x-scheme-handler/${scheme};`));
   const mac = await writeProtocolResources(dir, "darwin", "LemonSSH");
   const plist = await readFile(mac[0], "utf8");
   assert.match(plist, /<key>CFBundleIdentifier<\/key><string>app\.lemonssh\.desktop<\/string>/);
-  for (const scheme of ["ssh", "telnet", "netcatty"]) assert.ok(plist.includes(`<string>${scheme}</string>`));
+  for (const scheme of ["ssh", "telnet", "lemonssh", "netcatty"]) assert.ok(plist.includes(`<string>${scheme}</string>`));
 });
 
 test("helperResourcePath follows the fetch-mosh layout", () => {
@@ -140,3 +166,108 @@ test("helperResourcePath follows the fetch-mosh layout", () => {
   assert.equal(helperResourcePath("darwin", "arm64", "mosh"), path.join("resources", "mosh", "darwin-universal", "mosh-client"));
   assert.equal(helperResourcePath("linux", "arm64", "et"), path.join("resources", "et", "linux-arm64", "et"));
 });
+
+test("versionParts extracts the numeric file version from package versions", async () => {
+  const { versionParts } = await import("./windows-version-info.mjs");
+  assert.deepEqual(versionParts("0.0.1"), { major: 0, minor: 0, patch: 1, build: 0 });
+  assert.deepEqual(versionParts("1.2.3"), { major: 1, minor: 2, patch: 3, build: 0 });
+  assert.deepEqual(versionParts("v1.2"), { major: 1, minor: 2, patch: 0, build: 0 });
+  // Prerelease/build suffixes stay out of the numeric quadruple.
+  assert.deepEqual(versionParts("0.0.1-beta.1"), { major: 0, minor: 0, patch: 1, build: 0 });
+  assert.deepEqual(versionParts("2.0.0+build.5"), { major: 2, minor: 0, patch: 0, build: 0 });
+  assert.throws(() => versionParts("banana"), /unsupported version string/);
+  assert.throws(() => versionParts(""), /unsupported version string/);
+});
+
+test("winresVersionInfo renders the winres info.json shape", async () => {
+  const { lemonsshWinresInfo } = await import("./windows-version-info.mjs");
+  const info = lemonsshWinresInfo("1.2.3");
+  assert.deepEqual(info.fixed, { file_version: "1.2.3.0", product_version: "1.2.3.0" });
+  assert.deepEqual(info.info["0409"], {
+    Comments: "",
+    CompanyName: "LemonSSH",
+    FileDescription: "LemonSSH",
+    FileVersion: "1.2.3",
+    InternalName: "LemonSSH",
+    LegalCopyright: "",
+    OriginalFilename: "LemonSSH.exe",
+    ProductName: "LemonSSH",
+    ProductVersion: "1.2.3",
+  });
+  assert.throws(() => lemonsshWinresInfo(""), /version is required/);
+});
+
+test("generateWindowsSyso runs the pinned tool against a stamped temp info.json", async () => {
+  const { generateWindowsSyso, buildSysoCommand } = await import("./winres.mjs");
+  const commandTempRoot = await mkdtemp(path.join(tempRoot, "winres-cmd-"));
+  const commands = [];
+  const result = await generateWindowsSyso({
+    version: "9.9.9",
+    arch: "amd64",
+    out: path.join("cmd", "lemonssh", "rsrc_windows_amd64.syso"),
+    run: async (command) => commands.push(command),
+    tempRoot: commandTempRoot,
+  });
+  assert.equal(result.version, "9.9.9");
+  assert.equal(commands.length, 1);
+  assert.match(commands[0], /go run github\.com\/wailsapp\/wails\/v3\/cmd\/wails3@v3\.0\.0-beta\.12 generate syso/);
+  assert.match(commands[0], /-arch=amd64/);
+  assert.match(commands[0], /-info="[^"]+info\.json"/);
+  // The stamped info file is temporary: its directory is removed even when
+  // the tool invocation fails.
+  const infoPath = commands[0].match(/-info="([^"]+info\.json)"/)[1];
+  const tempDir = path.dirname(infoPath);
+  await assert.rejects(() => readdir(tempDir), /ENOENT/);
+  // A failing tool invocation still cleans its stamped info file up.
+  await assert.rejects(
+    () => generateWindowsSyso({ version: "1.0.0", run: async () => { throw new Error("tool boom"); }, tempRoot: commandTempRoot }),
+    /tool boom/,
+  );
+  const remaining = [];
+  for (const entry of await readdir(commandTempRoot)) remaining.push(entry);
+  assert.deepEqual(remaining, []);
+  await rm(commandTempRoot, { recursive: true, force: true });
+
+  const command = buildSysoCommand({ arch: "arm64", icon: "i.ico", manifest: "m.manifest", info: "some info.json", out: "out.syso" });
+  assert.match(command, /-arch=arm64/);
+  assert.match(command, /-icon="i\.ico"/);
+  assert.match(command, /-info="some info\.json"/);
+});
+
+test("parseWinresArgs only accepts documented flags", async () => {
+  const { parseWinresArgs } = await import("./winres.mjs");
+  assert.deepEqual(parseWinresArgs(["--version", "1.2.3", "--arch", "arm64"]), { version: "1.2.3", arch: "arm64" });
+  assert.deepEqual(parseWinresArgs([]), { arch: "amd64" });
+  assert.throws(() => parseWinresArgs(["--nonsense"]), /unknown argument/);
+});
+
+test("stampWindowsVersionResource regenerates the syso and restores the committed bytes", async () => {
+  const dir = await mkdtemp(path.join(tempRoot, "stamp-wails-"));
+  process.chdir(dir);
+  const syso = path.join("cmd", "lemonssh", "rsrc_windows_amd64.syso");
+  await mkdir(path.dirname(syso), { recursive: true });
+  await writeFile(syso, Buffer.from("committed-bytes"));
+
+  const commands = [];
+  let restore = await stampWindowsVersionResource({
+    version: "4.5.6",
+    goarch: "amd64",
+    runCommand: async (command) => commands.push(command),
+  });
+  assert.match(commands[0], /generate syso/);
+  assert.match(commands[0], /rsrc_windows_amd64\.syso/);
+  await restore();
+  assert.equal((await readFile(syso)).toString(), "committed-bytes");
+
+  // A newly created syso (no committed bytes) is removed on restore.
+  await rm(syso, { force: true });
+  restore = await stampWindowsVersionResource({ version: "4.5.6", goarch: "amd64", runCommand: async () => {} });
+  assert.ok(!(await readFile(syso).then(() => true, () => false)));
+  await restore();
+  await assert.rejects(() => readFile(syso), /ENOENT/);
+
+  assert.rejects(() => stampWindowsVersionResource({ version: "4.5.6", goarch: "386", runCommand: async () => {} }), /unsupported windows GOARCH/);
+  process.chdir(tempRoot);
+  await rm(dir, { recursive: true, force: true });
+});
+

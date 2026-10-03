@@ -12,7 +12,7 @@
  * pulling in the hook.
  */
 
-export const AI_STATE_CHANGED_EVENT = 'netcatty:ai-state-changed';
+export const AI_STATE_CHANGED_EVENT = 'lemonssh:ai-state-changed';
 
 export function emitAIStateChanged(key: string): void {
   if (typeof window === 'undefined') return;

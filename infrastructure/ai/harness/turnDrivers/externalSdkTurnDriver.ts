@@ -5,7 +5,7 @@ import {
   type SdkAgentCallbacks,
 } from '../../sdkAgentAdapter';
 import {
-  getNetcattyBridge,
+  getLemonSSHBridge,
   generateId,
   resolveUserSkillsContext,
   isToolResultError,
@@ -85,10 +85,10 @@ async function runExternalTurn(
     ui,
   } = input;
 
-  const netcattyBridge = bridge ?? getNetcattyBridge();
+  const lemonsshBridge = bridge ?? getLemonSSHBridge();
   const sdkBackend = getExternalAgentSdkBackend(agentConfig);
 
-  if (!sdkBackend || !netcattyBridge) {
+  if (!sdkBackend || !lemonsshBridge) {
     ui.reportStreamError(
       sessionId,
       signal,
@@ -99,7 +99,7 @@ async function runExternalTurn(
   }
 
   const userSkillsContext = await resolveUserSkillsContext(
-    netcattyBridge,
+    lemonsshBridge,
     trimmed,
     context.selectedUserSkillSlugs,
   );
@@ -108,8 +108,8 @@ async function runExternalTurn(
   let activeRequestId = requestId;
   ui.setStreamingForScope(sessionId, true);
 
-  if (netcattyBridge.aiMcpUpdateSessions) {
-    await netcattyBridge.aiMcpUpdateSessions(context.terminalSessions, sessionId);
+  if (lemonsshBridge.aiMcpUpdateSessions) {
+    await lemonsshBridge.aiMcpUpdateSessions(context.terminalSessions, sessionId);
   }
 
   let needsNewAssistantMsg = false;
@@ -419,7 +419,7 @@ async function runExternalTurn(
       flushTextBeforeNonTextEvent();
       steerInFlight = true;
       const result = await steerSdkAgentTurn(
-        netcattyBridge,
+        lemonsshBridge,
         activeRequestId,
         sessionId,
         steerInput.prompt,
@@ -467,7 +467,7 @@ async function runExternalTurn(
       historyMessages: ExternalTurnInput['context']['historyMessages'],
       images: ExternalTurnInput['attachedImages'] | undefined,
     ) => runSdkAgentTurn(
-      netcattyBridge,
+      lemonsshBridge,
       turnRequestId,
       sessionId,
       agentConfig,

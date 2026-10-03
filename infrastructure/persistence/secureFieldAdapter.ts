@@ -11,13 +11,13 @@
 
 import type { GroupConfig, Host, Identity, ProxyProfile, SSHKey } from "../../domain/models";
 import type { ProviderConnection, S3Config, WebDAVConfig } from "../../domain/sync";
-import { netcattyBridge } from "../services/netcattyBridge";
+import { lemonsshBridge } from "../services/lemonsshBridge";
 
 // ---------------------------------------------------------------------------
 // Primitive helpers
 // ---------------------------------------------------------------------------
 
-const bridge = () => netcattyBridge.get();
+const bridge = () => lemonsshBridge.get();
 
 export async function encryptField(value: string | undefined): Promise<string | undefined> {
   if (!value) return value;
@@ -155,46 +155,68 @@ export function decryptProxyProfiles(profiles: ProxyProfile[]): Promise<ProxyPro
  * Host-owned sealed-config envelope. Must be unambiguous against plugin-owned
  * JSON: exactly one reserved key, no extra properties. Never treat a plugin
  * object that merely contains a similar key as already sealed.
+ *
+ * compat#10/#3: the marker was renamed `__netcatty_plugin_config_v1` →
+ * `__lemonssh_plugin_config_v1` (and likewise for the credential envelope).
+ * Serialization always writes the new marker; decryption still accepts the
+ * legacy markers (this file's original `__encryptedPluginConfig` hop shows the
+ * pattern) so persisted ProviderConnection values and cloud snapshots sealed
+ * under the old names keep decrypting and upgrade on the next write-back.
  */
-const PLUGIN_CONFIG_ENVELOPE_KEY = "__netcatty_plugin_config_v1" as const;
+const PLUGIN_CONFIG_ENVELOPE_KEY = "__lemonssh_plugin_config_v1" as const;
+const LEGACY_NETCATTY_PLUGIN_CONFIG_ENVELOPE_KEY = "__netcatty_plugin_config_v1" as const;
 const LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY = "__encryptedPluginConfig" as const;
 /** At-rest envelope for ProviderConnection.credential (opaque refs only). */
-const PLUGIN_CREDENTIAL_ENVELOPE_KEY = "__netcatty_plugin_credential_v1" as const;
+const PLUGIN_CREDENTIAL_ENVELOPE_KEY = "__lemonssh_plugin_credential_v1" as const;
+const LEGACY_NETCATTY_PLUGIN_CREDENTIAL_ENVELOPE_KEY = "__netcatty_plugin_credential_v1" as const;
 
 type PluginConfigEnvelope = {
   [PLUGIN_CONFIG_ENVELOPE_KEY]: string;
 };
 
-type PluginCredentialEnvelope = {
-  [PLUGIN_CREDENTIAL_ENVELOPE_KEY]: string;
-};
+/** Every accepted config-envelope marker, current name first. */
+const PLUGIN_CONFIG_ENVELOPE_KEYS: readonly string[] = [
+  PLUGIN_CONFIG_ENVELOPE_KEY,
+  LEGACY_NETCATTY_PLUGIN_CONFIG_ENVELOPE_KEY,
+  LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY,
+];
+
+/** Every accepted credential-envelope marker, current name first. */
+const PLUGIN_CREDENTIAL_ENVELOPE_KEYS: readonly string[] = [
+  PLUGIN_CREDENTIAL_ENVELOPE_KEY,
+  LEGACY_NETCATTY_PLUGIN_CREDENTIAL_ENVELOPE_KEY,
+];
+
+/**
+ * Return the single reserved envelope marker when `value` is an exact
+ * marker-shaped single-key object with a string payload, else null. The
+ * single-key invariant is kept across marker renames.
+ */
+function sealedEnvelopeKey(value: unknown, accepted: readonly string[]): string | null {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length !== 1) return null;
+  const key = keys[0];
+  if (!accepted.includes(key)) return null;
+  return typeof record[key] === "string" ? key : null;
+}
 
 function isPluginConfigEnvelope(value: unknown): value is PluginConfigEnvelope {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record);
-  return keys.length === 1
-    && keys[0] === PLUGIN_CONFIG_ENVELOPE_KEY
-    && typeof record[PLUGIN_CONFIG_ENVELOPE_KEY] === "string";
+  return sealedEnvelopeKey(value, PLUGIN_CONFIG_ENVELOPE_KEYS) === PLUGIN_CONFIG_ENVELOPE_KEY;
 }
 
-/** Legacy envelope shape (still accepted on decrypt for one migration hop). */
-function isLegacyPluginConfigEnvelope(value: unknown): value is { __encryptedPluginConfig: string } {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record);
-  return keys.length === 1
-    && keys[0] === LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY
-    && typeof record[LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY] === "string";
+/** Legacy envelope shapes (still accepted on decrypt for the migration hops). */
+function isLegacyPluginConfigEnvelope(
+  value: unknown,
+): value is { __encryptedPluginConfig: string } | { __netcatty_plugin_config_v1: string } {
+  const key = sealedEnvelopeKey(value, PLUGIN_CONFIG_ENVELOPE_KEYS);
+  return key !== null && key !== PLUGIN_CONFIG_ENVELOPE_KEY;
 }
 
-function isPluginCredentialEnvelope(value: unknown): value is PluginCredentialEnvelope {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record);
-  return keys.length === 1
-    && keys[0] === PLUGIN_CREDENTIAL_ENVELOPE_KEY
-    && typeof record[PLUGIN_CREDENTIAL_ENVELOPE_KEY] === "string";
+/** Any accepted credential-envelope marker key on `value`, else null. */
+function sealedCredentialEnvelopeKey(value: unknown): string | null {
+  return sealedEnvelopeKey(value, PLUGIN_CREDENTIAL_ENVELOPE_KEYS);
 }
 
 export async function encryptProviderSecrets(conn: ProviderConnection): Promise<ProviderConnection> {
@@ -229,13 +251,13 @@ export async function encryptProviderSecrets(conn: ProviderConnection): Promise<
       out.config = c;
     } else if (!isBuiltin) {
       // Always (re)seal opaque plugin config. An exact marker-shaped object may
-      // be either a trusted host envelope or plugin-owned JSON that collides
-      // with our key — try unwrap; on failure seal the whole value as opaque.
+      // be either a trusted host envelope (current or legacy marker) or
+      // plugin-owned JSON that collides with our key — try unwrap; on failure
+      // seal the whole value as opaque.
       let toSeal: unknown = out.config;
-      if (isPluginConfigEnvelope(out.config) || isLegacyPluginConfigEnvelope(out.config)) {
-        const sealedValue = isPluginConfigEnvelope(out.config)
-          ? out.config[PLUGIN_CONFIG_ENVELOPE_KEY]
-          : out.config[LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY];
+      const envelopeKey = sealedEnvelopeKey(out.config, PLUGIN_CONFIG_ENVELOPE_KEYS);
+      if (envelopeKey !== null) {
+        const sealedValue = (out.config as Record<string, unknown>)[envelopeKey] as string;
         const plain = await decryptField(sealedValue);
         if (plain != null && plain !== "") {
           try {
@@ -260,8 +282,11 @@ export async function encryptProviderSecrets(conn: ProviderConnection): Promise<
   // as plugin config: do not leave kind/id/key plaintext in localStorage).
   if (out.credential != null && typeof out.credential === "object") {
     let toSeal: unknown = out.credential;
-    if (isPluginCredentialEnvelope(out.credential)) {
-      const plain = await decryptField(out.credential[PLUGIN_CREDENTIAL_ENVELOPE_KEY]);
+    const credentialEnvelopeKey = sealedCredentialEnvelopeKey(out.credential);
+    if (credentialEnvelopeKey !== null) {
+      const plain = await decryptField(
+        (out.credential as Record<string, unknown>)[credentialEnvelopeKey] as string,
+      );
       if (plain != null && plain !== "") {
         try {
           toSeal = JSON.parse(plain);
@@ -287,8 +312,9 @@ export async function encryptProviderSecrets(conn: ProviderConnection): Promise<
           [PLUGIN_CREDENTIAL_ENVELOPE_KEY]: sealed,
         } as unknown as ProviderConnection["credential"];
       }
-    } else if (isPluginCredentialEnvelope(toSeal)) {
-      // Marker-collision object that is not a durable ref — seal as opaque JSON.
+    } else if (sealedCredentialEnvelopeKey(toSeal) !== null) {
+      // Marker-collision object that is not a durable ref (current or legacy
+      // marker whose unwrap failed) — seal as opaque JSON under the new key.
       const sealed = await encryptField(JSON.stringify(toSeal));
       if (sealed) {
         out.credential = {
@@ -333,9 +359,8 @@ export async function decryptProviderSecrets(conn: ProviderConnection): Promise<
       c.sessionToken = await decryptField(c.sessionToken);
       out.config = c;
     } else if (isPluginConfigEnvelope(out.config) || isLegacyPluginConfigEnvelope(out.config)) {
-      const sealed = isPluginConfigEnvelope(out.config)
-        ? out.config[PLUGIN_CONFIG_ENVELOPE_KEY]
-        : out.config[LEGACY_PLUGIN_CONFIG_ENVELOPE_KEY];
+      const envelopeKey = sealedEnvelopeKey(out.config, PLUGIN_CONFIG_ENVELOPE_KEYS) as string;
+      const sealed = (out.config as Record<string, unknown>)[envelopeKey] as string;
       const plain = await decryptField(sealed);
       // plain may be JSON "false"/"0"/'""' — treat empty decrypt as failure only.
       if (plain != null && plain !== "") {
@@ -348,8 +373,11 @@ export async function decryptProviderSecrets(conn: ProviderConnection): Promise<
     }
   }
 
-  if (isPluginCredentialEnvelope(out.credential)) {
-    const plain = await decryptField(out.credential[PLUGIN_CREDENTIAL_ENVELOPE_KEY]);
+  const credentialEnvelopeKey = sealedCredentialEnvelopeKey(out.credential);
+  if (credentialEnvelopeKey !== null && out.credential != null && typeof out.credential === "object") {
+    const plain = await decryptField(
+      (out.credential as Record<string, unknown>)[credentialEnvelopeKey] as string,
+    );
     if (plain != null && plain !== "") {
       try {
         const parsed = JSON.parse(plain) as {

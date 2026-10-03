@@ -6,7 +6,7 @@ import {
   type OscNotification,
 } from "../../domain/terminalOscNotifications";
 import type { OscNotificationMode } from "../../domain/models/terminal";
-import { netcattyBridge } from "../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../infrastructure/services/lemonsshBridge";
 
 const sessionLimiters = new Map<string, OscNotificationLimiter>();
 
@@ -37,7 +37,7 @@ export function showOscDesktopNotification(options: {
     options.notification,
     options.fallbackTitle || DEFAULT_OSC_NOTIFICATION_TITLE,
   );
-  void netcattyBridge.get()?.showSystemNotification?.({
+  void lemonsshBridge.get()?.showSystemNotification?.({
     title: presented.title,
     body: presented.body,
     sessionId: options.sessionId,

@@ -2,14 +2,17 @@ import { Host } from "./models";
 import { hasMacKeychainAgentDirectives } from "./sshAuth";
 
 const DEFAULT_SSH_PORT = 22;
-const MANAGED_BLOCK_BEGIN = "# BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK";
-const MANAGED_BLOCK_END = "# END NETCATTY MANAGED";
+const MANAGED_BLOCK_BEGIN = "# BEGIN LEMONSSH MANAGED - DO NOT EDIT THIS BLOCK";
+const MANAGED_BLOCK_END = "# END LEMONSSH MANAGED";
 const UNSAFE_SSH_CONFIG_VALUE = /[\r\n\0]/;
 const UNSAFE_SSH_PROXY_JUMP_HOSTNAME = /[\s,@#]/;
 const UNSAFE_SSH_PROXY_JUMP_USERNAME = /[\s,#]/;
 const UNSAFE_SSH_HOST_ALIAS = /["\\*?!,[\]@#]/;
 const UNSAFE_SSH_HOST_MATCH_LITERAL = /[\s*?!,[\]@#]/;
-const ENCODED_HOST_ALIAS_PREFIX = "netcatty-encoded-";
+const ENCODED_HOST_ALIAS_PREFIX = "lemonssh-encoded-";
+// Pre-rename configs carry netcatty-encoded- aliases; they must never be
+// re-encoded (the prefix only signals "already encoded").
+const LEGACY_ENCODED_HOST_ALIAS_PREFIX = "netcatty-encoded-";
 
 const assertSafeSshConfigValue = (value: string, field: string): void => {
   if (UNSAFE_SSH_CONFIG_VALUE.test(value)) {
@@ -24,6 +27,7 @@ export const toSafeSshHostAlias = (label: string, hostname: string): string => {
   if (!alias) throw new Error("Host alias must not be empty.");
   const needsEncoding = alias.startsWith('-')
     || alias.startsWith(ENCODED_HOST_ALIAS_PREFIX)
+    || alias.startsWith(LEGACY_ENCODED_HOST_ALIAS_PREFIX)
     || UNSAFE_SSH_HOST_ALIAS.test(alias);
   if (!needsEncoding) return alias;
   const encoded = Array.from(new TextEncoder().encode(alias), (byte) =>

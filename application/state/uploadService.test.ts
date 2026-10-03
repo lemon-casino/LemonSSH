@@ -41,10 +41,10 @@ function installCompressedUploadBridge(
   } = {},
 ) {
   const previousWindow = globalThis.window;
-  const previousNetcatty = previousWindow?.netcatty;
+  const previousLemonSSH = previousWindow?.lemonssh;
   const nextWindow = previousWindow ?? ({} as Window & typeof globalThis);
-  nextWindow.netcatty = {
-    ...previousNetcatty,
+  nextWindow.lemonssh = {
+    ...previousLemonSSH,
     getPathForFile: (file: File) => (file as File & { path?: string }).path,
     checkCompressedUploadSupport: async () => ({
       supported: options.supported !== false,
@@ -55,7 +55,7 @@ function installCompressedUploadBridge(
       options.onStart?.(payload);
       return { compressionId: payload.compressionId, success: true };
     },
-  } as NetcattyBridge;
+  } as LemonSSHBridge;
   Object.defineProperty(globalThis, "window", {
     value: nextWindow,
     writable: true,
@@ -63,7 +63,7 @@ function installCompressedUploadBridge(
   });
   t.after(() => {
     if (previousWindow) {
-      previousWindow.netcatty = previousNetcatty;
+      previousWindow.lemonssh = previousLemonSSH;
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,
         writable: true,
@@ -395,11 +395,11 @@ test("remote upload without a local path never buffers the whole File into rende
         stageUploadFile: async (stagedFile) => {
           assert.equal(stagedFile, file);
           stagedFiles += 1;
-          return "/netcatty-temp/memory-only.bin";
+          return "/lemonssh-temp/memory-only.bin";
         },
         deleteTempFile: async (localPath) => { deleted.push(localPath); },
         startStreamTransfer: async (payload) => {
-          assert.equal(payload.sourcePath, "/netcatty-temp/memory-only.bin");
+          assert.equal(payload.sourcePath, "/lemonssh-temp/memory-only.bin");
           streamTransfers += 1;
           return { transferId: payload.transferId };
         },
@@ -411,18 +411,18 @@ test("remote upload without a local path never buffers the whole File into rende
   assert.equal(arrayBufferCalls, 0);
   assert.equal(stagedFiles, 1);
   assert.equal(streamTransfers, 1);
-  assert.deepEqual(deleted, ["/netcatty-temp/memory-only.bin"]);
+  assert.deepEqual(deleted, ["/lemonssh-temp/memory-only.bin"]);
   assert.equal(results[0]?.success, true);
 });
 
 test("WebView2 File.path is not used as the stream source when the bridge declines it", async (t) => {
   const previousWindow = globalThis.window;
-  const previousNetcatty = previousWindow?.netcatty;
+  const previousLemonSSH = previousWindow?.lemonssh;
   const nextWindow = previousWindow ?? ({} as Window & typeof globalThis);
-  nextWindow.netcatty = {
-    ...previousNetcatty,
+  nextWindow.lemonssh = {
+    ...previousLemonSSH,
     getPathForFile: () => undefined,
-  } as NetcattyBridge;
+  } as LemonSSHBridge;
   Object.defineProperty(globalThis, "window", {
     value: nextWindow,
     writable: true,
@@ -430,7 +430,7 @@ test("WebView2 File.path is not used as the stream source when the bridge declin
   });
   t.after(() => {
     if (previousWindow) {
-      previousWindow.netcatty = previousNetcatty;
+      previousWindow.lemonssh = previousLemonSSH;
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,
         writable: true,
@@ -797,7 +797,7 @@ test("Electron-wrapped lstat absence still means absent destination", async () =
       bridge: {
         mkdirSftp: async () => {},
         lstatSftp: async () => {
-          throw new Error("Error invoking remote method 'netcatty:sftp:lstat': Error: No such file");
+          throw new Error("Error invoking remote method 'lemonssh:sftp:lstat': Error: No such file");
         },
         startStreamTransfer: async ({ targetPath: path }) => {
           uploadedPaths.push(path);

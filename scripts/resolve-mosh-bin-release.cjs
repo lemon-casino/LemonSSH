@@ -1,47 +1,49 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 //
-// Resolve the MoshCatty mosh-client binary release used by packaging / dev.
+// Resolve the MoshLemonSSH mosh-client binary release used by packaging / dev.
 //
 // Priority:
 //   1. MOSH_BIN_RELEASE from workflow input / repository variable.
 //   2. Latest non-draft, non-prerelease GitHub Release whose tag is
-//      moshcatty-* in MOSH_BIN_OWNER/MOSH_BIN_REPO (default binaricat/MoshCatty).
+//      moshlemonssh-* (or legacy moshcatty-*) in MOSH_BIN_OWNER/MOSH_BIN_REPO
+//      (default binaricat/MoshLemonSSH).
 //
 // In GitHub Actions, the resolved tag is written to $GITHUB_ENV.
 
 const fs = require("node:fs");
 const https = require("node:https");
 
-// MoshCatty pure-Rust releases only.
+// MoshLemonSSH pure-Rust releases only. Both tag prefixes are accepted so
+// releases published before the LemonSSH rename (moshcatty-*) keep resolving.
 // Minimum 0.1.8: disable local backspace prediction until the host confirms
 // the resulting screen, preventing stale cursor/character display on latency.
 // 0.1.7 reconstructed numbered remote states before display; 0.1.6 added
 // prediction hardening; 0.1.5 introduced the Diff path.
-// 0.1.4 ConPTY shortcut; 0.1.2+ Linux glibc floors match Netcatty.
+// 0.1.4 ConPTY shortcut; 0.1.2+ Linux glibc floors match LemonSSH.
 // Allow semver prerelease (-rc1) and build metadata (+meta); no path separators.
-const TAG_RE = /^moshcatty-[A-Za-z0-9._+-]+$/;
+const TAG_RE = /^(?:moshlemonssh|moshcatty)-[A-Za-z0-9._+-]+$/;
 const MIN_VERSION = { major: 0, minor: 1, patch: 8 };
-const MIN_TAG = `moshcatty-${MIN_VERSION.major}.${MIN_VERSION.minor}.${MIN_VERSION.patch}`;
+const MIN_TAG = `moshlemonssh-${MIN_VERSION.major}.${MIN_VERSION.minor}.${MIN_VERSION.patch}`;
 
 function log(msg) {
   console.log(`[resolve-mosh-bin-release] ${msg}`);
 }
 
 /**
- * Parse moshcatty-X.Y.Z with optional prerelease (-rc1) and build (+meta).
- * Returns null if not semver-ish.
+ * Parse moshlemonssh-X.Y.Z (or legacy moshcatty-X.Y.Z) with optional
+ * prerelease (-rc1) and build (+meta). Returns null if not semver-ish.
  */
 function parseMoshCattyVersion(tag) {
   const match = String(tag || "").trim().match(
-    /^moshcatty-(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/,
+    /^(?:moshlemonssh|moshcatty)-(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/,
   );
   if (!match) return null;
   return {
     major: Number(match[1]),
     minor: Number(match[2]),
     patch: Number(match[3]),
-    // Present when tag is e.g. moshcatty-0.1.4-rc1 (semver: prerelease < final).
+    // Present when tag is e.g. moshlemonssh-0.1.4-rc1 (semver: prerelease < final).
     prerelease: match[4] || null,
   };
 }
@@ -69,7 +71,7 @@ function isAtLeastMinRelease(tag) {
 function validateReleaseTag(tag) {
   const value = String(tag || "").trim();
   if (!TAG_RE.test(value) || !parseMoshCattyVersion(value)) {
-    throw new Error(`invalid mosh binary release tag: ${tag} (expected moshcatty-X.Y.Z[(-pre)|(+build)])`);
+    throw new Error(`invalid mosh binary release tag: ${tag} (expected moshlemonssh-X.Y.Z[(-pre)|(+build)])`);
   }
   if (!isAtLeastMinRelease(value)) {
     throw new Error(
@@ -82,11 +84,11 @@ function validateReleaseTag(tag) {
 }
 
 function parseRepository(env) {
-  // Canonical default is always binaricat/MoshCatty. Do not derive owner from
+  // Canonical default is always binaricat/MoshLemonSSH. Do not derive owner from
   // GITHUB_REPOSITORY — fork packaging would otherwise look for
-  // <fork-owner>/MoshCatty and fail. Override only via MOSH_BIN_OWNER/REPO.
+  // <fork-owner>/MoshLemonSSH and fail. Override only via MOSH_BIN_OWNER/REPO.
   const owner = env.MOSH_BIN_OWNER || "binaricat";
-  const repo = env.MOSH_BIN_REPO || "MoshCatty";
+  const repo = env.MOSH_BIN_REPO || "MoshLemonSSH";
   return { owner, repo };
 }
 
@@ -133,7 +135,7 @@ function requestJsonWithHeaders(url, env, depth = 0) {
 
     const headers = {
       Accept: "application/vnd.github+json",
-      "User-Agent": "netcatty-mosh-release-resolver",
+      "User-Agent": "lemonssh-mosh-release-resolver",
       "X-GitHub-Api-Version": "2022-11-28",
     };
     const token = env.GITHUB_TOKEN || env.GH_TOKEN;
@@ -178,7 +180,7 @@ async function loadReleases(env, request = requestJsonWithHeaders) {
   const { owner, repo } = parseRepository(env);
   const apiBase = (env.GITHUB_API_URL || "https://api.github.com").replace(/\/+$/, "");
   let url = `${apiBase}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases?per_page=100`;
-  log(`looking up latest moshcatty-* release in ${owner}/${repo}`);
+  log(`looking up latest moshlemonssh-*/moshcatty-* release in ${owner}/${repo}`);
   const releases = [];
   const seen = new Set();
   while (url) {
@@ -215,8 +217,8 @@ async function main(env = process.env) {
   const release = pickLatestMoshBinRelease(releases);
   if (!release) {
     throw new Error(
-      `could not find a non-draft ${MIN_TAG}+ release in binaricat/MoshCatty. `
-        + `Publish a MoshCatty GitHub Release (e.g. ${MIN_TAG}) before packaging.`,
+      `could not find a non-draft ${MIN_TAG}+ release in binaricat/MoshLemonSSH. `
+        + `Publish a MoshLemonSSH GitHub Release (e.g. ${MIN_TAG}) before packaging.`,
     );
   }
 

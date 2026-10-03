@@ -4,18 +4,13 @@ import { TERMINAL_THEMES } from '../../infrastructure/config/terminalThemes';
 import { STORAGE_KEY_CUSTOM_THEMES } from '../../infrastructure/config/storageKeys';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 
-// Access the Electron bridge for cross-window IPC
-type NetcattyBridge = {
-    notifySettingsChanged?(payload: { key: string; value: unknown }): void;
-    onSettingsChanged?(cb: (payload: { key: string; value: unknown }) => void): () => void;
-};
-const getBridge = (): NetcattyBridge | undefined =>
-    (window as unknown as { netcatty?: NetcattyBridge }).netcatty;
-
 /**
  * Custom Theme Store - manages user-created terminal themes
  * Uses useSyncExternalStore pattern (same as fontStore)
- * Persists to localStorage + cross-window IPC sync
+ * Persists through the host storage adapter. There is no live IPC channel in
+ * the Wails shell: cross-window updates arrive through the settings
+ * storage-sync manifest (settingsStorageSync.ts), which reloads this store
+ * whenever the stored key changes in this or another window.
  */
 type Listener = () => void;
 
@@ -24,19 +19,22 @@ class CustomThemeStore {
     private listeners = new Set<Listener>();
     /** Cached merged array for stable useSyncExternalStore snapshots */
     private cachedAllThemes: TerminalTheme[] | null = null;
+    /** Raw JSON of the last loaded/persisted list; skips own-write echoes. */
+    private lastSyncedRaw: string | null = null;
 
     constructor() {
         this.loadFromStorage();
-        this.setupCrossWindowSync();
     }
 
-    /** Reload themes from localStorage. Called internally and after sync apply. */
+    /** Reload themes from storage. Called after sync apply and by settingsStorageSync when the key changes. */
     loadFromStorage = () => {
         try {
-            const parsed = localStorageAdapter.read<TerminalTheme[]>(STORAGE_KEY_CUSTOM_THEMES);
-            if (Array.isArray(parsed)) {
-                this.themes = parsed.map((t: TerminalTheme) => ({ ...t, isCustom: true }));
-            }
+            const raw = localStorageAdapter.readString(STORAGE_KEY_CUSTOM_THEMES);
+            if (raw === this.lastSyncedRaw) return;
+            const parsed = raw === null ? [] : JSON.parse(raw);
+            if (!Array.isArray(parsed)) return;
+            this.themes = parsed.map((t: TerminalTheme) => ({ ...t, isCustom: true }));
+            this.lastSyncedRaw = raw;
         } catch {
             // ignore corrupt data
         }
@@ -45,7 +43,10 @@ class CustomThemeStore {
 
     private saveToStorage = () => {
         try {
-            localStorageAdapter.write(STORAGE_KEY_CUSTOM_THEMES, this.themes);
+            const raw = JSON.stringify(this.themes);
+            if (localStorageAdapter.writeString(STORAGE_KEY_CUSTOM_THEMES, raw)) {
+                this.lastSyncedRaw = raw;
+            }
         } catch {
             // storage full or unavailable
         }
@@ -54,32 +55,6 @@ class CustomThemeStore {
     private notify = () => {
         this.cachedAllThemes = null; // invalidate cache on any mutation
         this.listeners.forEach(listener => listener());
-    };
-
-    /** Broadcast change to other Electron windows via IPC */
-    private broadcastChange = () => {
-        try {
-            getBridge()?.notifySettingsChanged?.({
-                key: STORAGE_KEY_CUSTOM_THEMES,
-                value: this.themes,
-            });
-        } catch {
-            // not in Electron or bridge unavailable
-        }
-    };
-
-    /** Listen for changes from other windows and reload */
-    private setupCrossWindowSync = () => {
-        try {
-            getBridge()?.onSettingsChanged?.((payload) => {
-                if (payload.key === STORAGE_KEY_CUSTOM_THEMES) {
-                    // Another window changed custom themes — reload from localStorage
-                    this.loadFromStorage();
-                }
-            });
-        } catch {
-            // not in Electron or bridge unavailable
-        }
     };
 
     subscribe = (listener: Listener): (() => void) => {
@@ -110,7 +85,6 @@ class CustomThemeStore {
         this.themes = [...this.themes, { ...theme, isCustom: true }];
         this.saveToStorage();
         this.notify();
-        this.broadcastChange();
     };
 
     updateTheme = (id: string, updates: Partial<TerminalTheme>) => {
@@ -119,21 +93,18 @@ class CustomThemeStore {
         );
         this.saveToStorage();
         this.notify();
-        this.broadcastChange();
     };
 
     deleteTheme = (id: string) => {
         this.themes = this.themes.filter(t => t.id !== id);
         this.saveToStorage();
         this.notify();
-        this.broadcastChange();
     };
 
     replaceThemes = (themes: TerminalTheme[]) => {
         this.themes = themes.map((theme) => ({ ...theme, colors: { ...theme.colors }, isCustom: true }));
         this.saveToStorage();
         this.notify();
-        this.broadcastChange();
     };
 }
 

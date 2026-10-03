@@ -232,7 +232,7 @@ interface UseTerminalAutocompleteOptions {
    * even if the PS1 still looks like a normal shell (e.g. `read -s -p '$ '`).
    */
   sensitiveInputActiveRef?: RefObject<boolean>;
-  /** Host-owned completion Provider adapter; defaults to Netcatty's built-in Provider. */
+  /** Host-owned completion Provider adapter; defaults to LemonSSH's built-in Provider. */
   provideCompletions?: (
     input: string,
     options: HostCompletionProviderOptions,
@@ -821,11 +821,11 @@ export function useTerminalAutocomplete(
 
     // Suppress autocomplete for the entire alternate screen buffer (codex CLI,
     // vim, htop, less, …). Full-screen apps own their own input UI there;
-    // Netcatty's popup/ghost text would clash — e.g. codex's "/" slash-command
+    // LemonSSH's popup/ghost text would clash — e.g. codex's "/" slash-command
     // menu gets covered because the composer line also matches the shell-prompt
     // heuristic. This is intentionally unconditional: multiplexers (tmux/screen)
     // also keep the outer xterm on the alternate buffer for the whole session,
-    // so Netcatty autocomplete is off while attached — same simple tradeoff as
+    // so LemonSSH autocomplete is off while attached — same simple tradeoff as
     // other terminal hosts, rather than chasing TUI-vs-shell heuristics. #2530
     if (isTerminalAlternateScreenActive(term)) {
       clearState();

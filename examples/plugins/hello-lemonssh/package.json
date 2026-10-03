@@ -1,0 +1,12 @@
+{
+  "name": "@lemonssh/example-hello-plugin",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "wabt": "^1.0.39"
+  }
+}

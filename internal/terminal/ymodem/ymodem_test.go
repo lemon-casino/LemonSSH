@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/zmodem"
+	"github.com/binaricat/lemonssh/internal/terminal/zmodem"
 )
 
 // pipeStream is a duplex in-memory transport: writes to one end are readable

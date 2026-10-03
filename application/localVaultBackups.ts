@@ -7,7 +7,7 @@ import {
 } from '../infrastructure/config/storageKeys';
 import { hostStorageAdapter as localStorageAdapter } from '../infrastructure/persistence/hostStorageAdapter';
 import { getCloudSyncManager } from '../infrastructure/services/CloudSyncManager';
-import { netcattyBridge } from '../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../infrastructure/services/lemonsshBridge';
 import { hasMeaningfulSyncData } from './syncPayload';
 
 /**
@@ -82,14 +82,14 @@ export const setLocalVaultBackupMaxCount = (value: number): number => {
 };
 
 export async function trimLocalVaultBackups(maxCount = getLocalVaultBackupMaxCount()): Promise<void> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   await bridge?.trimVaultBackups?.({ maxCount });
 }
 
 export async function getLocalVaultBackupCapabilities(): Promise<{
   encryptionAvailable: boolean;
 }> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const caps = await bridge?.getVaultBackupCapabilities?.();
   // Conservatively treat a missing bridge (non-Electron environments, early
   // boot) as unavailable so callers fall back to the locked-down UI path
@@ -98,19 +98,19 @@ export async function getLocalVaultBackupCapabilities(): Promise<{
 }
 
 export async function listLocalVaultBackups(): Promise<LocalVaultBackupPreview[]> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const entries = await bridge?.listVaultBackups?.();
   return Array.isArray(entries) ? entries : [];
 }
 
 export async function readLocalVaultBackup(id: string): Promise<LocalVaultBackupDetails | null> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.readVaultBackup) return null;
   return bridge.readVaultBackup({ id });
 }
 
 export async function openLocalVaultBackupDir(): Promise<void> {
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   await bridge?.openVaultBackupDir?.();
 }
 
@@ -134,7 +134,7 @@ export async function createLocalVaultBackup(
     return null;
   }
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.createVaultBackup) {
     return null;
   }
@@ -206,7 +206,7 @@ export async function createRequiredProtectiveLocalVaultBackup(
     return null;
   }
 
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   if (!bridge?.createVaultBackup) {
     throw new ProtectiveBackupUnavailableError(
       'Vault backup bridge is not available in this environment.',

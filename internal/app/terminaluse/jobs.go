@@ -15,7 +15,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/binaricat/netcatty/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
 	gossh "golang.org/x/crypto/ssh"
 )
 

@@ -20,7 +20,7 @@ import {
   shouldSkipCompletedResumeChild,
   withDedicatedSessionOpenSlot,
 } from "./dedicatedTransferResume";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import {
   appendDirectoryCheckpointIdentity,
   appendDirectoryManifestIdentity,
@@ -43,10 +43,10 @@ test("resolveDirectoryResumeTargetRoot prefers staged replace path", () => {
   assert.equal(
     resolveDirectoryResumeTargetRoot({
       targetPath: "/final/dir",
-      stagedTargetPath: "/final/dir.netcatty-abc.part",
+      stagedTargetPath: "/final/dir.lemonssh-abc.part",
       replaceExistingTarget: true,
     }),
-    "/final/dir.netcatty-abc.part",
+    "/final/dir.lemonssh-abc.part",
   );
   assert.equal(
     resolveDirectoryResumeTargetRoot({
@@ -57,7 +57,7 @@ test("resolveDirectoryResumeTargetRoot prefers staged replace path", () => {
 });
 
 test("findPersistedChildForResumeFile matches staged target paths", () => {
-  const staged = "/final/dir.netcatty-abc.part/a.txt";
+  const staged = "/final/dir.lemonssh-abc.part/a.txt";
   const child = {
     id: "c1",
     status: "completed" as const,
@@ -69,7 +69,7 @@ test("findPersistedChildForResumeFile matches staged target paths", () => {
   };
   const planRoot = resolveDirectoryResumeTargetRoot({
     targetPath: "/final/dir",
-    stagedTargetPath: "/final/dir.netcatty-abc.part",
+    stagedTargetPath: "/final/dir.lemonssh-abc.part",
   });
   const planned = { sourcePath: "/src/a.txt", targetPath: `${planRoot}/a.txt` };
   assert.equal(findPersistedChildForResumeFile([child], planned)?.id, "c1");
@@ -257,10 +257,10 @@ test("dedicated resume of quick-connect host uses session when vault list is emp
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let openedSession: string | undefined;
   let startOptions: Record<string, unknown> | undefined;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => {
       throw new Error("must not dial vault for missing host");
     },
@@ -304,7 +304,7 @@ test("dedicated resume of quick-connect host uses session when vault list is emp
     assert.equal(startOptions?.targetSftpId, "session-sftp");
     assert.equal(startOptions?.checkpointBytes, 4);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -320,11 +320,11 @@ test("hard resume with vault host + live session reuses session transport (not c
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let openSftpCalls = 0;
   let openForSessionCalls = 0;
   let openSftpOpts: { reuseTransport?: boolean } | undefined;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async (options: { reuseTransport?: boolean }) => {
       openSftpCalls += 1;
       openSftpOpts = options;
@@ -371,7 +371,7 @@ test("hard resume with vault host + live session reuses session transport (not c
     assert.equal(openSftpCalls, 0, "must not cold-dial a dedicated SSH connection");
     assert.equal(openSftpOpts, undefined);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -547,9 +547,9 @@ test("single-file restart resume continues from checkpoint without page callback
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let startOptions: Record<string, unknown> | undefined;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     statLocal: async () => ({ size: 100, lastModified: 123 }),
@@ -588,7 +588,7 @@ test("single-file restart resume continues from checkpoint without page callback
     assert.equal(startOptions?.checkpointBytes, 20);
     assert.equal(startOptions?.skipAdmission, true);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -604,10 +604,10 @@ test("folder restart resume reports file-count progress without child page callb
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const parentProgress: number[] = [];
   const childUpdates: TransferTask[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => [
@@ -655,7 +655,7 @@ test("folder restart resume reports file-count progress without child page callb
     assert.ok(childUpdates.some((child) => child.status === "transferring"));
     assert.equal(childUpdates.filter((child) => child.status === "completed").length, 2);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -671,10 +671,10 @@ test("folder upload restart honors the real local-tree root and recreates empty 
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const createdDirectories: string[] = [];
   const startedTargets: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     // Real localFsBridge contract prefixes every relativePath with rootName.
@@ -722,7 +722,7 @@ test("folder upload restart honors the real local-tree root and recreates empty 
     assert.ok(createdDirectories.includes("/remote/folder/nested"));
     assert.equal(createdDirectories.includes("/remote/folder/folder"), false);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -738,9 +738,9 @@ test("folder download restart recreates nested empty remote directories", async 
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const createdDirectories: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async (_id: string, remotePath: string) => remotePath === "/remote/folder"
@@ -776,7 +776,7 @@ test("folder download restart recreates nested empty remote directories", async 
     assert.ok(createdDirectories.includes("/local/folder"));
     assert.ok(createdDirectories.includes("/local/folder/empty"));
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -792,9 +792,9 @@ test("folder download restart skips a symlink directory cycle by canonical path"
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const listedPaths: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     realpathSftp: async () => "/remote/folder",
@@ -830,7 +830,7 @@ test("folder download restart skips a symlink directory cycle by canonical path"
     assert.equal(result.success, true, result.error);
     assert.deepEqual(listedPaths, ["/remote/folder"]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -846,10 +846,10 @@ test("folder download restart stops remote discovery as soon as cancellation is 
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let cancelled = false;
   const listedPaths: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async (_id: string, remotePath: string) => {
@@ -895,7 +895,7 @@ test("folder download restart stops remote discovery as soon as cancellation is 
     assert.match(result.error ?? "", /cancelled/i);
     assert.deepEqual(listedPaths, ["/remote/folder"]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -911,9 +911,9 @@ test("folder download restart rejects a Windows backslash traversal entry", asyn
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let starts = 0;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [{ name: "..\\outside.txt", type: "file", size: 10 }],
@@ -950,7 +950,7 @@ test("folder download restart rejects a Windows backslash traversal entry", asyn
     assert.match(result.error ?? "", /unsafe transfer path/i);
     assert.equal(starts, 0);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -988,13 +988,13 @@ test("folder restart skips 50,000 compacted completions without rebuilding child
   }
   checkpoint.manifestHash = manifest.digest();
 
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let starts = 0;
   let childUpdates = 0;
   let eventLoopHeartbeats = 0;
   const heartbeat = setInterval(() => { eventLoopHeartbeats += 1; }, 1);
   t.after(() => clearInterval(heartbeat));
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => entries,
@@ -1044,7 +1044,7 @@ test("folder restart skips 50,000 compacted completions without rebuilding child
     assert.equal(childUpdates, 0, "compacted completions must not return to the task array");
     assert.ok(Date.now() - resumeStartedAt < 5_000, "50k resume validation should finish within 5 seconds");
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1079,10 +1079,10 @@ test("a validated version 1 directory checkpoint migrates to the faster manifest
     completedEntries: 1,
     manifestHash: appendDirectoryManifestIdentity("0".repeat(64), identity),
   };
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let starts = 0;
   const checkpointUpdates: Array<TransferTask["directoryResumeCheckpoint"]> = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => [entry],
@@ -1127,7 +1127,7 @@ test("a validated version 1 directory checkpoint migrates to the faster manifest
     assert.equal(checkpointUpdates[0]?.coveredEntries, 1);
     assert.equal(checkpointUpdates[0]?.completedEntries, 1);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1160,9 +1160,9 @@ test("out-of-order compact resume transfers index 0 and skips completed index 1"
   }
   checkpoint.completedEntries = 1;
 
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const startedPaths: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => entries,
@@ -1215,7 +1215,7 @@ test("out-of-order compact resume transfers index 0 and skips completed index 1"
     assert.equal(result.success, true, result.error);
     assert.deepEqual(startedPaths, ["/local/folder/a.bin"]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1249,11 +1249,11 @@ test("changed directory manifest clears compact completion state and retransfers
   const changedEntries = originalEntries.map((entry, index) => index === 1
     ? { ...entry, lastModified: 99 }
     : entry);
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const startedPaths: string[] = [];
   const startedCheckpoints = new Map<string, { checkpointBytes?: number; sourceFingerprint?: string }>();
   const checkpointUpdates: Array<TransferTask["directoryResumeCheckpoint"]> = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => changedEntries,
@@ -1332,7 +1332,7 @@ test("changed directory manifest clears compact completion state and retransfers
     });
     assert.deepEqual(checkpointUpdates, [undefined]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1348,9 +1348,9 @@ test("changed replace-directory manifest rebuilds the stage before promotion", a
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const operations: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async (_id: string, remotePath: string) => remotePath === "/remote/folder"
@@ -1358,7 +1358,7 @@ test("changed replace-directory manifest rebuilds the stage before promotion", a
       : [],
     mkdirLocal: async (localPath: string) => { operations.push(`mkdir:${localPath}`); },
     statLocal: async (localPath: string) => {
-      if (localPath === "/local/final.netcatty-replace-parent.part") {
+      if (localPath === "/local/final.lemonssh-replace-parent.part") {
         return { type: "directory", size: 0, lastModified: 1 };
       }
       return null;
@@ -1375,7 +1375,7 @@ test("changed replace-directory manifest rebuilds the stage before promotion", a
     },
   });
   try {
-    const stage = "/local/final.netcatty-replace-parent.part";
+    const stage = "/local/final.lemonssh-replace-parent.part";
     const result = await resumeTransferWithDedicatedSession({
       id: "replace-parent",
       fileName: "folder",
@@ -1412,7 +1412,7 @@ test("changed replace-directory manifest rebuilds the stage before promotion", a
     assert.ok(resetIndex >= 0, `stage was not reset: ${operations.join(", ")}`);
     assert.ok(resetIndex < startIndex, `stage reset must precede transfer: ${operations.join(", ")}`);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1428,12 +1428,12 @@ test("local replace retries transient old-directory backup cleanup failures", as
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
-  const stage = "/local/final.netcatty-local-cleanup.part";
-  const backup = "/local/final.netcatty-local-cleanup.backup";
+  const originalGet = lemonsshBridge.get;
+  const stage = "/local/final.lemonssh-local-cleanup.part";
+  const backup = "/local/final.lemonssh-local-cleanup.backup";
   const updates: TransferTask[] = [];
   let backupDeleteAttempts = 0;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [],
@@ -1480,7 +1480,7 @@ test("local replace retries transient old-directory backup cleanup failures", as
     assert.equal(backupDeleteAttempts, 3);
     assert.equal(updates.at(-1)?.stagedTargetPath, undefined);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1496,11 +1496,11 @@ test("local replace removes a stale transfer backup before promoting a rebuilt s
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
-  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "netcatty-replace-stale-backup-"));
+  const originalGet = lemonsshBridge.get;
+  const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "lemonssh-replace-stale-backup-"));
   const target = path.join(root, "final");
-  const stage = `${target}.netcatty-stale-backup.part`;
-  const backup = `${target}.netcatty-stale-backup.backup`;
+  const stage = `${target}.lemonssh-stale-backup.part`;
+  const backup = `${target}.lemonssh-stale-backup.backup`;
   await fs.promises.mkdir(target, { recursive: true });
   await fs.promises.writeFile(path.join(target, "current.txt"), "current");
   await fs.promises.mkdir(stage, { recursive: true });
@@ -1509,7 +1509,7 @@ test("local replace removes a stale transfer backup before promoting a rebuilt s
   t.after(async () => {
     await fs.promises.rm(root, { recursive: true, force: true });
   });
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [],
@@ -1557,7 +1557,7 @@ test("local replace removes a stale transfer backup before promoting a rebuilt s
     await assert.rejects(fs.promises.stat(backup), { code: "ENOENT" });
     assert.equal((await fs.promises.stat(target)).isDirectory(), true);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1573,13 +1573,13 @@ test("local replace restores the only backup before retrying a failed promote", 
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const target = "/local/final";
-  const stage = `${target}.netcatty-recover-backup.part`;
-  const backup = `${target}.netcatty-recover-backup.backup`;
+  const stage = `${target}.lemonssh-recover-backup.part`;
+  const backup = `${target}.lemonssh-recover-backup.backup`;
   const existing = new Set([stage, backup]);
   const operations: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [],
@@ -1635,7 +1635,7 @@ test("local replace restores the only backup before retrying a failed promote", 
     assert.equal(existing.has(target), true);
     assert.equal(existing.has(backup), false);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1651,12 +1651,12 @@ test("remote replace stays retryable when old-directory backup cleanup keeps fai
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
-  const stage = "/remote/final.netcatty-remote-cleanup.part";
-  const backup = "/remote/final.netcatty-remote-cleanup.backup";
+  const originalGet = lemonsshBridge.get;
+  const stage = "/remote/final.lemonssh-remote-cleanup.part";
+  const backup = "/remote/final.lemonssh-remote-cleanup.backup";
   const updates: TransferTask[] = [];
   let backupDeleteAttempts = 0;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => [{
@@ -1713,7 +1713,7 @@ test("remote replace stays retryable when old-directory backup cleanup keeps fai
       false,
     );
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1729,12 +1729,12 @@ test("local replace does not publish the stage when backing up the target fails"
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const target = "/local/final";
-  const stage = `${target}.netcatty-local-backup-denied.part`;
-  const backup = `${target}.netcatty-local-backup-denied.backup`;
+  const stage = `${target}.lemonssh-local-backup-denied.part`;
+  const backup = `${target}.lemonssh-local-backup-denied.backup`;
   const renames: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [],
@@ -1783,7 +1783,7 @@ test("local replace does not publish the stage when backing up the target fails"
     assert.match(result.error ?? "", /permission denied/i);
     assert.deepEqual(renames, [`${target}->${backup}`]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1799,12 +1799,12 @@ test("remote replace does not publish the stage when backing up the target fails
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   const target = "/remote/final";
-  const stage = `${target}.netcatty-remote-backup-denied.part`;
-  const backup = `${target}.netcatty-remote-backup-denied.backup`;
+  const stage = `${target}.lemonssh-remote-backup-denied.part`;
+  const backup = `${target}.lemonssh-remote-backup-denied.backup`;
   const renames: string[] = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listLocalTree: async () => [{
@@ -1859,7 +1859,7 @@ test("remote replace does not publish the stage when backing up the target fails
     assert.match(result.error ?? "", /permission denied/i);
     assert.deepEqual(renames, [`${target}->${backup}`]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1875,8 +1875,8 @@ test("valid file checkpoint still rebuilds a replace stage so deleted empty dire
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
-  const stage = "/local/final.netcatty-exact-replace.part";
+  const originalGet = lemonsshBridge.get;
+  const stage = "/local/final.lemonssh-exact-replace.part";
   const entry = { name: "kept.txt", type: "file", size: 10, lastModified: 2 } as const;
   const identity = createDirectoryEntryIdentity({
     sourcePath: "/remote/folder/kept.txt",
@@ -1890,7 +1890,7 @@ test("valid file checkpoint still rebuilds a replace stage so deleted empty dire
   checkpoint.completedEntries = 1;
   const operations: string[] = [];
   const checkpointUpdates: Array<TransferTask["directoryResumeCheckpoint"]> = [];
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async (_id: string, remotePath: string) => remotePath === "/remote/folder" ? [entry] : [],
@@ -1938,7 +1938,7 @@ test("valid file checkpoint still rebuilds a replace stage so deleted empty dire
     assert.deepEqual(operations.slice(0, 2), ["reset-stage", "retransfer-file"]);
     assert.deepEqual(checkpointUpdates, [undefined]);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });
@@ -1954,9 +1954,9 @@ test("corrupted replace-stage history cannot delete an unrelated directory", asy
     if (previousLocalStorage) Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
-  const originalGet = netcattyBridge.get;
+  const originalGet = lemonsshBridge.get;
   let deletes = 0;
-  (netcattyBridge as { get: () => unknown }).get = () => ({
+  (lemonsshBridge as { get: () => unknown }).get = () => ({
     openSftp: async () => "dedicated-sftp",
     closeSftp: async () => {},
     listSftp: async () => [],
@@ -1994,7 +1994,7 @@ test("corrupted replace-stage history cannot delete an unrelated directory", asy
     assert.match(result.error ?? "", /unsafe replacement stage path/i);
     assert.equal(deletes, 0);
   } finally {
-    (netcattyBridge as { get: typeof originalGet }).get = originalGet;
+    (lemonsshBridge as { get: typeof originalGet }).get = originalGet;
     resetDedicatedSessionOpenGateForTests();
   }
 });

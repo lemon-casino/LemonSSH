@@ -69,7 +69,7 @@ if (typeof requestIdleCallback === 'function') {
 
 const AIChatSidePanelFallback = memo(function AIChatSidePanelFallback() {
   return (
-    <div className="netcatty-lazy-fade-in h-full min-h-0 bg-background" aria-hidden="true" />
+    <div className="lemonssh-lazy-fade-in h-full min-h-0 bg-background" aria-hidden="true" />
   );
 });
 

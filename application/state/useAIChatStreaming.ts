@@ -29,13 +29,13 @@ import { classifyError } from '../../infrastructure/ai/errorClassifier';
 import { latestAISessionsSnapshot } from './aiStateSnapshots';
 import {
   generateId,
-  getNetcattyBridge,
+  getLemonSSHBridge,
   type DefaultTargetSessionHint,
   type TerminalSessionInfo,
 } from '../../infrastructure/ai/aiChatStreamingSupport';
 import { useAgentCompactionUi } from './useAgentCompactionUi';
 
-export { getNetcattyBridge } from '../../infrastructure/ai/aiChatStreamingSupport';
+export { getLemonSSHBridge } from '../../infrastructure/ai/aiChatStreamingSupport';
 export type { ActiveCompactionUi } from './useAgentCompactionUi';
 export type { DefaultTargetSessionHint } from '../../infrastructure/ai/aiChatStreamingSupport';
 
@@ -218,7 +218,7 @@ export function useAIChatStreaming({
     attachedImages: Array<{ base64Data: string; mediaType: string; filename?: string; filePath?: string }>,
     context: SendToExternalContext,
   ) => {
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     await getAgentRuntime().runTurn({
       backend: 'external-sdk',
       chatSessionId: sessionId,
@@ -247,10 +247,11 @@ export function useAIChatStreaming({
     context: SendToCattyContext,
     attachments?: ChatMessageAttachment[],
   ) => {
-    // W12 minimal chain: when the host reports the dev fixture driver, the
-    // Go runtime is authoritative for this turn and the renderer only
-    // relays DTOs. The product path stays on the renderer runtime until
-    // live provider wiring lands (W13+).
+    // Go turn runtime: when the host reports a driver behind the turn
+    // manager (live provider from Settings→AI via AgentSetLiveProvider, or
+    // the dev fixture), the Go runtime is authoritative for this turn and
+    // the renderer only relays DTOs. Without a driver the renderer chain
+    // keeps serving the turn.
     const goPort = resolveGoTurnPort();
     if (goPort) {
       const status = await goPort.agentStatus().catch(() => null);
@@ -274,7 +275,7 @@ export function useAIChatStreaming({
       }
     }
 
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     try {
       await getAgentRuntime().runTurn({
         backend: 'catty',
@@ -293,7 +294,7 @@ export function useAIChatStreaming({
     } finally {
       abortControllersRef.current.delete(sessionId);
     }
-  }, [maxIterations, uiCallbacks]);
+  }, [maxIterations, uiCallbacks, updateLastMessage]);
 
   return {
     streamingSessionIds,

@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported privately to the community leaders responsible for enforcement at
-support@netcatty.com. Please do not report Code of Conduct incidents through
+support@lemonssh.com. Please do not report Code of Conduct incidents through
 public GitHub issues.
 All complaints will be reviewed and investigated promptly and fairly.
 

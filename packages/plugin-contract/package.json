@@ -1,5 +1,5 @@
 {
-  "name": "@netcatty/plugin-contract",
+  "name": "@lemonssh/plugin-contract",
   "version": "0.1.0-internal",
   "private": true,
   "type": "module",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "ajv": "8.18.0",
-    "ajv-formats": "3.0.1"
+    "ajv-formats": "3.0.1",
+    "wabt": "^1.0.39"
   }
 }

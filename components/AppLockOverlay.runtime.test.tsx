@@ -81,7 +81,7 @@ test("AppLockOverlay shows incorrect-password error and clears it after editing"
   }
 });
 
-test("AppLockOverlay reveals reset action after clicking Netcatty logo five times", async () => {
+test("AppLockOverlay reveals reset action after clicking LemonSSH logo five times", async () => {
   const dom = installDomEnvironment();
   const renderer = await createDomRenderer(dom.document);
   const resetAttempts: string[] = [];

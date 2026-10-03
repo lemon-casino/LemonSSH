@@ -252,7 +252,7 @@ test('cancelApprovalTimeout asks main to drop Codex App Server interaction timer
   const calls: string[] = [];
   const previous = (globalThis as { window?: unknown }).window;
   (globalThis as { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       cancelCodexAppServerInteractionTimeout: async (id: string) => {
         calls.push(id);
         return { ok: true, cancelled: true };
@@ -285,7 +285,7 @@ test('resolveApproval skips MCP IPC when the pending entry is already gone', () 
   const calls: Array<{ id: string; approved: boolean }> = [];
   const previous = (globalThis as { window?: unknown }).window;
   (globalThis as { window?: unknown }).window = {
-    netcatty: {
+    lemonssh: {
       respondMcpApproval: async (id: string, approved: boolean) => {
         calls.push({ id, approved });
         return { ok: true };

@@ -1,6 +1,6 @@
 package sftp
 
-import "github.com/binaricat/netcatty/internal/platform/filesystem"
+import "github.com/binaricat/lemonssh/internal/platform/filesystem"
 
 // ExtractZipArchive extracts a zip into destinationRoot with zip-slip protection.
 func ExtractZipArchive(archivePath, destinationRoot string) (int, error) {

@@ -64,7 +64,7 @@ import {
   ensureVersionChangeBackup,
 } from '../localVaultBackups';
 import { getCredentialProtectionAvailability } from '../../infrastructure/services/credentialProtection';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import { hostStorageAdapter as localStorageAdapter } from '../../infrastructure/persistence/hostStorageAdapter';
 import {
   markExternalMcpStartupReady,
@@ -171,7 +171,7 @@ export function AppSideEffects() {
     void (async () => {
       try {
         // Single-flight: StrictMode remount must not double enable/disable IPC.
-        await syncExternalMcpStartupStateOnce(netcattyBridge.get());
+        await syncExternalMcpStartupStateOnce(lemonsshBridge.get());
       } finally {
         if (!cancelled) markExternalMcpStartupReady();
       }
@@ -298,7 +298,7 @@ export function AppSideEffects() {
   // AppActiveTabChrome so switching tabs does not re-render App.
 
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onOpenSessionInNewWindow) return undefined;
     return bridge.onOpenSessionInNewWindow((payload) => {
       if (!payload?.sourceSession) return;
@@ -424,7 +424,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get() as {
+    const bridge = lemonsshBridge.get() as {
       onPluginContributionsChanged?: (callback: () => void) => () => void;
     } | null | undefined;
     const unsubscribe = bridge?.onPluginContributionsChanged?.(() => {
@@ -462,7 +462,7 @@ export function AppSideEffects() {
         const payload = await buildCurrentSyncPayloadRef.current();
         if (cancelled) return;
         if (!hasMeaningfulSyncData(payload)) return;
-        const info = await netcattyBridge.get()?.getAppInfo?.();
+        const info = await lemonsshBridge.get()?.getAppInfo?.();
         if (cancelled) return;
         await ensureVersionChangeBackup(payload, info?.version ?? null);
         if (cancelled) return;
@@ -589,7 +589,7 @@ export function AppSideEffects() {
       setActiveTabId,
       setWorkspaceFocusedSession,
       getActiveTabId: () => activeTabStore.getActiveTabId(),
-      netcattyBridge,
+      lemonsshBridge,
       toast,
       t,
     }), sessionId);
@@ -641,7 +641,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onTrayFocusSession || !bridge?.onTrayTogglePortForward) return;
 
     const unsubscribeFocus = bridge.onTrayFocusSession((sessionId) => {
@@ -667,7 +667,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onTrayPanelJumpToSession || !bridge?.onTrayPanelConnectToHost) return;
 
     const unsubscribeJump = bridge.onTrayPanelJumpToSession((sessionId) => {
@@ -701,14 +701,14 @@ export function AppSideEffects() {
   }, [isVaultInitialized, pendingTrayPanelConnectHostIds]);
 
   // Handle keyboard-interactive submit
-  const handleKeyboardInteractiveSubmit = useCallback((requestId: string, responses: string[], savePassword?: string) => { return handleKeyboardInteractiveSubmitImpl(() => ({ hosts, hostsRef, keyboardInteractiveQueue, netcattyBridge, requestId, responses, savePassword, sessions, setKeyboardInteractiveQueue, t, toast, updateHosts }), requestId, responses, savePassword); }, [keyboardInteractiveQueue, sessions, hosts, t, updateHosts]);
+  const handleKeyboardInteractiveSubmit = useCallback((requestId: string, responses: string[], savePassword?: string) => { return handleKeyboardInteractiveSubmitImpl(() => ({ hosts, hostsRef, keyboardInteractiveQueue, lemonsshBridge, requestId, responses, savePassword, sessions, setKeyboardInteractiveQueue, t, toast, updateHosts }), requestId, responses, savePassword); }, [keyboardInteractiveQueue, sessions, hosts, t, updateHosts]);
 
   // Handle keyboard-interactive cancel
-  const handleKeyboardInteractiveCancel = useCallback((requestId: string) => { return handleKeyboardInteractiveCancelImpl(() => ({ netcattyBridge, requestId, setKeyboardInteractiveQueue, t, toast }), requestId); }, [t]);
+  const handleKeyboardInteractiveCancel = useCallback((requestId: string) => { return handleKeyboardInteractiveCancelImpl(() => ({ lemonsshBridge, requestId, setKeyboardInteractiveQueue, t, toast }), requestId); }, [t]);
 
   // Passphrase request event listener for encrypted SSH keys
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onPassphraseRequest) return;
 
     const unsubscribe = bridge.onPassphraseRequest(async (request) => {
@@ -801,7 +801,7 @@ export function AppSideEffects() {
       const detail = (event as CustomEvent<{ sessionId?: string }>).detail;
       const disconnectedSessionId = detail?.sessionId;
       if (!disconnectedSessionId) return;
-      const bridge = netcattyBridge.get();
+      const bridge = lemonsshBridge.get();
       setPassphraseQueue((prev) => {
         const keep: typeof prev = [];
         for (const item of prev) {
@@ -814,24 +814,24 @@ export function AppSideEffects() {
         return keep;
       });
     };
-    window.addEventListener("netcatty:terminal-session-disconnected", onDisconnected);
+    window.addEventListener("lemonssh:terminal-session-disconnected", onDisconnected);
     return () => {
-      window.removeEventListener("netcatty:terminal-session-disconnected", onDisconnected);
+      window.removeEventListener("lemonssh:terminal-session-disconnected", onDisconnected);
     };
   }, []);
 
   // Handle passphrase submit
-  const handlePassphraseSubmit = useCallback(async (requestId: string, passphrase: string, remember: boolean) => { return handlePassphraseSubmitImpl(() => ({ keysRef, netcattyBridge, passphrase, passphraseQueue, remember, rememberKeyPassphrase, requestId, setPassphraseQueue, updateKeys }), requestId, passphrase, remember); }, [passphraseQueue, updateKeys]);
+  const handlePassphraseSubmit = useCallback(async (requestId: string, passphrase: string, remember: boolean) => { return handlePassphraseSubmitImpl(() => ({ keysRef, lemonsshBridge, passphrase, passphraseQueue, remember, rememberKeyPassphrase, requestId, setPassphraseQueue, updateKeys }), requestId, passphrase, remember); }, [passphraseQueue, updateKeys]);
 
   // Handle passphrase cancel
-  const handlePassphraseCancel = useCallback((requestId: string) => { return handlePassphraseCancelImpl(() => ({ netcattyBridge, requestId, setPassphraseQueue }), requestId); }, []);
+  const handlePassphraseCancel = useCallback((requestId: string) => { return handlePassphraseCancelImpl(() => ({ lemonsshBridge, requestId, setPassphraseQueue }), requestId); }, []);
 
   // Handle passphrase skip (skip this key, continue with others)
-  const handlePassphraseSkip = useCallback((requestId: string) => { return handlePassphraseSkipImpl(() => ({ netcattyBridge, requestId, setPassphraseQueue }), requestId); }, []);
+  const handlePassphraseSkip = useCallback((requestId: string) => { return handlePassphraseSkipImpl(() => ({ lemonsshBridge, requestId, setPassphraseQueue }), requestId); }, []);
 
   // Handle passphrase timeout (request expired on backend)
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onPassphraseTimeout) return;
 
     const unsubscribe = bridge.onPassphraseTimeout((event) => {
@@ -849,7 +849,7 @@ export function AppSideEffects() {
 
   // Handle passphrase cancellation (owning connection was stopped)
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onPassphraseCancelled) return;
 
     const unsubscribe = bridge.onPassphraseCancelled((event) => {
@@ -864,7 +864,7 @@ export function AppSideEffects() {
 
   // Handle passphrase auth failure (saved passphrase was wrong, clear it)
   useEffect(() => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onPassphraseAuthFailed) return;
 
     const unsubscribe = bridge.onPassphraseAuthFailed((event) => {
@@ -954,13 +954,13 @@ export function AppSideEffects() {
 
   const createLocalTerminalWithCurrentShell = useCallback(() => { return createLocalTerminalWithCurrentShellImpl(() => ({ classifyLocalShellType, createLocalTerminal, discoveredShells, resolveShellSetting, terminalSettings })); }, [createLocalTerminal, terminalSettings, discoveredShells]);
 
-  const splitSessionWithCurrentShell = useCallback((sessionId: string, direction: 'horizontal' | 'vertical') => { return splitSessionWithCurrentShellImpl(() => ({ classifyLocalShellType, direction, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, netcattyBridge, resolveShellSetting, sessionId, sessions, splitSession, terminalSettings }), sessionId, direction); }, [splitSession, terminalSettings, discoveredShells, sessions, getSessionRestoreCwd, hostById, terminalHosts]);
+  const splitSessionWithCurrentShell = useCallback((sessionId: string, direction: 'horizontal' | 'vertical') => { return splitSessionWithCurrentShellImpl(() => ({ classifyLocalShellType, direction, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, lemonsshBridge, resolveShellSetting, sessionId, sessions, splitSession, terminalSettings }), sessionId, direction); }, [splitSession, terminalSettings, discoveredShells, sessions, getSessionRestoreCwd, hostById, terminalHosts]);
 
-  const copySessionWithCurrentShell = useCallback((sessionId: string) => { return copySessionWithCurrentShellImpl(() => ({ classifyLocalShellType, copySession, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, netcattyBridge, resolveShellSetting, sessionId, sessions, terminalSettings }), sessionId); }, [copySession, terminalSettings, discoveredShells, sessions, getSessionRestoreCwd, hostById, terminalHosts]);
+  const copySessionWithCurrentShell = useCallback((sessionId: string) => { return copySessionWithCurrentShellImpl(() => ({ classifyLocalShellType, copySession, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, lemonsshBridge, resolveShellSetting, sessionId, sessions, terminalSettings }), sessionId); }, [copySession, terminalSettings, discoveredShells, sessions, getSessionRestoreCwd, hostById, terminalHosts]);
 
-  const copyWorkspaceWithCurrentShell = useCallback((workspaceId: string) => { return copyWorkspaceWithCurrentShellImpl(() => ({ classifyLocalShellType, collectSessionIds, copyWorkspace, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, netcattyBridge, resolveShellSetting, sessions, terminalSettings, workspaces }), workspaceId); }, [copyWorkspace, terminalSettings, discoveredShells, sessions, workspaces, getSessionRestoreCwd, hostById, terminalHosts]);
+  const copyWorkspaceWithCurrentShell = useCallback((workspaceId: string) => { return copyWorkspaceWithCurrentShellImpl(() => ({ classifyLocalShellType, collectSessionIds, copyWorkspace, discoveredShells, getSessionRestoreCwd, hostById, terminalHosts, lemonsshBridge, resolveShellSetting, sessions, terminalSettings, workspaces }), workspaceId); }, [copyWorkspace, terminalSettings, discoveredShells, sessions, workspaces, getSessionRestoreCwd, hostById, terminalHosts]);
 
-  const copySessionToNewWindowWithCurrentShell = useCallback((sessionId: string) => { return copySessionToNewWindowWithCurrentShellImpl(() => ({ classifyLocalShellType, discoveredShells, netcattyBridge, resolveShellSetting, sessions, terminalSettings, t, toast }), sessionId); }, [sessions, terminalSettings, discoveredShells, t]);
+  const copySessionToNewWindowWithCurrentShell = useCallback((sessionId: string) => { return copySessionToNewWindowWithCurrentShellImpl(() => ({ classifyLocalShellType, discoveredShells, lemonsshBridge, resolveShellSetting, sessions, terminalSettings, t, toast }), sessionId); }, [sessions, terminalSettings, discoveredShells, t]);
 
   const closeTabKeyStr = useMemo(() => {
     if (hotkeyScheme === 'disabled') return null;
@@ -970,7 +970,7 @@ export function AppSideEffects() {
   }, [hotkeyScheme, keyBindings]);
 
   const confirmIfBusyLocalTerminal = useCallback(
-    async (sessionIds: string[]): Promise<boolean> => { return confirmIfBusyLocalTerminalImpl(() => ({ netcattyBridge, sessionIds, sessions, t }), sessionIds); },
+    async (sessionIds: string[]): Promise<boolean> => { return confirmIfBusyLocalTerminalImpl(() => ({ lemonsshBridge, sessionIds, sessions, t }), sessionIds); },
     [sessions, t],
   );
 
@@ -1138,13 +1138,13 @@ export function AppSideEffects() {
       return;
     }
 
-    await netcattyBridge.get()?.windowClose?.();
+    await lemonsshBridge.get()?.windowClose?.();
   }, [closeLogView, closeTabKeyStr, editorTabs, executeHotkeyAction, logViews, pluginViewTabs, sessions, workspaces]);
 
   useEffect(() => {
     // Cmd/Ctrl+W from the app menu arrives via IPC, not the keydown listener.
     // Gate it while locked so sessions/tabs cannot close behind the overlay.
-    const unsubscribe = netcattyBridge.get()?.onWindowCommandCloseRequested?.(() => {
+    const unsubscribe = lemonsshBridge.get()?.onWindowCommandCloseRequested?.(() => {
       if (shouldDeferExternalActionWhileAppLocked({ locked: appLockLocked })) return;
       void handleWindowCommandCloseRequest();
     });
@@ -1226,7 +1226,7 @@ export function AppSideEffects() {
   useEffect(() => {
     void (async () => {
       try {
-        const bridge = netcattyBridge.get();
+        const bridge = lemonsshBridge.get();
         const info = await bridge?.getSystemInfo?.();
         if (info) {
           systemInfoRef.current = info;
@@ -1265,7 +1265,7 @@ export function AppSideEffects() {
       setColdStartIntentsSettled(true);
       return;
     }
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onColdStartIntentsSettled) {
       setColdStartIntentsSettled(true);
       return;
@@ -1409,7 +1409,7 @@ export function AppSideEffects() {
     // Surface the main window for external MCP / CLI open requests, unless the
     // user disabled this in Settings → AI → External MCP.
     if (readExternalMcpFocusOnHostOpen()) {
-      void netcattyBridge.get()?.openMainWindow?.();
+      void lemonsshBridge.get()?.openMainWindow?.();
     }
     return { ok: true as const, sessionId, host };
   }, [handleConnectToHost]);
@@ -1418,14 +1418,14 @@ export function AppSideEffects() {
     if (!sessions.some((session) => session.id === sessionId)) {
       return { ok: false as const, error: `Session "${sessionId}" was not found.` };
     }
-    netcattyBridge.get()?.closeSession?.(sessionId);
+    lemonsshBridge.get()?.closeSession?.(sessionId);
     closeSession(sessionId);
     return { ok: true as const };
   }, [closeSession, sessions]);
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     const unsubscribe = bridge?.onTrayPanelCloseSession?.((sessionId) => {
       closeSessionForVaultAgent(sessionId);
     });
@@ -1529,7 +1529,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onSshDeepLink) return;
     return bridge.onSshDeepLink((payload) => {
       _handleSshDeepLink(payload);
@@ -1538,7 +1538,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.drainDeepLinks) return;
     void bridge.drainDeepLinks().then((actions) => {
       for (const action of actions ?? []) {
@@ -1611,7 +1611,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onTelnetDeepLink) return;
     return bridge.onTelnetDeepLink((payload) => {
       _handleTelnetDeepLink(payload);
@@ -1648,7 +1648,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onJmsDeepLink) return;
     return bridge.onJmsDeepLink((payload) => {
       _handleJmsDeepLink(payload);
@@ -1697,7 +1697,7 @@ export function AppSideEffects() {
 
   useEffect(() => {
     if (isPeerSessionWindow) return;
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onOpenTerminalPath) return;
     return bridge.onOpenTerminalPath((payload) => {
       _handleOpenTerminalPath(payload);
@@ -1866,7 +1866,7 @@ export function AppSideEffects() {
   }, [handleOpenSettings, t]);
 
   // Delete-from-sidepanel plumbing: ScriptsSidePanel dispatches
-  // `netcatty:snippets:delete` with `id` (single) or `ids` (bulk). Handled
+  // `lemonssh:snippets:delete` with `id` (single) or `ids` (bulk). Handled
   // here (rather than in QuickAddSnippetDialog) because delete needs no UI.
   // Goes through useVaultState.deleteSelectedSnippets so login/connect script
   // bindings clear with the snippets (SnippetsManager parity) against the
@@ -1878,8 +1878,8 @@ export function AppSideEffects() {
       if (ids.size === 0) return;
       void deleteSelectedSnippets(ids);
     };
-    window.addEventListener('netcatty:snippets:delete', handler);
-    return () => window.removeEventListener('netcatty:snippets:delete', handler);
+    window.addEventListener('lemonssh:snippets:delete', handler);
+    return () => window.removeEventListener('lemonssh:snippets:delete', handler);
   }, [deleteSelectedSnippets]);
 
   const handleEndSessionDrag = useCallback(() => {

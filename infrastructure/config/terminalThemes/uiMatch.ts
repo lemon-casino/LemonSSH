@@ -4,7 +4,7 @@ export const uiMatchTerminalThemes: TerminalTheme[] = [
   // ====================================================================,
   // UI-matched terminal themes — background color matched to each built-in,
   // UI theme preset so the terminal blends seamlessly with the app chrome.,
-  // ANSI palette based on netcatty-light (for light) / netcatty-dark (for dark).,
+  // ANSI palette based on lemonssh-light (for light) / lemonssh-dark (for dark).,
   // ====================================================================,
   // Light UI matches,
   { id: 'ui-snow', name: 'Snow', type: 'light', colors: {

@@ -42,7 +42,7 @@ test('canonical rotation failure preserves every ciphertext; successful CAS prec
   const newKey = await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
   const oldConfig: MasterKeyConfig = {verificationHash:'old',salt:'old',kdf:'PBKDF2',createdAt:123};
   const newConfig = {...oldConfig,salt:'new',verificationHash:'new'};
-  const records = [SYNC_STORAGE_KEYS.CONVERGENT_REPLICA, `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_github`, `${SYNC_STORAGE_KEYS.SYNC_BASE_PAYLOAD}_github`, 'netcatty_sync_snapshots_v1_github', `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_dormant.plugin`];
+  const records = [SYNC_STORAGE_KEYS.CONVERGENT_REPLICA, `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_github`, `${SYNC_STORAGE_KEYS.SYNC_BASE_PAYLOAD}_github`, 'lemonssh_sync_snapshots_v1_github', `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_dormant.plugin`];
   try {
     configureHostProfileClient(client); await hydrateHostProfile();
     hostStorageAdapter.write(SYNC_STORAGE_KEYS.MASTER_KEY_CONFIG,oldConfig);
@@ -54,7 +54,7 @@ test('canonical rotation failure preserves every ciphertext; successful CAS prec
       masterPassword:'old-password',
       loadFromStorage:hostStorageAdapter.read,
       syncBaseKey:(provider?: string) => `${SYNC_STORAGE_KEYS.SYNC_BASE_PAYLOAD}${provider ? '_'+provider : ''}`,
-      syncSnapshotsKey:(provider?: string) => `netcatty_sync_snapshots_v1${provider ? '_'+provider : ''}`,
+      syncSnapshotsKey:(provider?: string) => `lemonssh_sync_snapshots_v1${provider ? '_'+provider : ''}`,
       convergentProviderBaselineKey:(provider: string) => `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_${provider}`,
       reencryptSyncStorage:async (old: CryptoKey,next: CryptoKey,config: MasterKeyConfig) => reencryptSyncStorageImpl.call(subject,old,next,config),
       emit:() => {},

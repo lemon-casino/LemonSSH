@@ -228,7 +228,7 @@ const safeParse = <T,>(value: string | null): T | null => {
  * Strip the bulky `terminalData` replay buffer from transient (unsaved)
  * connection logs before persisting. `terminalData` is the full terminal
  * scrollback for a session; with up to 500 logs it grew the
- * `netcatty_connection_logs_v1` localStorage blob to ~11 MB, and every
+ * `lemonssh_connection_logs_v1` localStorage blob to ~11 MB, and every
  * add/update re-serialized + wrote the whole thing synchronously
  * (50–73 ms on the main thread), causing freezes on connect/disconnect.
  *

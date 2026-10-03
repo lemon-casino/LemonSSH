@@ -49,11 +49,23 @@ export function assertCloudProviderId(provider: string): CloudProviderId {
 /** localStorage / encrypted local key for a provider connection record. */
 export function providerConnectionStorageKey(provider: CloudProviderId): string {
   if (isBuiltinCloudProvider(provider)) {
-    return `netcatty_provider_${provider}_v1`;
+    return `lemonssh_provider_${provider}_v1`;
   }
   // Plugin IDs may contain characters unsafe for ad-hoc key templates.
+  return `lemonssh_provider_plugin_v1:${provider}`;
+}
+
+/**
+ * compat: connection records persisted by pre-rename builds live under the
+ * netcatty_provider_* spelling. Reads fall back to the legacy key when the
+ * renamed key is absent; writes always target the renamed key above.
+ */
+export function legacyProviderConnectionStorageKey(provider: CloudProviderId): string {
+  if (isBuiltinCloudProvider(provider)) {
+    return `netcatty_provider_${provider}_v1`;
+  }
   return `netcatty_provider_plugin_v1:${provider}`;
 }
 
 /** Registry of dynamic plugin provider IDs that have been connected on this device. */
-export const PLUGIN_CLOUD_PROVIDER_REGISTRY_KEY = 'netcatty_plugin_cloud_providers_v1';
+export const PLUGIN_CLOUD_PROVIDER_REGISTRY_KEY = 'lemonssh_plugin_cloud_providers_v1';

@@ -52,7 +52,7 @@ import { isPluginHostProtocol } from "../../../domain/pluginConnection";
 import { resolveTerminalFontFamilyId } from "../../../infrastructure/config/fonts";
 import { logger } from "../../../lib/logger";
 import { isMacPlatform } from "../../../lib/utils";
-import { netcattyBridge } from "../../../infrastructure/services/netcattyBridge";
+import { lemonsshBridge } from "../../../infrastructure/services/lemonsshBridge";
 import {
   clearTerminalViewportAndSyncPty,
   installEraseInDisplayHandlers,
@@ -204,7 +204,7 @@ type TerminalBackendApi = {
   openExternalAvailable: () => boolean;
   openExternal: (url: string) => Promise<void>;
   writeToSession: (sessionId: string, data: string) => void;
-  interruptSession?: (sessionId: string, trace?: NetcattyTerminalInterruptTrace) => void;
+  interruptSession?: (sessionId: string, trace?: LemonSSHTerminalInterruptTrace) => void;
   signalPluginConnection?: (
     sessionId: string,
     signal?: "interrupt" | "terminate" | "kill" | "eof" | "break",
@@ -338,7 +338,7 @@ export type CreateXTermRuntimeContext = {
   onCommandCompleted?: () => void;
   requestPluginTerminalProviders?: RequestPluginTerminalProviders;
   pluginProviderVisible?: boolean;
-  isPluginTerminalProviderAvailable?: (kind: NetcattyTerminalProviderKind) => boolean;
+  isPluginTerminalProviderAvailable?: (kind: LemonSSHTerminalProviderKind) => boolean;
   onResize?: (cols: number, rows: number) => void;
   onAlternateScreenChange?: (active: boolean) => void;
   commandBufferRef: RefObject<string>;
@@ -459,7 +459,7 @@ export const createXTermRuntime = (ctx: CreateXTermRuntimeContext): XTermRuntime
 
   const settings = ctx.terminalSettingsRef.current;
   const rendererType = settings?.rendererType ?? "auto";
-  const bridge = netcattyBridge.get();
+  const bridge = lemonsshBridge.get();
   const isLocalTerminalHost = ctx.host.protocol === "local";
   const windowsPty =
     platform === "win32" && isLocalTerminalHost
@@ -2491,7 +2491,7 @@ export const createXTermRuntime = (ctx: CreateXTermRuntimeContext): XTermRuntime
         // Use Electron bridge as primary, fall back to navigator.clipboard
         const readClipboard = async (): Promise<string> => {
           try {
-            const bridge = netcattyBridge.get();
+            const bridge = lemonsshBridge.get();
             if (bridge?.readClipboardText) return await bridge.readClipboardText();
           } catch { /* fall through to navigator.clipboard */ }
           return navigator.clipboard.readText();

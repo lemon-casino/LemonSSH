@@ -1,4 +1,4 @@
-import type { ImporterRecord, JsonValue } from '@netcatty/plugin-contract';
+import type { ImporterRecord, JsonValue } from '@lemonssh/plugin-contract';
 import { sanitizeHost } from './host';
 import { isBuiltInHostProtocol, isPluginHostProtocol } from './pluginConnection';
 import type { Host, Identity, Snippet, SSHKey } from './models';

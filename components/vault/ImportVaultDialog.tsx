@@ -88,10 +88,10 @@ export type ImportVaultDialogProps = {
     options?: ImportOptions,
   ) => void;
   onPluginPreviewCommit: (
-    preview: NetcattyPluginImporterPreview,
+    preview: LemonSSHPluginImporterPreview,
     destination?: VaultImportDestination,
   ) => Promise<void> | void;
-  getPluginPreviewAnalysis: (preview: NetcattyPluginImporterPreview) => {
+  getPluginPreviewAnalysis: (preview: LemonSSHPluginImporterPreview) => {
     duplicateCount: number;
     validationErrorCount: number;
     safePreview: import("../../domain/pluginImporter").PluginImporterSafePreview;
@@ -453,7 +453,7 @@ export const ImportVaultDialog: React.FC<ImportVaultDialogProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "netcatty-vault-template.csv";
+    a.download = "lemonssh-vault-template.csv";
     a.click();
     URL.revokeObjectURL(url);
   }, []);

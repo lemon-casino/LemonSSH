@@ -619,6 +619,9 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
           let outputRebound = false;
           let reboundHomeWebContentsId: number | null = null;
           const outputPauseLease = await terminalBackend.acquireSessionFlowPauseLease(sessionId);
+          // The Wails bridge mints the attach authorization with the lease; an
+          // Electron-style popup config token still takes precedence.
+          const attachAuth = outputPauseLease.authorization || attachAuthorization || "";
           try {
             const paused = await outputPauseLease.waitForPause();
             if (!paused?.success && paused?.error === "Output drain unavailable") {
@@ -633,7 +636,7 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
             // Snapshot while home still owns the display route (and stream is paused).
             const snap = await terminalBackend.requestSessionSnapshot?.(
               sessionId,
-              attachAuthorization || "",
+              attachAuth,
             );
             if (disposed) {
               outputPauseLease.release();
@@ -687,7 +690,7 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
 
             const rebind = await terminalBackend.rebindSessionOutput?.(
               sessionId,
-              attachAuthorization || "",
+              attachAuth,
             );
             if (disposed) {
               if (rebind?.success) {
@@ -695,7 +698,7 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
                   await terminalBackend.restoreSessionOutput?.(
                     sessionId,
                     rebind.previousWebContentsId ?? null,
-                    attachAuthorization || "",
+                    attachAuth,
                   );
                 } catch {
                   // Main-process closed lifecycle remains the final fallback.
@@ -745,7 +748,7 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
                 const restored = await terminalBackend.restoreSessionOutput?.(
                   sessionId,
                   reboundHomeWebContentsId,
-                  attachAuthorization || "",
+                  attachAuth,
                 );
                 if (restored?.success) outputPauseLease.release();
               } catch {
@@ -1686,7 +1689,7 @@ export function useTerminalEffects(ctx: TerminalEffectsContext) {
 
   // Track whether the terminal application has enabled mouse tracking
   // (e.g. tmux with `set -g mouse on`, vim with `set mouse=a`).
-  // When mouse tracking is active, disable Netcatty's context menu to avoid
+  // When mouse tracking is active, disable LemonSSH's context menu to avoid
   // conflicting with the application's own mouse handling.
   useEffect(() => {
     const term = termRef.current;

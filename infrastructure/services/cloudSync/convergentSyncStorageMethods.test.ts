@@ -47,7 +47,7 @@ function manager(storage: Map<string, unknown>, derivedKey: CryptoKey) {
       return `${SYNC_STORAGE_KEYS.SYNC_BASE_PAYLOAD}${provider ? `_${provider}` : ''}`;
     },
     syncSnapshotsKey(provider?: string) {
-      return `netcatty_sync_snapshots_v1${provider ? `_${provider}` : ''}`;
+      return `lemonssh_sync_snapshots_v1${provider ? `_${provider}` : ''}`;
     },
     convergentProviderBaselineKey(provider: string) {
       return `${SYNC_STORAGE_KEYS.CONVERGENT_PROVIDER_BASELINE}_${provider}`;

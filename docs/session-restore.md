@@ -1,6 +1,6 @@
 # Session Restore
 
-Session restore brings Netcatty back to the user's previous workspace shape on startup without reviving terminal processes or replaying terminal content.
+Session restore brings LemonSSH back to the user's previous workspace shape on startup without reviving terminal processes or replaying terminal content.
 
 ## Current Scope
 
@@ -23,7 +23,7 @@ Out of scope:
 
 ### Startup Restore
 
-When "Restore previous terminal tabs and workspace layout" is enabled, Netcatty restores the prior terminal workspace on launch. Restored terminals are marked with `restoreState: "restored-disconnected"` while they reconnect.
+When "Restore previous terminal tabs and workspace layout" is enabled, LemonSSH restores the prior terminal workspace on launch. Restored terminals are marked with `restoreState: "restored-disconnected"` while they reconnect.
 
 After a restored terminal reconnects, it runs the startup command currently configured on its host. Per-session startup commands are not persisted or replayed by session restore.
 
@@ -31,9 +31,9 @@ After a restored terminal reconnects, it runs the startup command currently conf
 
 If an automatic reconnect fails, the user can reconnect the restored terminal manually through the normal connection flow.
 
-If "Restore terminal working directory on reconnect" is enabled and the restored session has an eligible `lastCwd`, Netcatty sends an automated `cd -- ...` after backend attach. The command is shell-quoted, is not added to application command history, and is attempted at most once for that reconnect.
+If "Restore terminal working directory on reconnect" is enabled and the restored session has an eligible `lastCwd`, LemonSSH sends an automated `cd -- ...` after backend attach. The command is shell-quoted, is not added to application command history, and is attempted at most once for that reconnect.
 
-If the directory is missing, inaccessible, or rejected by the shell, the connection remains open. Netcatty does not clear `lastCwd`, does not retry in a loop, and only shows a non-blocking progress note.
+If the directory is missing, inaccessible, or rejected by the shell, the connection remains open. LemonSSH does not clear `lastCwd`, does not retry in a loop, and only shows a non-blocking progress note.
 
 ## Settings
 

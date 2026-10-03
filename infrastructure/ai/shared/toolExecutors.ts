@@ -7,7 +7,7 @@
  * adapt the return value to their own response shape.
  */
 
-import type { NetcattyBridge, ExecutorContext } from '../cattyAgent/executor';
+import type { LemonSSHBridge, ExecutorContext } from '../cattyAgent/executor';
 import type { AIPermissionMode, WebSearchConfig } from '../types';
 import { checkCommandSafety } from '../cattyAgent/safety';
 import { decryptField } from '../../persistence/secureFieldAdapter';
@@ -27,7 +27,7 @@ export type ToolExecResult<T = unknown> =
 // ---------------------------------------------------------------------------
 
 export interface ToolDeps {
-  bridge: NetcattyBridge;
+  bridge: LemonSSHBridge;
   context: ExecutorContext | (() => ExecutorContext);
   commandBlocklist?: string[];
   permissionMode: AIPermissionMode;
@@ -81,7 +81,7 @@ export async function executeTerminalExecute(
   }
   // Shell blocklist is meaningless on network device CLIs (e.g. "shutdown"
   // disables an interface on Cisco). Skip for serial and network device sessions.
-  // The bridge layer (handleExec / netcatty:ai:exec) also has its own session-aware check.
+  // The bridge layer (handleExec / lemonssh:ai:exec) also has its own session-aware check.
   const resolved = resolveContext(context);
   const targetSession = resolved.sessions.find(s => s.sessionId === sessionId);
   const proto = targetSession?.protocol || '';
@@ -225,7 +225,7 @@ export async function executeUrlFetch(
   try {
     // skipHostCheck=true, followRedirects=true: url_fetch targets user-provided URLs
     const resp = await aiFetch(url, 'GET', {
-      'User-Agent': 'Netcatty-AI/1.0',
+      'User-Agent': 'LemonSSH-AI/1.0',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7',
     }, undefined, undefined, true, true) as BridgeFetchResponse;
 

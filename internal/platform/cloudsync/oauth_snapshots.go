@@ -82,7 +82,7 @@ func (c *OAuthClient) GoogleFind(ctx context.Context, o FileOptions) (FileResult
 	if err := validFileName(o.FileName); err != nil {
 		return FileResult{}, err
 	}
-	q := url.Values{"spaces": {"appDataFolder"}, "q": {"trashed = false and name = '" + syncFileName + "'"}, "fields": {"files(id),nextPageToken"}, "pageSize": {"100"}}
+	q := url.Values{"spaces": {"appDataFolder"}, "q": {"trashed = false and (name = '" + syncFileName + "' or name = '" + legacySyncFileName + "')"}, "fields": {"files(id),nextPageToken"}, "pageSize": {"100"}}
 	var result struct {
 		Files []struct {
 			ID string `json:"id"`
@@ -97,7 +97,7 @@ func (c *OAuthClient) GoogleFind(ctx context.Context, o FileOptions) (FileResult
 		return FileResult{}, nil
 	}
 	if result.NextPageToken != "" {
-		return FileResult{}, errors.New("Too many Netcatty appDataFolder snapshots")
+		return FileResult{}, errors.New("Too many LemonSSH appDataFolder snapshots")
 	}
 	if o.FileID != "" {
 		for _, file := range result.Files {
@@ -105,7 +105,7 @@ func (c *OAuthClient) GoogleFind(ctx context.Context, o FileOptions) (FileResult
 				return fileResult(file.ID)
 			}
 		}
-		return FileResult{}, errors.New("Google file is outside the Netcatty appDataFolder")
+		return FileResult{}, errors.New("Google file is outside the LemonSSH appDataFolder")
 	}
 	return fileResult(result.Files[0].ID)
 }
@@ -133,7 +133,7 @@ func (c *OAuthClient) GoogleCreate(ctx context.Context, o FileOptions) (FileResu
 		return FileResult{}, err
 	}
 	// JSON contains no literal CR/LF, so this boundary cannot appear as a MIME delimiter.
-	const boundary = "netcatty_encrypted_snapshot"
+	const boundary = "lemonssh_encrypted_snapshot"
 	metadata := `{"name":"` + syncFileName + `","parents":["appDataFolder"]}`
 	multipart := []byte("--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + metadata + "\r\n--" + boundary + "\r\nContent-Type: application/json\r\n\r\n" + string(body) + "\r\n--" + boundary + "--\r\n")
 	data, _, status, err := c.request(ctx, "POST", c.googleUpload+"/files?uploadType=multipart&fields=id", o.AccessToken, "multipart/related; boundary="+boundary, multipart, "", maxOAuthBytes)
@@ -239,28 +239,64 @@ func (c *OAuthClient) GoogleRevisionHistory(ctx context.Context, o FileOptions) 
 	return result, nil
 }
 
-const appRootSnapshot = "/me/drive/special/approot:/" + syncFileName
+// appRootSnapshotPath is the Graph path of the snapshot file inside the
+// OneDrive appDataFolder root under the given file name.
+func appRootSnapshotPath(name string) string {
+	return "/me/drive/special/approot:/" + name
+}
+
+// oneDriveFindNamed resolves the snapshot item under the current name first
+// and the legacy pre-rename name as fallback, returning the item result plus
+// the name that hit ("" when neither exists).
+func (c *OAuthClient) oneDriveFindNamed(ctx context.Context, o FileOptions) (FileResult, string, error) {
+	if err := validFileName(o.FileName); err != nil {
+		return FileResult{}, "", err
+	}
+	for _, candidate := range []string{syncFileName, legacySyncFileName} {
+		var item struct {
+			ID   string `json:"id"`
+			ETag string `json:"eTag"`
+		}
+		_, err := c.api(ctx, "GET", c.graph+appRootSnapshotPath(candidate), o.AccessToken, nil, "", &item)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return FileResult{}, "", err
+		}
+		if o.FileID != "" && o.FileID != item.ID {
+			return FileResult{}, "", errors.New("OneDrive file is outside the LemonSSH AppFolder")
+		}
+		result, err := fileResult(item.ID)
+		result.ETag = item.ETag
+		return result, candidate, err
+	}
+	return FileResult{}, "", nil
+}
+
+// oneDriveActiveName reports the name the snapshot currently lives at (new
+// name first, legacy fallback). A brand-new snapshot is created under the
+// current name. Unlike oneDriveFindNamed it does not check o.FileID, so the
+// name-addressed upload keeps its original semantics.
+func (c *OAuthClient) oneDriveActiveName(ctx context.Context, accessToken string) (string, error) {
+	for _, candidate := range []string{syncFileName, legacySyncFileName} {
+		var item struct {
+			ID string `json:"id"`
+		}
+		_, err := c.api(ctx, "GET", c.graph+appRootSnapshotPath(candidate), accessToken, nil, "", &item)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				continue
+			}
+			return "", err
+		}
+		return candidate, nil
+	}
+	return syncFileName, nil
+}
 
 func (c *OAuthClient) OneDriveFind(ctx context.Context, o FileOptions) (FileResult, error) {
-	if err := validFileName(o.FileName); err != nil {
-		return FileResult{}, err
-	}
-	var item struct {
-		ID   string `json:"id"`
-		ETag string `json:"eTag"`
-	}
-	_, err := c.api(ctx, "GET", c.graph+appRootSnapshot, o.AccessToken, nil, "", &item)
-	if errors.Is(err, ErrNotFound) {
-		return FileResult{}, nil
-	}
-	if err != nil {
-		return FileResult{}, err
-	}
-	if o.FileID != "" && o.FileID != item.ID {
-		return FileResult{}, errors.New("OneDrive file is outside the Netcatty AppFolder")
-	}
-	result, err := fileResult(item.ID)
-	result.ETag = item.ETag
+	result, _, err := c.oneDriveFindNamed(ctx, o)
 	return result, err
 }
 
@@ -272,10 +308,16 @@ func (c *OAuthClient) OneDriveUpload(ctx context.Context, o FileOptions) (FileRe
 	if err != nil {
 		return FileResult{}, err
 	}
+	// Write back to the name the snapshot currently lives at so legacy
+	// snapshots keep being updated in place instead of forking.
+	name, err := c.oneDriveActiveName(ctx, o.AccessToken)
+	if err != nil {
+		return FileResult{}, err
+	}
 	var item struct {
 		ID string `json:"id"`
 	}
-	_, err = c.api(ctx, "PUT", c.graph+appRootSnapshot+":/content", o.AccessToken, body, o.SyncedFile.ETag, &item)
+	_, err = c.api(ctx, "PUT", c.graph+appRootSnapshotPath(name)+":/content", o.AccessToken, body, o.SyncedFile.ETag, &item)
 	if err != nil {
 		return FileResult{}, err
 	}
@@ -283,14 +325,14 @@ func (c *OAuthClient) OneDriveUpload(ctx context.Context, o FileOptions) (FileRe
 }
 
 func (c *OAuthClient) OneDriveDownload(ctx context.Context, o FileOptions) (DownloadResult, error) {
-	found, err := c.OneDriveFind(ctx, o)
+	found, name, err := c.oneDriveFindNamed(ctx, o)
 	if err != nil {
 		return DownloadResult{}, err
 	}
 	if found.FileID == nil {
 		return DownloadResult{}, nil
 	}
-	data, headers, status, err := c.request(ctx, "GET", c.graph+appRootSnapshot+":/content", o.AccessToken, "", nil, "", maxSnapshotBytes)
+	data, headers, status, err := c.request(ctx, "GET", c.graph+appRootSnapshotPath(name)+":/content", o.AccessToken, "", nil, "", maxSnapshotBytes)
 	if err != nil {
 		return DownloadResult{}, err
 	}
@@ -343,6 +385,28 @@ type gist struct {
 	} `json:"history"`
 }
 
+// gistVaultFileName reports the file name the encrypted vault lives under in
+// one gist (current identity first, legacy fallback), or "" when absent.
+func gistVaultFileName(g gist) string {
+	if _, ok := g.Files[syncFileName]; ok {
+		return syncFileName
+	}
+	if _, ok := g.Files[legacySyncFileName]; ok {
+		return legacySyncFileName
+	}
+	return ""
+}
+
+// gistIsVault reports whether one gist carries the encrypted vault under the
+// current or the legacy identity; name and description must match as a pair.
+func gistIsVault(g gist) bool {
+	if _, ok := g.Files[syncFileName]; ok && g.Description == gistDescription {
+		return true
+	}
+	_, ok := g.Files[legacySyncFileName]
+	return ok && g.Description == legacyGistDescription
+}
+
 func (c *OAuthClient) GitHubFind(ctx context.Context, o FileOptions) (FileResult, error) {
 	for page := 1; page <= 100; page++ {
 		var gists []gist
@@ -351,7 +415,7 @@ func (c *OAuthClient) GitHubFind(ctx context.Context, o FileOptions) (FileResult
 			return FileResult{}, err
 		}
 		for _, g := range gists {
-			if _, ok := g.Files[syncFileName]; ok && g.Description == gistDescription {
+			if gistIsVault(g) {
 				return fileResult(g.ID)
 			}
 		}
@@ -378,8 +442,8 @@ func (c *OAuthClient) githubGist(ctx context.Context, o FileOptions) (gist, http
 	if err != nil {
 		return result, nil, err
 	}
-	if _, ok := result.Files[syncFileName]; !ok || result.Description != gistDescription {
-		return result, nil, errors.New("Gist is not a Netcatty encrypted vault")
+	if !gistIsVault(result) {
+		return result, nil, errors.New("Gist is not a LemonSSH encrypted vault")
 	}
 	return result, headers, nil
 }
@@ -390,13 +454,23 @@ func (c *OAuthClient) GitHubUpload(ctx context.Context, o FileOptions) (FileResu
 		return FileResult{}, err
 	}
 	method, endpoint := "POST", c.githubAPI+"/gists"
+	files := map[string]any{syncFileName: map[string]string{"content": string(content)}}
+	description := gistDescription
 	if o.FileID != "" {
-		if _, _, err = c.githubGist(ctx, o); err != nil {
+		g, _, err := c.githubGist(ctx, o)
+		if err != nil {
 			return FileResult{}, err
 		}
 		method, endpoint = "PATCH", endpoint+"/"+o.FileID
+		// Pre-rename gists keep their original file name and description: the
+		// remote identity is not migrated, only the content updates, so the
+		// gist stays discoverable under the legacy identity.
+		if name := gistVaultFileName(g); name != "" && name != syncFileName {
+			files = map[string]any{name: map[string]string{"content": string(content)}}
+			description = g.Description
+		}
 	}
-	body, err := json.Marshal(map[string]any{"description": gistDescription, "public": false, "files": map[string]any{syncFileName: map[string]string{"content": string(content)}}})
+	body, err := json.Marshal(map[string]any{"description": description, "public": false, "files": files})
 	if err != nil {
 		return FileResult{}, err
 	}
@@ -416,7 +490,7 @@ func (c *OAuthClient) GitHubDownload(ctx context.Context, o FileOptions) (Downlo
 	if err != nil {
 		return DownloadResult{}, err
 	}
-	file := g.Files[syncFileName]
+	file := g.Files[gistVaultFileName(g)]
 	data := []byte(file.Content)
 	if file.Truncated || file.Size > len(data) || !json.Valid(data) {
 		data, err = c.downloadURL(ctx, file.RawURL, true)

@@ -112,7 +112,7 @@ test("remote SSH terminal drop stays on ZMODEM when rz starts", async () => {
         };
       },
       startZmodemDragDropUpload: async (_sessionId, _files, uploadCommand) => {
-        assert.match(uploadCommand ?? "", /NetcattyRzMissing=/);
+        assert.match(uploadCommand ?? "", /LemonSSHRzMissing=/);
         zmodemCallback?.({ type: "detect", transferType: "upload" });
         return { success: true };
       },
@@ -275,11 +275,11 @@ test("remote SSH terminal drop falls back to SFTP when rz is unavailable", async
         cancelled = { sessionId, interrupt: options?.interrupt };
       },
       startZmodemDragDropUpload: async (_sessionId, _files, uploadCommand) => {
-        assert.match(uploadCommand ?? "", /NetcattyRzMissing=/);
-        assert.equal((uploadCommand ?? "").includes("\u001b]1337;NetcattyRzMissing="), false);
-        const token = uploadCommand?.match(/NetcattyRzMissing=([A-Za-z0-9_-]+)/)?.[1];
+        assert.match(uploadCommand ?? "", /LemonSSHRzMissing=/);
+        assert.equal((uploadCommand ?? "").includes("\u001b]1337;LemonSSHRzMissing="), false);
+        const token = uploadCommand?.match(/LemonSSHRzMissing=([A-Za-z0-9_-]+)/)?.[1];
         assert.ok(token);
-        dataCallback?.(`\u001b]1337;NetcattyRzMissing=${token}\u0007`);
+        dataCallback?.(`\u001b]1337;LemonSSHRzMissing=${token}\u0007`);
         return { success: true };
       },
     },

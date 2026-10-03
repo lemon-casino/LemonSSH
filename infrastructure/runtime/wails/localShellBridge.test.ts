@@ -10,7 +10,7 @@ test('native local launch preserves argv and terminal environment and attaches r
   ValidatePath: async () => ({ exists: true, isFile: true, isDirectory: false, isExecutable: true }),
  }, async (alias,id) => { calls.push([alias,id]); });
  assert.equal(await bridge.startLocalSession({sessionId:'ui-1',shell:'/bin/sh',shellArgs:['-c','printf "%s" "a b"'],env:{TERM:'vt100'},cwd:'/home/me'}),'native-1');
- assert.deepEqual(calls,[{shell:'/bin/sh',shellArgs:['-c','printf "%s" "a b"'],env:{TERM:'vt100'},cwd:'/home/me',cols:80,rows:24},['ui-1','native-1']]);
+ assert.deepEqual(calls,[{shell:'/bin/sh',shellArgs:['-c','printf "%s" "a b"'],env:{TERM:'vt100'},cwd:'/home/me',cols:80,rows:24,sessionId:'ui-1'},['ui-1','native-1']]);
  assert.equal(await bridge.getDefaultShell(),'/bin/sh');
  assert.equal((await bridge.validatePath('/bin/sh','file')).isExecutable,true);
 });

@@ -1,6 +1,6 @@
-# Classify one Netcatty issue (code-first)
+# Classify one LemonSSH issue (code-first)
 
-You are triaging a Netcatty GitHub issue. **You must inspect the live repository
+You are triaging a LemonSSH GitHub issue. **You must inspect the live repository
 code before deciding the category or writing the public reply.** Answering from
 the issue title/body alone is a hard failure.
 
@@ -37,7 +37,7 @@ From the title/body (and recent comments in `issue.json`), list concrete tokens:
 
 ### 2. Use the isolated external research (required when relevant)
 
-If the report names a product/tool that is **not** an obvious Netcatty UI label,
+If the report names a product/tool that is **not** an obvious LemonSSH UI label,
 or includes an `http(s)://` link, you **must read the external research file
 before needs-info**:
 
@@ -46,7 +46,7 @@ before needs-info**:
    reporter-provided link.
 2. **Unknown names without a link:** use the cited notes to identify the exact
    project and role. Record it in `code_findings`.
-3. **Map to Netcatty surfaces:** connect the external tool or fact to
+3. **Map to LemonSSH surfaces:** connect the external tool or fact to
    local code (terminal mouse mode, scrollback, SFTP transfer, AI sidebar,
    etc.) and search those areas — not only for a page literally named after
    the external product.
@@ -129,7 +129,7 @@ Do **not** defer just because:
 
 ### Bugs
 
-- `bug_ready`: clear Netcatty bug after reading code; focused fix in one PR;
+- `bug_ready`: clear LemonSSH bug after reading code; focused fix in one PR;
   confidence ≥ 0.8.
 - `bug_needs_info`: still cannot reproduce / attribute after reading code, or
   missing evidence (logs, steps, versions).
@@ -175,7 +175,7 @@ Do **not** use `already_available` when:
 
 - Only a partial workaround exists and the **primary** requested product gap
   is still real after the literal reading.
-- The feature is unfinished, gated behind `NETCATTY_PLUGIN_DEV`, or clearly
+- The feature is unfinished, gated behind `LEMONSSH_PLUGIN_DEV`, or clearly
   experimental/internal-only without a user-facing entry.
 - You cannot name an accurate click-path from the code you opened.
 

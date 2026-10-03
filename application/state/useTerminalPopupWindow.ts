@@ -1,28 +1,28 @@
 import { useCallback } from 'react';
-import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
+import { lemonsshBridge } from '../../infrastructure/services/lemonsshBridge';
 import type { TerminalPopupPayload } from '../../domain/systemManager/types';
 
 export function useTerminalPopupWindow() {
   const close = useCallback(async () => {
-    await netcattyBridge.get()?.windowClose?.();
+    await lemonsshBridge.get()?.windowClose?.();
   }, []);
 
   const setWindowTitle = useCallback(async (title: string) => {
-    await netcattyBridge.get()?.setWindowTitle?.(title);
+    await lemonsshBridge.get()?.setWindowTitle?.(title);
   }, []);
 
   const onPopupConfig = useCallback((cb: (payload: TerminalPopupPayload) => void) => {
-    const bridge = netcattyBridge.get();
+    const bridge = lemonsshBridge.get();
     if (!bridge?.onTerminalPopupConfig) return () => {};
     return bridge.onTerminalPopupConfig(cb);
   }, []);
 
   const markAttachClosePrepared = useCallback(async (sessionId: string, authorization: string) => {
-    return netcattyBridge.get()?.markAttachPopupClosePrepared?.(sessionId, authorization);
+    return lemonsshBridge.get()?.markAttachPopupClosePrepared?.(sessionId, authorization);
   }, []);
 
   const onPrepareClose = useCallback((cb: (payload: { sessionId: string; authorization: string }) => void) => {
-    return netcattyBridge.get()?.onTerminalPopupPrepareClose?.(cb) ?? (() => {});
+    return lemonsshBridge.get()?.onTerminalPopupPrepareClose?.(cb) ?? (() => {});
   }, []);
 
   return { close, setWindowTitle, onPopupConfig, markAttachClosePrepared, onPrepareClose };

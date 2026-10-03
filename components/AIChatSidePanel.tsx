@@ -40,6 +40,7 @@ import {
 } from './ai/draftSendGate';
 import { draftsByScopeEqualIgnoringComposerText, selectDraftForAgentSwitch } from '../application/state/aiDraftState';
 import { sanitizeContextWindow } from '../infrastructure/ai/contextCompaction';
+import { buildGoLiveProviderPayloadFor } from '../infrastructure/ai/goLiveProvider';
 import {
   buildPromptWithTerminalSelectionAttachments,
   isTerminalSelectionAttachment,
@@ -47,7 +48,7 @@ import {
 import type { CodexIntegrationStatus } from './settings/tabs/ai/types';
 import {
   useAIChatStreaming,
-  getNetcattyBridge,
+  getLemonSSHBridge,
   isAIChatSessionStreaming,
   type DefaultTargetSessionHint,
 } from '../application/state/useAIChatStreaming';
@@ -130,7 +131,7 @@ if (typeof window !== 'undefined') {
 }
 
 function loadUserSkillsStatus(
-  bridge: ReturnType<typeof getNetcattyBridge>,
+  bridge: ReturnType<typeof getLemonSSHBridge>,
 ): Promise<UserSkillsStatusLoadResult> {
   const requestVersion = userSkillsStatusCacheVersion;
   if (!bridge?.aiUserSkillsGetStatus) {
@@ -471,7 +472,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
 
   useEffect(() => {
     if (!isVisible) return;
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     if (!bridge?.aiMcpUpdateSessions) return;
 
     return scheduleWhenAiComposerIdle(() => {
@@ -650,7 +651,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
       }));
     };
 
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     const cancelIdle = scheduleWhenAiComposerIdle(() => {
       void loadUserSkillsStatus(bridge)
         .then((result) => {
@@ -676,14 +677,14 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
 
   useEffect(() => {
     if (!isVisible) return;
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     if (!bridge?.aiSyncProviders || providers.length === 0) return;
     void bridge.aiSyncProviders(providers);
   }, [isVisible, providers]);
 
   useEffect(() => {
     if (!isVisible) return;
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     if (!bridge?.aiSyncWebSearch) return;
     const enabledConfig = webSearchConfig?.enabled ? webSearchConfig : null;
     void bridge.aiSyncWebSearch(
@@ -761,6 +762,24 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
   const effectiveActiveProvider = currentAgentId === 'catty' ? cattyAgentProvider : activeProvider;
   const effectiveActiveModelId = currentAgentId === 'catty' ? cattyAgentModelId : activeModelId;
 
+  // F06: keep the Go turn runtime's live provider in sync with the Catty
+  // selection while the panel is visible, so AgentStatus.goRuntimeReady is
+  // current before the first send decides the turn path. A null payload
+  // clears the driver (provider removed / native anthropic/google family).
+  useEffect(() => {
+    if (!isVisible) return;
+    const bridge = getLemonSSHBridge();
+    if (!bridge?.aiSetLiveProvider) return;
+    const payload = buildGoLiveProviderPayloadFor(cattyAgentProvider, cattyAgentModelId, maxIterations);
+    bridge.aiSetLiveProvider(payload).then((result) => {
+      if (!result.ok && result.error) {
+        console.warn('[AIChatSidePanel] Go live provider rejected:', result.error);
+      }
+    }).catch((error) => {
+      console.warn('[AIChatSidePanel] Failed to sync the Go live provider', error);
+    });
+  }, [isVisible, providers, cattyAgentProvider, cattyAgentModelId, maxIterations]);
+
   const cattyConfiguredProviders = useMemo(
     () => (currentAgentId === 'catty' ? providers : []),
     [currentAgentId, providers],
@@ -822,7 +841,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
       setCodexConfigModel(null);
       return;
     }
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     if (!bridge?.aiCodexGetIntegration) return;
     let cancelled = false;
     void Promise.resolve(
@@ -851,7 +870,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     const sdkBackend = getExternalAgentSdkBackend(agent);
     if (!sdkBackend) return null;
     // Cursor: re-inject auth mode for list-models (same as run-turn). Persisted
-    // agent.env strips NETCATTY_CURSOR_*; without this, main defaults to api-key
+    // agent.env strips LEMONSSH_CURSOR_*; without this, main defaults to api-key
     // and the UI falls back to curated CURSOR_MODEL_PRESETS (#2562).
     const agentEnv = sdkBackend === 'cursor'
       ? buildCursorListModelsAgentEnv(agent)
@@ -916,7 +935,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     target: SdkRuntimeModelTarget,
     options: { force?: boolean; logErrors?: boolean } = {},
   ): Promise<SdkRuntimeModelCatalog | null> => {
-    const bridge = getNetcattyBridge();
+    const bridge = getLemonSSHBridge();
     if (!bridge?.aiSdkAgentListModels) return Promise.resolve(null);
 
     return sdkRuntimeModelCache.refresh(
@@ -1189,9 +1208,19 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     setIsSending(true);
 
     try {
-      const sendBridge = getNetcattyBridge();
+      const sendBridge = getLemonSSHBridge();
       if (sendBridge?.aiSyncProviders && providers.length > 0) {
         await sendBridge.aiSyncProviders(providers);
+      }
+      // F06: refresh the Go live provider right before the turn so the
+      // Catty path's AgentStatus poll (sendToCattyAgent) sees the current
+      // Settings→AI configuration.
+      if (sendBridge?.aiSetLiveProvider) {
+        const goPayload = buildGoLiveProviderPayloadFor(cattyAgentProvider, cattyAgentModelId, maxIterations);
+        const goSynced = await sendBridge.aiSetLiveProvider(goPayload);
+        if (!goSynced.ok && goSynced.error) {
+          console.warn('[AIChatSidePanel] Go live provider rejected:', goSynced.error);
+        }
       }
       if (sendBridge?.aiSyncWebSearch) {
         const enabledConfig = webSearchConfig?.enabled ? webSearchConfig : null;
@@ -1399,6 +1428,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     clearScopeDraft, showScopeSessionView, setActiveSessionId,
     flushDraftText, currentAgentConfig, buildExternalAgentRuntimeModelTarget,
     loadSdkRuntimeModelCatalog, applySdkRuntimeModelCatalog,
+    cattyAgentProvider, cattyAgentModelId, maxIterations,
   ]);
 
   const handleCompact = useCallback(async () => {
@@ -1541,7 +1571,7 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
     await stopAgentTurn({
       chatSessionId: sessionId,
       abortController: controller,
-      bridge: getNetcattyBridge(),
+      bridge: getLemonSSHBridge(),
       reason: 'user',
     });
     await getAgentRuntime().waitForActiveTurn(sessionId);

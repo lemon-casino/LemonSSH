@@ -7,7 +7,7 @@ const safeParse = <T>(value: string | null): T | null => {
   }
 };
 
-export const LOCAL_STORAGE_ADAPTER_CHANGED_EVENT = 'netcatty:local-storage-adapter-changed';
+export const LOCAL_STORAGE_ADAPTER_CHANGED_EVENT = 'lemonssh:local-storage-adapter-changed';
 
 const pendingChangedKeys = new Set<string>();
 let emitChangedKeysTimer: ReturnType<typeof setTimeout> | null = null;

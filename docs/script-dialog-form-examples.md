@@ -1,6 +1,6 @@
 # Script Dialog Form Examples
 
-These examples can be pasted into a Netcatty automation script to test dialog form controls.
+These examples can be pasted into a LemonSSH automation script to test dialog form controls.
 
 ## 1. All Controls Smoke Test
 

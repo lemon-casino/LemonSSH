@@ -711,30 +711,30 @@ export type SyncEvent =
 // ============================================================================
 
 export const SYNC_STORAGE_KEYS = {
-  MASTER_KEY_CONFIG: 'netcatty_master_key_config_v1',
-  DEVICE_ID: 'netcatty_device_id_v1',
-  DEVICE_NAME: 'netcatty_device_name_v1',
-  SYNC_CONFIG: 'netcatty_sync_config_v2',
+  MASTER_KEY_CONFIG: 'lemonssh_master_key_config_v1',
+  DEVICE_ID: 'lemonssh_device_id_v1',
+  DEVICE_NAME: 'lemonssh_device_name_v1',
+  SYNC_CONFIG: 'lemonssh_sync_config_v2',
   /** Auto-sync prefs (autoSync / interval / syncStrategy); kept separate from version stamps. */
-  SYNC_PREFERENCES: 'netcatty_sync_preferences_v1',
-  PROVIDER_GITHUB: 'netcatty_provider_github_v1',
-  PROVIDER_GOOGLE: 'netcatty_provider_google_v1',
-  PROVIDER_ONEDRIVE: 'netcatty_provider_onedrive_v1',
-  PROVIDER_WEBDAV: 'netcatty_provider_webdav_v1',
-  PROVIDER_S3: 'netcatty_provider_s3_v1',
-  PROVIDER_SMB: 'netcatty_provider_smb_v1',
+  SYNC_PREFERENCES: 'lemonssh_sync_preferences_v1',
+  PROVIDER_GITHUB: 'lemonssh_provider_github_v1',
+  PROVIDER_GOOGLE: 'lemonssh_provider_google_v1',
+  PROVIDER_ONEDRIVE: 'lemonssh_provider_onedrive_v1',
+  PROVIDER_WEBDAV: 'lemonssh_provider_webdav_v1',
+  PROVIDER_S3: 'lemonssh_provider_s3_v1',
+  PROVIDER_SMB: 'lemonssh_provider_smb_v1',
   /** Registry of connected namespaced plugin sync provider IDs. */
-  PLUGIN_CLOUD_PROVIDERS: 'netcatty_plugin_cloud_providers_v1',
+  PLUGIN_CLOUD_PROVIDERS: 'lemonssh_plugin_cloud_providers_v1',
   /** Contribution-available plugin sync provider IDs (live catalog membership). */
-  AVAILABLE_PLUGIN_SYNC_PROVIDERS: 'netcatty_available_plugin_sync_providers_v1',
+  AVAILABLE_PLUGIN_SYNC_PROVIDERS: 'lemonssh_available_plugin_sync_providers_v1',
   /** Last successful sidecar collect (upload fallback when host is offline). */
-  PLUGIN_SIDECARS_LAST_KNOWN: 'netcatty_plugin_sidecars_last_known_v1',
+  PLUGIN_SIDECARS_LAST_KNOWN: 'lemonssh_plugin_sidecars_last_known_v1',
   /** Remote sidecar apply queued while the plugin host was unavailable. */
-  PLUGIN_SIDECARS_PENDING_REMOTE: 'netcatty_plugin_sidecars_pending_remote_v1',
-  LOCAL_SYNC_META: 'netcatty_local_sync_meta_v1',
-  SYNC_BASE_PAYLOAD: 'netcatty_sync_base_payload_v1',
-  CONVERGENT_REPLICA: 'netcatty_convergent_sync_replica_v2',
-  CONVERGENT_PROVIDER_BASELINE: 'netcatty_convergent_sync_provider_baseline_v2',
+  PLUGIN_SIDECARS_PENDING_REMOTE: 'lemonssh_plugin_sidecars_pending_remote_v1',
+  LOCAL_SYNC_META: 'lemonssh_local_sync_meta_v1',
+  SYNC_BASE_PAYLOAD: 'lemonssh_sync_base_payload_v1',
+  CONVERGENT_REPLICA: 'lemonssh_convergent_sync_replica_v2',
+  CONVERGENT_PROVIDER_BASELINE: 'lemonssh_convergent_sync_provider_baseline_v2',
 } as const;
 
 // ============================================================================
@@ -759,8 +759,15 @@ export const SYNC_CONSTANTS = {
   PBKDF2_HASH: 'SHA-256',
   
   // Sync
-  SYNC_FILE_NAME: 'netcatty-vault.json',
-  GIST_DESCRIPTION: 'Netcatty Encrypted Vault (DO NOT EDIT MANUALLY)',
+  SYNC_FILE_NAME: 'lemonssh-vault.json',
+  /**
+   * compat#5: cloud artifacts created by pre-rename builds used the old brand
+   * spelling. Read paths accept the legacy file name/description as a
+   * fallback; every write keeps using the new names above.
+   */
+  LEGACY_SYNC_FILE_NAME: 'netcatty-vault.json',
+  GIST_DESCRIPTION: 'LemonSSH Encrypted Vault (DO NOT EDIT MANUALLY)',
+  LEGACY_GIST_DESCRIPTION: 'Netcatty Encrypted Vault (DO NOT EDIT MANUALLY)',
   
   // Auto-sync
   DEFAULT_AUTO_SYNC_INTERVAL: 5, // minutes
@@ -803,7 +810,7 @@ export const generateDeviceId = (): string => {
  */
 export const getDefaultDeviceName = (): string => {
   const platform = navigator.platform || 'Unknown';
-  const hostname = 'Netcatty';
+  const hostname = 'LemonSSH';
   return `${hostname} (${platform})`;
 };
 

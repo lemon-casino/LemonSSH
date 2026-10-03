@@ -15,7 +15,7 @@ test("ZMODEM drag-drop rz command overwrites existing remote files", () => {
 
   const command = buildZmodemDragDropUploadCommand("rz-token");
   assert.match(command, /\bexec rz -y\b/);
-  assert.match(command, /NetcattyRzMissing=rz-token/);
+  assert.match(command, /LemonSSHRzMissing=rz-token/);
   assert.match(command, /\r$/);
 });
 

@@ -39,7 +39,7 @@ test("WebView2 file and folder drops return through the Go runtime entry point",
       assert.equal(request.object, 6);
       assert.equal(request.method, 50);
       window.eval(`window._wails.dispatchWailsEvent(${JSON.stringify({
-        name: "netcatty:files-dropped", data: [request.args],
+        name: "lemonssh:files-dropped", data: [request.args],
       })});`);
       return { ok: true, status: 200, headers: new Headers(), text: async () => "null", json: async () => null };
     },

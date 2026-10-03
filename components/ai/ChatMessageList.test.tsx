@@ -263,7 +263,7 @@ test("ChatMessageList renders external MCP vault tool results as artifact cards"
       toolResults: [
         {
           toolCallId: "external-call-1",
-          toolName: "mcp__netcatty__vault_notes_create",
+          toolName: "mcp__lemonssh__vault_notes_create",
           content: JSON.stringify({
             ok: true,
             note: { id: "note-1", title: "Deploy Runbook", group: "ops" },
@@ -290,7 +290,7 @@ test("ChatMessageList renders external MCP vault tool results as artifact cards"
   assert.doesNotMatch(markup, /external-call-1/);
 });
 
-test("ChatMessageList renders Netcatty CLI vault results as artifact cards", () => {
+test("ChatMessageList renders LemonSSH CLI vault results as artifact cards", () => {
   const messages: ChatMessage[] = [
     {
       id: "assistant-1",
@@ -302,7 +302,7 @@ test("ChatMessageList renders Netcatty CLI vault results as artifact cards", () 
           id: "cli-call-1",
           name: "shell",
           arguments: {
-            command: `/bin/zsh -lc '"/Applications/Netcatty.app/netcatty-tool-cli" vault host get --host-id host_1 --json'`,
+            command: `/bin/zsh -lc '"/Applications/LemonSSH.app/lemonssh-tool-cli" vault host get --host-id host_1 --json'`,
           },
         },
       ],
@@ -353,7 +353,7 @@ test("ChatMessageList renders Claude MCP list envelopes as summary cards", () =>
       toolCalls: [
         {
           id: "notes-call-1",
-          name: "mcp__netcatty-remote-hosts__vault_notes_list",
+          name: "mcp__lemonssh-remote-hosts__vault_notes_list",
           arguments: {},
         },
       ],
@@ -410,7 +410,7 @@ test("ChatMessageList renders OpenCode MCP-prefixed vault results as artifact ca
       toolResults: [
         {
           toolCallId: "opencode-call-1",
-          toolName: "netcatty-remote-hosts_vault_notes_get",
+          toolName: "lemonssh-remote-hosts_vault_notes_get",
           content: JSON.stringify({
             ok: true,
             note: {
@@ -458,7 +458,7 @@ test("ChatMessageList renders Copilot MCP-prefixed wrapped vault results as arti
       toolResults: [
         {
           toolCallId: "copilot-call-1",
-          toolName: "netcatty-remote-hosts-vault_notes_list",
+          toolName: "lemonssh-remote-hosts-vault_notes_list",
           content: JSON.stringify({
             content: JSON.stringify(payload),
             detailedContent: JSON.stringify(payload),

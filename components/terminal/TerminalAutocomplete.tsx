@@ -100,7 +100,7 @@ export function TerminalAutocomplete({
       signal?: AbortSignal;
     },
   ) => {
-    const normalizedProtocol: NetcattyTerminalSessionSnapshot['protocol'] = protocol ?? "ssh";
+    const normalizedProtocol: LemonSSHTerminalSessionSnapshot['protocol'] = protocol ?? "ssh";
     const pluginRegistry = isPluginCompletionProviderAvailable?.() === false
       || options.allowExternalProviders === false
       || !shouldUsePluginTerminalCompletionProvider({

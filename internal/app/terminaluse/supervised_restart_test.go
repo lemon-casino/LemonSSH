@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/netcatty/internal/terminal/dataplane"
-	"github.com/binaricat/netcatty/internal/terminal/pty"
-	"github.com/binaricat/netcatty/internal/terminal/supervised"
+	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/binaricat/lemonssh/internal/terminal/supervised"
 )
 
 // newHelperServiceFixture builds a TerminalService with a supervised mosh

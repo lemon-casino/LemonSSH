@@ -1,6 +1,6 @@
-# Contributing to Netcatty
+# Contributing to LemonSSH
 
-Thank you for your interest in contributing to Netcatty — an AI-powered SSH client, SFTP browser, and terminal manager built with Go, Wails v3, React, and xterm.js.
+Thank you for your interest in contributing to LemonSSH — an AI-powered SSH client, SFTP browser, and terminal manager built with Go, Wails v3, React, and xterm.js.
 
 Please read this guide before submitting issues or pull requests.
 
@@ -10,7 +10,7 @@ This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUC
 
 ## Ways to Contribute
 
-- Report bugs via [GitHub Issues](https://github.com/binaricat/Netcatty/issues)
+- Report bugs via [GitHub Issues](https://github.com/binaricat/LemonSSH/issues)
 - Suggest features or improvements
 - Fix bugs or implement features listed in Issues
 - Improve documentation
@@ -24,13 +24,13 @@ issue-format bot.
   then a short summary of at least 4 characters.
   Example: `[Bug] SFTP upload fails on Windows`
 - **Template (required):** open from
-  [New Issue](https://github.com/binaricat/Netcatty/issues/new/choose) and pick
+  [New Issue](https://github.com/binaricat/LemonSSH/issues/new/choose) and pick
   **Bug Report** or **Feature Request**. Fill every required field. Blank
   issues are disabled (`blank_issues_enabled: false`).
 - **Templates live in**
-  [`.github/ISSUE_TEMPLATE/`](https://github.com/binaricat/Netcatty/tree/main/.github/ISSUE_TEMPLATE).
+  [`.github/ISSUE_TEMPLATE/`](https://github.com/binaricat/LemonSSH/tree/main/.github/ISSUE_TEMPLATE).
 - Questions and open-ended discussion belong in
-  [GitHub Discussions](https://github.com/binaricat/Netcatty/discussions), not Issues.
+  [GitHub Discussions](https://github.com/binaricat/LemonSSH/discussions), not Issues.
 
 If you open an issue via the API or `gh`, you must still use a valid title
 prefix and a body that matches the Bug Report or Feature Request template
@@ -43,8 +43,8 @@ structure (required headings such as "Steps to reproduce" or
 
 ```bash
 # Clone the repository
-git clone https://github.com/binaricat/Netcatty.git
-cd Netcatty
+git clone https://github.com/binaricat/LemonSSH.git
+cd LemonSSH
 
 # Install dependencies
 npm ci
@@ -83,7 +83,7 @@ go test ./internal/... ./cmd/... # Run Go service tests
    git commit -m 'feat: add amazing feature'
    ```
 5. Push the branch and open a Pull Request against `main`. Use the checklist in
-   [`.github/PULL_REQUEST_TEMPLATE.md`](https://github.com/binaricat/Netcatty/blob/main/.github/PULL_REQUEST_TEMPLATE.md).
+   [`.github/PULL_REQUEST_TEMPLATE.md`](https://github.com/binaricat/LemonSSH/blob/main/.github/PULL_REQUEST_TEMPLATE.md).
 6. Run `npm run lint` and `npm test` before requesting review.
 7. If you changed the capability catalog, run `npm run generate:capability-tools`
    and commit any generated updates.
@@ -101,7 +101,7 @@ We recommend following [Conventional Commits](https://www.conventionalcommits.or
 
 ## Architecture & Coding Guidelines
 
-Netcatty is organized around three layers:
+LemonSSH is organized around three layers:
 
 - Domain logic in `domain/`
 - Application state in `application/state/`
