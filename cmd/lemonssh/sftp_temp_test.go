@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 	pkgsftp "github.com/pkg/sftp"
 )
 

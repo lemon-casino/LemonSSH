@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
 )
 
 // ---------------------------------------------------------------------------

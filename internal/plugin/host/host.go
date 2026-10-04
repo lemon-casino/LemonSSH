@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/plugin/manifest"
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	"github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/ui"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/plugin/manifest"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/ui"
 )
 
 type Host struct {

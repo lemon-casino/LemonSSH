@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/capability"
 )
 
 // textAttachmentExtensions is the text-detection allowlist ported from

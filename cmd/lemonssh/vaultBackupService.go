@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 func envelope(seq uint64, kind string, payload string) contracts.AgentEventEnvelope {

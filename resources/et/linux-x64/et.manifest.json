@@ -5,7 +5,7 @@
   "arch": "amd64",
   "sha256": "2f1b3a4fdda433246783b46669d8099707808a27b74f661acf80af24ec4d7d6d",
   "provenance": {
-    "repository": "binaricat/LemonSSH-et-bin",
+    "repository": "lemon-casino/LemonSSH-et-bin",
     "tag": "et-bin-6.2.10-1",
     "source": {
       "repository": "MisterTea/EternalTerminal",
@@ -13,13 +13,13 @@
       "commit": "f9a584ac06b2f1730b5bdf0a27150f28478368fb"
     },
     "build": {
-      "repository": "binaricat/LemonSSH",
+      "repository": "lemon-casino/LemonSSH",
       "commit": "c39793d592db59da68a1b4d6eaaf001620ad9464",
       "workflow": ".github/workflows/build-et-binaries.yml",
-      "run": "https://github.com/binaricat/LemonSSH/actions/runs/26945446872"
+      "run": "https://github.com/lemon-casino/LemonSSH/actions/runs/26945446872"
     },
     "archive": {
-      "url": "https://github.com/binaricat/LemonSSH-et-bin/releases/download/et-bin-6.2.10-1/et-linux-x64.tar.gz",
+      "url": "https://github.com/lemon-casino/LemonSSH-et-bin/releases/download/et-bin-6.2.10-1/et-linux-x64.tar.gz",
       "assetId": 438206476,
       "sha256": "25149ca428107822dc374fe186e1dd49098ab8863b899a49f03048ef9dc94935"
     },

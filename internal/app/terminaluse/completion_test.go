@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	terminalssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 )
 
 func TestAutocompleteLocalDirectories(t *testing.T) {

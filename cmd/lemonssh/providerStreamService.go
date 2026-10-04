@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/agent/providers"
+	"github.com/lemon-casino/lemonssh/internal/agent/providers"
 )
 
 type providerStream struct {

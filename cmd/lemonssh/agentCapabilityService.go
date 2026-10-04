@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/capability"
 )
 
 func (s *AgentService) AgentCapability(ctx context.Context, method string, params map[string]any, chat string) (any, error) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 func base64Of(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }

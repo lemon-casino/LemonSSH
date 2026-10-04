@@ -20,7 +20,7 @@ treated as an idempotent success, but it did not republish the active status.
 This exactly matches the report: the tunnel was running, the page showed it as
 stopped, and the user could not stop it from that page.
 
-Original reproduction and screenshots: [Issue #2280](https://github.com/binaricat/LemonSSH/issues/2280).
+Original reproduction and screenshots: [Issue #2280](https://github.com/lemon-casino/LemonSSH/issues/2280).
 The relevant lifecycle was unchanged between v1.1.68 and the inspected main
 branch.
 

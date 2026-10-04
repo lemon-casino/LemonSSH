@@ -39,15 +39,20 @@ type mainWindowHandle interface {
 }
 
 // dirtyEditorsQuery is one in-flight quit-guard round trip. The first answer
-// wins; late or duplicate reports are dropped.
+// wins; late or duplicate reports are dropped. The verdict is broadcast by
+// closing done, so every concurrent close request sharing the query wakes
+// immediately with the same answer instead of a single channel receive
+// stranding the other waiters until the timeout.
 type dirtyEditorsQuery struct {
-	once   sync.Once
-	result chan bool
+	once     sync.Once
+	done     chan struct{}
+	hasDirty bool
 }
 
 func (q *dirtyEditorsQuery) deliver(hasDirty bool) {
 	q.once.Do(func() {
-		q.result <- hasDirty
+		q.hasDirty = hasDirty
+		close(q.done)
 	})
 }
 
@@ -171,7 +176,7 @@ func (s *WindowLifecycleService) handleCloseRequest() {
 	query := s.pendingDirtyQuery
 	owner := false
 	if query == nil {
-		query = &dirtyEditorsQuery{result: make(chan bool, 1)}
+		query = &dirtyEditorsQuery{done: make(chan struct{})}
 		s.pendingDirtyQuery = query
 		owner = true
 	}
@@ -186,7 +191,8 @@ func (s *WindowLifecycleService) handleCloseRequest() {
 
 	var hasDirty bool
 	select {
-	case hasDirty = <-query.result:
+	case <-query.done:
+		hasDirty = query.hasDirty
 	case <-time.After(timeout):
 		if owner {
 			// Fail open: a dead renderer must not trap the user. Losing
@@ -204,7 +210,10 @@ func (s *WindowLifecycleService) handleCloseRequest() {
 	if s.pendingDirtyQuery == query {
 		s.pendingDirtyQuery = nil
 	}
-	quitApp := !hasDirty
+	// Every waiter of a shared query reaches this point with the same
+	// verdict; only the first confirmed-clean one transitions quitting so
+	// the quit hook fires exactly once per query.
+	quitApp := !hasDirty && !s.quitting
 	if quitApp {
 		s.quitting = true
 	}

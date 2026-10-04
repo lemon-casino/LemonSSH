@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	lemonsshssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 )
 
 type recordingDial struct {

@@ -70,8 +70,8 @@ The host clamps chunk windows to 192 KiB of raw bytes (base64 plus JSON must
 fit the dispatch envelope) and every dispatch to the 10 s cap. Streamed reads
 and begin/chunk/commit writes keep their cursor/buffer in the plugin's own
 guest memory between dispatches; the host tracks the transfer id → provider
-binding and expires it after 10 idle minutes, so a stale or spoofed
-`transferId` resolves to nothing.
+binding and expires it 10 minutes after creation (swept on the next transfer
+registration), so a stale or spoofed `transferId` resolves to nothing.
 
 ## Renderer flow
 

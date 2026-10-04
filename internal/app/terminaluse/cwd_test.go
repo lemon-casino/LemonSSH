@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
 )
 
 func TestTerminalCwdProbeSelectsOnlyExactForegroundShell(t *testing.T) {

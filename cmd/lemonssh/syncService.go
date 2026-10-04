@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/platform/cloudsync"
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/profile/store"
-	"github.com/binaricat/lemonssh/internal/syncengine"
+	"github.com/lemon-casino/lemonssh/internal/platform/cloudsync"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/syncengine"
 )
 
 type SyncService struct {

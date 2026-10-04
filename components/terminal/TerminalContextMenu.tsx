@@ -30,7 +30,7 @@ import {
 } from '../ui/context-menu';
 import { isMiddleClickContextMenuEvent, isMouseTrackingActive } from './runtime/middleClickBehavior';
 import { isHistoryPreviewContextMenuTarget } from './runtime/terminalHistoryScrollOverride';
-import { collectOwnedPluginMenus, comparePluginMenus, usePluginContributions } from '../../application/state/usePluginContributions';
+import { usePluginMenuItems } from '../../application/state/usePluginMenuItems';
 import { buildTerminalPluginContributionContext } from '../../application/state/pluginContributionContexts';
 import { PluginContributionIcon } from '../plugins/PluginContributionIcon';
 
@@ -239,13 +239,11 @@ export const TerminalContextMenu: React.FC<TerminalContextMenuProps> = ({
     alternateScreen: isAlternateScreen,
     reconnectable: Boolean(isReconnectable),
   });
-  const pluginContributions = usePluginContributions(
+  const { items: pluginMenus, executeCommand } = usePluginMenuItems(
+    'terminal/context',
     { context: terminalContext },
     { enabled: menuOpen },
   );
-  const pluginMenus = collectOwnedPluginMenus(pluginContributions.snapshot.plugins)
-    .filter((menu) => menu.location === 'terminal/context' && menu.visible)
-    .sort(comparePluginMenus);
   const isMac = hotkeyScheme === 'mac';
   // Tracks the .workspace-pane whose context menu is currently open so we can
   // keep its `:focus-within`-driven opacity stable while focus is in the
@@ -479,7 +477,7 @@ export const TerminalContextMenu: React.FC<TerminalContextMenuProps> = ({
                 <ContextMenuItem
                   key={menu.id}
                   disabled={!menu.enabled}
-                  onClick={(event) => void pluginContributions.executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, undefined, {
+                  onClick={(event) => void executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, undefined, {
                     ...terminalContext,
                   }).catch(() => {})}
                 >

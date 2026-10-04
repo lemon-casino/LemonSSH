@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # bump-homebrew-cask.sh — push a new version of the LemonSSH cask to the
-# binaricat/homebrew-lemonssh tap.
+# lemon-casino/homebrew-lemonssh tap.
 #
 # Called from the release pipeline (`build.yml` → `homebrew-tap` job) after
 # the GitHub Release has been published with the signed + notarized DMGs.
@@ -13,7 +13,7 @@
 #   HOMEBREW_TAP_TOKEN   — PAT with contents:write on the tap repo
 #
 # Optional env vars:
-#   TAP_REPO             — default: binaricat/homebrew-lemonssh
+#   TAP_REPO             — default: lemon-casino/homebrew-lemonssh
 #   ARTIFACTS_DIR        — default: artifacts
 #   CASK_PATH            — default: Casks/lemonssh.rb
 #   MAX_PUSH_ATTEMPTS    — default: 5
@@ -22,7 +22,7 @@ set -euo pipefail
 : "${VERSION:?VERSION env var required (no leading v)}"
 : "${HOMEBREW_TAP_TOKEN:?HOMEBREW_TAP_TOKEN env var required}"
 
-TAP_REPO="${TAP_REPO:-binaricat/homebrew-lemonssh}"
+TAP_REPO="${TAP_REPO:-lemon-casino/homebrew-lemonssh}"
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-artifacts}"
 CASK_PATH="${CASK_PATH:-Casks/lemonssh.rb}"
 MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-5}"

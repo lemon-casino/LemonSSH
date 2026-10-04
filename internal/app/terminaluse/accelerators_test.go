@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"math"
 
-	"github.com/binaricat/lemonssh/internal/platform/monitoring"
+	"github.com/lemon-casino/lemonssh/internal/platform/monitoring"
 	"strings"
 	"testing"
 )

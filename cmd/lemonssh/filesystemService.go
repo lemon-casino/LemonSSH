@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/applog"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/applog"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 type FilesystemService struct{ temp *filesystem.TempService }

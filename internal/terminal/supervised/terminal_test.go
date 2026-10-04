@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 )
 
 type terminalProcess struct {

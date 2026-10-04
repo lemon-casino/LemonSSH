@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/plugin/providers"
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/wasm"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/plugin/providers"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/wasm"
 )
 
 const fakeExtensionPluginID = "fake-ext"

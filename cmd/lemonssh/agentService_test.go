@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/agent/drivers/fixture"
-	"github.com/binaricat/lemonssh/internal/agent/runtime"
-	"github.com/binaricat/lemonssh/internal/agent/tools"
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/agent/drivers/fixture"
+	"github.com/lemon-casino/lemonssh/internal/agent/runtime"
+	"github.com/lemon-casino/lemonssh/internal/agent/tools"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 func newTestAgentService(withDriver bool) *AgentService {

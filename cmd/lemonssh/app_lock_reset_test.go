@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/applock"
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/platform/applock"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 func TestResetRejectsEmptyAndIncorrectPasswords(t *testing.T) {

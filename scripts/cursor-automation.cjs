@@ -835,11 +835,11 @@ function selectBotPrTitle({
 }
 
 function parseOwnActors(raw) {
-  const source = String(raw || 'binaricat')
+  const source = String(raw || 'lemon-casino')
     .split(',')
     .map((part) => part.trim().toLowerCase())
     .filter(Boolean);
-  return new Set(source.length ? source : ['binaricat']);
+  return new Set(source.length ? source : ['lemon-casino']);
 }
 
 function isCodexBotLogin(login) {
@@ -3292,7 +3292,7 @@ async function markNeedsHuman({
   issueNumber,
   message,
   dedupeMarker = '',
-  trustedCommentAuthors = 'binaricat,lemonssh-bot,github-actions[bot]',
+  trustedCommentAuthors = 'lemon-casino,lemonssh-bot,github-actions[bot]',
   labels,
   ensureOpen = false,
 }) {
@@ -3320,7 +3320,7 @@ async function markNeedsHuman({
   const marker = String(dedupeMarker || '').trim();
   if (marker) {
     const trusted = normalizeLoginList(trustedCommentAuthors, [
-      'binaricat',
+      'lemon-casino',
       'lemonssh-bot',
       'github-actions[bot]',
     ]);
@@ -3356,7 +3356,7 @@ async function applyReadyForHumanHandoff({
   issueNumber,
   message,
   dedupeMarker = REOPEN_HANDOFF_MARKER,
-  trustedCommentAuthors = 'binaricat,lemonssh-bot,github-actions[bot]',
+  trustedCommentAuthors = 'lemon-casino,lemonssh-bot,github-actions[bot]',
 } = {}) {
   const { data: issue } = await github.rest.issues.get({
     ...context.repo,
@@ -3596,7 +3596,7 @@ function shouldGatePullOnSourceIssueFollowups(pull, options = {}) {
   const body = String(pull.body || '');
   if (!SOURCE_ISSUE_RE.test(body)) return false;
   const trustedAuthors = normalizeLoginList(options.ownActors, [
-    'binaricat',
+    'lemon-casino',
     'lemonssh-bot',
     'github-actions[bot]',
     'github-actions',
@@ -3625,7 +3625,7 @@ async function getPendingIssueFollowupsForPull({
   context,
   pull,
   botLogins = ['lemonssh-bot', 'github-actions[bot]'],
-  ownActors = 'binaricat,lemonssh-bot,github-actions[bot]',
+  ownActors = 'lemon-casino,lemonssh-bot,github-actions[bot]',
 }) {
   const issueNumber = extractSourceIssueNumber(pull);
   if (!issueNumber) return { issue: null, pending: [], gated: false };

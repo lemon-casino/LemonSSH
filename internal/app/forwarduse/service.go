@@ -20,10 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/terminal/forward"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/sshpool"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/terminal/forward"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sshpool"
 )
 
 // Result is one tunnel operation outcome.

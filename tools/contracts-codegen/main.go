@@ -18,7 +18,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 const outputPath = "infrastructure/runtime/contracts/generated/contracts.ts"

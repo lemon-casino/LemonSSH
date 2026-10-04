@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	windowowner "github.com/binaricat/lemonssh/internal/terminal/windows"
+	windowowner "github.com/lemon-casino/lemonssh/internal/terminal/windows"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )

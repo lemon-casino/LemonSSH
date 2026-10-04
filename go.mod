@@ -1,4 +1,4 @@
-module github.com/binaricat/lemonssh
+module github.com/lemon-casino/lemonssh
 
 go 1.25.0
 

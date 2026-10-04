@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
-	"github.com/binaricat/lemonssh/internal/terminal/serialport"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/ymodem"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/terminal/serialport"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ymodem"
 	gossh "golang.org/x/crypto/ssh"
 )
 

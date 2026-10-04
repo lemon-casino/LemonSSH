@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 // TurnDriver is the transport-independent seam the runtime drives (W03

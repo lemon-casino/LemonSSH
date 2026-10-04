@@ -11,8 +11,8 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/binaricat/lemonssh/internal/agent/tools"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/agent/tools"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 // Renderer tool-output persistence (audit: lemonsshTurnDriver's toolOutputTemp

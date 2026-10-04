@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/agent/providers"
-	"github.com/binaricat/lemonssh/internal/agent/runtime"
-	"github.com/binaricat/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/agent/providers"
+	"github.com/lemon-casino/lemonssh/internal/agent/runtime"
+	"github.com/lemon-casino/lemonssh/internal/capability"
 )
 
 // ProviderDriver adapts providers.ToolLoop to the runtime.TurnDriver seam

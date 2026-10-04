@@ -5,8 +5,8 @@ import { useI18n } from '../../application/i18n/I18nProvider';
 import { sanitizeHost } from '../../domain/host';
 import { isPluginHostProtocol } from '../../domain/pluginConnection';
 import type { Host } from '../../types';
-import { ContextMenuContent, ContextMenuItem, ContextMenuShortcut } from '../ui/context-menu';
-import { collectOwnedPluginMenus, comparePluginMenus, usePluginContributions } from '../../application/state/usePluginContributions';
+import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuShortcut } from '../ui/context-menu';
+import { usePluginMenuItems } from '../../application/state/usePluginMenuItems';
 import { PluginContributionIcon } from '../plugins/PluginContributionIcon';
 
 export interface HostTreeHostContextMenuHandlers {
@@ -33,16 +33,14 @@ export const HostTreeHostContextMenuContent: React.FC<
 }) => {
   const { t } = useI18n();
   const safeHost = sanitizeHost(host);
-  const pluginContributions = usePluginContributions({
-    context: {
-      'lemonssh.surface': 'host/context',
-      'host.id': safeHost.id,
-      'host.protocol': safeHost.protocol ?? 'ssh',
-    },
+  const hostContext = {
+    'lemonssh.surface': 'host/context',
+    'host.id': safeHost.id,
+    'host.protocol': safeHost.protocol ?? 'ssh',
+  };
+  const { items: pluginMenus, executeCommand } = usePluginMenuItems('host/context', {
+    context: hostContext,
   });
-  const pluginMenus = collectOwnedPluginMenus(pluginContributions.snapshot.plugins)
-    .filter((menu) => menu.location === 'host/context' && menu.visible)
-    .sort(comparePluginMenus);
   const canCopyHostname = Boolean(onCopyHostname) && !isPluginHostProtocol(safeHost.protocol);
 
   return (
@@ -77,14 +75,13 @@ export const HostTreeHostContextMenuContent: React.FC<
       >
         <Server className="mr-2 h-4 w-4" /> {t('action.delete')}
       </ContextMenuItem>
+      {pluginMenus.length > 0 && <ContextMenuSeparator />}
       {pluginMenus.map((menu) => (
         <ContextMenuItem
           key={menu.id}
           disabled={!menu.enabled}
-          onClick={(event) => void pluginContributions.executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, { hostId: safeHost.id }, {
-            'lemonssh.surface': 'host/context',
-            'host.id': safeHost.id,
-            'host.protocol': safeHost.protocol ?? 'ssh',
+          onClick={(event) => void executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, { hostId: safeHost.id }, {
+            ...hostContext,
           }).catch(() => {})}
         >
           <PluginContributionIcon pluginId={menu.pluginId} icon={menu.icon} className="mr-2" />

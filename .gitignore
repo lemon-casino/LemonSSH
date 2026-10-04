@@ -1,5 +1,5 @@
 # =============================================================================
-# Allowlist .gitignore (https://github.com/binaricat/LemonSSH/issues/2534)
+# Allowlist .gitignore (https://github.com/lemon-casino/LemonSSH/issues/2534)
 #
 # Layer 1 - default-deny at the repository root
 # Layer 2 - re-include only paths that belong in git

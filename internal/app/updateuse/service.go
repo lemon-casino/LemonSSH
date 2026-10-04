@@ -33,7 +33,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/updater"
+	"github.com/lemon-casino/lemonssh/internal/platform/updater"
 )
 
 // Status is the update lifecycle state surfaced to the renderer.

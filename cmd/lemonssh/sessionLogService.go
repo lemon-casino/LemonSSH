@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/terminal/sessionlog"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sessionlog"
 )
 
 type ManualSessionLogResult struct {

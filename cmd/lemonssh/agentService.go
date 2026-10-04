@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/agent/runtime"
-	"github.com/binaricat/lemonssh/internal/agent/tools"
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/agent/runtime"
+	"github.com/lemon-casino/lemonssh/internal/agent/tools"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 // AgentService is the Wails-facing facade of the Go turn runtime (W12,

@@ -199,8 +199,8 @@ test("legacy build provenance proofs keyed by netcatty still verify", async () =
   // Simulate a pre-rename proof: the historical binary-repo name, the legacy
   // "netcatty" provenance key and a run URL pointing at the old repo slug.
   // The third-party source repository is unchanged by the rename.
-  const legacyRepository = "binaricat/Netcatty-et-bin";
-  const legacyRun = "https://github.com/binaricat/Netcatty/actions/runs/26945446872";
+  const legacyRepository = "lemon-casino/Netcatty-et-bin";
+  const legacyRun = "https://github.com/lemon-casino/Netcatty/actions/runs/26945446872";
   const proof = {
     release: { repository: legacyRepository, tag: release.tag },
     upstream: { repository: release.source.repository, ref: release.source.tag, commit: release.source.commit },
@@ -231,9 +231,9 @@ test("fetch checks pinned bytes before publishing cache and refuses corrupt cach
 });
 
 test("gh transport preserves exact release tag, asset name and source commit", () => {
-  assert.deepEqual(githubDownloadArgs("https://github.com/binaricat/MoshLemonSSH/releases/download/moshlemonssh-0.1.8/SHA256SUMS"),
-    ["release", "download", "moshlemonssh-0.1.8", "--repo", "binaricat/MoshLemonSSH", "--pattern", "SHA256SUMS", "--output", "-"]);
-  assert.throws(() => githubDownloadArgs("https://github.com/binaricat/MoshLemonSSH/releases/latest"), /pinned GitHub URL/);
+  assert.deepEqual(githubDownloadArgs("https://github.com/lemon-casino/MoshLemonSSH/releases/download/moshlemonssh-0.1.8/SHA256SUMS"),
+    ["release", "download", "moshlemonssh-0.1.8", "--repo", "lemon-casino/MoshLemonSSH", "--pattern", "SHA256SUMS", "--output", "-"]);
+  assert.throws(() => githubDownloadArgs("https://github.com/lemon-casino/MoshLemonSSH/releases/latest"), /pinned GitHub URL/);
   assert.throws(() => githubDownloadArgs("https://raw.githubusercontent.com/owner/repo/main/LICENSE"), /pinned GitHub URL/);
 });
 

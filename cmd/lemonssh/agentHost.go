@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/rpc"
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
 )
 
 // SessionEntry is one terminal session exposed to agent context queries.

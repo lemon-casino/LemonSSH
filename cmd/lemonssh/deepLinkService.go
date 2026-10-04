@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/platform/deeplink"
+	"github.com/lemon-casino/lemonssh/internal/platform/deeplink"
 )
 
 type DeepLinkService struct {

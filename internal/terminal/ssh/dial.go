@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
+	"github.com/lemon-casino/lemonssh/internal/platform/sshdebug"
 )
 
 // DialConfig is one authenticated dial attempt. JumpHosts nest: hops are

@@ -1,11 +1,11 @@
 # Native Cross-Platform Mosh Client
 
-Status: **shipped via [MoshLemonSSH](https://github.com/binaricat/MoshLemonSSH)**
-Related: [#2025](https://github.com/binaricat/LemonSSH/issues/2025), [#2072](https://github.com/binaricat/LemonSSH/issues/2072)
+Status: **shipped via [MoshLemonSSH](https://github.com/lemon-casino/MoshLemonSSH)**
+Related: [#2025](https://github.com/lemon-casino/LemonSSH/issues/2025), [#2072](https://github.com/lemon-casino/LemonSSH/issues/2072)
 
 ## Canonical repository
 
-**https://github.com/binaricat/MoshLemonSSH**
+**https://github.com/lemon-casino/MoshLemonSSH**
 
 LemonSSH only **consumes** `moshlemonssh-*` (legacy `moshcatty-*`) release binaries into `resources/mosh/`
 via `scripts/fetch-wails-helpers.mjs` (which resolves releases through
@@ -58,7 +58,7 @@ Packaging must not resolve or accept an older MoshLemonSSH release.
 
 ## Decision log
 
-- **2026-07-10:** Feasibility accepted; client extracted to `binaricat/MoshLemonSSH`.
+- **2026-07-10:** Feasibility accepted; client extracted to `lemon-casino/MoshLemonSSH`.
 - **2026-07-10:** LemonSSH defaults packaging to MoshLemonSSH releases.
 - **2026-07-10:** Removed legacy Cygwin build pipeline, FluentTerminal fallback,
   `mosh-bin-*` tags, dll/terminfo runtime helpers. Pure MoshLemonSSH only

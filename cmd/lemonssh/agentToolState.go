@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 // AgentSession is renderer-owned metadata. NativeID is used only to resolve

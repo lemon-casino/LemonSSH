@@ -12,7 +12,8 @@ JavaScript surface for something the Go host can load.
 `lemonssh.plugin.json` document with:
 
 - `apiVersion: 2`;
-- `name` (`^[a-z][a-z0-9-]{1,63}$`), semver `version`, non-empty `displayName`;
+- `name` (`^[a-z][a-z0-9-]{1,63}$`), semver `version`, non-empty `displayName`,
+  optional `description`;
 - `entrypoint: { wasm, sha256, memoryMB? }` — a relative `.wasm` path, a 64 hex
   character checksum, and an optional 16–512 MiB memory cap;
 - `permissions`: resource-scoped tuples `{ kind, resource, mode }` with

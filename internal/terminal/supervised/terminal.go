@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 )
 
 // Terminal supervises PTY clients. A factory owns each attempt's bootstrap and

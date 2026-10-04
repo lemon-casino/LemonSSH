@@ -20,7 +20,7 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
 )
 
 var (

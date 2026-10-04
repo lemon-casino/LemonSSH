@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/wasm"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/wasm"
 )
 
 // fakeDispatch records dispatch traffic and answers from a per-plugin table.

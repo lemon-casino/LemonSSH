@@ -3,7 +3,7 @@ package sftpuse
 import (
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
 )
 
 // gbShuJu is the GB18030 byte sequence for "数据"; Go strings carry raw bytes

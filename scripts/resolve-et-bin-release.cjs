@@ -32,7 +32,7 @@ function validateReleaseTag(tag) {
 }
 
 function parseRepository(env) {
-  const owner = env.ET_BIN_OWNER || (env.GITHUB_REPOSITORY || "").split("/")[0] || "binaricat";
+  const owner = env.ET_BIN_OWNER || (env.GITHUB_REPOSITORY || "").split("/")[0] || "lemon-casino";
   const repo = env.ET_BIN_REPO || "LemonSSH-et-bin";
   return { owner, repo };
 }

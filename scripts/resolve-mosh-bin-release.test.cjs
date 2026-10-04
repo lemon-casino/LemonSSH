@@ -65,10 +65,10 @@ test("isAtLeastMinRelease enforces moshlemonssh-0.1.8 floor with semver prerelea
   assert.equal(isAtLeastMinRelease("moshcatty-not-a-version"), false);
 });
 
-test("parseRepository defaults to binaricat/MoshLemonSSH (ignores GITHUB_REPOSITORY fork owner)", () => {
-  assert.deepEqual(parseRepository({}), { owner: "binaricat", repo: "MoshLemonSSH" });
+test("parseRepository defaults to lemon-casino/MoshLemonSSH (ignores GITHUB_REPOSITORY fork owner)", () => {
+  assert.deepEqual(parseRepository({}), { owner: "lemon-casino", repo: "MoshLemonSSH" });
   assert.deepEqual(parseRepository({ GITHUB_REPOSITORY: "owner/project" }), {
-    owner: "binaricat",
+    owner: "lemon-casino",
     repo: "MoshLemonSSH",
   });
   assert.deepEqual(

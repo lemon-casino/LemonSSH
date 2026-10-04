@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
 )
 
 var (

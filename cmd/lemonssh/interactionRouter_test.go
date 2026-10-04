@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 func newGateTestHost(t *testing.T, router *InteractionRouter, permissionMode string) string {

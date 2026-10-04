@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/script"
+	"github.com/lemon-casino/lemonssh/internal/script"
 )
 
 func TestScriptServiceRunsRecordedScript(t *testing.T) {

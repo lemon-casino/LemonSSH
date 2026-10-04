@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // KeyClass buckets each renderer AI storage key by what it carries. The

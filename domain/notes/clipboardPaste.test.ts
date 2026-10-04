@@ -178,7 +178,7 @@ test("serializeSafeHtmlImage keeps relative paths; rejects data/javascript", () 
 
 test("linked badge images stay as images (tight single-line / a>img), not text-only", () => {
   const source = [
-    "[![GitHub Release](https://img.shields.io/github/v/release/binaricat/LemonSSH)](https://github.com/binaricat/LemonSSH/releases/latest)",
+    "[![GitHub Release](https://img.shields.io/github/v/release/lemon-casino/LemonSSH)](https://github.com/lemon-casino/LemonSSH/releases/latest)",
     "",
     "[ ",
     "![Platform](https://img.shields.io/badge/Platform-macOS-blue)",
@@ -186,7 +186,7 @@ test("linked badge images stay as images (tight single-line / a>img), not text-o
     "",
     "[",
     '<img alt="Support on Ko-fi" width="150" src="https://cdn.ko-fi.com/cdn/kofi3.png?v=2" />',
-    "](https://ko-fi.com/binaricat)",
+    "](https://ko-fi.com/lemon-casino)",
     "",
     '<a href="https://example.com/dl"><img alt="Download" src="https://img.shields.io/badge/Download-latest-success" /></a>',
   ].join("\n");
@@ -195,11 +195,11 @@ test("linked badge images stay as images (tight single-line / a>img), not text-o
   // Markdown linked image kept (with image src), not reduced to text-only [GitHub Release](url).
   assert.match(
     md,
-    /\[!\[GitHub Release\]\(https:\/\/img\.shields\.io\/github\/v\/release\/binaricat\/LemonSSH\)\]\(https:\/\/github\.com\/binaricat\/LemonSSH\/releases\/latest\)/,
+    /\[!\[GitHub Release\]\(https:\/\/img\.shields\.io\/github\/v\/release\/lemon-casino\/LemonSSH\)\]\(https:\/\/github\.com\/lemon-casino\/LemonSSH\/releases\/latest\)/,
   );
   assert.match(md, /\[!\[Platform\]\(https:\/\/img\.shields\.io\/badge\/Platform-macOS-blue\)\]\(#\)/);
   // HTML img with width inside link → <a><img width></a>
-  assert.match(md, /<a href="https:\/\/ko-fi\.com\/binaricat"><img\b[^>]*src="https:\/\/cdn\.ko-fi\.com\/cdn\/kofi3\.png\?v=2"/);
+  assert.match(md, /<a href="https:\/\/ko-fi\.com\/lemon-casino"><img\b[^>]*src="https:\/\/cdn\.ko-fi\.com\/cdn\/kofi3\.png\?v=2"/);
   // Dimension-less shield inside <a> → linked markdown image
   assert.match(
     md,
@@ -209,7 +209,7 @@ test("linked badge images stay as images (tight single-line / a>img), not text-o
   // Not text-only badge (must keep image syntax).
   assert.doesNotMatch(
     md,
-    /(?<!!)\[GitHub Release\]\(https:\/\/github\.com\/binaricat\/LemonSSH\/releases\/latest\)/,
+    /(?<!!)\[GitHub Release\]\(https:\/\/github\.com\/lemon-casino\/LemonSSH\/releases\/latest\)/,
   );
 });
 

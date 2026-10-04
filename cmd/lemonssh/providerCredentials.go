@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
 )
 
 const providerKeyPlaceholder = "__IPC_SECURED__"

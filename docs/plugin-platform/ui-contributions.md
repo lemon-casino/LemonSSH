@@ -16,7 +16,8 @@ There is no path that injects plugin HTML/JS/CSS into the renderer.
 - `settings`: form fields with `id`, `type` (`text` | `number` | `boolean` |
   `select` | `password`), `label`, optional `description`, `default`,
   `required`, and `options` for selects. IDs must match
-  `^[a-z0-9.-]{1,128}$` (host pattern `[a-z0-9-._]` after first char), labels
+  `^[a-z0-9._-]{1,128}$` (lowercase alphanumerics plus `-`, `.` and `_`),
+  labels
   and descriptions pass an injection-vector check (`<script`, `javascript:`,
   `onerror=`, template interpolation, …), and selects must declare options.
 - `views`: `list` or `card` definitions with `id`, `type`, `title`, optional
@@ -66,10 +67,15 @@ Command execution tries the live native companion first
 bridge falls through to the lemonssh-wasm-abi v1 dispatch channel
 (`CallPlugin` with method `command.execute`). A plugin-declared failure
 surfaces as a visible `Plugin command … failed: <message>` error; plugins
-without any handler surface a clear error instead of failing silently. Menu
-placements beyond the command palette (`application`, context menus, status
-bar) are listed in the contributions snapshot but have no mounting runtime
-yet.
+without any handler surface a clear error instead of failing silently.
+
+Menus are declared for one of six designed locations — `commandPalette`,
+`application`, `host/context`, `terminal/context`, `terminal/toolbar` and
+`statusBar`. `PluginService.UIContributions` delivers every visible entry
+through the contributions snapshot, so each mounting surface (the
+QuickSwitcher for `commandPalette` entries, and the application, context
+menu, toolbar and status bar surfaces for theirs) receives exactly the
+entries declared for its location.
 
 ## Keybindings
 

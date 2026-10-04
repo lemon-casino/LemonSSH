@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 // sweepTempOrphans removes staging leftovers from a previous session at boot.

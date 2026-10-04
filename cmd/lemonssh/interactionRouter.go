@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/capability"
 )
 
 // approvalTimeout is the bounded wait for a user decision (ported from

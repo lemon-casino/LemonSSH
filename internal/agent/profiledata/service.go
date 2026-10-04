@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // SecretStore persists sealed envelopes. The production implementation is

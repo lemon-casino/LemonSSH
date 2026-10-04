@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 func newToolOutputTestService(t *testing.T) (*FilesystemService, string) {

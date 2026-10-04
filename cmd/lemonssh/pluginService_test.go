@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/v1reject"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/v1reject"
 )
 
 func TestPluginRejectsLegacyHybrid(t *testing.T) {

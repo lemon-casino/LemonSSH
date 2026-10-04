@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/binaricat/lemonssh/internal/app/updateuse"
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/app/updateuse"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // UpdateService is the Wails-facing in-app update facade. It owns no update

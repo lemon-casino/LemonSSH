@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
 )
 
 // PluginSessionHooks drive a plugin-protocol connection (an internal/plugin

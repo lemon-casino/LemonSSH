@@ -20,7 +20,7 @@ Neither application directly reads a private-key passphrase from macOS Keychain.
 
 ## What issue #2119 is asking for
 
-[LemonSSH issue #2119](https://github.com/binaricat/LemonSSH/issues/2119) supplies this OpenSSH configuration:
+[LemonSSH issue #2119](https://github.com/lemon-casino/LemonSSH/issues/2119) supplies this OpenSSH configuration:
 
 ```sshconfig
 Host aws-sg
@@ -117,13 +117,13 @@ Electerm does test that a wrong file key is attempted and rejected before the ag
 
 LemonSSH already has most of the plumbing:
 
-- It imports non-wildcard SSH-config hosts and attaches `IdentityFile` paths ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512), [host creation](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L529-L556)).
-- It discovers the non-Windows agent from `SSH_AUTH_SOCK` and validates the socket ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L463-L495)).
-- With no explicit auth, it already tries the agent before default keys ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L554-L564), [ordering](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L637-L678)).
+- It imports non-wildcard SSH-config hosts and attaches `IdentityFile` paths ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512), [host creation](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L529-L556)).
+- It discovers the non-Windows agent from `SSH_AUTH_SOCK` and validates the socket ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L463-L495)).
+- With no explicit auth, it already tries the agent before default keys ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L554-L564), [ordering](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshAuthHelper.cjs#L637-L678)).
 
-The gap is the combination of those features. An imported `IdentityFile` is treated as a user-configured key. Before connecting, LemonSSH reads/decrypts it and can show its own passphrase prompt ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L644-L690)). Agent-first fallback runs only when no key/password/agent was prepared ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L740-L761)). If a key was prepared, direct-key auth precedes agent auth ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L807-L821)).
+The gap is the combination of those features. An imported `IdentityFile` is treated as a user-configured key. Before connecting, LemonSSH reads/decrypts it and can show its own passphrase prompt ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L644-L690)). Agent-first fallback runs only when no key/password/agent was prepared ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L740-L761)). If a key was prepared, direct-key auth precedes agent auth ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/electron/bridges/sshBridge/startSession.cjs#L807-L821)).
 
-LemonSSH's SSH-config importer also ignores `UseKeychain`, `AddKeysToAgent`, and `IdentitiesOnly`; its recognized block fields are visible in the parser ([source](https://github.com/binaricat/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512)).
+LemonSSH's SSH-config importer also ignores `UseKeychain`, `AddKeysToAgent`, and `IdentitiesOnly`; its recognized block fields are visible in the parser ([source](https://github.com/lemon-casino/LemonSSH/blob/c096a64d7a7015e18100b842614c26e8eaadfcb3/domain/vaultImport.ts#L456-L512)).
 
 ## Recommended phased design
 

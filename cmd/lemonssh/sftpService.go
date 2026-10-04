@@ -11,12 +11,12 @@ import (
 
 	pkgsftp "github.com/pkg/sftp"
 
-	"github.com/binaricat/lemonssh/internal/app/sftpuse"
-	"github.com/binaricat/lemonssh/internal/platform/charset"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
-	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/sshpool"
+	"github.com/lemon-casino/lemonssh/internal/app/sftpuse"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
+	lemonsshssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sshpool"
 )
 
 // SFTPOpenRequest is the shell-facing SFTP open payload. The canonical

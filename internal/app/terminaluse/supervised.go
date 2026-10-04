@@ -18,10 +18,10 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/lemonssh/internal/terminal/mosh"
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/supervised"
+	"github.com/lemon-casino/lemonssh/internal/terminal/mosh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/supervised"
 )
 
 // HelperSessionState is queryable after Start/route rebind so early lifecycle

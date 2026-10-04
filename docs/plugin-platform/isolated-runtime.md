@@ -52,9 +52,9 @@ retired Electron shell.
 `PluginService` is created in `cmd/lemonssh/main.go` with its inventory at
 `<profile directory>/plugins/inventory.json`; installed archives are copied to
 `<profile directory>/plugins/packages/<pluginID>-<version>.ncpkg`. The
-inventory records plugin ID, version, state (`enabled` / `disabled` /
-`staged`), the archive SHA-256 and the validated manifest snapshot, plus labels
-such as `packagePath`.
+inventory records plugin ID, version, state (`installed` / `enabled` /
+`disabled` / `staged`), the archive SHA-256 and the validated manifest
+snapshot, plus labels such as `packagePath`.
 
 ## Installation transaction
 
@@ -62,9 +62,9 @@ such as `packagePath`.
 
 1. open the `.ncpkg` (ZIP) and reject archives with more than 512 entries,
    unsafe paths (`..`, absolute, backslashes) and single files over 64 MiB;
-2. read the manifest (`lemonssh.plugin.json`, `lemonssh.plugin.json` or
-   `manifest.json`), reject v1 documents via `v1reject`, then parse and fully
-   validate the v2 manifest;
+2. read the manifest (`lemonssh.plugin.json`, the pre-rename
+   `netcatty.plugin.json`, or `manifest.json`), reject v1 documents via
+   `v1reject`, then parse and fully validate the v2 manifest;
 3. locate `entrypoint.wasm` inside the archive and verify its SHA-256 against
    `entrypoint.sha256`;
 4. register the plugin in the inventory with the archive digest and validated

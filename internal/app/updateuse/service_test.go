@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/updater"
+	"github.com/lemon-casino/lemonssh/internal/platform/updater"
 )
 
 func TestCompareVersions(t *testing.T) {

@@ -26,7 +26,7 @@ test("validateReleaseTag accepts only et binary release tags", () => {
 });
 
 test("parseRepository falls back to the dedicated et binary repository", () => {
-  assert.deepEqual(parseRepository({}), { owner: "binaricat", repo: "LemonSSH-et-bin" });
+  assert.deepEqual(parseRepository({}), { owner: "lemon-casino", repo: "LemonSSH-et-bin" });
   assert.deepEqual(parseRepository({ GITHUB_REPOSITORY: "owner/project" }), {
     owner: "owner",
     repo: "LemonSSH-et-bin",

@@ -6,8 +6,8 @@ package lifecycle
 import (
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
 )
 
 // GrantSpec declares one permission grant for a plugin.

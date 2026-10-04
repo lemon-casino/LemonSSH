@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report a bug. Incomplete reports may be closed automatically.
-        Please search [existing issues](https://github.com/binaricat/LemonSSH/issues) first.
+        Please search [existing issues](https://github.com/lemon-casino/LemonSSH/issues) first.
 
   - type: dropdown
     id: platform
@@ -24,7 +24,7 @@ body:
     id: version
     attributes:
       label: LemonSSH version
-      description: Find it in Settings > Application, or on the [latest release](https://github.com/binaricat/LemonSSH/releases/latest) page.
+      description: Find it in Settings > Application, or on the [latest release](https://github.com/lemon-casino/LemonSSH/releases/latest) page.
       placeholder: "e.g. 1.2.3"
     validations:
       required: true

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 const externalAgentChat = "__external_mcp__"

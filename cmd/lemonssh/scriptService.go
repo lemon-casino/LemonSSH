@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/binaricat/lemonssh/internal/script"
+	"github.com/lemon-casino/lemonssh/internal/script"
 )
 
 // ScriptService is the Wails facade for terminal script recording and

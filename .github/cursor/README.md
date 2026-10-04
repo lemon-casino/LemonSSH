@@ -24,7 +24,7 @@ re-comments `@codex review` after the author pushes more commits
 Optional:
 
 - `TRIAGE_GITHUB_TOKEN` — bot PAT (lemonssh-bot) for opening PRs, labels, triage replies.
-- `CODEX_REQUEST_GITHUB_TOKEN` — **maintainer PAT (binaricat)** used only for
+- `CODEX_REQUEST_GITHUB_TOKEN` — **maintainer PAT (lemon-casino)** used only for
   `@codex review` comments so the Codex GitHub connector sees a human identity.
   Falls back to `TRIAGE_GITHUB_TOKEN` / `GITHUB_TOKEN` if unset.
 - `SLACK_WEBHOOK_URL` — status pings.
@@ -41,7 +41,7 @@ clone.
 | `CURSOR_CODEX_FIX_MAX_ROUNDS` | `40` | Max Cursor fix ↔ `@codex review` loops on own/bot PRs |
 | `CURSOR_TRIAGE_DAILY_LIMIT` | `10` | Daily auto triage for non-collaborators |
 | `CURSOR_FOLLOWUP_DAILY_LIMIT` | `20` | Daily automatic follow-up runs per admitted issue before maintainer handoff |
-| `AUTOMATION_OWN_ACTORS` | `binaricat` | Logins treated as first-party PR authors |
+| `AUTOMATION_OWN_ACTORS` | `lemon-casino` | Logins treated as first-party PR authors |
 | `AUTOMATION_ISSUE_BOT_LOGINS` | `lemonssh-bot,github-actions[bot]` | Bot logins ignored as issue follow-up authors and recognized in `@bot` mentions |
 
 ## Manual retry

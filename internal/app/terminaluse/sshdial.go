@@ -1,7 +1,7 @@
 package terminaluse
 
 import (
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 	"time"
 )

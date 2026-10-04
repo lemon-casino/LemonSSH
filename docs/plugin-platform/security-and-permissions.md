@@ -9,8 +9,9 @@ for the provider registry; provider-era capability brokers beyond that
 The broker is `internal/plugin/permissions` (`permissions.Broker`). Grants are
 keyed by plugin ID plus an opaque capability key; every check is fail-closed:
 
-- `Grant(id, key, lifetime, ttl)` records a grant with lifetime `once` or
-  `session`. `once` grants are consumed by a single `Check`.
+- `Grant(id, key, lifetime, ttl)` records a grant with lifetime `once`,
+  `session`, `application` or `always` (the plugin host only issues `once`
+  and `session` grants). `once` grants are consumed by a single `Check`.
 - `Check(id, key, mode)` denies anything that was not granted, and revokes on
   plugin disable/uninstall (`RevokeAll`).
 

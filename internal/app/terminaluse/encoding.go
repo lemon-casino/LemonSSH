@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"fmt"
 
-	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
 )
 
 // Terminal input charset support.

@@ -275,12 +275,15 @@ export async function verifyInstalled(lock, asset, resourcesDir = DEFAULT_RESOUR
 
 // Proofs produced before the LemonSSH rename embed the historical upstream
 // repository/tag identifiers; normalize them so pinned pre-rename proofs keep
-// verifying against the renamed lock. Order matters: the -et-bin entry must be
+// verifying against the renamed lock. The left-hand values must stay
+// byte-identical to what the pinned proof files literally contain (binaricat
+// org, old repo names) — they describe history, they are not brand strings.
+// Order matters: the -et-bin entry must be
 // rewritten before the bare repository name.
 const LEGACY_UPSTREAM_NAMES = [
-  ["binaricat/MoshCatty", "binaricat/MoshLemonSSH"],
-  ["binaricat/Netcatty-et-bin", "binaricat/LemonSSH-et-bin"],
-  ["binaricat/Netcatty", "binaricat/LemonSSH"],
+  ["binaricat/MoshCatty", "lemon-casino/MoshLemonSSH"],
+  ["binaricat/Netcatty-et-bin", "lemon-casino/LemonSSH-et-bin"],
+  ["binaricat/Netcatty", "lemon-casino/LemonSSH"],
   ["moshcatty-", "moshlemonssh-"],
 ];
 

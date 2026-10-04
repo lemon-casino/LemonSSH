@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 	"os"
 	"path/filepath"
 	"testing"

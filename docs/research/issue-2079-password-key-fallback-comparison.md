@@ -69,7 +69,7 @@ This is useful corroboration because WinSCP is primarily a file-transfer client:
 
 ## Implications for PR #2153
 
-The PR defines password-only as a provided password with no user key, certificate, or configured agent, then suppresses automatic default-key discovery and implicit agent fallback for that case ([direct-session implementation](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L759-L838), [shared jump/SFTP helper](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshAuthHelper.cjs#L838-L922)). Its regression tests preserve default keys when no credential is configured and preserve fallback when the user configures both a key and password ([PR files](https://github.com/binaricat/LemonSSH/pull/2153/files)).
+The PR defines password-only as a provided password with no user key, certificate, or configured agent, then suppresses automatic default-key discovery and implicit agent fallback for that case ([direct-session implementation](https://github.com/lemon-casino/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L759-L838), [shared jump/SFTP helper](https://github.com/lemon-casino/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshAuthHelper.cjs#L838-L922)). Its regression tests preserve default keys when no credential is configured and preserve fallback when the user configures both a key and password ([PR files](https://github.com/lemon-casino/LemonSSH/pull/2153/files)).
 
 That scope is sound:
 
@@ -81,7 +81,7 @@ That scope is sound:
 Two nuances should remain visible in product decisions:
 
 - The change is a **strict-mode product decision**, not an OpenSSH-default compatibility fix. If users expect OpenSSH Auto, LemonSSH should expose Auto explicitly rather than overloading Password.
-- The PR deliberately keeps already-unlocked encrypted keys eligible on a retry path after the user has entered a key passphrase ([source](https://github.com/binaricat/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L899-L925)). That is no longer a silent fallback, but it means the internal predicate is not an absolute guarantee that only password packets can ever be sent during the entire retry lifecycle.
+- The PR deliberately keeps already-unlocked encrypted keys eligible on a retry path after the user has entered a key passphrase ([source](https://github.com/lemon-casino/LemonSSH/blob/f10bbc70d02fca70427852568ab47636e93282f5/electron/bridges/sshBridge/startSession.cjs#L899-L925)). That is no longer a silent fallback, but it means the internal predicate is not an absolute guarantee that only password packets can ever be sent during the entire retry lifecycle.
 
 ## Recommended product wording
 

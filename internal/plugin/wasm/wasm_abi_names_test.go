@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
 )
 
 // newABIHostImportsModule is fixtureHostImportsModule with the current ABI

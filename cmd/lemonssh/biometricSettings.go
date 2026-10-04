@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/binaricat/lemonssh/internal/platform/applock"
+	"github.com/lemon-casino/lemonssh/internal/platform/applock"
 	"runtime"
 )
 

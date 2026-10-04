@@ -22,8 +22,8 @@ import (
 
 	pkgsftp "github.com/pkg/sftp"
 
-	"github.com/binaricat/lemonssh/internal/terminal/mosh"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/mosh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 )
 
 func liveConfig(t *testing.T) (host, user, password string, port uint16) {

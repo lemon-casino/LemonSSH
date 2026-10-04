@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 func TestSyncRotationProfileTransactionAtomicity(t *testing.T) {

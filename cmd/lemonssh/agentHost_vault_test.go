@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/profile/store"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 // seedVaultStore opens a real temp profile store and seeds the vault

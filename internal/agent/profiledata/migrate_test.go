@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // spyStore records Write calls without touching disk.

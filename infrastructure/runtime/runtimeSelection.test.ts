@@ -38,7 +38,7 @@ test("wails transition bridge exposes compatibility methods", () => {
 });
 
 test("generated wails bindings expose the skeleton service surface", async () => {
-  const bindings = await import("./wails/bindings/github.com/binaricat/lemonssh/cmd/lemonssh/lemonsshservice.js");
+  const bindings = await import("./wails/bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/lemonsshservice.js");
   for (const method of ["Health", "Version", "ResolveWindowRole"]) {
     assert.equal(typeof (bindings as Record<string, unknown>)[method], "function", method);
   }

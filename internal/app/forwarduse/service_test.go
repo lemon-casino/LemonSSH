@@ -3,7 +3,7 @@ package forwarduse
 import (
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
 )
 
 // Characterization moved verbatim from cmd/lemonssh/forward_service_test.go

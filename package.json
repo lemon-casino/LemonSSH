@@ -1,7 +1,7 @@
 {
   "name": "lemonssh",
   "description": "LemonSSH is a modern SSH manager and terminal app with host grouping, SFTP, keychain, port forwarding, and a rich UI.",
-  "homepage": "https://github.com/binaricat/LemonSSH",
+  "homepage": "https://github.com/lemon-casino/LemonSSH",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,7 +9,7 @@
     "packages/*",
     "examples/plugins/*"
   ],
-  "author": "binaricat <support@lemonssh.com>",
+  "author": "lemon-casino <support@lemonssh.com>",
   "license": "GPL-3.0-or-later",
   "engines": {
     "node": ">=22"

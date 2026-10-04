@@ -3,7 +3,7 @@ package sftpuse
 import (
 	pkgsftp "github.com/pkg/sftp"
 
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
 )
 
 // Seed helpers for white-box fixtures that live outside this package (the

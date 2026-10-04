@@ -12,9 +12,9 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/sshpool"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	lemonsshssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sshpool"
 )
 
 // runtimeEventCollector is the event collector used by the ordering tests:

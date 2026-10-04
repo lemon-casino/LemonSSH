@@ -1,6 +1,6 @@
 package main
 
-import "github.com/binaricat/lemonssh/internal/platform/notifications"
+import "github.com/lemon-casino/lemonssh/internal/platform/notifications"
 
 type SystemNotificationRequest struct {
 	Title     string `json:"title"`

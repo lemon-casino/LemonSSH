@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
-	"github.com/binaricat/lemonssh/internal/terminal/supervised"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/supervised"
 )
 
 type recoveryProcess struct {

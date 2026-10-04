@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // AISchemaMarker stamps a promoted snapshot as AI-canonical v1.

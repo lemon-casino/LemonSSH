@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
-	"github.com/binaricat/lemonssh/internal/terminal/supervised"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/supervised"
 )
 
 func verifiedTestHelper(t *testing.T, kind string) string {

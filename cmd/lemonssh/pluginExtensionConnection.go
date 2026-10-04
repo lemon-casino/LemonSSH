@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/plugin/providers"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/plugin/providers"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

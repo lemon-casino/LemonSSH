@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 )
 
 func TestTerminalExitStatusRequiresActualWaitResult(t *testing.T) {

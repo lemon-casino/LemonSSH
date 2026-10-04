@@ -8,8 +8,8 @@
 
 交付状态已经推进到最后一段：
 
-1. [`moshcatty-0.1.7`](https://github.com/binaricat/MoshLemonSSH/releases/tag/moshcatty-0.1.7) 已公开发布，四个平台文件和校验文件均已下载核对；LemonSSH 也能自动解析并取得该版本。
-2. LemonSSH 的配套改动仍在 [PR #2231](https://github.com/binaricat/LemonSSH/pull/2231)，尚未进入主分支；该 PR 会拒绝低于 `0.1.7` 的客户端，并已用正式 0.1.7 文件完成 macOS、Windows、Linux x64 和 Linux arm64 打包。
+1. [`moshcatty-0.1.7`](https://github.com/lemon-casino/MoshLemonSSH/releases/tag/moshcatty-0.1.7) 已公开发布，四个平台文件和校验文件均已下载核对；LemonSSH 也能自动解析并取得该版本。
+2. LemonSSH 的配套改动仍在 [PR #2231](https://github.com/lemon-casino/LemonSSH/pull/2231)，尚未进入主分支；该 PR 会拒绝低于 `0.1.7` 的客户端，并已用正式 0.1.7 文件完成 macOS、Windows、Linux x64 和 Linux arm64 打包。
 3. 已新增 Windows ConPTY 自动检查，覆盖密码提示、无结尾换行的握手信息、客户端切换和切换后的输入传递。它仍不能完全替代“正式 Windows 安装包 + LemonSSH 页面”的人工视觉验收。
 4. 已在完全隔离的网络中，用公开发布的 MoshLemonSSH 0.1.7 对 Ubuntu 官方 `mosh-server` 1.4.0 完成高丢包、非对称延迟、乱序、重复包、65 秒完全断网、IPv6 最小 MTU 和 30 分钟持续压力测试；所有输入均按顺序且只执行一次，未发现新的协议缺陷。详细依据和可复现脚本见[网络压力验收报告](./issue-2121-network-stress-primary-sources.md)与[测试脚本](./issue-2121-netns-stress.sh)。
 
@@ -22,9 +22,9 @@
 | 对象 | 版本 |
 |---|---|
 | 官方 Mosh | [`mobile-shell/mosh@decd9b7`](https://github.com/mobile-shell/mosh/commit/decd9b705eb81626f694335b8d5940538beb06da) |
-| MoshLemonSSH | [`binaricat/MoshLemonSSH@cd25c0f`](https://github.com/binaricat/MoshLemonSSH/commit/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04)，已合并 [PR #5](https://github.com/binaricat/MoshLemonSSH/pull/5) |
-| LemonSSH 配套实现 | [PR #2231 的提交 `c15b364`](https://github.com/binaricat/LemonSSH/commit/c15b36412eab5d9c74a5bb5ce02294fce7fd09d5) |
-| 用户问题 | [LemonSSH issue #2121](https://github.com/binaricat/LemonSSH/issues/2121) |
+| MoshLemonSSH | [`lemon-casino/MoshLemonSSH@cd25c0f`](https://github.com/lemon-casino/MoshLemonSSH/commit/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04)，已合并 [PR #5](https://github.com/lemon-casino/MoshLemonSSH/pull/5) |
+| LemonSSH 配套实现 | [PR #2231 的提交 `c15b364`](https://github.com/lemon-casino/LemonSSH/commit/c15b36412eab5d9c74a5bb5ce02294fce7fd09d5) |
+| 用户问题 | [LemonSSH issue #2121](https://github.com/lemon-casino/LemonSSH/issues/2121) |
 
 这里需要澄清“RFC 规格”的范围：IETF 没有发布 Mosh 或状态同步协议 SSP 的 RFC / Internet-Draft。它的权威定义来自 [Mosh 原始论文](https://mosh.org/mosh-paper.pdf)、[官方说明](https://mosh.org/)和官方源码。Mosh 使用的 OCB3 加密算法由 [RFC 7253](https://www.rfc-editor.org/rfc/rfc7253) 定义；RTT/RTO 估算参考 [RFC 6298](https://www.rfc-editor.org/rfc/rfc6298)，但 Mosh 把最小 RTO 降到了 50 ms。两份 RFC 都只覆盖被 Mosh 采用的底层算法，不规定 SSP、漫游、终端同步或本地预测。
 
@@ -40,8 +40,8 @@
 
 当前状态：
 
-- LemonSSH PR #2231 已恢复 `-n -tt`，通过远端 POSIX `sh` 读取 `SSH_CONNECTION`，并按官方顺序把 locale 作为 `mosh-server -l` 的候选值传入，而不是强行覆盖远端 locale。见[`moshHandshake.cjs`](https://github.com/binaricat/LemonSSH/blob/d2c3605bf237f211242551b1bb33dfc5ffecc5ad/electron/bridges/moshHandshake.cjs#L199-L261)。
-- SSH 实际地址会优先交给 MoshLemonSSH，原始主机名作为后备候选。见[`moshSession.cjs`](https://github.com/binaricat/LemonSSH/blob/d2c3605bf237f211242551b1bb33dfc5ffecc5ad/electron/bridges/terminalBridge/moshSession.cjs#L598-L639)和 MoshLemonSSH 的[`Client::dial_candidates_with_size`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L147-L260)。
+- LemonSSH PR #2231 已恢复 `-n -tt`，通过远端 POSIX `sh` 读取 `SSH_CONNECTION`，并按官方顺序把 locale 作为 `mosh-server -l` 的候选值传入，而不是强行覆盖远端 locale。见[`moshHandshake.cjs`](https://github.com/lemon-casino/LemonSSH/blob/d2c3605bf237f211242551b1bb33dfc5ffecc5ad/electron/bridges/moshHandshake.cjs#L199-L261)。
+- SSH 实际地址会优先交给 MoshLemonSSH，原始主机名作为后备候选。见[`moshSession.cjs`](https://github.com/lemon-casino/LemonSSH/blob/d2c3605bf237f211242551b1bb33dfc5ffecc5ad/electron/bridges/terminalBridge/moshSession.cjs#L598-L639)和 MoshLemonSSH 的[`Client::dial_candidates_with_size`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L147-L260)。
 
 对 #2121 的意义：
 
@@ -71,9 +71,9 @@ SSP 的每条状态指令都声明 `old_num`、`new_num` 和从旧状态到新�
 
 当前状态：
 
-- MoshLemonSSH 的传输层保留 `old_num/new_num/throwaway_num`，只接受引用仍存在基线的状态。见[`transport.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/transport.rs#L581-L746)。
-- 终端层按状态号保存完整画面、解析状态和回显确认；每个新状态都从它声明的旧状态克隆，再与“最新已显示状态”计算一次输出差异。见[`terminal.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/terminal.rs#L178-L236)。
-- 回归测试[`parallel_remote_states_render_shared_content_once`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L897-L918)直接覆盖了两个并行状态共享旧基线时只能显示一次的情况。
+- MoshLemonSSH 的传输层保留 `old_num/new_num/throwaway_num`，只接受引用仍存在基线的状态。见[`transport.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/transport.rs#L581-L746)。
+- 终端层按状态号保存完整画面、解析状态和回显确认；每个新状态都从它声明的旧状态克隆，再与“最新已显示状态”计算一次输出差异。见[`terminal.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/terminal.rs#L178-L236)。
+- 回归测试[`parallel_remote_states_render_shared_content_once`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L897-L918)直接覆盖了两个并行状态共享旧基线时只能显示一次的情况。
 
 判断：最新源码中的根因已经修复；`0.1.6` 及更早版本不满足这一条件，不能继续被 LemonSSH 打包。
 
@@ -94,9 +94,9 @@ SSP 的每条状态指令都声明 `old_num`、`new_num` 和从旧状态到新�
 
 当前状态：
 
-- MoshLemonSSH 已对齐 adaptive 显示和下划线阈值、epoch、`echo_ack` 的 Pending 判定、错误预测清理、退格和左右方向键等主要规则。见[`prediction.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction.rs#L997-L1199)。
-- 显示顺序为：重建远端 framebuffer → 验证预测 → 应用预测覆盖层 → 计算一次最终画面差异。见[`DisplayPipeline`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction.rs#L1403-L1640)。
-- 测试覆盖了“本地先画、远端确认后不重复”“预测字符绝不从第二条路径直接写入”“5 秒未确认时出现下划线”等场景，见[`prediction_tests.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction_tests.rs)。
+- MoshLemonSSH 已对齐 adaptive 显示和下划线阈值、epoch、`echo_ack` 的 Pending 判定、错误预测清理、退格和左右方向键等主要规则。见[`prediction.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction.rs#L997-L1199)。
+- 显示顺序为：重建远端 framebuffer → 验证预测 → 应用预测覆盖层 → 计算一次最终画面差异。见[`DisplayPipeline`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction.rs#L1403-L1640)。
+- 测试覆盖了“本地先画、远端确认后不重复”“预测字符绝不从第二条路径直接写入”“5 秒未确认时出现下划线”等场景，见[`prediction_tests.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/prediction_tests.rs)。
 
 判断：协议和内部显示路径已经对齐。剩余风险不是已知算法缺口，而是 Windows + ConPTY + xterm.js 实际组合尚未做最终视觉验收。自动测试能证明状态正确，不能完全证明用户看到的光标、下划线和字符不会被宿主终端重复处理。
 
@@ -116,7 +116,7 @@ SSP 的每条状态指令都声明 `old_num`、`new_num` 和从旧状态到新�
 
 当前状态：
 
-MoshLemonSSH 已实现相同的 RTT 更新、50–1000 ms RTO、20–250 ms 发送间隔、100 ms delayed ACK、8 ms 最短收集时间、3 秒心跳和长断网退避。收到乱序旧包时仍允许 SSP 使用其内容，但不会用它更新 RTT 或路径。见[`transport.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/transport.rs)和[`client.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs)。
+MoshLemonSSH 已实现相同的 RTT 更新、50–1000 ms RTO、20–250 ms 发送间隔、100 ms delayed ACK、8 ms 最短收集时间、3 秒心跳和长断网退避。收到乱序旧包时仍允许 SSP 使用其内容，但不会用它更新 RTT 或路径。见[`transport.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/transport.rs)和[`client.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs)。
 
 判断：当前没有发现与 #2121 直接相关的剩余时序缺陷。真实公网仍需保留长期单向丢包、乱序、重复包和持续输出的压力测试，防止单元测试无法覆盖的系统 UDP 队列、调度和 NAT 行为。
 
@@ -132,7 +132,7 @@ MoshLemonSSH 已实现相同的 RTT 更新、50–1000 ms RTO、20–250 ms 发�
 
 当前状态：
 
-MoshLemonSSH 已实现相同的 10 秒端口跳转、旧 socket 保留、初次连接 15 秒限制、已建立会话长期等待和双向关闭握手。见[`client.rs`](https://github.com/binaricat/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L27-L38)及其端口跳转、关闭处理。
+MoshLemonSSH 已实现相同的 10 秒端口跳转、旧 socket 保留、初次连接 15 秒限制、已建立会话长期等待和双向关闭握手。见[`client.rs`](https://github.com/lemon-casino/MoshLemonSSH/blob/cd25c0fd1b3553d520ca3f65c93b0d3d53dffb04/src/client.rs#L27-L38)及其端口跳转、关闭处理。
 
 需要准确区分：Mosh 的“恢复”要求原来的 `mosh-client` 进程、`mosh-server` 进程和会话密钥都仍然存在。服务端长时间没有收到客户端时可以暂时清除回包目标，但进程默认继续等待；同一个客户端恢复发包后会重新附着。服务端默认等待策略见官方[`mosh-server` 手册](https://github.com/mobile-shell/mosh/blob/decd9b705eb81626f694335b8d5940538beb06da/man/mosh-server.1#L95-L106)。
 

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/charset"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/transfer"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/transfer"
 )
 
 type TransferStartRequest struct {

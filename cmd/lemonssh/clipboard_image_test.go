@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 func TestClipboardImageManagedPNG(t *testing.T) {

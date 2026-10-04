@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/applog"
-	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
+	"github.com/lemon-casino/lemonssh/internal/platform/applog"
+	"github.com/lemon-casino/lemonssh/internal/platform/sshdebug"
 )
 
 // DiagnosticLogService receives renderer-side diagnostic/error lines and

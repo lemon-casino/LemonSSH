@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/netpolicy"
+	"github.com/lemon-casino/lemonssh/internal/platform/netpolicy"
 )
 
 func newTestProviderFetchService() *ProviderFetchService {

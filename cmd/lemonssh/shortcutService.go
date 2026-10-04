@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/terminal/shortcuts"
+	"github.com/lemon-casino/lemonssh/internal/terminal/shortcuts"
 )
 
 type ShortcutService struct {

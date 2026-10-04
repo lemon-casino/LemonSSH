@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { SyncStatusButton } from '../SyncStatusButton';
 import { GlobalSftpTransferCenter } from '../GlobalSftpTransferCenter';
 import { TopTabsQuickControls } from '../TopTabsQuickControls';
+import { PluginApplicationMenu } from '../plugins/PluginApplicationMenu';
 import { WindowControls } from '../top-tabs/TopTabItems';
 import { useWindowControls } from '../../application/state/useWindowControls';
 
@@ -202,6 +203,8 @@ const WorkbenchChromeInner: React.FC<WorkbenchChromeProps> = ({
               <TooltipContent>{t('topTabs.lockApp')}</TooltipContent>
             </Tooltip>
           )}
+          {/* Plugin application-surface commands; renders nothing without contributions. */}
+          <PluginApplicationMenu />
           <TopTabsQuickControls
             theme={theme}
             themePreference={themePreference}

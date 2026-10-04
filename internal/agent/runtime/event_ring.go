@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 // Ring operation failures. ConsistencyFailure pins T06: the same sequence

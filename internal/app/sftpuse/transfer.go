@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/binaricat/lemonssh/internal/platform/applog"
-	"github.com/binaricat/lemonssh/internal/platform/charset"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/lemon-casino/lemonssh/internal/platform/applog"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
 )
 
 // Download streams a remote file to a local destination path.

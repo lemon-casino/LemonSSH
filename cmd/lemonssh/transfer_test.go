@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 // TestTransferDomainThroughDispatch drives sftp.download and sftp.upload

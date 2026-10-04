@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 )
 
 // LocalStartRequest is the shell-facing local PTY payload. SessionID carries

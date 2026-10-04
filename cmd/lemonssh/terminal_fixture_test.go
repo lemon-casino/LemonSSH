@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
 	gossh "golang.org/x/crypto/ssh"
 )
 

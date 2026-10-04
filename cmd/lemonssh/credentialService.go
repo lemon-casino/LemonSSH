@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
 )
 
 // CredentialService is the Wails-facing facade over the platform keyring

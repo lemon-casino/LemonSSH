@@ -15,9 +15,9 @@ If you discover a security vulnerability in LemonSSH, **please do not open a pub
 
 Instead, report it privately via one of the following methods:
 
-- **GitHub Private Vulnerability Reporting**: Use the [Security tab](https://github.com/binaricat/LemonSSH/security/advisories/new) to submit a private advisory.
+- **GitHub Private Vulnerability Reporting**: Use the [Security tab](https://github.com/lemon-casino/LemonSSH/security/advisories/new) to submit a private advisory.
 - **Email**: Send details to support@lemonssh.com.
-- **GitHub Issues** (for non-sensitive security concerns only): https://github.com/binaricat/LemonSSH/issues
+- **GitHub Issues** (for non-sensitive security concerns only): https://github.com/lemon-casino/LemonSSH/issues
 
 Please include the following details in your report:
 

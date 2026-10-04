@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // cloudSyncSessionPassword holds the vault master key for the running

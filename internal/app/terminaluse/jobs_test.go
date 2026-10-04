@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"context"
 	"errors"
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 	"os/exec"
 	"runtime"
 	"strings"

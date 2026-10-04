@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
 	keyring "github.com/zalando/go-keyring"
 )
 

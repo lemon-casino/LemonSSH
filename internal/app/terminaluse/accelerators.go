@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/monitoring"
+	"github.com/lemon-casino/lemonssh/internal/platform/monitoring"
 )
 
 const acceleratorCollectCommand = `export LC_ALL=C

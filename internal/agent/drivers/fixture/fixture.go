@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/binaricat/lemonssh/internal/agent/runtime"
+	"github.com/lemon-casino/lemonssh/internal/agent/runtime"
 )
 
 // Driver echoes a deterministic reasoning-free turn: one user-echo text

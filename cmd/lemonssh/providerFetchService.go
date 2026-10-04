@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/platform/netpolicy"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/platform/netpolicy"
 )
 
 // ProviderFetchService is the Go owner for renderer provider traffic: the

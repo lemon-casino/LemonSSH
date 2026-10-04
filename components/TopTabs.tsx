@@ -31,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SyncStatusButton } from './SyncStatusButton';
 import { GlobalSftpTransferCenter } from './GlobalSftpTransferCenter';
 import { TopTabsQuickControls } from './TopTabsQuickControls';
+import { PluginApplicationMenu } from './plugins/PluginApplicationMenu';
 import {
   ActiveTabAutoScroller,
   EditorTopTab,
@@ -1214,6 +1215,8 @@ const TopTabsInner: React.FC<TopTabsProps> = ({
               <TooltipContent>{t('topTabs.lockApp')}</TooltipContent>
             </Tooltip>
           )}
+          {/* Plugin application-surface commands; renders nothing without contributions. */}
+          <PluginApplicationMenu />
           <TopTabsQuickControls
             theme={theme}
             themePreference={themePreference}

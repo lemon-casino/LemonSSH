@@ -1,7 +1,7 @@
 package sftpuse
 
 import (
-	"github.com/binaricat/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
 )
 
 // Filename encoding support.

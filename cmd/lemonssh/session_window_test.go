@@ -1,7 +1,7 @@
 package main
 
 import (
-	windowowner "github.com/binaricat/lemonssh/internal/terminal/windows"
+	windowowner "github.com/lemon-casino/lemonssh/internal/terminal/windows"
 	"testing"
 	"time"
 )

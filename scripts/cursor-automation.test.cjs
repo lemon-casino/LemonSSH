@@ -325,12 +325,12 @@ test('isFixEligiblePr allows automation bot author with bot marker', () => {
     body: `${auto.BOT_PR_MARKER}\nFixes #1`,
     head: {
       ref: 'cursor/issue-1-99',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
-  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/LemonSSH' }), true);
+  assert.equal(auto.isFixEligiblePr(pr, { repository: 'lemon-casino/LemonSSH' }), true);
 });
 
 test('isFixEligiblePr rejects contributor spoofing bot marker', () => {
@@ -339,23 +339,23 @@ test('isFixEligiblePr rejects contributor spoofing bot marker', () => {
     body: `${auto.BOT_PR_MARKER}\nFixes #1`,
     head: {
       ref: 'cursor/issue-1-99',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
-  assert.equal(auto.isFixEligiblePr(pr, { repository: 'binaricat/LemonSSH' }), false);
+  assert.equal(auto.isFixEligiblePr(pr, { repository: 'lemon-casino/LemonSSH' }), false);
 });
 
 test('isFixEligiblePr rejects forks', () => {
   const pr = {
-    user: { login: 'binaricat' },
+    user: { login: 'lemon-casino' },
     body: auto.BOT_PR_MARKER,
     head: {
       ref: 'cursor/issue-1-99',
       repo: { full_name: 'someone/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     labels: ['automation:bot-pr'],
   };
   assert.equal(auto.isFixEligiblePr(pr), false);
@@ -363,13 +363,13 @@ test('isFixEligiblePr rejects forks', () => {
 
 test('isFixEligiblePr allows maintainer same-repo PRs', () => {
   const pr = {
-    user: { login: 'binaricat' },
+    user: { login: 'lemon-casino' },
     body: 'manual pr',
     head: {
       ref: 'feature/foo',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     labels: [],
   };
   assert.equal(auto.isFixEligiblePr(pr), true);
@@ -769,7 +769,7 @@ test('decideIssuesEventRoute skips bot reopen and hands auto-closed reopen to hu
     auto.decideIssuesEventRoute({
       action: 'reopened',
       labels: ['triage:admitted', 'triage:already-available'],
-      actorLogin: 'binaricat',
+      actorLogin: 'lemon-casino',
     }),
     {
       kind: 'ready_for_human_handoff',
@@ -780,7 +780,7 @@ test('decideIssuesEventRoute skips bot reopen and hands auto-closed reopen to hu
     auto.decideIssuesEventRoute({
       action: 'reopened',
       labels: ['triage:admitted', 'ready-for-human', 'triage'],
-      actorLogin: 'binaricat',
+      actorLogin: 'lemon-casino',
     }),
     {
       kind: 'issue_classify',
@@ -1093,13 +1093,13 @@ test('source cleanup includes merged maintainer fixes but not unmerged handoffs'
     state: 'closed',
     merged: true,
     body: 'Focused maintainer fix.\n\nFixes #42',
-    user: { login: 'binaricat' },
-    head: { repo: { full_name: 'binaricat/LemonSSH' } },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    user: { login: 'lemon-casino' },
+    head: { repo: { full_name: 'lemon-casino/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   };
   const options = {
-    ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
-    repository: 'binaricat/LemonSSH',
+    ownActors: 'lemon-casino,lemonssh-bot,github-actions[bot]',
+    repository: 'lemon-casino/LemonSSH',
   };
   assert.equal(auto.shouldCleanupSourceIssueAfterPull(maintainerPull, options), true);
   assert.deepEqual(
@@ -1239,7 +1239,7 @@ test('markNeedsHuman ignores forged dedupe markers from untrusted commenters', a
   };
   const args = {
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 42,
     message: 'failure details',
     dedupeMarker: '<!-- cursor-implement-failure:base=abc;kind=no_changes -->',
@@ -1295,7 +1295,7 @@ test('applyReadyForHumanHandoff hands open auto-closed issues to humans', async 
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.commented, true);
@@ -1336,7 +1336,7 @@ test('applyReadyForHumanHandoff skips when auto-close labels were cleared', asyn
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.skipped, true);
@@ -1374,7 +1374,7 @@ test('applyReadyForHumanHandoff skips when maintainer already re-closed', async 
   };
   const result = await auto.applyReadyForHumanHandoff({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 2673,
   });
   assert.equal(result.skipped, true);
@@ -1617,8 +1617,8 @@ test('getPendingIssueFollowupsForPull protects ready state with live issue comme
     labels: [{ name: 'automation:bot-pr' }],
     user: { login: 'lemonssh-bot' },
     user: { login: 'lemonssh-bot' },
-    head: { repo: { full_name: 'binaricat/LemonSSH' } },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    head: { repo: { full_name: 'lemon-casino/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -1650,7 +1650,7 @@ test('getPendingIssueFollowupsForPull protects ready state with live issue comme
   };
   const result = await auto.getPendingIssueFollowupsForPull({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     pull,
   });
   assert.equal(result.gated, true);
@@ -1671,7 +1671,7 @@ test('shouldGatePullOnSourceIssueFollowups is limited to automation bot PRs', ()
     auto.shouldGatePullOnSourceIssueFollowups({
       body: 'Maintainer fix\n\nFixes #42',
       labels: [{ name: 'bug' }],
-      user: { login: 'binaricat' },
+      user: { login: 'lemon-casino' },
     }),
     false,
   );
@@ -1688,11 +1688,11 @@ test('shouldGatePullOnSourceIssueFollowups is limited to automation bot PRs', ()
       body: `${auto.BOT_PR_MARKER}\n<!-- cursor-source-issue:42 -->\nFixes #42`,
       labels: [{ name: 'automation:bot-pr' }],
       user: { login: 'untrusted-collaborator' },
-      head: { repo: { full_name: 'binaricat/LemonSSH' } },
-      base: { repo: { full_name: 'binaricat/LemonSSH' } },
+      head: { repo: { full_name: 'lemon-casino/LemonSSH' } },
+      base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     }, {
-      ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
-      repository: 'binaricat/LemonSSH',
+      ownActors: 'lemon-casino,lemonssh-bot,github-actions[bot]',
+      repository: 'lemon-casino/LemonSSH',
     }),
     false,
   );
@@ -1745,7 +1745,7 @@ test('findOpenPullForIssue keeps maintainer work from spawning a duplicate bot P
       paginate: async () => pulls,
       rest: { pulls: { list: async () => ({ data: pulls }) } },
     },
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 42,
   });
   assert.equal(found.number, 8);
@@ -1854,7 +1854,7 @@ test('findOpenPullForIssue accepts same-repo work but ignores untrusted fork cla
       number: 8,
       body: 'Fixes #42',
       author_association: 'NONE',
-      head: { repo: { full_name: 'binaricat/LemonSSH' } },
+      head: { repo: { full_name: 'lemon-casino/LemonSSH' } },
     },
   ];
   const found = await auto.findOpenPullForIssue({
@@ -1862,7 +1862,7 @@ test('findOpenPullForIssue accepts same-repo work but ignores untrusted fork cla
       paginate: async () => pulls,
       rest: { pulls: { list: async () => ({ data: pulls }) } },
     },
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     issueNumber: 42,
   });
   assert.equal(found.number, 8);
@@ -1882,10 +1882,10 @@ test('automation pull references only control the marked source issue', () => {
     user: { login: 'lemonssh-bot' },
     head: {
       ref: 'cursor/issue-41-123',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
   };
-  const options = { repository: 'binaricat/LemonSSH', includeRelated: true };
+  const options = { repository: 'lemon-casino/LemonSSH', includeRelated: true };
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 41, options), true);
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 42, options), false);
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 43, options), false);
@@ -1897,15 +1897,15 @@ test('automation label does not hide a trusted maintainer pull reference', () =>
     state: 'open',
     body: 'Maintainer implementation\n\nRelated to #2699',
     labels: [{ name: 'automation:bot-pr' }],
-    user: { login: 'binaricat' },
+    user: { login: 'lemon-casino' },
     author_association: 'OWNER',
     head: {
       ref: 'worktree/quiet-cloud-b74d',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
   };
   assert.equal(auto.isTrustedOpenPullForIssue(pull, 2699, {
-    repository: 'binaricat/LemonSSH',
+    repository: 'lemon-casino/LemonSSH',
     includeRelated: true,
   }), true);
 });
@@ -1917,9 +1917,9 @@ test('getPendingIssueFollowupsForPull does not block maintainer Fixes-only PRs',
     body: 'Hand-written fix for the reporter.\n\nFixes #42',
     created_at: '2026-07-24T10:00:00Z',
     labels: [{ name: 'bug' }],
-    user: { login: 'binaricat' },
-    head: { ref: 'fix/issue-42-manual', repo: { full_name: 'binaricat/LemonSSH' } },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    user: { login: 'lemon-casino' },
+    head: { ref: 'fix/issue-42-manual', repo: { full_name: 'lemon-casino/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -1945,7 +1945,7 @@ test('getPendingIssueFollowupsForPull does not block maintainer Fixes-only PRs',
   };
   const result = await auto.getPendingIssueFollowupsForPull({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     pull,
   });
   assert.equal(result.gated, false);
@@ -2009,7 +2009,7 @@ test('prepareIssueFollowupContext uses the triggering comment when no PR exists'
   };
   const result = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     core: { setOutput: (key, value) => { outputs[key] = value; } },
     issueNumber: 42,
     triggerCommentId: 9,
@@ -2025,7 +2025,7 @@ test('prepareIssueFollowupContext uses the triggering comment when no PR exists'
 
   const withPull = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     core: { setOutput() {} },
     issueNumber: 42,
     pullNumber: 77,
@@ -2127,7 +2127,7 @@ test('prepareIssueFollowupContext hands off after the daily follow-up limit', as
   };
   const result = await auto.prepareIssueFollowupContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     core: { setOutput: (key, value) => { outputs[key] = value; } },
     issueNumber: 42,
     triggerCommentId: 9,
@@ -2161,7 +2161,7 @@ test('ensurePullRequestDraft pauses a ready open PR and ignores closed PRs', asy
       return { convertPullRequestToDraft: { pullRequest: { isDraft: true } } };
     },
   };
-  const context = { repo: { owner: 'binaricat', repo: 'LemonSSH' } };
+  const context = { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } };
   assert.equal(
     await auto.ensurePullRequestDraft({ github, context, pullNumber: 77 }),
     true,
@@ -2186,9 +2186,9 @@ test('restoreCleanPullRequestAfterNoChange undoes ready when a comment races', a
     head: {
       sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       ref: 'cursor/issue-42-1',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   });
   const github = {
     rest: {
@@ -2244,7 +2244,7 @@ test('restoreCleanPullRequestAfterNoChange undoes ready when a comment races', a
   };
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     ignoredCommentIds: [2],
@@ -2263,9 +2263,9 @@ test('restoreCleanPullRequestAfterNoChange ignores only the current batch', asyn
     user: { login: 'lemonssh-bot' },
     head: {
       sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   });
   const github = {
     rest: {
@@ -2305,7 +2305,7 @@ test('restoreCleanPullRequestAfterNoChange ignores only the current batch', asyn
 
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
     ignoredCommentIds: [2],
@@ -2331,9 +2331,9 @@ test('restoreCleanPullRequestAfterNoChange rejects an edited current-batch comme
     user: { login: 'lemonssh-bot' },
     head: {
       sha: 'cccccccccccccccccccccccccccccccccccccccc',
-      repo: { full_name: 'binaricat/LemonSSH' },
+      repo: { full_name: 'lemon-casino/LemonSSH' },
     },
-    base: { repo: { full_name: 'binaricat/LemonSSH' } },
+    base: { repo: { full_name: 'lemon-casino/LemonSSH' } },
   };
   const github = {
     rest: {
@@ -2356,7 +2356,7 @@ test('restoreCleanPullRequestAfterNoChange rejects an edited current-batch comme
 
   const restored = await auto.restoreCleanPullRequestAfterNoChange({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     pullNumber: 77,
     expectedHeadSha: pull.head.sha,
     ignoredCommentSnapshots: [{
@@ -3159,13 +3159,13 @@ test('normalizeExternalResearchText accepts sourced research and explicit no-op'
       {
         input: {
           issue: {
-            url: 'https://github.com/binaricat/LemonSSH/issues/42',
+            url: 'https://github.com/lemon-casino/LemonSSH/issues/42',
             title: '[Bug] Local terminal issue',
             body: 'The terminal is blank after reconnecting.',
           },
           pull: {
-            url: 'https://github.com/binaricat/LemonSSH/pull/77',
-            body: 'Fixes https://github.com/binaricat/LemonSSH/issues/42',
+            url: 'https://github.com/lemon-casino/LemonSSH/pull/77',
+            body: 'Fixes https://github.com/lemon-casino/LemonSSH/issues/42',
           },
           comments: [{ is_bot: true, body: 'See https://github.com/actions/runs/1' }],
         },
@@ -4251,10 +4251,10 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat,lemonssh-bot,github-actions[bot]',
+      ownActors: 'lemon-casino,lemonssh-bot,github-actions[bot]',
       existingComments: [
         {
-          user: { login: 'binaricat' },
+          user: { login: 'lemon-casino' },
           body: auto.buildCodexReviewRequestComment(1, sha),
         },
       ],
@@ -4265,10 +4265,10 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat',
+      ownActors: 'lemon-casino',
       existingComments: [
         {
-          user: { login: 'binaricat' },
+          user: { login: 'lemon-casino' },
           body: `<!-- cursor-automation -->\n\n@codex review\n\n<!-- cursor-codex-head:${short} -->`,
         },
       ],
@@ -4279,7 +4279,7 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat',
+      ownActors: 'lemon-casino',
       notBefore: '2026-08-05T14:00:00Z',
       existingComments: [
         {
@@ -4294,10 +4294,10 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat',
+      ownActors: 'lemon-casino',
       existingComments: [
         {
-          user: { login: 'binaricat' },
+          user: { login: 'lemon-casino' },
           created_at: '2026-08-05T14:00:10Z',
           body: '@codex review',
         },
@@ -4309,7 +4309,7 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat',
+      ownActors: 'lemon-casino',
       existingComments: [
         {
           user: { login: 'chatgpt-codex-connector[bot]' },
@@ -4324,10 +4324,10 @@ test('shouldSkipExternalCodexRerequest honors head pins; ignores plain unpinned 
   assert.equal(
     auto.shouldSkipExternalCodexRerequest({
       headSha: sha,
-      ownActors: 'binaricat',
+      ownActors: 'lemon-casino',
       existingComments: [
         {
-          user: { login: 'binaricat' },
+          user: { login: 'lemon-casino' },
           body: auto.buildCodexReviewRequestComment(
             1,
             'ffffffffffffffffffffffffffffffffffffffff',
@@ -4425,8 +4425,8 @@ test('getCodexRoundFromComments reads max round from trusted authors only', () =
   );
   assert.equal(
     auto.getCodexRoundFromComments(
-      [{ user: { login: 'binaricat' }, body: '<!-- cursor-codex-round:5 -->' }],
-      { ownActors: 'binaricat' },
+      [{ user: { login: 'lemon-casino' }, body: '<!-- cursor-codex-round:5 -->' }],
+      { ownActors: 'lemon-casino' },
     ),
     5,
   );
@@ -4628,7 +4628,7 @@ test('applyClassification updates state before posting the final reply', async (
 
   const classification = await auto.applyClassification({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     core,
     issueNumber: 2428,
     classificationPath,
@@ -4697,7 +4697,7 @@ test('applyClassification in triage-only never starts implement', async () => {
   try {
     const classification = await auto.applyClassification({
       github,
-      context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+      context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
       core,
       issueNumber: 99,
       classificationPath,
@@ -4818,7 +4818,7 @@ test('prepareIssueContext survives Octokit-normalized search pages (no .items)',
           return {
             data: {
               number: 2438,
-              html_url: 'https://github.com/binaricat/LemonSSH/issues/2438',
+              html_url: 'https://github.com/lemon-casino/LemonSSH/issues/2438',
               title: '[Feature] AI multi session',
               body: issueBody,
               pull_request: undefined,
@@ -4870,7 +4870,7 @@ test('prepareIssueContext survives Octokit-normalized search pages (no .items)',
 
   const result = await auto.prepareIssueContext({
     github,
-    context: { repo: { owner: 'binaricat', repo: 'LemonSSH' } },
+    context: { repo: { owner: 'lemon-casino', repo: 'LemonSSH' } },
     core,
     issueNumber: 2438,
     outputPath,
@@ -5264,13 +5264,13 @@ test('nextCodexTerminalLabels rejects unknown terminal', () => {
 });
 
 test('hasAutomationPullRequestBacklink deduplicates only the same marked PR link', () => {
-  const pullRequestUrl = 'https://github.com/binaricat/LemonSSH/pull/2474';
+  const pullRequestUrl = 'https://github.com/lemon-casino/LemonSSH/pull/2474';
   assert.equal(
     auto.hasAutomationPullRequestBacklink(
       [
         { body: `ordinary maintainer note with ${pullRequestUrl}` },
         {
-          body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at https://github.com/binaricat/LemonSSH/pull/2400.`,
+          body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at https://github.com/lemon-casino/LemonSSH/pull/2400.`,
         },
         {
           body: `${auto.TRIAGE_MARKER}\n\nA draft fix is available at ${pullRequestUrl}.`,

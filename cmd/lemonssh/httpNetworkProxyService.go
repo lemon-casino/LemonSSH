@@ -1,6 +1,6 @@
 package main
 
-import "github.com/binaricat/lemonssh/internal/platform/netpolicy"
+import "github.com/lemon-casino/lemonssh/internal/platform/netpolicy"
 
 type HTTPNetworkProxySettings struct {
 	Mode   string `json:"mode"`

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/binaricat/lemonssh/internal/terminal/pty"
+	"github.com/lemon-casino/lemonssh/internal/terminal/pty"
 	gossh "golang.org/x/crypto/ssh"
 )
 

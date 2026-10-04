@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	agentruntime "github.com/binaricat/lemonssh/internal/agent/runtime"
-	"github.com/binaricat/lemonssh/internal/app/contracts"
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/platform/netpolicy"
+	agentruntime "github.com/lemon-casino/lemonssh/internal/agent/runtime"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/platform/netpolicy"
 )
 
 // TestProviderLiveChain pins the full W15 chain with a local OpenAI-

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/monitoring"
+	"github.com/lemon-casino/lemonssh/internal/platform/monitoring"
 )
 
 // errSessionExecPending marks a supervised helper whose handshake transport is

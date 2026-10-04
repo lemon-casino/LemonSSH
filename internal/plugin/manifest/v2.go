@@ -7,7 +7,7 @@ package manifest
 import (
 	"errors"
 	"fmt"
-	"github.com/binaricat/lemonssh/internal/plugin/ui"
+	"github.com/lemon-casino/lemonssh/internal/plugin/ui"
 	"regexp"
 	"strings"
 )

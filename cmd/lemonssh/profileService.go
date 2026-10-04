@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/profile/store"
+	"github.com/lemon-casino/lemonssh/internal/profile/store"
 )
 
 // ProfileService is the Wails-facing facade over the transactional profile

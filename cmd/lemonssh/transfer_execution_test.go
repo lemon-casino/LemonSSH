@@ -3,8 +3,8 @@ package main
 import (
 	"archive/zip"
 	"context"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/transfer"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/transfer"
 	"os"
 	"path/filepath"
 	"testing"

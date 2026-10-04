@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/binaricat/lemonssh/internal/platform/charset"
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/lemon-casino/lemonssh/internal/platform/charset"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
 )
 
 // parsePermissions validates an octal permission string (3-4 digits) into a

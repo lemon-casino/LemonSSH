@@ -29,3 +29,15 @@ func TestNotificationBoundsAndControls(t *testing.T) {
 		t.Fatalf("empty title: %q", title)
 	}
 }
+
+// TestToastAUMIDIsLemonSSH pins the brand rename: the toast AUMID (the Windows
+// CreateToastNotifier id and the notify-send app name) must be "LemonSSH" so
+// notifications match the Start Menu shortcut registered by the installer.
+func TestToastAUMIDIsLemonSSH(t *testing.T) {
+	if ToastAUMID != "LemonSSH" {
+		t.Fatalf("toast AUMID = %q, want %q", ToastAUMID, "LemonSSH")
+	}
+	if strings.Contains(strings.ToLower(ToastAUMID), "netcatty") {
+		t.Fatalf("toast AUMID must not use the legacy brand: %q", ToastAUMID)
+	}
+}

@@ -14,8 +14,8 @@ import (
 
 	"strconv"
 
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
-	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
+	terminalssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 )
 

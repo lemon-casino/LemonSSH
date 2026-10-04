@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/platform/cloudsync"
+	"github.com/lemon-casino/lemonssh/internal/platform/cloudsync"
 )
 
 // s3LegacyBlob is one stored object with a strong ETag.

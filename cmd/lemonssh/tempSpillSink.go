@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 )
 
 // tempSpillSink persists oversized tool-output handles into the LemonSSH

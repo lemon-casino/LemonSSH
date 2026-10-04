@@ -9,7 +9,7 @@ Source revisions:
 
 ## Conclusion
 
-[Issue #2506](https://github.com/binaricat/LemonSSH/issues/2506) proposes a mature, scoped improvement: searchable font pickers. Tabby and Electerm both avoid growing a hard-coded built-in font catalog. Their shared pattern is: enumerate local fonts, support name search, and keep free-text entry so a failed or incomplete system font scan does not lock the user out.
+[Issue #2506](https://github.com/lemon-casino/LemonSSH/issues/2506) proposes a mature, scoped improvement: searchable font pickers. Tabby and Electerm both avoid growing a hard-coded built-in font catalog. Their shared pattern is: enumerate local fonts, support name search, and keep free-text entry so a failed or incomplete system font scan does not lock the user out.
 
 They differ on fallback fonts. Tabby uses a clear "main font + one fallback font" model, which is closest to LemonSSH's existing shape. Electerm lets users order an arbitrary font chain, which is more flexible but easier to misconfigure. For #2506, keep LemonSSH's main-font / CJK-font split, make the UI font and terminal main-font pickers searchable, and do not introduce an arbitrary font-chain editor.
 

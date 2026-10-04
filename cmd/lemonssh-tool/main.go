@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 const (

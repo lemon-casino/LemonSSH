@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	lemonsshssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	lemonsshssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 )
 

@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/binaricat/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/capability"
 )
 
 func main() {

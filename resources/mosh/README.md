@@ -1,6 +1,6 @@
 # Bundled `mosh-client` (MoshLemonSSH)
 
-LemonSSH packages the pure Rust `mosh-client` from [MoshLemonSSH](https://github.com/binaricat/MoshLemonSSH). The Go terminal service performs SSH and `mosh-server` bootstrap, then launches the verified helper.
+LemonSSH packages the pure Rust `mosh-client` from [MoshLemonSSH](https://github.com/lemon-casino/MoshLemonSSH). The Go terminal service performs SSH and `mosh-server` bootstrap, then launches the verified helper.
 
 The source of truth is [`scripts/fetch-wails-helpers.lock.json`](../../scripts/fetch-wails-helpers.lock.json). It pins release provenance, archive and executable hashes, asset IDs, architectures, and license files. [`scripts/fetch-wails-helpers.mjs`](../../scripts/fetch-wails-helpers.mjs) fetches and verifies the supply.
 

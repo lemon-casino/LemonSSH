@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/platform/sshdebug"
-	"github.com/binaricat/lemonssh/internal/terminal/mosh"
-	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/sshdebug"
+	"github.com/lemon-casino/lemonssh/internal/terminal/mosh"
+	terminalssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 )
 

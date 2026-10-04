@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/cloudsync"
+	"github.com/lemon-casino/lemonssh/internal/platform/cloudsync"
 )
 
 // These methods mirror the existing cloud-sync bridge. Wails injects context;

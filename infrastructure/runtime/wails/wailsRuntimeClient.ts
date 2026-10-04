@@ -4,43 +4,43 @@
 // results.
 
 import { Clipboard, Dialogs, Events, Window as wailsWindow } from "@wailsio/runtime";
-import * as lemonsshService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/lemonsshservice";
-import * as agentServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/agentservice";
-import * as agentCLIServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/agentcliservice";
-import * as externalAgentServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/externalagentservice";
-import * as userSkillsServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/userskillsservice";
+import * as lemonsshService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/lemonsshservice";
+import * as agentServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/agentservice";
+import * as agentCLIServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/agentcliservice";
+import * as externalAgentServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/externalagentservice";
+import * as userSkillsServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/userskillsservice";
 import type {
   EventPage as AgentEventPage,
   PrepareTurnRequest as AgentPrepareTurnRequest,
   PreparedTurn as AgentPreparedTurn,
   TurnCommand as AgentTurnCommand,
   TurnSnapshot as AgentTurnSnapshot,
-} from "./bindings/github.com/binaricat/lemonssh/internal/app/contracts/models";
-import * as terminalService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/terminalservice";
-import * as knownHostsServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/knownhostsservice";
-import * as sftpService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sftpservice";
-import * as settingsWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/settingswindowservice";
-import * as forwardService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/forwardservice";
-import * as appLockService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/applockservice";
-import * as credentialService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/credentialservice";
-import * as pluginService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/pluginservice";
-import * as deepLinkService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/deeplinkservice";
-import * as filesystemService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/filesystemservice";
-import * as transferService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/transferservice";
-import * as popupWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/popupwindowservice";
-import * as sessionWindowServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sessionwindowservice";
-import * as shortcutService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/shortcutservice";
-import * as scriptService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/scriptservice";
-import * as diagnosticLogService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/diagnosticlogservice";
-import * as sessionLogServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/sessionlogservice";
-import * as httpNetworkProxyServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/httpnetworkproxyservice";
-import * as syncServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/syncservice";
-import * as providerFetchService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/providerfetchservice";
-import * as trayService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/trayservice";
-import * as trayPanelWindowService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/traypanelwindowservice";
-import * as windowLifecycleService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/windowlifecycleservice";
-import * as lemonsshCoreService from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/lemonsshservice";
-import * as updateServiceBinding from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/updateservice";
+} from "./bindings/github.com/lemon-casino/lemonssh/internal/app/contracts/models";
+import * as terminalService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/terminalservice";
+import * as knownHostsServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/knownhostsservice";
+import * as sftpService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/sftpservice";
+import * as settingsWindowService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/settingswindowservice";
+import * as forwardService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/forwardservice";
+import * as appLockService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/applockservice";
+import * as credentialService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/credentialservice";
+import * as pluginService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/pluginservice";
+import * as deepLinkService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/deeplinkservice";
+import * as filesystemService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/filesystemservice";
+import * as transferService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/transferservice";
+import * as popupWindowService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/popupwindowservice";
+import * as sessionWindowServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/sessionwindowservice";
+import * as shortcutService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/shortcutservice";
+import * as scriptService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/scriptservice";
+import * as diagnosticLogService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/diagnosticlogservice";
+import * as sessionLogServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/sessionlogservice";
+import * as httpNetworkProxyServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/httpnetworkproxyservice";
+import * as syncServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/syncservice";
+import * as providerFetchService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/providerfetchservice";
+import * as trayService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/trayservice";
+import * as trayPanelWindowService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/traypanelwindowservice";
+import * as windowLifecycleService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/windowlifecycleservice";
+import * as lemonsshCoreService from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/lemonsshservice";
+import * as updateServiceBinding from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/updateservice";
 import {
   buildTerminalSocketUrl,
   bytesToBase64,
@@ -67,7 +67,7 @@ import { createMonitoringBridge, type MonitoringBindings } from './monitoringBri
 import { readLocalTree } from "./localTree";
 import { createTransferBridge, type TransferBindings } from "./transferBridge";
 import { createNativeFileActions, type NativeFileBindings } from "./nativeFileActions";
-import * as profileBindings from "./bindings/github.com/binaricat/lemonssh/cmd/lemonssh/profileservice";
+import * as profileBindings from "./bindings/github.com/lemon-casino/lemonssh/cmd/lemonssh/profileservice";
 import { createZmodemBridge } from './zmodemBridge';
 import { subscribePopupConfig, type LeaseParams } from './popupConfigSubscription';
 import { configureProfileBindings } from "../profile/profileClient";

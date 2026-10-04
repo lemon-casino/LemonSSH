@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/agent/tools"
+	"github.com/lemon-casino/lemonssh/internal/agent/tools"
 )
 
 // ToolOutputRead implements harness.tool_output.read over the W14 handle

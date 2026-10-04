@@ -36,10 +36,13 @@ import { ToolbarCustomizeContextMenu } from '../ui/toolbar-item-layout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '../../lib/utils';
 import HostKeywordHighlightPopover from './HostKeywordHighlightPopover';
-import { collectOwnedPluginMenus, comparePluginMenus, usePluginContributions } from '../../application/state/usePluginContributions';
+import { usePluginMenuItems, type PluginMenuLocation } from '../../application/state/usePluginMenuItems';
 import { buildTerminalPluginContributionContext } from '../../application/state/pluginContributionContexts';
 import { PluginContributionIcon } from '../plugins/PluginContributionIcon';
 import { isPluginHostProtocol } from '../../domain/pluginConnection';
+
+/** Both plugin surfaces render into the terminal toolbar/status row. */
+const PLUGIN_TOOLBAR_LOCATIONS: readonly PluginMenuLocation[] = ['terminal/toolbar', 'statusBar'];
 
 export const TERMINAL_TOOLBAR_ITEM_IDS = [
   'highlight',
@@ -173,16 +176,16 @@ export const TerminalToolbar: React.FC<TerminalToolbarProps> = ({
     hostProtocol: host?.protocol ?? 'ssh',
     workspaceId,
   });
-  const pluginContributions = usePluginContributions({
-    context: terminalContext,
-    menuContexts: {
-      'terminal/toolbar': terminalContext,
-      statusBar: statusBarContext,
+  const { items: pluginToolbarMenus, executeCommand: executePluginMenuCommand } = usePluginMenuItems(
+    PLUGIN_TOOLBAR_LOCATIONS,
+    {
+      context: terminalContext,
+      menuContexts: {
+        'terminal/toolbar': terminalContext,
+        statusBar: statusBarContext,
+      },
     },
-  });
-  const pluginToolbarMenus = collectOwnedPluginMenus(pluginContributions.snapshot.plugins)
-    .filter((menu) => (menu.location === 'terminal/toolbar' || menu.location === 'statusBar') && menu.visible)
-    .sort(comparePluginMenus);
+  );
   const [highlightPopoverOpen, setHighlightPopoverOpen] = useState(false);
   const [scriptsPopoverOpen, setScriptsPopoverOpen] = useState(false);
   // Owned outside the scripts Popover so portalled Dialog focus cannot dismiss
@@ -1028,6 +1031,14 @@ export const TerminalToolbar: React.FC<TerminalToolbarProps> = ({
         )}
         </ToolbarCustomizeContextMenu>
 
+        {pluginToolbarMenus.length > 0 && (
+          <div
+            aria-hidden="true"
+            className="mx-0.5 h-4 w-px shrink-0 self-center"
+            style={{ backgroundColor: 'var(--terminal-ui-border)' }}
+            data-plugin-toolbar-divider="true"
+          />
+        )}
         {pluginToolbarMenus.map((menu) => (
         <Tooltip key={menu.id}>
           <TooltipTrigger asChild>
@@ -1037,7 +1048,7 @@ export const TerminalToolbar: React.FC<TerminalToolbarProps> = ({
               className={menu.location === 'statusBar' ? 'h-6 gap-1 px-2 text-[11px]' : buttonBase}
               disabled={!menu.enabled}
               aria-pressed={menu.checked}
-              onClick={(event) => void pluginContributions.executeCommand(event.altKey && menu.alt ? menu.alt : menu.command, undefined, {
+              onClick={(event) => void executePluginMenuCommand(event.altKey && menu.alt ? menu.alt : menu.command, undefined, {
                 ...(menu.location === 'statusBar' ? statusBarContext : terminalContext),
               }).catch(() => {})}
             >

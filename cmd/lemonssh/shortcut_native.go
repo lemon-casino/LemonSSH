@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/binaricat/lemonssh/internal/terminal/shortcuts"
+	"github.com/lemon-casino/lemonssh/internal/terminal/shortcuts"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

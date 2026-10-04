@@ -2,8 +2,8 @@ package host
 
 import (
 	"encoding/json"
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	"github.com/binaricat/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/store"
 	"path/filepath"
 	"strings"
 	"testing"

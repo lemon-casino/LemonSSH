@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/platform/monitoring"
+	"github.com/lemon-casino/lemonssh/internal/platform/monitoring"
 	gossh "golang.org/x/crypto/ssh"
 )
 

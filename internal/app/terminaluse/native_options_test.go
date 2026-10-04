@@ -3,7 +3,7 @@ package terminaluse
 import (
 	"crypto/ed25519"
 	"crypto/rand"
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	gossh "golang.org/x/crypto/ssh"
 	"os"
 	"path/filepath"

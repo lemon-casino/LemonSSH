@@ -2,7 +2,7 @@
 
 Status: experimental end-to-end implementation.
 
-Issue: [#2245](https://github.com/binaricat/LemonSSH/issues/2245)
+Issue: [#2245](https://github.com/lemon-casino/LemonSSH/issues/2245)
 
 ## Compatibility contract
 

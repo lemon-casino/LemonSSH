@@ -9,7 +9,7 @@ test("update checks and release links point at LemonSSH", () => {
   const source = readFileSync(join(process.cwd(), "infrastructure/services/updateService.ts"), "utf8");
   assert.match(source, /api\.github\.com\/repos\/lemon-casino\/LemonSSH\/releases\/latest/);
   assert.match(source, /github\.com\/lemon-casino\/LemonSSH\/releases/);
-  assert.doesNotMatch(source, /binaricat\/LemonSSH/);
+  assert.doesNotMatch(source, /lemon-casino\/LemonSSH/);
   assert.equal(getReleaseUrl(), "https://github.com/lemon-casino/LemonSSH/releases");
   assert.equal(getReleaseUrl("1.2.3"), "https://github.com/lemon-casino/LemonSSH/releases/tag/v1.2.3");
 });

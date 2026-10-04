@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/app/contracts"
+	"github.com/lemon-casino/lemonssh/internal/app/contracts"
 )
 
 func prepareRequest(chat contracts.ChatSessionID, requestID contracts.RequestID, text string) contracts.PrepareTurnRequest {

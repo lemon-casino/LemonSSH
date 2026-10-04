@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
-	"github.com/binaricat/lemonssh/internal/terminal/dataplane"
-	terminalssh "github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
+	terminalssh "github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )

@@ -15,17 +15,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/binaricat/lemonssh/internal/app/terminaluse"
-	"github.com/binaricat/lemonssh/internal/platform/credentials"
-	"github.com/binaricat/lemonssh/internal/plugin/host"
-	"github.com/binaricat/lemonssh/internal/plugin/manifest"
-	"github.com/binaricat/lemonssh/internal/plugin/native"
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	"github.com/binaricat/lemonssh/internal/plugin/providers"
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/ui"
-	"github.com/binaricat/lemonssh/internal/plugin/v1reject"
-	"github.com/binaricat/lemonssh/internal/plugin/wasm"
+	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
+	"github.com/lemon-casino/lemonssh/internal/platform/credentials"
+	"github.com/lemon-casino/lemonssh/internal/plugin/host"
+	"github.com/lemon-casino/lemonssh/internal/plugin/manifest"
+	"github.com/lemon-casino/lemonssh/internal/plugin/native"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	"github.com/lemon-casino/lemonssh/internal/plugin/providers"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/ui"
+	"github.com/lemon-casino/lemonssh/internal/plugin/v1reject"
+	"github.com/lemon-casino/lemonssh/internal/plugin/wasm"
 )
 
 type PluginService struct {

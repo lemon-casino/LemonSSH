@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/terminal/sftp"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/terminal/sftp"
 )
 
 // Agent SFTP tools speak UTF-8 paths; the service re-resolves the session's

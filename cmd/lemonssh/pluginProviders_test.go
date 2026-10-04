@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/binaricat/lemonssh/internal/plugin/providers"
+	"github.com/lemon-casino/lemonssh/internal/plugin/providers"
 )
 
 // installEnabledHelloExample packages and enables the shipped hello-lemonssh

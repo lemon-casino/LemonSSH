@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/binaricat/lemonssh/internal/capability"
-	"github.com/binaricat/lemonssh/internal/platform/netpolicy"
+	"github.com/lemon-casino/lemonssh/internal/capability"
+	"github.com/lemon-casino/lemonssh/internal/platform/netpolicy"
 )
 
 // ProviderConfig is one explicitly-configured live provider. It arrives

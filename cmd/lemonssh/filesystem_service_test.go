@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/binaricat/lemonssh/internal/platform/filesystem"
+	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 	"io"
 	"os"
 	"path/filepath"

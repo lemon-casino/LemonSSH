@@ -9,7 +9,7 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/binaricat/lemonssh/internal/terminal/ssh"
+	"github.com/lemon-casino/lemonssh/internal/terminal/ssh"
 )
 
 // ExecRequest is a one-shot SSH exec (ssh-copy-id style key export, remote

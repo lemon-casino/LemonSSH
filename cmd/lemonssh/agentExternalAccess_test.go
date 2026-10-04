@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/rpc"
+	"github.com/lemon-casino/lemonssh/internal/rpc"
 )
 
 func TestExternalMcpEnableDisableRevokesOnlyExternalCredential(t *testing.T) {

@@ -40,10 +40,13 @@ Rules that keep the seams stable:
 
 ## Extension points for future phases
 
-- **Plugin ABI**: a v2 RPC surface (WASM host imports/exports or a
-  companion-based protocol) would attach in `internal/plugin/wasm` or
-  `internal/plugin/native` and must route every privileged call through
-  `internal/plugin/permissions`. Until it exists, WASM modules cannot do work —
+- **Plugin ABI**: the lemonssh-wasm-abi v1 dispatch channel
+  (`internal/plugin/wasm`) and the framed native companion RPC
+  (`internal/plugin/native`) are the two shipped extension surfaces. New
+  dispatch methods (today `command.execute`, `view.data` and the provider
+  registry triple) attach in the guests and hosts that speak the channel, and
+  any new host import must route every privileged call through
+  `internal/plugin/permissions`, backed by a manifest-declared permission —
   do not add capability bypasses (direct filesystem/env access from runtimes)
   to "make plugins useful".
 - **Providers** (terminal, connection, authentication, importer, sync):

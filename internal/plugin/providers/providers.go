@@ -28,9 +28,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/binaricat/lemonssh/internal/plugin/permissions"
-	pluginstore "github.com/binaricat/lemonssh/internal/plugin/store"
-	"github.com/binaricat/lemonssh/internal/plugin/wasm"
+	"github.com/lemon-casino/lemonssh/internal/plugin/permissions"
+	pluginstore "github.com/lemon-casino/lemonssh/internal/plugin/store"
+	"github.com/lemon-casino/lemonssh/internal/plugin/wasm"
 )
 
 // Dispatch methods of the provider protocol over the lemonssh-wasm-abi v1

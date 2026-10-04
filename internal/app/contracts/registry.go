@@ -1,6 +1,6 @@
 package contracts
 
-import "github.com/binaricat/lemonssh/internal/app"
+import "github.com/lemon-casino/lemonssh/internal/app"
 
 // AllErrorCodes lists every stable error code. The contracts test verifies it
 // stays in sync with the constants in errors.go, and the contracts codegen

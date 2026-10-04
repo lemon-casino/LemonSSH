@@ -133,7 +133,7 @@ jobs:
         id: decide
         uses: actions/github-script@v9
         env:
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
           ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
           DISPATCH_ISSUE: ${{ inputs.issue_number || '' }}
           DISPATCH_PULL: ${{ inputs.pull_number || '' }}
@@ -387,7 +387,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
-          TRUSTED_COMMENT_AUTHORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          TRUSTED_COMMENT_AUTHORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -424,7 +424,7 @@ jobs:
         env:
           PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
           SOURCE_ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
         with:
           github-token: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -3821,7 +3821,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           PULL_NUMBER: ${{ steps.openpr.outputs.pull_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
         with:
           # Prefer maintainer PAT so Codex connector sees a human identity.
           github-token: ${{ secrets.CODEX_REQUEST_GITHUB_TOKEN || secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -3974,7 +3974,7 @@ jobs:
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
       MAX_ROUNDS: ${{ vars.CURSOR_CODEX_FIX_MAX_ROUNDS || '40' }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
       # Bot PAT can convert draft + comment; default GITHUB_TOKEN often cannot.
       GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
@@ -4235,7 +4235,7 @@ jobs:
         if: steps.codex.outputs.action == 'request_review'
         uses: actions/github-script@v9
         with:
-          # @codex must come from a human identity connected to Codex (binaricat PAT).
+          # @codex must come from a human identity connected to Codex (lemon-casino PAT).
           github-token: ${{ secrets.CODEX_REQUEST_GITHUB_TOKEN || secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.RUNNER_TEMP}/cursor-automation.cjs`);
@@ -4342,7 +4342,7 @@ jobs:
           GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           EXPECTED_HEAD: ${{ steps.codex.outputs.head_sha }}
           PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+          OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
         run: |
           set -euo pipefail
           trusted_comment_authors="$(jq -Rn --arg raw "$OWN_ACTORS,github-actions[bot],github-actions" '$raw | split(",") | map(ascii_downcase) | unique')"
@@ -5113,7 +5113,7 @@ jobs:
       CODEX_REVIEW_ID: ${{ inputs.codex_review_id }}
       CODEX_HEAD_SHA: ${{ inputs.codex_head_sha }}
       CODEX_DISPATCH_ID: ${{ inputs.codex_dispatch_id }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Delete matching poll marker
         uses: actions/github-script@v9
@@ -5159,7 +5159,7 @@ jobs:
       pull-requests: write
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Checkout helpers
         uses: actions/checkout@v7
@@ -5192,7 +5192,7 @@ jobs:
       - name: Comment @codex review after human push
         uses: actions/github-script@v9
         with:
-          # Human-connected Codex identity (binaricat PAT); not lemonssh-bot.
+          # Human-connected Codex identity (lemon-casino PAT); not lemonssh-bot.
           github-token: ${{ secrets.CODEX_REQUEST_GITHUB_TOKEN || secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const auto = require(`${process.env.GITHUB_WORKSPACE}/scripts/cursor-automation.cjs`);
@@ -5307,7 +5307,7 @@ jobs:
       pull-requests: write
     env:
       PULL_NUMBER: ${{ needs.route.outputs.pull_number }}
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
     steps:
       - name: Checkout helpers
         uses: actions/checkout@v7
@@ -5401,7 +5401,7 @@ jobs:
       pull-requests: write
       actions: write
     env:
-      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'binaricat,lemonssh-bot,github-actions[bot]' }}
+      OWN_ACTORS: ${{ vars.AUTOMATION_OWN_ACTORS || 'lemon-casino,lemonssh-bot,github-actions[bot]' }}
       ISSUE_BOT_LOGINS: ${{ vars.AUTOMATION_ISSUE_BOT_LOGINS || 'lemonssh-bot,github-actions[bot]' }}
       MAX_ROUNDS: ${{ vars.CURSOR_CODEX_FIX_MAX_ROUNDS || '40' }}
       GH_TOKEN: ${{ secrets.TRIAGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
