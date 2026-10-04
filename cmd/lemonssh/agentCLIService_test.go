@@ -55,9 +55,21 @@ func TestPrewarmRefreshesShellEnvOnce(t *testing.T) {
 		t.Fatalf("login-shell probe must run once per process, ran %d times", calls)
 	}
 
-	withoutRefresh := newAgentCLIService()
-	if result := withoutRefresh.Prewarm(); !result.OK || result.Refreshed {
-		t.Fatalf("an untouched service must not claim a refresh, got %+v", result)
+	// A probe that applies nothing must not claim a refresh. The real probe
+	// is platform-specific by design — a permanent no-op on Windows (registry
+	// built PATH) and legitimately applied=true on Unix when the login shell
+	// merges its PATH — so the no-refresh mapping is asserted through the
+	// hook instead of the platform's probe behavior.
+	notApplied := newAgentCLIService()
+	notApplied.refreshShellEnvForTest = func() (bool, error) { return false, nil }
+	if result := notApplied.Prewarm(); !result.OK || result.Refreshed || result.Error != "" {
+		t.Fatalf("a service whose probe applies nothing must not claim a refresh, got %+v", result)
+	}
+	if runtime.GOOS == "windows" {
+		// The real Windows probe never touches the environment.
+		if result := newAgentCLIService().Prewarm(); !result.OK || result.Refreshed || result.Error != "" {
+			t.Fatalf("windows prewarm without a shell probe must not claim a refresh, got %+v", result)
+		}
 	}
 }
 

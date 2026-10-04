@@ -46,26 +46,35 @@ func TestExternalAgentPermissionModesFailClosed(t *testing.T) {
 func TestExternalAgentAttachmentsStayInsideManagedTemp(t *testing.T) {
 	root := t.TempDir()
 	service := newExternalAgentService("", root)
+	payload := base64.StdEncoding.EncodeToString([]byte("image"))
 	request := ExternalAgentStreamRequest{
 		RequestID: `..\\..\\outside`,
-		Images: []ExternalAgentImage{{
-			Filename:   `..\\escape.png`,
-			Base64Data: base64.StdEncoding.EncodeToString([]byte("image")),
-		}},
+		Images: []ExternalAgentImage{
+			// Windows-style traversal must flatten to the base name on every
+			// platform, including Linux where `\` is a legal filename byte.
+			{Filename: `..\\escape.png`, Base64Data: payload},
+			// POSIX-style traversal.
+			{Filename: "../../also-escape.png", Base64Data: payload},
+			// Dot-only names carry no usable file name.
+			{Filename: `..`, Base64Data: payload},
+		},
 	}
 	paths, cleanup := service.stageImages(request)
 	defer cleanup()
-	if len(paths) != 1 {
-		t.Fatalf("expected one staged image, got %v", paths)
+	if len(paths) != 3 {
+		t.Fatalf("expected three staged images, got %v", paths)
 	}
 	absoluteRoot, _ := filepath.Abs(root)
-	absolutePath, _ := filepath.Abs(paths[0])
-	relative, err := filepath.Rel(absoluteRoot, absolutePath)
-	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
-		t.Fatalf("staged image escaped managed temp: %q", absolutePath)
-	}
-	if filepath.Base(paths[0]) != "001-escape.png" {
-		t.Fatalf("unexpected staged name: %q", filepath.Base(paths[0]))
+	wantNames := []string{"001-escape.png", "002-also-escape.png", "003-attachment.bin"}
+	for index, stagedPath := range paths {
+		absolutePath, _ := filepath.Abs(stagedPath)
+		relative, err := filepath.Rel(absoluteRoot, absolutePath)
+		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
+			t.Fatalf("staged image escaped managed temp: %q", absolutePath)
+		}
+		if filepath.Base(stagedPath) != wantNames[index] {
+			t.Fatalf("unexpected staged name: %q", filepath.Base(stagedPath))
+		}
 	}
 	cleanup()
 	if _, err := os.Stat(externalAttachmentDirectory(root, request.RequestID)); !os.IsNotExist(err) {

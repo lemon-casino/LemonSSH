@@ -7,6 +7,7 @@ package ssh
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -16,6 +17,43 @@ import (
 	"sync"
 	"time"
 )
+
+const (
+	// commandProxyStartWindow is how long DialCommandProxy observes the child
+	// for an immediate exit (unknown binary, bad arguments) before handing the
+	// transport to the SSH handshake.
+	commandProxyStartWindow = 300 * time.Millisecond
+	// commandProxyKillDelay bounds how long Close waits for a graceful child
+	// exit before killing the process.
+	commandProxyKillDelay = 2 * time.Second
+	// commandProxyWaitDelay bounds how long cmd.Wait may keep waiting on the
+	// child's I/O pipes after the child process has exited. Orphaned
+	// descendants can hold those pipes open indefinitely; without this bound
+	// Wait never returns, done never closes, and CommandProxyConn.Close then
+	// wedges every SSH teardown path (handshake deadline, transport close)
+	// because they all funnel through its sync.Once.
+	commandProxyWaitDelay = 2 * time.Second
+)
+
+// syncBuffer is a concurrency-safe stderr sink: with WaitDelay set, Wait can
+// return while os/exec's stderr copier is still draining the pipe, so reads
+// must not race the copier's writes.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf strings.Builder
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 // expandProxyTokens substitutes the OpenSSH ProxyCommand tokens: %h (host),
 // %p (port) and %% (literal percent).
@@ -42,7 +80,7 @@ type CommandProxyConn struct {
 	cmd     *exec.Cmd
 	stdin   io.WriteCloser
 	stdout  io.ReadCloser
-	stderr  *strings.Builder
+	stderr  *syncBuffer
 	done    chan struct{}
 	waitErr error
 
@@ -99,6 +137,11 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 		shell, flag := shellForCommand()
 		cmd = exec.CommandContext(ctx, shell, flag, expanded)
 	}
+	// Bound cmd.Wait itself: once the child has exited, os/exec closes the I/O
+	// pipes after WaitDelay instead of waiting for an EOF that orphaned
+	// descendants may never deliver. Without this, Wait (and therefore done)
+	// can remain blocked forever even though the child is long dead.
+	cmd.WaitDelay = commandProxyWaitDelay
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("proxy command stdin: %w", err)
@@ -108,7 +151,7 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 		_ = stdin.Close()
 		return nil, fmt.Errorf("proxy command stdout: %w", err)
 	}
-	stderr := &strings.Builder{}
+	stderr := &syncBuffer{}
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
 		_ = stdin.Close()
@@ -134,7 +177,7 @@ func DialCommandProxy(ctx context.Context, command, address string) (net.Conn, e
 	case <-ctx.Done():
 		_ = conn.Close()
 		return nil, ctx.Err()
-	case <-time.After(300 * time.Millisecond):
+	case <-time.After(commandProxyStartWindow):
 	}
 	return conn, nil
 }
@@ -149,7 +192,19 @@ func (c *CommandProxyConn) ErrString() string {
 	}
 }
 
-func (c *CommandProxyConn) Read(p []byte) (int, error)  { return c.stdout.Read(p) }
+func (c *CommandProxyConn) Read(p []byte) (int, error) {
+	n, err := c.stdout.Read(p)
+	// Surface a dead child as the read error so the SSH handshake failure
+	// carries the proxy's own diagnosis instead of a bare EOF. ErrString never
+	// blocks: while the child is (or may still be) running it returns empty.
+	if n == 0 && errors.Is(err, io.EOF) {
+		if msg := c.ErrString(); msg != "" {
+			return n, fmt.Errorf("proxy command exited: %s", msg)
+		}
+	}
+	return n, err
+}
+
 func (c *CommandProxyConn) Write(p []byte) (int, error) { return c.stdin.Write(p) }
 
 func (c *CommandProxyConn) Close() error {
@@ -159,11 +214,23 @@ func (c *CommandProxyConn) Close() error {
 		_ = c.stdout.Close()
 		select {
 		case <-c.done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(commandProxyKillDelay):
 			if c.cmd.Process != nil {
 				_ = c.cmd.Process.Kill()
 			}
-			<-c.done
+			select {
+			case <-c.done:
+			case <-time.After(commandProxyWaitDelay):
+				// The child's exit could not be observed even after Kill
+				// (for example an orphaned descendant keeps the I/O pipes
+				// open and blocks Wait). Give up instead of blocking forever:
+				// the SSH handshake deadline, transport close, and
+				// x/crypto/ssh's own goroutines all close this connection and
+				// serialize on closeOnce, so an unbounded wait here wedges
+				// the whole dial path.
+				firstErr = errors.New("proxy command did not exit after kill")
+				return
+			}
 		}
 		if c.waitErr != nil && c.waitErr.Error() != "exit status 0" {
 			firstErr = c.waitErr

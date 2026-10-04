@@ -2,7 +2,7 @@ package deeplink
 
 import (
 	"errors"
-	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -46,19 +46,37 @@ func (f *fakeStore) GetString(keyPath, valueName string) (string, error) {
 	return value, nil
 }
 
+// platformExecutable returns an absolute path in the running platform's
+// native form. Both registration surfaces bake the command into the OS with
+// no working-directory context, so the executable path must be absolute in
+// native form (production passes os.Executable()): a Windows path is not
+// absolute on Linux and vice versa, and the implementations fail closed on
+// such input rather than resolving it against the process cwd.
+func platformExecutable() string {
+	if runtime.GOOS == "windows" {
+		return `C:\Apps\LemonSSH\LemonSSH.exe`
+	}
+	return "/opt/LemonSSH/lemonssh"
+}
+
 func TestSetOSProtocolsWritesAllSchemes(t *testing.T) {
 	store := newFakeStore()
-	exe := `C:\Apps\LemonSSH\LemonSSH.exe`
+	exe := platformExecutable()
 	if err := SetOSProtocols(store, exe, true); err != nil {
 		t.Fatal(err)
 	}
-	// Enable registers both the current and the legacy schemes.
+	// Enable registers both the current and the legacy schemes. The command
+	// template `"%s" "%1"` is the platform-independent spec format built by
+	// protocolSpecsForSchemes: on Windows this asserts the exact registry
+	// value `"C:\Apps\LemonSSH\LemonSSH.exe" "%1"`, on Linux the same format
+	// carrying the native absolute path.
+	wantCommand := `"` + exe + `" "%1"`
 	for _, scheme := range append(append([]string{}, ProtocolSchemes...), LegacyProtocolSchemes...) {
 		command, err := store.GetString(classesRoot+"\\"+scheme+"\\shell\\open\\command", "")
 		if err != nil {
 			t.Fatalf("scheme %s missing command: %v", scheme, err)
 		}
-		if command != `"C:\Apps\LemonSSH\LemonSSH.exe" "%1"` {
+		if command != wantCommand {
 			t.Fatalf("scheme %s command %q", scheme, command)
 		}
 		if urlProtocol, err := store.GetString(classesRoot+"\\"+scheme, "URL Protocol"); err != nil || urlProtocol != "" {
@@ -72,7 +90,7 @@ func TestSetOSProtocolsWritesAllSchemes(t *testing.T) {
 
 func TestSetOSProtocolsDisableRemovesTrees(t *testing.T) {
 	store := newFakeStore()
-	exe := filepath.Join("C:", "Apps", "LemonSSH.exe")
+	exe := platformExecutable()
 	if err := SetOSProtocols(store, exe, true); err != nil {
 		t.Fatal(err)
 	}
@@ -106,14 +124,14 @@ func TestSetOSProtocolsRejectsEmptyExecutable(t *testing.T) {
 func TestSetOSProtocolsPropagatesStoreFailure(t *testing.T) {
 	store := newFakeStore()
 	store.failOn = "telnet"
-	if err := SetOSProtocols(store, "C:\\x\\LemonSSH.exe", true); err == nil {
+	if err := SetOSProtocols(store, platformExecutable(), true); err == nil {
 		t.Fatal("store failure must propagate")
 	}
 }
 
 func TestOSProtocolsRegisteredFalseWhenCommandDrifted(t *testing.T) {
 	store := newFakeStore()
-	exe := "C:\\Apps\\LemonSSH.exe"
+	exe := platformExecutable()
 	if err := SetOSProtocols(store, exe, true); err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +148,7 @@ func TestOSProtocolsRegisteredFalseWhenCommandDrifted(t *testing.T) {
 // off and push them into re-enabling for nothing.
 func TestOSProtocolsRegisteredWithLegacyOnlyRegistration(t *testing.T) {
 	store := newFakeStore()
-	exe := "C:\\Apps\\LemonSSH.exe"
+	exe := platformExecutable()
 	// Only the legacy scheme set is registered (as an old release did).
 	if err := SetOSProtocols(store, exe, true); err != nil {
 		t.Fatal(err)
@@ -148,7 +166,56 @@ func TestOSProtocolsRegisteredWithLegacyOnlyRegistration(t *testing.T) {
 // reads as unregistered.
 func TestOSProtocolsRegisteredFalseWithoutAnyScheme(t *testing.T) {
 	store := newFakeStore()
-	if OSProtocolsRegistered(store, "C:\\Apps\\LemonSSH.exe") {
+	if OSProtocolsRegistered(store, platformExecutable()) {
 		t.Fatal("an empty registry must read as not registered")
+	}
+}
+
+// TestProtocolSpecsRequireNativeAbsolutePath pins the input contract the
+// registry spec builder shares with the .desktop writer: a relative (or
+// foreign-platform) executable path must fail closed on every platform
+// instead of being silently resolved against the process cwd — the exact bug
+// class the Linux CI failure exposed (a Windows-style path joined onto the
+// runner's cwd). The native absolute path keeps yielding the platform-
+// independent `"%s" "%1"` command template.
+func TestProtocolSpecsRequireNativeAbsolutePath(t *testing.T) {
+	if _, err := ProtocolSpecs("relative/LemonSSH.exe"); err == nil {
+		t.Fatal("a relative path must fail closed on every platform")
+	}
+	exe := platformExecutable()
+	specs, err := ProtocolSpecs(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCommand := `"` + exe + `" "%1"`
+	for _, spec := range specs {
+		if spec.ValueName == "" && strings.HasSuffix(spec.KeyPath, "\\shell\\open\\command") && spec.Value != wantCommand {
+			t.Fatalf("command %q, want %q", spec.Value, wantCommand)
+		}
+	}
+}
+
+// TestDesktopWriterUsesPlatformNativePaths asserts the real .desktop output
+// format (the Linux production surface) alongside the platform boundary: the
+// writer requires an absolute Unix path, so on Linux a Windows-style exe path
+// fails closed and can never leak into a registration, and the entry
+// advertises every scheme including the legacy netcatty://.
+func TestDesktopWriterUsesPlatformNativePaths(t *testing.T) {
+	entry, err := DesktopEntry("/opt/LemonSSH/lemonssh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(entry, `Exec="/opt/LemonSSH/lemonssh" %u`) {
+		t.Fatalf("unexpected Exec: %s", entry)
+	}
+	if !strings.Contains(entry, "MimeType=x-scheme-handler/ssh;x-scheme-handler/telnet;x-scheme-handler/lemonssh;x-scheme-handler/netcatty;") {
+		t.Fatalf("legacy netcatty scheme must stay advertised: %s", entry)
+	}
+	if runtime.GOOS != "windows" {
+		// A Windows path is not absolute on this platform; the writer must
+		// reject it rather than treat it as a usable Exec target.
+		if _, err := DesktopEntry(`C:\Apps\LemonSSH\LemonSSH.exe`); err == nil {
+			t.Fatal("a Windows path must fail closed on non-Windows platforms")
+		}
 	}
 }

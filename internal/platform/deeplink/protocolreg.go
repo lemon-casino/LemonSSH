@@ -50,11 +50,16 @@ func protocolSpecsForSchemes(exePath string, schemes []string) ([]struct{ KeyPat
 	if trimmed == "" {
 		return nil, fmt.Errorf("protocol registration requires the executable path")
 	}
-	absolute, err := filepath.Abs(trimmed)
-	if err != nil {
-		return nil, fmt.Errorf("resolve executable path: %w", err)
+	// The command is baked into the OS with no working-directory context, so a
+	// relative path would silently resolve against whatever cwd the process
+	// happened to have — on Linux even a Windows-style path like
+	// C:\Apps\LemonSSH.exe is relative and would be joined onto cwd. Fail
+	// closed instead (matching the .desktop writer's absolute-path contract);
+	// production callers pass os.Executable(), which is natively absolute.
+	if !filepath.IsAbs(trimmed) {
+		return nil, fmt.Errorf("protocol registration requires an absolute executable path: %q", trimmed)
 	}
-	command := fmt.Sprintf(`"%s" "%%1"`, absolute)
+	command := fmt.Sprintf(`"%s" "%%1"`, filepath.Clean(trimmed))
 	specs := make([]struct{ KeyPath, ValueName, Value string }, 0, len(schemes)*2)
 	for _, scheme := range schemes {
 		root := classesRoot + "\\" + scheme

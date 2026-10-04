@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -345,6 +346,25 @@ func externalAttachmentDirectory(tempRoot, requestID string) string {
 	return filepath.Join(tempRoot, "agent-attachments", fmt.Sprintf("%x", sum[:]))
 }
 
+// safeExternalAttachmentName flattens an untrusted attachment filename to a
+// single path element that is safe on every platform. Both slash kinds are
+// separators: a Windows-style `..\name.png` must not smuggle its dot segments
+// through filepath.Base on Linux, where `\` is a legal filename byte. NUL
+// bytes are rejected and dot-only segments ("." / "..") never survive, so the
+// staged name is always a flat name inside the managed attachment directory.
+// An empty result means the filename carried no usable name.
+func safeExternalAttachmentName(filename string) string {
+	if strings.ContainsRune(filename, '\x00') {
+		return ""
+	}
+	normalized := strings.ReplaceAll(filename, "\\", "/")
+	name := path.Base(normalized)
+	if name == "" || name == "." || name == ".." || name == "/" {
+		return ""
+	}
+	return name
+}
+
 func (s *ExternalAgentService) stageImages(request ExternalAgentStreamRequest) ([]string, func()) {
 	if len(request.Images) == 0 {
 		return nil, func() {}
@@ -371,8 +391,8 @@ func (s *ExternalAgentService) stageImages(request ExternalAgentStreamRequest) (
 		if err != nil || len(data) > maxExternalAgentImageBytes {
 			continue
 		}
-		name := filepath.Base(image.Filename)
-		if name == "." || name == "" {
+		name := safeExternalAttachmentName(image.Filename)
+		if name == "" {
 			name = "attachment.bin"
 		}
 		name = fmt.Sprintf("%03d-%s", index+1, name)

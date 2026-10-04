@@ -50,7 +50,11 @@ func SetNativeProtocols(executable string, enabled bool) error {
 	if err = os.WriteFile(path, []byte(entry), 0600); err != nil {
 		return err
 	}
-	for _, scheme := range ProtocolSchemes {
+	// Wire the current and the legacy scheme defaults, mirroring the Windows
+	// registry path (enable writes both sets): pre-rename netcatty:// handoffs
+	// keep working after an upgrade. The desktop entry's MimeType advertises
+	// the same sets.
+	for _, scheme := range append(append([]string{}, ProtocolSchemes...), LegacyProtocolSchemes...) {
 		out, err := exec.Command("xdg-mime", "default", desktopID, "x-scheme-handler/"+scheme).CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("register %s: %w: %s", scheme, err, strings.TrimSpace(string(out)))

@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -228,6 +229,62 @@ func TestDialProxyPrecedesJumpChain(t *testing.T) {
 			t.Fatal(err)
 		}
 		transport.Close()
+	}
+}
+
+// refusedAddress returns a loopback address that reliably refuses connections:
+// a listener is created only to pick a free port, then closed.
+func refusedAddress(t *testing.T) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return address
+}
+
+// TestDialProxyCommandFailureReturnsPromptly is the regression guard for the
+// Linux CI hang: a proxy command that cannot start, or that dies immediately
+// without carrying the handshake, must surface as a dial error in bounded
+// time — never as a wedged handshake.
+func TestDialProxyCommandFailureReturnsPromptly(t *testing.T) {
+	_, policy, _ := sshDialFixture(t, nil)
+	dead := "definitely-not-a-real-binary-3f9a1c"
+	if runtime.GOOS == "windows" {
+		dead += ".exe"
+	}
+	cases := map[string]string{
+		"missing binary": quoteCommandForShell(dead),
+		// The helper dials a refused port and exits 1 immediately, so the
+		// proxy child dies right around the start-failure window; whether it
+		// is caught there or by the handshake deadline, the dial must return.
+		"immediate exit": quoteCommandForShell(buildProxyHelper(t)) + " " + refusedAddress(t),
+	}
+	for name, command := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := configAt("target.invalid:22", policy)
+			config.ProxyCommand = command
+			result := make(chan error, 1)
+			go func() {
+				transport, dialErr := Dial(context.Background(), config)
+				if dialErr == nil {
+					_ = transport.Close()
+				}
+				result <- dialErr
+			}()
+			select {
+			case dialErr := <-result:
+				if dialErr == nil {
+					t.Fatal("dial through a failing proxy command must fail")
+				}
+			case <-time.After(15 * time.Second):
+				t.Fatal("dial did not return after the proxy command failed")
+			}
+		})
 	}
 }
 

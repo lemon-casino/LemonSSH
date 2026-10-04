@@ -264,21 +264,25 @@ func TestAddExternalClientEntryMergesClaudeJSON(t *testing.T) {
 
 func TestExternalClientAddCommandFormatsMatchCard(t *testing.T) {
 	probe := tempExternalClientProbe(t, externalClientCodex, "x")
+	// Fixed fixtures keep every expectation identical on Windows and Linux:
+	// formatExternalClientAddCommand is pure and its quoting mirrors
+	// ExternalMcpCard's quoteShellArg (quote only when the value carries
+	// whitespace, quotes or backslashes). The POSIX discovery path therefore
+	// stays unquoted while the Windows launcher path is quoted and escaped.
 	probe.launcherPath = `C:\Program Files\LemonSSH\LemonSSH-mcp.exe`
-	envPair := externalMcpDiscoveryEnvVar + `="` + strings.ReplaceAll(strings.ReplaceAll(probe.discoveryPath, `\`, `\\`), `"`, `\"`) + `"`
-	launcher := `"` + strings.ReplaceAll(strings.ReplaceAll(probe.launcherPath, `\`, `\\`), `"`, `\"`) + `"`
+	probe.discoveryPath = "/opt/lemonssh/profile/external-mcp-discovery.json"
 	if got := formatExternalClientAddCommand(probe); got !=
-		`codex mcp add lemonssh-external --env `+envPair+` -- `+launcher {
+		`codex mcp add lemonssh-external --env LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE=/opt/lemonssh/profile/external-mcp-discovery.json -- "C:\\Program Files\\LemonSSH\\LemonSSH-mcp.exe"` {
 		t.Fatalf("codex command mismatch: %q", got)
 	}
 	probe.client = externalClientClaude
 	if got := formatExternalClientAddCommand(probe); got !=
-		`claude mcp add -s user lemonssh-external -e `+envPair+` -- `+launcher {
+		`claude mcp add -s user lemonssh-external -e LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE=/opt/lemonssh/profile/external-mcp-discovery.json -- "C:\\Program Files\\LemonSSH\\LemonSSH-mcp.exe"` {
 		t.Fatalf("claude command mismatch: %q", got)
 	}
 	probe.client = externalClientGrok
 	if got := formatExternalClientAddCommand(probe); got !=
-		`grok mcp add lemonssh-external -e `+envPair+` -- `+launcher {
+		`grok mcp add lemonssh-external -e LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE=/opt/lemonssh/profile/external-mcp-discovery.json -- "C:\\Program Files\\LemonSSH\\LemonSSH-mcp.exe"` {
 		t.Fatalf("grok command mismatch: %q", got)
 	}
 
@@ -286,6 +290,13 @@ func TestExternalClientAddCommandFormatsMatchCard(t *testing.T) {
 	probe.launcherPath = `C:\My Apps\Le"monSSH-mcp.exe`
 	if got := formatExternalClientAddCommand(probe); !strings.HasSuffix(got, `-- "C:\\My Apps\\Le\"monSSH-mcp.exe"`) {
 		t.Fatalf("quoting mismatch: %q", got)
+	}
+
+	// Windows-style discovery paths carry backslashes and are quoted exactly
+	// like the card renders them on Windows.
+	probe.discoveryPath = `C:\Program Files\LemonSSH\external-mcp-discovery.json`
+	if got := formatExternalClientAddCommand(probe); !strings.Contains(got, `-e LEMONSSH_EXTERNAL_MCP_DISCOVERY_FILE="C:\\Program Files\\LemonSSH\\external-mcp-discovery.json"`) {
+		t.Fatalf("quoted env pair mismatch: %q", got)
 	}
 
 	// No discovery path known: env flags are omitted.

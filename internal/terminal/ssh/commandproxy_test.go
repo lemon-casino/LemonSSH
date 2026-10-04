@@ -34,11 +34,53 @@ func main() {
 }
 `
 
+// orphanProxyHelperSource exits immediately while an orphaned grandchild keeps
+// the shared stdout/stderr pipes open. This reproduces the teardown wedge: a
+// child whose exit os/exec's Wait cannot observe, because a descendant holds
+// the I/O pipes and starves the stderr copier of EOF. The proxy transport must
+// still tear down in bounded time instead of blocking the dial forever. The
+// orphan ignores its stdin entirely (the previous code closed stdin first and
+// relied on that to unwedge it) and only leaves once the sentinel appears.
+const orphanProxyHelperSource = `package main
+
+import (
+	"os"
+	"os/exec"
+	"time"
+)
+
+func main() {
+	if len(os.Args) > 2 && os.Args[1] == "orphan" {
+		deadline := time.Now().Add(30 * time.Second)
+		for time.Now().Before(deadline) {
+			if _, err := os.Stat(os.Args[2]); err == nil {
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		return
+	}
+	orphan := exec.Command(os.Args[0], "orphan", os.Args[1])
+	orphan.Stdout = os.Stdout
+	orphan.Stderr = os.Stderr
+	if orphan.Start() != nil {
+		os.Exit(1)
+	}
+	// Exit while the orphan keeps the pipes open: Wait must not wait for I/O
+	// EOF indefinitely.
+	os.Exit(0)
+}
+`
+
 func buildProxyHelper(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
+	return buildHelperInDir(t, t.TempDir(), proxyHelperSource)
+}
+
+func buildHelperInDir(t *testing.T, dir, source string) string {
+	t.Helper()
 	src := filepath.Join(dir, "helper.go")
-	if err := os.WriteFile(src, []byte(proxyHelperSource), 0o600); err != nil {
+	if err := os.WriteFile(src, []byte(source), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	out := filepath.Join(dir, "proxyhelper")
@@ -83,7 +125,9 @@ func TestDialCommandProxyCarriesSSHHandshake(t *testing.T) {
 	}()
 
 	helper := buildProxyHelper(t)
-	command := quoteCommandForShell(helper + " 127.0.0.1:%p")
+	// Quote only the helper path: quoting the whole command line would make
+	// `sh -c` treat "path args" as a single program name (exit 127, not found).
+	command := quoteCommandForShell(helper) + " 127.0.0.1:%p"
 	conn, err := DialCommandProxy(context.Background(), command, "127.0.0.1:"+itoaPort(listener.Addr().(*net.TCPAddr).Port))
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +156,51 @@ func TestDialCommandProxyFailsClosedOnEmptyCommand(t *testing.T) {
 	}
 }
 
+// TestDialCommandProxyBoundedTeardownWithUnobservableExit is the regression
+// guard for the Linux CI wedge: when the proxy child exits but an orphaned
+// descendant keeps its I/O pipes open, os/exec's Wait cannot observe the exit
+// and previously blocked forever. DialCommandProxy must still return a
+// transport, and tearing it down must stay bounded so the SSH handshake
+// deadline and transport close can never wedge on the proxy.
+func TestDialCommandProxyBoundedTeardownWithUnobservableExit(t *testing.T) {
+	dir := t.TempDir()
+	sentinel := filepath.Join(dir, "orphan.done")
+	// The orphan keeps the helper's executable image locked while it sleeps on
+	// Windows, so the sentinel-driven cleanup below removes the directory with
+	// retries before t.TempDir's own cleanup runs (cleanups execute last in,
+	// first out).
+	t.Cleanup(func() {
+		if err := os.WriteFile(sentinel, nil, 0o600); err != nil {
+			t.Logf("write orphan sentinel: %v", err)
+		}
+		// The orphan polls for the sentinel every 50ms; give it a few cycles
+		// to exit before removing the directory tree that holds the sentinel.
+		time.Sleep(250 * time.Millisecond)
+		deadline := time.Now().Add(30 * time.Second)
+		for {
+			err := os.RemoveAll(dir)
+			if err == nil || time.Now().After(deadline) {
+				if err != nil {
+					t.Logf("orphan helper cleanup: %v", err)
+				}
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	})
+	helper := buildHelperInDir(t, dir, orphanProxyHelperSource)
+	command := quoteCommandForShell(helper) + " " + quoteCommandForShell(sentinel)
+	conn, err := DialCommandProxy(context.Background(), command, "127.0.0.1:22")
+	if err != nil {
+		t.Fatalf("unobservable child exit must still yield a transport: %v", err)
+	}
+	start := time.Now()
+	_ = conn.Close()
+	if elapsed := time.Since(start); elapsed > 10*time.Second {
+		t.Fatalf("teardown took %s; proxy child teardown must stay bounded", elapsed)
+	}
+}
+
 func TestDialCommandProxyFailsFastOnDeadCommand(t *testing.T) {
 	dead := "definitely-not-a-real-binary-3f9a1c"
 	if runtime.GOOS == "windows" {
@@ -134,9 +223,13 @@ func itoaPort(port int) string {
 	return string(digits)
 }
 
-func quoteCommandForShell(command string) string {
+// quoteCommandForShell quotes an executable path so the platform's shell (or
+// splitCommand on the direct-exec Windows path) treats it as one word even
+// when the temp directory contains spaces. Arguments must stay outside the
+// quotes: they belong to the command, not the program name.
+func quoteCommandForShell(path string) string {
 	if runtime.GOOS == "windows" {
-		return command
+		return "\"" + path + "\""
 	}
-	return "'" + command + "'"
+	return "'" + path + "'"
 }
