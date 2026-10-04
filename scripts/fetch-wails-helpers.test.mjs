@@ -198,9 +198,11 @@ test("legacy build provenance proofs keyed by netcatty still verify", async () =
   const release = structuredClone(lock.releases.et);
   // Simulate a pre-rename proof: the historical binary-repo name, the legacy
   // "netcatty" provenance key and a run URL pointing at the old repo slug.
+  // These strings are the historical proof bytes (binaricat org) that
+  // LEGACY_UPSTREAM_NAMES maps onto the renamed lock; do not rebrand them.
   // The third-party source repository is unchanged by the rename.
-  const legacyRepository = "lemon-casino/Netcatty-et-bin";
-  const legacyRun = "https://github.com/lemon-casino/Netcatty/actions/runs/26945446872";
+  const legacyRepository = "binaricat/Netcatty-et-bin";
+  const legacyRun = "https://github.com/binaricat/Netcatty/actions/runs/26945446872";
   const proof = {
     release: { repository: legacyRepository, tag: release.tag },
     upstream: { repository: release.source.repository, ref: release.source.tag, commit: release.source.commit },

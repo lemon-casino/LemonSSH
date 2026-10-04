@@ -156,8 +156,11 @@ test("nsisScript installs helper files and removes them on uninstall", () => {
     helperFiles,
   });
   for (const helperFile of helperFiles) {
+    // Split on both separators: path.basename keeps "C:\in\x.exe" whole on
+    // POSIX hosts, while the generator must always emit the bare file name.
+    const helperName = helperFile.split(/[\\/]/).pop();
     assert.ok(script.includes(`File "${helperFile}"`));
-    assert.ok(script.includes(`Delete "$INSTDIR\\${path.basename(helperFile)}"`));
+    assert.ok(script.includes(`Delete "$INSTDIR\\${helperName}"`));
   }
   // Without helpers only the main executable is File'd (backwards compatible).
   const plain = nsisScript({

@@ -62,16 +62,28 @@ export function archMapping(goarch) {
   }
 }
 
+// NSIS scripts are generated for Windows targets, so every path they embed
+// must use backslashes no matter which host OS assembles the script (the unit
+// tests run on Linux CI). Host paths may arrive with either separator
+// (path.join output differs per platform), so normalize them here and derive
+// basenames from both separators instead of path.basename, which only splits
+// on "\" on Windows and therefore keeps "C:\build\x.exe" whole on POSIX.
+const toNsisPath = (value) => String(value).replaceAll("/", "\\");
+const nsisBasename = (value) => {
+  const normalized = toNsisPath(value);
+  return normalized.split("\\").filter(Boolean).pop() ?? normalized;
+};
+
 export function nsisScript({ name, version, exeFile, outFile, helperFiles = [], schemes = PROTOCOL_SCHEMES }) {
   if (!name || !version || !exeFile || !outFile) {
     throw new Error("name, version, exeFile and outFile are required");
   }
-  const exeName = path.basename(exeFile);
-  const installFiles = [`  File "${exeFile}"`];
+  const exeName = nsisBasename(exeFile);
+  const installFiles = [`  File "${toNsisPath(exeFile)}"`];
   const uninstallFiles = [`  Delete "$INSTDIR\\${exeName}"`];
   for (const helperFile of helperFiles) {
-    const helperName = path.basename(helperFile);
-    installFiles.push(`  File "${helperFile}"`);
+    const helperName = nsisBasename(helperFile);
+    installFiles.push(`  File "${toNsisPath(helperFile)}"`);
     uninstallFiles.push(`  Delete "$INSTDIR\\${helperName}"`);
   }
   // URL-scheme handoff written exactly like internal/platform/deeplink/
@@ -93,7 +105,7 @@ export function nsisScript({ name, version, exeFile, outFile, helperFiles = [], 
   return [
     `; ${name} ${version} Windows installer (unsigned, no Authenticode)`,
     `Name "${name} ${version}"`,
-    `OutFile "${outFile}"`,
+    `OutFile "${toNsisPath(outFile)}"`,
     `InstallDir "$PROGRAMFILES64\\${name}"`,
     "SetCompressor lzma",
     "",

@@ -990,7 +990,14 @@ test("manifest validation refuses symlinked source manifests", async (context) =
   const target = path.join(root, "target.json");
   await writeFile(target, JSON.stringify(manifest()));
   await symlink(target, path.join(root, "lemonssh.plugin.json"));
-  await assert.rejects(readAndValidateManifest(root), /must be a regular file/);
+  // The symlink must be refused without being followed. Both refusals are
+  // safe: discovery lstats each candidate and only accepts isFile() entries,
+  // so a symlinked manifest is skipped and reported as missing; if a symlink
+  // candidate is ever selected instead, the regular-file check must reject it.
+  await assert.rejects(
+    readAndValidateManifest(root),
+    /must be a regular file|manifest is missing/u,
+  );
 });
 
 test("validated manifest snapshots reject changed package bytes", () => {
