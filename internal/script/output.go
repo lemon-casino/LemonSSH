@@ -1,28 +1,28 @@
 package script
 
 import (
+	"context"
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/dlclark/regexp2"
 )
 
-const (
-	outputCap           = 1024 * 1024
-	freshMatchTailSlack = 512
-)
+const outputCap = 1024 * 1024
 
-var (
-	defaultPromptSuffixes = []string{"# ", "$ ", "~# ", "~$ ", "% "}
-	promptEnd             = regexp2.MustCompile(`(?:~[#$]\s*|[@][^\n]{0,120}[:][^\n]{0,120}[#$%]\s*)$`, regexp2.None)
-)
+var promptEnd = regexp2.MustCompile(`(?:[#$%>]\s*|[@][^\n]{0,120}[:][^\n]{0,120}[#$%]\s*)$`, regexp2.None)
 
-// OutputWatch holds a rolling UTF-8 view of one session's terminal bytes.
+// OutputWatch retains display text separately from the consumed wait cursor.
 type OutputWatch struct {
-	mu   sync.Mutex
-	buf  strings.Builder
-	wait []chan struct{}
+	mu       sync.Mutex
+	text     string
+	base     int64
+	consumed int64
+	changed  chan struct{}
 }
 
 func (w *OutputWatch) Append(data []byte) {
@@ -30,112 +30,148 @@ func (w *OutputWatch) Append(data []byte) {
 		return
 	}
 	w.mu.Lock()
-	w.buf.Write(data)
-	if w.buf.Len() > outputCap {
-		keep := w.buf.String()[w.buf.Len()-outputCap/2:]
-		w.buf.Reset()
-		w.buf.WriteString(keep)
+	defer w.mu.Unlock()
+	w.text += string(data)
+	if len(w.text) > outputCap {
+		drop := len(w.text) - outputCap/2
+		for drop < len(w.text) && !utf8.RuneStart(w.text[drop]) {
+			drop++
+		}
+		w.text = w.text[drop:]
+		w.base += int64(drop)
 	}
-	waiters := w.wait
-	w.wait = nil
-	w.mu.Unlock()
-	for _, waiter := range waiters {
-		close(waiter)
+	if w.changed != nil {
+		close(w.changed)
 	}
+	w.changed = make(chan struct{})
 }
 
 func (w *OutputWatch) Reset() {
 	w.mu.Lock()
-	w.buf.Reset()
-	w.mu.Unlock()
+	defer w.mu.Unlock()
+	w.base += int64(len(w.text))
+	w.text = ""
+	w.consumed = w.base
+	if w.changed != nil {
+		close(w.changed)
+	}
+	w.changed = make(chan struct{})
 }
 
 func (w *OutputWatch) snapshot() string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.buf.String()
+	return w.text
 }
 
-func (w *OutputWatch) notify() <-chan struct{} {
-	ch := make(chan struct{})
+func (w *OutputWatch) position() int64 {
 	w.mu.Lock()
-	w.wait = append(w.wait, ch)
+	defer w.mu.Unlock()
+	return w.base + int64(len(w.text))
+}
+
+func (w *OutputWatch) consumeThrough(position int64) {
+	w.mu.Lock()
+	w.consumed = max(w.consumed, position)
 	w.mu.Unlock()
-	return ch
+}
+
+type waitPattern struct {
+	text string
+	re   *regexp2.Regexp
+}
+
+func literalWaitPattern(text string) waitPattern { return waitPattern{text: text} }
+
+func regexWaitPattern(body, flags string) (waitPattern, error) {
+	re, err := compileRegex(body, flags)
+	if err != nil {
+		return waitPattern{}, err
+	}
+	re.MatchTimeout = 100 * time.Millisecond
+	return waitPattern{re: re}, nil
+}
+
+func (w *OutputWatch) waitFor(ctx context.Context, patterns []waitPattern, timeout time.Duration, prompt bool) (string, int, error) {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	for {
+		if err := ctx.Err(); err != nil {
+			return "", -1, err
+		}
+		w.mu.Lock()
+		if w.changed == nil {
+			w.changed = make(chan struct{})
+		}
+		changed := w.changed
+		start := int(max(w.base, w.consumed) - w.base)
+		start = min(start, len(w.text))
+		if prompt && start == len(w.text) {
+			start = max(0, len(w.text)-512)
+		}
+		text := w.text[start:]
+		base := w.base + int64(start)
+		w.mu.Unlock()
+		for index, pattern := range patterns {
+			value, end, err := pattern.match(text)
+			if err != nil {
+				return "", -1, err
+			}
+			if end >= 0 {
+				w.consumeThrough(base + int64(end))
+				return value, index, nil
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return "", -1, ctx.Err()
+		case <-timer.C:
+			return "", -1, fmt.Errorf("timed out waiting for terminal output after %s", timeout)
+		case <-changed:
+		}
+	}
+}
+
+func (p waitPattern) match(text string) (string, int, error) {
+	if p.re == nil {
+		if index := strings.Index(text, p.text); index >= 0 {
+			return p.text, index + len(p.text), nil
+		}
+		return "", -1, nil
+	}
+	match, err := p.re.FindStringMatch(text)
+	if err != nil {
+		return "", -1, err
+	}
+	if match == nil {
+		return "", -1, nil
+	}
+	// regexp2 indexes runes, while the rolling buffer cursor is a byte offset.
+	runes := []rune(text)
+	return match.String(), len(string(runes[:match.Index+match.Length])), nil
 }
 
 func looksLikePrompt(text string) bool {
-	trimmed := strings.TrimRight(text, "\r\n")
-	if trimmed == "" {
-		return false
-	}
-	last := trimmed
-	if idx := strings.LastIndexAny(trimmed, "\r\n"); idx >= 0 {
-		last = trimmed[idx+1:]
-	}
-	for _, suffix := range defaultPromptSuffixes {
-		if strings.HasSuffix(last, suffix) {
-			return true
-		}
-	}
-	if match, _ := promptEnd.FindStringMatch(last); match != nil {
-		return true
-	}
-	return false
-}
-
-func containsFresh(text, needle string) bool {
-	if needle == "" {
-		return true
-	}
-	index := strings.LastIndex(text, needle)
-	if index < 0 {
-		return false
-	}
-	end := index + len(needle)
-	return end >= len(text)-freshMatchTailSlack
-}
-
-const regexScanTail = 64 * 1024
-
-// anyRegexFresh reports whether any pattern matches within the fresh tail
-// window of the rolling buffer. Patterns run on the regexp2 engine so
-// JavaScript-only features (backreferences, lookaround) keep working.
-func anyRegexFresh(text string, patterns []*regexp2.Regexp) bool {
-	start := 0
-	if len(text) > regexScanTail {
-		start = len(text) - regexScanTail - utf8.UTFMax
-		if start < 0 {
-			start = 0
-		}
-	}
-	tail := text[start:]
-	for _, re := range patterns {
-		match, err := re.FindStringMatchStartingAt(tail, start)
-		for match != nil {
-			if match.Index+match.Length >= len(text)-freshMatchTailSlack {
-				return true
-			}
-			match, err = re.FindNextMatch(match)
-			if err != nil {
-				break
-			}
-		}
-		if err != nil {
-			continue
-		}
-	}
-	return false
+	match, _ := promptEnd.FindStringMatch(strings.TrimRight(text, "\r\n"))
+	return match != nil
 }
 
 func validUTF8Tail(text string) string {
 	if utf8.ValidString(text) {
 		return text
 	}
-	for i := 0; i < len(text); i++ {
-		if utf8.ValidString(text[i:]) {
-			return text[i:]
+	return strings.ToValidUTF8(text, "\uFFFD")
+}
+
+func stringWaitPattern(value string, regex bool) (waitPattern, error) {
+	if strings.HasPrefix(value, "/") {
+		if slash := strings.LastIndex(value[1:], "/"); slash >= 0 {
+			slash++
+			return regexWaitPattern(value[1:slash], value[slash+1:])
 		}
 	}
-	return ""
+	if regex {
+		return regexWaitPattern(value, "")
+	}
+	return regexWaitPattern(regexp.QuoteMeta(value), "")
 }

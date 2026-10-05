@@ -36,6 +36,8 @@ type Principal struct {
 	ID    string
 	Kind  PrincipalKind
 	Scope []string
+	// ChatSessionID pins managed CLI/MCP children to their issuing chat.
+	ChatSessionID string
 }
 
 // AllowsSession reports whether the session/chat ID is inside the

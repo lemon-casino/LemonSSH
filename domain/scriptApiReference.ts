@@ -1,19 +1,23 @@
 import { DEFAULT_SCRIPT_TEMPLATE } from './snippetScript.ts';
 
-const EXECUTION_MODEL = `## Execution model (recorded-replay runner)
+const EXECUTION_MODEL = `## Execution model (JavaScript)
 
-LemonSSH does NOT run a JavaScript engine. A script is parsed line by line into
-recorded actions and replayed against the active terminal by the Go runner.
-Anything the parser does not recognize is rejected with \`unsupported script line\`
-before any action runs — keep scripts inside the grammar below.`;
+LemonSSH executes JavaScript in an isolated Go-hosted runtime. Scripts support
+variables, functions, loops, conditionals, template literals, RegExp, promises
+and async/await. Terminal access is exposed only through the nct API below.
+Node.js modules, require, process, filesystem/network globals and dynamic code
+generation (eval/Function) are not available. CPU-bound execution is interrupted
+after one second without yielding; await nct.sleep(...) for long computations.
+Stop cancels both JavaScript execution and pending host operations. Observer
+mode rejects terminal writes even when called through computed property names.`;
 
 const SOURCE_RULES = `## Script source rules
 
-- Blank lines, \`//\` comments, and the exact wrapper lines \`async function main()\`, \`}\` and \`await main();\` are ignored. Include them or not — nothing else from JavaScript is understood.
-- Every other statement must be exactly one supported \`nct.*\` call (list below). A statement may span multiple lines only while its brackets stay open (useful for \`nct.dialog.form\` object literals).
-- No general JavaScript: no \`if\`/\`for\`/\`while\`, no \`throw\`, no template literals or \`\${...}\` interpolation, no arithmetic or string concatenation, no property reads (e.g. \`nct.session.name\`), no helper functions.
-- Variables: only \`const name = await nct.dialog...\` and \`const name = await nct.screen.getText(...)\` assignments. A captured \`name\` can then be passed wherever a string argument is expected (\`sendLine\`, \`send\`, \`nct.log\`). No other expressions or reassignments.
-- The \`language: python\` field is a UI label only — there is no Python runtime.`;
+- Write top-level statements with await, an async function main(), or an async IIFE.
+- A declared main() is called automatically; the conventional final await main(); is not run twice.
+- Await terminal and dialog operations so dependent actions happen in order.
+- Arguments may be computed expressions. Dialog form specifications may be built dynamically.
+- The language: python field is a UI label only; Python is not an execution runtime.`;
 
 const TRIGGER_GUIDE = `## Triggers and host targeting
 
@@ -23,73 +27,54 @@ const TRIGGER_GUIDE = `## Triggers and host targeting
 | onConnect | Runs after SSH connect (global targetsAllHosts, dynamic targetGroups, then host connectScriptIds queue) |
 | onOutput | Runs when terminal output matches triggerPattern (regex) |
 
-Use \`targets\` (host id array), \`targetGroups\` (dynamic group path array), or \`targetsAllHosts: true\` to scope runs. Group paths include nested groups and are resolved against the latest host inventory.
-For per-host onConnect order, use \`host_connect_scripts_set\`. Group-scoped scripts remain inherited and are not copied into host queues.`;
+Use targets (host id array), targetGroups (dynamic group path array), or targetsAllHosts: true to scope runs. Group paths include nested groups and are resolved against the latest host inventory.
+For per-host onConnect order, use host_connect_scripts_set. Group-scoped scripts remain inherited and are not copied into host queues.`;
 
-const NCT_API = `## nct API reference (replay-supported calls only)
-
-Each call must appear as its own statement, exactly in these shapes.
+const NCT_API = `## nct API reference
 
 ### nct.screen
-- \`await nct.screen.waitForPrompt(ms)\` — wait for a shell prompt (# root / $ user)
-- \`await nct.screen.waitForText("text", ms)\` — wait for exact literal text (regex characters are escaped)
-- \`await nct.screen.waitForRegex("pattern", ms?)\` — wait for regex output; a quoted \`"/body/flags"\` string compiles as a regex (flags \`i\`, \`m\`, \`s\`), any other quoted string matches literally
-- \`await nct.screen.waitForAny(["p1", "/p2/i"], ms?)\` — wait until any quoted pattern matches
-- \`await nct.screen.sendLine("cmd")\` or \`await nct.screen.sendLine(name)\` — type command + Enter; an optional \`{ sensitive: true }\` second argument masks it in the run log
-- \`await nct.screen.send("text")\` / \`await nct.screen.send(name)\` — raw keys without Enter; also accepts \`{ sensitive: true }\`
-- \`const text = await nct.screen.getText()\` — capture the screen buffer; optionally \`getText(startRow, rowCount)\`
-- \`await nct.screen.clear()\` — clear the captured screen
+- await nct.screen.waitForPrompt(ms = 60000) — wait for a shell prompt.
+- await nct.screen.waitForText(text, ms = 30000) — wait for exact literal text; returns the matched text.
+- await nct.screen.waitForRegex(pattern, ms = 30000) — accepts a RegExp, regex source string, or legacy "/body/flags" string; returns matched text.
+- await nct.screen.waitFor(pattern, ms = 30000) — literal strings or RegExp.
+- await nct.screen.waitForAny(patterns, ms = 30000) — returns the zero-based matching pattern index.
+- Successful waits consume matching output so later waits do not reuse old matches. Timeouts offer retry, skip, or stop when the dialog host is available.
+- await nct.screen.sendLine(command, { sensitive: true }?) — type command then Enter. Sensitive values are masked in run logs.
+- await nct.screen.send(text, { sensitive: true }?) — raw keys without Enter.
+- await nct.screen.getText(startRow?, endRow?) — capture the screen buffer; row bounds are inclusive. Falls back to recent terminal output if the screen is unavailable.
+- await nct.screen.clear() — send terminal clear-screen bytes and clear captured output.
+- nct.screen.rows, nct.screen.cols, nct.screen.currentRow — last captured screen dimensions/cursor row.
 
 ### nct.session
-- \`await nct.session.sleep(ms)\` — pause between actions (there is no bare \`nct.sleep\` alias in replay)
-- \`await nct.session.startLog(path?)\` / \`await nct.session.stopLog()\`
-- \`await nct.session.disconnect()\`
+- nct.session.connected, nct.session.name, nct.session.hostname, nct.session.username — session metadata.
+- await nct.session.sleep(ms), or await nct.sleep(ms) — cancellable delay.
+- await nct.session.startLog(path?), await nct.session.stopLog().
+- await nct.session.disconnect() — close this session and end its script.
 
-### nct.dialog (requires non-Observer permission mode)
-- \`const go = await nct.dialog.confirm("msg")\` — yes/no
-- \`const value = await nct.dialog.prompt("msg")\` — text input; a \`sensitive\` option masks it. A second default-value argument is parsed but ignored by the replay runner.
-- \`await nct.dialog.alert("msg")\`
-- \`const answers = await nct.dialog.form({ title?, message?, fields })\` (or bare without \`const\`) — fields support \`select\`, \`checkbox\`, \`radio\`, \`textarea\`, and \`number\`
-- \`const pick = await nct.dialog.select("msg", ["a", "b"], "a?")\` (or bare) — convenience single-select
-- \`const pick = await nct.dialog.radio("msg", options, default?)\` (or bare)
-- \`const flag = await nct.dialog.checkbox("msg", defaultChecked?)\` (or bare)
+### nct.dialog
+- await nct.dialog.confirm(message) — boolean yes/no.
+- await nct.dialog.prompt(message, defaultValue = "", { sensitive: true }?) — text input, with default and sensitive masking.
+- await nct.dialog.alert(message).
+- await nct.dialog.form({ title?, message?, fields }) — returns an object keyed by visible field names.
+- await nct.dialog.select(message, options, defaultValue?), await nct.dialog.radio(message, options, defaultValue?) — selected string.
+- await nct.dialog.checkbox(message, defaultChecked = false) — boolean.
 
-\`select\` and \`radio\` options may be strings or \`{ label, value, description?, disabled? }\`; option values must be non-empty and unique within the field.
-\`textarea\` returns string values; \`number\` returns number values or \`undefined\` when optional and empty. \`number\` fields support submit-time \`min\`, \`max\`, and \`step\` validation.
-Fields may use \`visibleWhen: { field, equals|notEquals|truthy|falsy }\` for conditional display; \`visibleWhen.field\` must reference an earlier field. Hidden fields are not validated and are omitted from the submitted object.
-\`form\` returns an object keyed by visible field \`name\`. Field names must not be \`__proto__\`, \`prototype\`, or \`constructor\`. Text, number, select, and radio fields are required/defaulted by default; checkbox fields are optional boolean fields unless \`required: true\` is set.
-Dialog object literals accept quoted strings, numbers, \`true\`/\`false\`/\`null\`, arrays, and nested objects — no computed values.
+Form fields support select, checkbox, radio, textarea, and number. Choice options may be strings or { label, value, description?, disabled? }; values must be non-empty and unique. Number fields support min, max and step validation. visibleWhen: { field, equals|notEquals|truthy|falsy } must reference an earlier field; hidden fields are omitted. Reserved field names __proto__, prototype, constructor are rejected. A cancelled prompt or form rejects; catch the error to recover.
 
-### nct.progress (literal arguments only)
-- \`nct.progress.start("label", total)\` — opt-in determinate bar
-- \`nct.progress.set(n, "detail?")\` / \`nct.progress.step("detail?")\` / \`nct.progress.done()\`
+### Progress and logs
+- nct.progress.start(label, total), nct.progress.set(current, detail?), nct.progress.step(detail?), nct.progress.done().
+- nct.log(message), console.log(...values) — append to the script run log.
+- nct.version — application version.
 
-### nct.log
-- \`nct.log("message")\` or \`nct.log(name)\` — append to the script run log panel
-
-## Not available to replayed scripts
-
-\`nct.version\`, \`nct.session.connected\` / \`name\` / \`hostname\` / \`username\`, \`nct.screen.rows\` / \`cols\` / \`currentRow\`, the \`nct.screen.waitFor\` helper, and any other API or JavaScript construct not listed above are rejected as \`unsupported script line\`.`;
+Runs are bounded to 128 pending host calls, 512 log notifications and 20,000 host operations. Scripts cannot access native services outside nct.`;
 
 /** Markdown reference for AI agents — single source for scripts_reference tool and prompts. */
 export function getScriptApiReference(): string {
   return [
     '# LemonSSH automation script reference',
     '',
-    'Automation scripts are Vault snippets with `kind: "script"`. They replay recorded actions against the active terminal session.',
-    '',
-    EXECUTION_MODEL,
-    '',
-    SOURCE_RULES,
-    '',
-    TRIGGER_GUIDE,
-    '',
-    NCT_API,
-    '',
-    '## Minimal template',
-    '',
-    '```javascript',
-    DEFAULT_SCRIPT_TEMPLATE.trim(),
-    '```',
+    'Automation scripts are Vault snippets with `kind: "script"`. They execute JavaScript against the active terminal session.',
+    '', EXECUTION_MODEL, '', SOURCE_RULES, '', TRIGGER_GUIDE, '', NCT_API,
+    '', '## Minimal template', '', '```javascript', DEFAULT_SCRIPT_TEMPLATE.trim(), '```',
   ].join('\n');
 }

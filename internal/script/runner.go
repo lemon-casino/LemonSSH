@@ -4,9 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,14 +13,18 @@ import (
 // SessionWriter writes bytes into an existing terminal session.
 type SessionWriter func(sessionID string, data []byte) error
 
-// SessionCloser closes an existing terminal session.
 type SessionCloser func(sessionID string) error
-
-// SessionLogStarter opens a session log and returns the resolved path.
 type SessionLogStarter func(sessionID, filePath string) (string, error)
-
-// SessionLogStopper closes the session log.
 type SessionLogStopper func(sessionID string) error
+
+type SessionSnapshot struct {
+	Connected bool   `json:"connected"`
+	Name      string `json:"name"`
+	Hostname  string `json:"hostname"`
+	Username  string `json:"username"`
+	Rows      int    `json:"rows"`
+	Cols      int    `json:"cols"`
+}
 
 type Run struct {
 	RunID           string   `json:"runId"`
@@ -39,6 +41,8 @@ type Run struct {
 	ProgressCurrent int      `json:"progressCurrent,omitempty"`
 	ProgressTotal   int      `json:"progressTotal,omitempty"`
 	ActivityLabel   string   `json:"activityLabel,omitempty"`
+	StepIndex       int      `json:"stepIndex"`
+	ElapsedMs       int64    `json:"elapsedMs"`
 }
 
 type RunLog struct {
@@ -46,14 +50,14 @@ type RunLog struct {
 	Message string `json:"message"`
 }
 
-// DialogRequest mirrors the renderer's ScriptDialogRequest contract so the
-// existing dialog host renders it unchanged.
 type DialogRequest struct {
 	RequestID    string      `json:"requestId"`
 	Type         string      `json:"type"`
 	Message      string      `json:"message"`
 	DefaultValue string      `json:"defaultValue,omitempty"`
 	Sensitive    bool        `json:"sensitive,omitempty"`
+	Pattern      string      `json:"pattern,omitempty"`
+	TimeoutMs    int64       `json:"timeoutMs,omitempty"`
 	Form         *DialogForm `json:"form,omitempty"`
 }
 
@@ -70,6 +74,9 @@ type Runner struct {
 	closer         SessionCloser
 	startLog       SessionLogStarter
 	stopLog        SessionLogStopper
+	snapshot       func(string) SessionSnapshot
+	version        string
+	screenSnapshot func(context.Context, string) (ScreenSnapshot, error)
 	dialog         DialogResponder
 	onRunsUpdated  func([]Run)
 	sleep          func(context.Context, time.Duration) error
@@ -110,13 +117,16 @@ func (r *Runner) SetSessionCloser(closer SessionCloser) {
 
 func (r *Runner) SetSessionLog(start SessionLogStarter, stop SessionLogStopper) {
 	r.mu.Lock()
-	r.startLog = start
-	r.stopLog = stop
+	r.startLog, r.stopLog = start, stop
 	r.mu.Unlock()
 }
 
-// SetRunsListener receives a full run snapshot after every mutation so the
-// renderer run list stays live without polling.
+func (r *Runner) SetSessionSnapshot(snapshot func(string) SessionSnapshot, version string) {
+	r.mu.Lock()
+	r.snapshot, r.version = snapshot, version
+	r.mu.Unlock()
+}
+
 func (r *Runner) SetRunsListener(listener func([]Run)) {
 	r.mu.Lock()
 	r.onRunsUpdated = listener
@@ -145,14 +155,14 @@ func (r *Runner) SetDialogResponder(respond DialogResponder) {
 	r.mu.Unlock()
 }
 
-// ResolveDialog routes a renderer answer to the waiting prompt.
 func (r *Runner) ResolveDialog(requestID string, value string, cancelled bool) bool {
 	r.mu.Lock()
+	defer r.mu.Unlock()
 	waiting := r.pendingDialogs[requestID]
-	r.mu.Unlock()
 	if waiting == nil {
 		return false
 	}
+	delete(r.pendingDialogs, requestID)
 	waiting <- DialogAnswer{Value: value, Cancelled: cancelled}
 	return true
 }
@@ -162,24 +172,12 @@ type DialogAnswer struct {
 	Cancelled bool
 }
 
-type dialogWaiter struct {
-	ch chan DialogAnswer
-}
-
 var dialogWaitTimeout = 120 * time.Second
 
 func (r *Runner) ObserveOutput(sessionID string, data []byte) {
-	if sessionID == "" || len(data) == 0 {
-		return
+	if sessionID != "" && len(data) != 0 {
+		r.watch(sessionID).Append(data)
 	}
-	r.mu.Lock()
-	watch := r.output[sessionID]
-	if watch == nil {
-		watch = &OutputWatch{}
-		r.output[sessionID] = watch
-	}
-	r.mu.Unlock()
-	watch.Append(data)
 }
 
 func (r *Runner) watch(sessionID string) *OutputWatch {
@@ -194,20 +192,21 @@ func (r *Runner) watch(sessionID string) *OutputWatch {
 }
 
 type StartRunRequest struct {
-	RunID       string
-	ScriptID    string
-	ScriptLabel string
-	SessionID   string
-	Content     string
+	RunID          string
+	ScriptID       string
+	ScriptLabel    string
+	SessionID      string
+	Content        string
+	PermissionMode string
+	SessionMeta    *SessionSnapshot
 }
 
 func (r *Runner) Start(req StartRunRequest) (*Run, error) {
-	ops, err := ParseRecordedScript(req.Content)
+	program, err := compileScript(req.Content)
 	if err != nil {
 		return nil, err
 	}
-	sessionID := req.SessionID
-	if sessionID == "" {
+	if req.SessionID == "" {
 		return nil, fmt.Errorf("sessionId required")
 	}
 	runID := req.RunID
@@ -216,22 +215,35 @@ func (r *Runner) Start(req StartRunRequest) (*Run, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	run := &Run{
-		RunID:       runID,
-		ScriptID:    req.ScriptID,
-		ScriptLabel: req.ScriptLabel,
-		SessionID:   sessionID,
-		Status:      "running",
-		StartedAt:   time.Now().UnixMilli(),
-		Logs:        []RunLog{},
+		RunID: runID, ScriptID: req.ScriptID, ScriptLabel: req.ScriptLabel,
+		SessionID: req.SessionID, Status: "running", StartedAt: time.Now().UnixMilli(), Logs: []RunLog{},
 	}
 	r.mu.Lock()
-	r.runs[runID] = run
-	r.cancels[runID] = cancel
-	write := r.write
+	if r.runs[runID] != nil {
+		r.mu.Unlock()
+		cancel()
+		return nil, fmt.Errorf("runId already exists")
+	}
+	if len(r.cancels) >= 32 {
+		r.mu.Unlock()
+		cancel()
+		return nil, fmt.Errorf("too many active script runs")
+	}
+	r.runs[runID], r.cancels[runID] = run, cancel
 	snapshot := cloneRun(run)
 	r.mu.Unlock()
 	r.broadcast()
-	go r.execute(ctx, run, ops, write)
+	meta := SessionSnapshot{Connected: true, Rows: 24, Cols: 80}
+	if req.SessionMeta != nil {
+		meta = *req.SessionMeta
+		if meta.Rows <= 0 {
+			meta.Rows = 24
+		}
+		if meta.Cols <= 0 {
+			meta.Cols = 80
+		}
+	}
+	go r.executeJavaScript(ctx, cancel, run, program, req.PermissionMode, meta)
 	return snapshot, nil
 }
 
@@ -250,20 +262,33 @@ func (r *Runner) Stop(runID string) bool {
 	return true
 }
 
+func (r *Runner) ReleaseSession(sessionID string) {
+	r.mu.Lock()
+	var ids []string
+	for id, run := range r.runs {
+		if run.SessionID == sessionID && r.cancels[id] != nil {
+			ids = append(ids, id)
+		}
+	}
+	delete(r.output, sessionID)
+	r.mu.Unlock()
+	for _, id := range ids {
+		r.Stop(id)
+	}
+}
+
 func (r *Runner) List(sessionID string) []Run {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := make([]Run, 0, len(r.runs))
 	for _, run := range r.runs {
-		if sessionID != "" && run.SessionID != sessionID {
-			continue
+		if sessionID == "" || run.SessionID == sessionID {
+			out = append(out, *cloneRun(run))
 		}
-		out = append(out, *cloneRun(run))
 	}
 	return out
 }
 
-// Pause flags a running run; the executor pauses before the next op.
 func (r *Runner) Pause(runID string) bool {
 	r.mu.Lock()
 	run := r.runs[runID]
@@ -278,26 +303,25 @@ func (r *Runner) Pause(runID string) bool {
 	return true
 }
 
-// Resume releases a paused run.
 func (r *Runner) Resume(runID string) bool {
 	r.mu.Lock()
-	done := r.paused[runID]
-	run := r.runs[runID]
-	if done == nil || run == nil {
+	done, run := r.paused[runID], r.runs[runID]
+	if done == nil || run == nil || run.EndedAt != 0 {
 		r.mu.Unlock()
 		return false
 	}
 	close(done)
 	delete(r.paused, runID)
-	if run.Status == "paused" {
-		run.Status = "running"
-	}
+	run.Status = "running"
 	r.mu.Unlock()
 	r.broadcast()
 	return true
 }
 
 func (r *Runner) waitIfPaused(ctx context.Context, runID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	done := r.paused[runID]
 	r.mu.Unlock()
@@ -312,310 +336,33 @@ func (r *Runner) waitIfPaused(ctx context.Context, runID string) error {
 	}
 }
 
-func (r *Runner) execute(ctx context.Context, run *Run, ops []ReplayOp, write SessionWriter) {
-	defer func() {
-		r.mu.Lock()
-		delete(r.cancels, run.RunID)
-		r.mu.Unlock()
-	}()
-	if write == nil {
-		r.finish(run, "failed", "terminal writer unavailable")
-		return
-	}
-	vars := make(map[string]string)
-	for _, op := range ops {
-		if ctx.Err() != nil {
-			return
-		}
-		if err := r.waitIfPaused(ctx, run.RunID); err != nil {
-			return
-		}
-		switch op.Kind {
-		case "sleep":
-			r.log(run, fmt.Sprintf("sleep %s", op.Timeout))
-			if err := r.sleep(ctx, op.Timeout); err != nil {
-				return
-			}
-		case "prompt":
-			value, cancelled, err := r.askDialog(ctx, run, op)
-			if err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			if cancelled {
-				r.finish(run, "failed", "Dialog cancelled")
-				return
-			}
-			vars[op.Var] = value
-		case "log":
-			value := op.Value
-			if op.Var != "" {
-				resolved, ok := vars[op.Var]
-				if !ok {
-					r.finish(run, "failed", "variable "+op.Var+" has no value")
-					return
-				}
-				value = resolved
-			}
-			r.log(run, value)
-		case "send":
-			value := op.Value
-			if op.Var != "" {
-				resolved, ok := vars[op.Var]
-				if !ok {
-					r.finish(run, "failed", "variable "+op.Var+" has no value")
-					return
-				}
-				value = resolved
-			}
-			label := value
-			if op.Sensitive {
-				label = "[sensitive]"
-			}
-			r.log(run, "→ "+label)
-			if err := write(run.SessionID, []byte(value)); err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-		case "clear":
-			r.watch(run.SessionID).Reset()
-		case "getText":
-			watch := r.watch(run.SessionID)
-			text := validUTF8Tail(watch.snapshot())
-			if op.RangeArgs {
-				text = sliceRows(text, op.Current, op.Total)
-			}
-			r.mu.Lock()
-			vars[op.Var] = text
-			r.mu.Unlock()
-		case "confirm":
-			value, cancelled, err := r.askDialog(ctx, run, ReplayOp{Kind: "confirm", Value: op.Value})
-			if err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			if cancelled {
-				r.finish(run, "failed", "Dialog cancelled")
-				return
-			}
-			vars[op.Var] = value
-		case "form":
-			value, cancelled, err := r.askDialog(ctx, run, op)
-			if err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			if cancelled {
-				r.finish(run, "failed", "Dialog cancelled")
-				return
-			}
-			if op.Extract != "" {
-				value = extractFormValue(value, op.Extract)
-			}
-			if op.Var != "" {
-				vars[op.Var] = value
-			}
-		case "alert":
-			if _, _, err := r.askDialog(ctx, run, ReplayOp{Kind: "alert", Value: op.Value}); err != nil && ctx.Err() == nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-		case "progressStart":
-			total := op.Total
-			if total < 1 {
-				total = 1
-			}
-			r.mu.Lock()
-			run.ProgressMode = "determinate"
-			run.ProgressLabel = op.Value
-			run.ProgressTotal = total
-			run.ProgressCurrent = 0
-			run.ActivityLabel = op.Value
-			r.mu.Unlock()
-		case "progressSet":
-			r.mu.Lock()
-			if run.ProgressMode == "determinate" {
-				run.ProgressCurrent = clampProgress(op.Current, run.ProgressTotal)
-				if op.Label != "" {
-					run.ActivityLabel = op.Label
-				}
-			}
-			r.mu.Unlock()
-		case "progressStep":
-			r.mu.Lock()
-			if run.ProgressMode == "determinate" && run.ProgressCurrent < run.ProgressTotal {
-				run.ProgressCurrent++
-			}
-			if op.Label != "" {
-				run.ActivityLabel = op.Label
-			}
-			r.mu.Unlock()
-		case "progressDone":
-			r.mu.Lock()
-			if run.ProgressMode == "determinate" {
-				run.ProgressCurrent = run.ProgressTotal
-			}
-			r.mu.Unlock()
-		case "sendLine":
-			value := op.Value
-			if op.Var != "" {
-				resolved, ok := vars[op.Var]
-				if !ok {
-					r.finish(run, "failed", "variable "+op.Var+" has no value")
-					return
-				}
-				value = resolved
-			}
-			label := value
-			if op.Sensitive {
-				label = "[sensitive]"
-			}
-			r.log(run, "→ "+label)
-			if value != "" {
-				if err := write(run.SessionID, []byte(value)); err != nil {
-					r.finish(run, "failed", err.Error())
-					return
-				}
-				if err := r.sleep(ctx, 30*time.Millisecond); err != nil {
-					return
-				}
-			}
-			if err := write(run.SessionID, []byte("\r")); err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-		case "waitForPrompt", "waitForText", "waitForRegex", "waitForAny":
-			wait := op.Timeout
-			if wait <= 0 {
-				wait = 30 * time.Second
-			}
-			r.log(run, "wait "+op.Kind)
-			if err := r.waitFor(ctx, run.SessionID, op, wait); err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				r.finish(run, "failed", err.Error())
-				return
-			}
-		case "disconnect":
-			closer := r.closer
-			if closer == nil {
-				r.finish(run, "failed", "session closer unavailable")
-				return
-			}
-			r.log(run, "disconnect")
-			if err := closer(run.SessionID); err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			// Nothing further can run in a closed session; end honestly.
-			r.finish(run, "completed", "")
-			return
-		case "startLog":
-			start := r.startLog
-			if start == nil {
-				r.finish(run, "failed", "session log owner unavailable")
-				return
-			}
-			resolved, err := start(run.SessionID, op.Value)
-			if err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			r.log(run, "startLog "+resolved)
-		case "stopLog":
-			stop := r.stopLog
-			if stop == nil {
-				r.finish(run, "failed", "session log owner unavailable")
-				return
-			}
-			if err := stop(run.SessionID); err != nil {
-				r.finish(run, "failed", err.Error())
-				return
-			}
-			r.log(run, "stopLog")
-		default:
-			r.finish(run, "failed", "unsupported replay op "+op.Kind)
-			return
-		}
-		r.broadcast()
-	}
-	r.finish(run, "completed", "")
-}
-
-func (r *Runner) waitFor(ctx context.Context, sessionID string, op ReplayOp, timeout time.Duration) error {
-	watch := r.watch(sessionID)
-	deadline := time.Now().Add(timeout)
-	waitLabel := op.Kind
-	if op.Kind == "waitForText" {
-		waitLabel = op.Value
-	} else if op.Kind == "waitForRegex" {
-		waitLabel = "regex " + strings.Join(op.Patterns, "|")
-	} else if op.Kind == "waitForAny" {
-		waitLabel = "any " + strings.Join(op.Patterns, "|")
-	}
-	for {
-		text := validUTF8Tail(watch.snapshot())
-		satisfied := false
-		switch op.Kind {
-		case "waitForText":
-			satisfied = containsFresh(text, op.Value)
-		case "waitForRegex":
-			satisfied = anyRegexFresh(text, op.Regexes)
-		case "waitForAny":
-			satisfied = anyRegexFresh(text, op.Regexes)
-		default:
-			satisfied = looksLikePrompt(text)
-		}
-		if satisfied {
-			return nil
-		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("timed out waiting for %q", waitLabel)
-		}
-		remaining := time.Until(deadline)
-		notify := watch.notify()
-		timer := time.NewTimer(remaining)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-notify:
-			timer.Stop()
-		case <-timer.C:
-			return fmt.Errorf("timed out waiting for %q", waitLabel)
-		}
-	}
-}
-
-func (r *Runner) log(run *Run, message string) {
+func (r *Runner) step(run *Run) {
 	r.mu.Lock()
-	run.Logs = append(run.Logs, RunLog{At: time.Now().UnixMilli(), Message: message})
+	if run.EndedAt == 0 {
+		run.StepIndex++
+		run.ElapsedMs = time.Now().UnixMilli() - run.StartedAt
+	}
 	r.mu.Unlock()
 	r.broadcast()
 }
 
-// askDialog emits the renderer dialog contract and blocks for the answer.
-func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, bool, error) {
+func (r *Runner) log(run *Run, message string) {
+	r.mu.Lock()
+	if run.EndedAt == 0 {
+		run.Logs = append(run.Logs, RunLog{At: time.Now().UnixMilli(), Message: message})
+	}
+	r.mu.Unlock()
+	r.broadcast()
+}
+
+func (r *Runner) askDialog(ctx context.Context, run *Run, request DialogRequest) (string, bool, error) {
 	r.mu.Lock()
 	respond := r.dialog
 	r.mu.Unlock()
 	if respond == nil {
 		return "", false, fmt.Errorf("dialog host unavailable")
 	}
-	var buf [8]byte
-	_, _ = rand.Read(buf[:])
-	request := DialogRequest{
-		RequestID:    "dlg-" + hex.EncodeToString(buf[:]),
-		Type:         op.Kind,
-		Message:      op.Value,
-		DefaultValue: "",
-		Sensitive:    op.Sensitive,
-		Form:         op.Form,
-	}
-	if request.Type == "form" && request.Form != nil && request.Message == "" {
-		request.Message = request.Form.Message
-	}
+	request.RequestID = "dlg-" + newRunID()
 	answered := make(chan DialogAnswer, 1)
 	r.mu.Lock()
 	r.pendingDialogs[request.RequestID] = answered
@@ -625,8 +372,10 @@ func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, 
 		delete(r.pendingDialogs, request.RequestID)
 		r.mu.Unlock()
 	}()
-	r.log(run, "dialog: "+op.Value)
-	_, _, _ = respond(ctx, request)
+	r.log(run, "dialog: "+request.Message)
+	if _, _, err := respond(ctx, request); err != nil {
+		return "", false, err
+	}
 	timer := time.NewTimer(dialogWaitTimeout)
 	defer timer.Stop()
 	select {
@@ -639,43 +388,18 @@ func (r *Runner) askDialog(ctx context.Context, run *Run, op ReplayOp) (string, 
 	}
 }
 
-func extractFormValue(raw, key string) string {
-	var values map[string]any
-	if err := json.Unmarshal([]byte(raw), &values); err != nil {
-		return raw
-	}
-	extracted, ok := values[key]
-	if !ok {
-		return raw
-	}
-	switch value := extracted.(type) {
-	case string:
-		return value
-	case bool:
-		if value {
-			return "true"
-		}
-		return "false"
-	case float64:
-		return strconv.FormatFloat(value, 'f', -1, 64)
-	default:
-		encoded, err := json.Marshal(value)
-		if err != nil {
-			return fmt.Sprint(value)
-		}
-		return string(encoded)
-	}
-}
-
 func (r *Runner) finish(run *Run, status, errText string) {
 	r.mu.Lock()
 	if run.EndedAt != 0 {
 		r.mu.Unlock()
 		return
 	}
-	run.Status = status
-	run.EndedAt = time.Now().UnixMilli()
-	run.Error = errText
+	run.Status, run.EndedAt, run.Error = status, time.Now().UnixMilli(), errText
+	run.ElapsedMs = run.EndedAt - run.StartedAt
+	if paused := r.paused[run.RunID]; paused != nil {
+		close(paused)
+		delete(r.paused, run.RunID)
+	}
 	r.mu.Unlock()
 	r.broadcast()
 }
@@ -696,13 +420,8 @@ func clampProgress(current, total int) int {
 	return current
 }
 
-// sliceRows returns the [start, end] inclusive run of lines from text,
-// clamped to the available range (mirrors the Electron getText contract).
 func sliceRows(text string, startRow, endRow int) string {
 	lines := strings.Split(text, "\n")
-	if len(lines) == 0 {
-		return ""
-	}
 	if startRow < 0 {
 		startRow = 0
 	}

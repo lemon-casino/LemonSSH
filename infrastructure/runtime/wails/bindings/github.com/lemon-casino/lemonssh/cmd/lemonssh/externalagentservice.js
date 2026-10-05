@@ -82,6 +82,18 @@ export function ListModels(sdkBackend, cwd, providerID, chatSessionID, agentEnv,
 }
 
 /**
+ * @param {string} elicitationID
+ * @param {string} action
+ * @param {{ [_ in string]?: any }} content
+ * @returns {$CancellablePromise<$models.ExternalAgentResult>}
+ */
+export function RespondCodebuddyElicitation(elicitationID, action, content) {
+    return $Call.ByID(1486908422, elicitationID, action, content).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * RespondCodexAppServerInteraction answers a pending approval / user-input
  * request. Payload: {interactionId, decision? , answers?}. Decisions follow
  * the frontend CodexApprovalDecision values ('once' | 'session' | 'reject' |

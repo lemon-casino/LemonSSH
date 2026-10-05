@@ -1053,6 +1053,31 @@ test("script run maps renderer session aliases onto native terminal ids", async 
   assert.equal(runs[0]?.sessionId, "ui-session");
 });
 
+test("script execution forwards permissions, metadata and screen snapshots", async () => {
+  const bindings = stubBindings();
+  const handlers = new Map<string, (event: { data?: unknown }) => void>();
+  bindings.events = { On: (name, callback) => { handlers.set(name, callback); return () => { handlers.delete(name); }; } };
+  let request: Record<string, unknown> | undefined;
+  let snapshot: unknown;
+  bindings.script = {
+    Run: async value => { request = value; return { ok: true, runId: 'script' }; },
+    ResolveScreenSnapshot: async (_id, value) => { snapshot = value; return true; },
+  };
+  const bridge = createWailsRuntimeClient(bindings).transitionBridge;
+  await bridge.startSSHSession({ sessionId: 'ui-script', hostname: 'host', username: 'user' });
+  await bridge.scriptRun({ sessionId: 'ui-script', content: 'nct.log(1)', permissionMode: 'observer', sessionMeta: { name: 'Prod' } });
+  assert.equal(request?.permissionMode, 'observer');
+  assert.deepEqual(request?.sessionMeta, { name: 'Prod' });
+  assert.equal(request?.sessionId, 'term-1');
+  let received = '';
+  bridge.onScriptScreenSnapshotRequest(({ sessionId }) => { received = sessionId; });
+  handlers.get('lemonssh:script:screen-snapshot-request')?.({ data: { requestId: 'screen', sessionId: 'term-1' } });
+  assert.equal(received, 'ui-script');
+  const screen = { rows: 24, cols: 80, currentRow: 2, lines: ['prompt'] };
+  assert.deepEqual(await bridge.scriptScreenSnapshotResponse('screen', screen), { ok: true });
+  assert.deepEqual(snapshot, screen);
+});
+
 test("cloud OAuth methods surface on the sync port and transition bridge", async () => {
   const calls: string[] = [];
   const bindings = stubBindings();

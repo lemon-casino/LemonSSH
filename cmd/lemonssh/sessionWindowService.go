@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"sync"
 	"time"
@@ -36,13 +37,15 @@ type sessionWindowRecord struct {
 	config   map[string]any
 	timer    *time.Timer
 	lastSeen time.Time
+	sessions map[string]bool
 }
 
 type SessionWindowService struct {
-	mu      sync.Mutex
-	app     *application.App
-	owner   *windowowner.Manager
-	windows map[string]*sessionWindowRecord
+	mu           sync.Mutex
+	app          *application.App
+	owner        *windowowner.Manager
+	windows      map[string]*sessionWindowRecord
+	closeSession func(string) error
 }
 
 func newSessionWindowService(app *application.App) *SessionWindowService {
@@ -159,7 +162,33 @@ func (s *SessionWindowService) Heartbeat(windowID, token string) error {
 	return nil
 }
 
-func (s *SessionWindowService) expire(id string, record *sessionWindowRecord) { s.remove(id, record, true) }
+func (s *SessionWindowService) sessionOwner(id string) *sessionWindowRecord {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.windows[id]
+}
+
+func (s *SessionWindowService) ownSession(record *sessionWindowRecord, sessionID string) error {
+	s.mu.Lock()
+	if s.windows[record.identity.ID] == record {
+		if record.sessions == nil {
+			record.sessions = make(map[string]bool)
+		}
+		record.sessions[sessionID] = true
+		s.mu.Unlock()
+		return nil
+	}
+	closeSession := s.closeSession
+	s.mu.Unlock()
+	if closeSession != nil {
+		_ = closeSession(sessionID)
+	}
+	return fmt.Errorf("session window closed while the terminal was connecting")
+}
+
+func (s *SessionWindowService) expire(id string, record *sessionWindowRecord) {
+	s.remove(id, record, true)
+}
 
 func (s *SessionWindowService) remove(id string, record *sessionWindowRecord, crashed bool) {
 	s.mu.Lock()
@@ -179,22 +208,29 @@ func (s *SessionWindowService) remove(id string, record *sessionWindowRecord, cr
 	} else {
 		_ = s.owner.Destroy(id, record.identity.Token)
 	}
+	closeSession := s.closeSession
+	sessions := record.sessions
+	record.sessions = nil
 	s.mu.Unlock()
-	// The clone session lives inside this window's renderer; closing the
-	// window ends it. No home-window restore handshake is needed (unlike the
-	// terminal popup, the source tab never left the main window).
-	if crashed {
+	for sessionID := range sessions {
+		if closeSession != nil {
+			_ = closeSession(sessionID)
+		}
+	}
+	if crashed && record.window != nil {
 		record.window.Close()
 	}
 }
 
 func (s *SessionWindowService) ServiceShutdown() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	records := make(map[string]*sessionWindowRecord, len(s.windows))
 	for id, record := range s.windows {
-		record.timer.Stop()
-		_ = s.owner.Destroy(id, record.identity.Token)
-		delete(s.windows, id)
+		records[id] = record
+	}
+	s.mu.Unlock()
+	for id, record := range records {
+		s.remove(id, record, false)
 	}
 	return nil
 }

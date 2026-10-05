@@ -74,6 +74,31 @@ func TestSessionWindowOptionsTargetSessionWindowRoute(t *testing.T) {
 	}
 }
 
+func TestSessionWindowCloseOnlyReleasesOwnedTerminals(t *testing.T) {
+	for _, crashed := range []bool{false, true} {
+		s := newSessionWindowService(nil)
+		identity, _ := s.owner.Create(windowowner.RoleSession)
+		record := &sessionWindowRecord{identity: identity, timer: time.NewTimer(time.Hour), lastSeen: time.Now().Add(-2 * sessionWindowLease)}
+		s.windows[identity.ID] = record
+		var closed []string
+		s.closeSession = func(id string) error { closed = append(closed, id); return nil }
+		if err := s.ownSession(record, "clone-pty"); err != nil {
+			t.Fatal(err)
+		}
+		s.remove(identity.ID, record, crashed)
+		s.remove(identity.ID, record, crashed)
+		if len(closed) != 1 || closed[0] != "clone-pty" {
+			t.Fatalf("closed=%v", closed)
+		}
+		if err := s.ownSession(record, "late-connection"); err == nil {
+			t.Fatal("late session survived owner close")
+		}
+		if len(closed) != 2 || closed[1] != "late-connection" {
+			t.Fatalf("late cleanup=%v", closed)
+		}
+	}
+}
+
 func TestSessionWindowURLCarriesIdentityAndRoute(t *testing.T) {
 	url := sessionWindowURL("win id/1", "tok&en")
 	if url != "/index.html?sessionWindowId=win+id%2F1&sessionWindowToken=tok%26en#/session-window" {

@@ -92,10 +92,9 @@ func (s *ExternalAgentService) codexAppServerEnvKey(agentEnv map[string]string) 
 	for key, value := range agentEnv {
 		env[key] = value
 	}
-	if s.discoveryPath != "" {
+	if s.discoveryPath != "" && env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] == "" {
 		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["NETCATTY_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath // legacy fallback for pre-rename child tools
+		env["NETCATTY_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
 	}
 	keys := make([]string, 0, len(env))
 	for key := range env {
@@ -178,9 +177,25 @@ func (s *ExternalAgentService) acquireCodexAppServer(executable string, agentEnv
 	s.appServerState.launchErr = ""
 	s.appServerMu.Unlock()
 	if stale != nil {
-		stale.Close()
+		s.closeIdleCodexClient(stale)
 	}
 	return client, nil
+}
+
+func codexAppServerRunKey(client *codexAppServerClient, threadID string) string {
+	return fmt.Sprintf("%p:%s", client, threadID)
+}
+
+func (s *ExternalAgentService) closeIdleCodexClient(client *codexAppServerClient) {
+	s.appServerMu.Lock()
+	inUse := s.appServerState.client == client
+	for _, run := range s.appServerState.runs {
+		inUse = inUse || run.client == client
+	}
+	s.appServerMu.Unlock()
+	if !inUse {
+		client.Close()
+	}
 }
 
 func (s *ExternalAgentService) resetCodexAppServerLocked() {
@@ -196,10 +211,9 @@ func (s *ExternalAgentService) launchCodexAppServer(executable string, agentEnv 
 	for key, value := range agentEnv {
 		env[key] = value
 	}
-	if s.discoveryPath != "" {
+	if s.discoveryPath != "" && env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] == "" {
 		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["NETCATTY_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath // legacy fallback for pre-rename child tools
+		env["NETCATTY_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
 	}
 	factory := s.transportFactory
 	if factory == nil {
@@ -285,6 +299,7 @@ func (s *ExternalAgentService) stopRun(previous *externalAgentRun) {
 		s.finishCodexAppServerRun(previous, "")
 		return
 	}
+	s.closeCodebuddy(previous)
 	if previous.cancel != nil {
 		previous.cancel()
 	}
@@ -303,7 +318,7 @@ func (s *ExternalAgentService) registerCodexAppServerRun(run *externalAgentRun, 
 	s.active[run.requestID] = run
 	s.mu.Unlock()
 	s.appServerMu.Lock()
-	s.appServerState.runs[threadID] = run
+	s.appServerState.runs[codexAppServerRunKey(run.client, threadID)] = run
 	s.appServerMu.Unlock()
 }
 
@@ -357,6 +372,7 @@ func (s *ExternalAgentService) streamViaCodexAppServer(request ExternalAgentStre
 	if model != "" {
 		threadParams["model"] = model
 	}
+	threadParams["config"] = externalCodexConfig(request)
 
 	threadID := decodeExternalSessionID(request.ExistingSessionID, "codex")
 	if threadID != "" {
@@ -451,7 +467,7 @@ func (s *ExternalAgentService) handleCodexAppServerNotification(client *codexApp
 	}
 	threadID := stringAt(params, "threadId")
 	s.appServerMu.Lock()
-	run := s.appServerState.runs[threadID]
+	run := s.appServerState.runs[codexAppServerRunKey(client, threadID)]
 	s.appServerMu.Unlock()
 
 	switch method {
@@ -663,12 +679,13 @@ func (s *ExternalAgentService) finishCodexAppServerRun(run *externalAgentRun, er
 	run.mu.Unlock()
 
 	s.appServerMu.Lock()
-	if existing := s.appServerState.runs[run.threadID]; existing == run {
-		delete(s.appServerState.runs, run.threadID)
+	key := codexAppServerRunKey(run.client, run.threadID)
+	if existing := s.appServerState.runs[key]; existing == run {
+		delete(s.appServerState.runs, key)
 	}
 	cancelled := make([]*codexAppServerInteraction, 0)
 	for interactionID, pending := range s.appServerState.pending {
-		if pending.threadID == run.threadID {
+		if pending.threadID == run.threadID && pending.client == run.client {
 			cancelled = append(cancelled, pending)
 			delete(s.appServerState.pending, interactionID)
 		}
@@ -692,6 +709,7 @@ func (s *ExternalAgentService) finishCodexAppServerRun(run *externalAgentRun, er
 		})
 	}
 
+	s.closeIdleCodexClient(run.client)
 	if run.cleanupAttachments != nil {
 		run.cleanupAttachments()
 		run.cleanupAttachments = nil
@@ -842,7 +860,7 @@ func (s *ExternalAgentService) handleCodexAppServerServerRequest(client *codexAp
 		threadID = stringAt(params, "conversationId")
 	}
 	s.appServerMu.Lock()
-	run := s.appServerState.runs[threadID]
+	run := s.appServerState.runs[codexAppServerRunKey(client, threadID)]
 	s.appServerState.seq++
 	interactionID := fmt.Sprintf("codex-ia-%d", s.appServerState.seq)
 	interaction := &codexAppServerInteraction{

@@ -639,6 +639,9 @@ func (h *AgentHost) methodTable() map[string]rpc.Handler {
 					}
 				}
 				chat, _ := params["chatSessionId"].(string)
+				if chat == "" && principal.ChatSessionID != "" {
+					chat = principal.ChatSessionID
+				}
 				if principal.Kind == rpc.PrincipalExternal || chat == "" {
 					chat = "__external_mcp__"
 				}

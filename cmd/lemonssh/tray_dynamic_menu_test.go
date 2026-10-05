@@ -398,8 +398,8 @@ func TestTrayPanelWindowOptionsAreDedicatedFramelessAndHidden(t *testing.T) {
 	if !options.Windows.HiddenOnTaskbar {
 		t.Fatal("panel window must hide from the taskbar on Windows")
 	}
-	if options.Width != 380 || options.Height != 520 {
-		t.Fatalf("panel window size = %dx%d, want 380x520", options.Width, options.Height)
+	if options.Width != 360 || options.Height != 520 {
+		t.Fatalf("panel window size = %dx%d, want 360x520", options.Width, options.Height)
 	}
 }
 

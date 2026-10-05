@@ -29,10 +29,8 @@ await nct.dialog.alert('LemonSSH script smoke test OK');
 `;
 
 /** Full integration test for onConnect / manual run; dialog API enabled by default. */
-export const SCRIPT_INTEGRATION_TEST = `// LemonSSH Integration Test — onConnect / manual replay exercise
-// Trigger: onConnect or Run now | Permission: Auto or Confirm (dialogs need non-Observer)
-// One supported nct.* call per line: the replay parser rejects any other
-// JavaScript (no if/for, no template literals, no property reads).
+export const SCRIPT_INTEGRATION_TEST = `// LemonSSH Integration Test — onConnect / manual JavaScript exercise
+// Trigger: onConnect or Run now | Permission: Auto or Confirm for terminal writes.
 
 await nct.screen.waitForPrompt(60000);
 nct.log('=== LemonSSH Integration Test START ===');
@@ -100,11 +98,11 @@ await nct.screen.waitForText('nc-it-ALL_PASSED', 20000);
 nct.log('=== LemonSSH Integration Test PASSED ===');
 `;
 
-export const DEFAULT_SCRIPT_TEMPLATE = `// LemonSSH automation script — recorded-replay against the active terminal
+export const DEFAULT_SCRIPT_TEMPLATE = `// LemonSSH automation script — JavaScript against the active terminal
 //
-// The runner parses one supported nct.* call per line (no JS engine):
-// no if/for, no template literals, no property reads. Unknown lines fail
-// with "unsupported script line" before anything runs.
+// Variables, functions, loops and async/await are supported.
+// Await terminal operations; Stop also interrupts CPU-bound loops.
+// Native access is restricted to nct (no Node.js modules or eval).
 //
 // nct.screen.waitForPrompt(ms)            wait for shell prompt (# root / $ user)
 // nct.screen.waitForText(text, ms)         wait for exact output text

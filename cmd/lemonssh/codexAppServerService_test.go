@@ -979,6 +979,55 @@ func TestCodexAppServerAcquirePrefersMatchingExecutable(t *testing.T) {
 
 // Finding 5: the cached process must only be reused when the launch
 // environment matches, so per-session AgentEnv is never silently ignored.
+func TestCodexAppServerDifferentChatCredentialsKeepActiveTurnsIsolated(t *testing.T) {
+	service, launched, recorder := newServiceWithFakeServerPool(t, defaultAppServerHandle)
+	a := streamRequest("req-a", "chat-a", "confirm")
+	a.AgentEnv = map[string]string{"LEMONSSH_TOOL_CLI_DISCOVERY_FILE": "chat-a.json"}
+	b := streamRequest("req-b", "chat-b", "confirm")
+	b.AgentEnv = map[string]string{"LEMONSSH_TOOL_CLI_DISCOVERY_FILE": "chat-b.json"}
+	if result, _ := service.streamViaCodexAppServer(a, "codex", "a", nil, func() {}); !result.OK {
+		t.Fatal(result)
+	}
+	if result, _ := service.streamViaCodexAppServer(b, "codex", "b", nil, func() {}); !result.OK {
+		t.Fatal(result)
+	}
+	clients := launched()
+	if len(clients) != 2 || clients[0].transport.killCalls() != 0 {
+		t.Fatal("new chat killed the active previous chat")
+	}
+	service.appServerMu.Lock()
+	runs := len(service.appServerState.runs)
+	service.appServerMu.Unlock()
+	if runs != 2 {
+		t.Fatalf("same thread ids on different processes collided: %d", runs)
+	}
+	clients[0].notify(t, "item/agentMessage/delta", map[string]any{"threadId": "thread-1", "delta": "only-a"})
+	deadline := time.Now().Add(time.Second)
+	for {
+		matched := false
+		for _, event := range recorder.all() {
+			if stringAt(event.payload, "event", "textDelta") == "only-a" {
+				if event.payload["requestId"] != "req-a" {
+					t.Fatal("text crossed chats")
+				}
+				matched = true
+			}
+		}
+		if matched {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("no delta received")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	service.Cancel("req-a", "chat-a")
+	if clients[0].transport.killCalls() != 1 || clients[1].transport.killCalls() != 0 {
+		t.Fatal("inactive client cleanup touched another chat")
+	}
+	service.Cancel("req-b", "chat-b")
+}
+
 func TestCodexAppServerAcquireKeysOnAgentEnv(t *testing.T) {
 	original := codexAppServerHandshakeTimeout
 	codexAppServerHandshakeTimeout = 5 * time.Second

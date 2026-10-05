@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"github.com/lemon-casino/lemonssh/internal/app/terminaluse"
 	"github.com/lemon-casino/lemonssh/internal/platform/filesystem"
 	"github.com/lemon-casino/lemonssh/internal/terminal/dataplane"
@@ -50,7 +52,8 @@ type (
 // terminaluse.Service, so a future capability dispatch entry point can call
 // the same instance.
 type TerminalService struct {
-	core *terminaluse.Service
+	core           *terminaluse.Service
+	sessionWindows *SessionWindowService
 }
 
 // NewTerminalService wires the route controller, transport and known-hosts
@@ -109,32 +112,51 @@ func (s *TerminalService) TransportFor(sessionID string) (*gossh.Client, func() 
 	return s.core.TransportFor(sessionID)
 }
 
-func (s *TerminalService) Connect(request SSHConnectRequest) (string, error) {
-	return s.core.Connect(request)
+func (s *TerminalService) startForWindow(ctx context.Context, start func() (string, error)) (string, error) {
+	var owner *sessionWindowRecord
+	if s.sessionWindows != nil {
+		if window, ok := ctx.Value(application.WindowKey).(application.Window); ok {
+			owner = s.sessionWindows.sessionOwner(window.Name())
+		}
+	}
+	id, err := start()
+	if err != nil {
+		return id, err
+	}
+	if owner != nil {
+		if err := s.sessionWindows.ownSession(owner, id); err != nil {
+			return "", err
+		}
+	}
+	return id, nil
 }
 
-func (s *TerminalService) StartMosh(request MoshStartRequest) (string, error) {
-	return s.core.StartMosh(request)
+func (s *TerminalService) Connect(ctx context.Context, request SSHConnectRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.Connect(request) })
 }
 
-func (s *TerminalService) StartEt(request MoshStartRequest) (string, error) {
-	return s.core.StartEt(request)
+func (s *TerminalService) StartMosh(ctx context.Context, request MoshStartRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartMosh(request) })
 }
 
-func (s *TerminalService) StartLocal(shell, cwd string, cols, rows uint16) (string, error) {
-	return s.core.StartLocal(shell, cwd, cols, rows)
+func (s *TerminalService) StartEt(ctx context.Context, request MoshStartRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartEt(request) })
 }
 
-func (s *TerminalService) StartLocalWithOptions(request LocalStartRequest) (string, error) {
-	return s.core.StartLocalWithOptions(request)
+func (s *TerminalService) StartLocal(ctx context.Context, shell, cwd string, cols, rows uint16) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartLocal(shell, cwd, cols, rows) })
 }
 
-func (s *TerminalService) StartTelnet(request TelnetStartRequest) (string, error) {
-	return s.core.StartTelnet(request)
+func (s *TerminalService) StartLocalWithOptions(ctx context.Context, request LocalStartRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartLocalWithOptions(request) })
 }
 
-func (s *TerminalService) StartSerial(request SerialStartRequest) (string, error) {
-	return s.core.StartSerial(request)
+func (s *TerminalService) StartTelnet(ctx context.Context, request TelnetStartRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartTelnet(request) })
+}
+
+func (s *TerminalService) StartSerial(ctx context.Context, request SerialStartRequest) (string, error) {
+	return s.startForWindow(ctx, func() (string, error) { return s.core.StartSerial(request) })
 }
 
 func (s *TerminalService) ListSerialPorts() ([]serialport.Info, error) {

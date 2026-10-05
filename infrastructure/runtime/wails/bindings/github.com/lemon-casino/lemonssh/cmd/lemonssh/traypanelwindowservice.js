@@ -49,3 +49,10 @@ export function PaintReady() {
 export function Preload() {
     return $Call.ByID(2139866556);
 }
+
+/**
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function Toggle() {
+    return $Call.ByID(144690747);
+}

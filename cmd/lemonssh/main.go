@@ -330,6 +330,7 @@ func main() {
 		VaultRouter: newAgentVaultRouter(func(name string, payload any) { wailsApp.Event.Emit(name, payload) }),
 	})
 	agentService.host = agentHost
+	externalAgentService.host = agentHost
 
 	// Live provider (W15): an explicit provider config takes precedence
 	// over the dev fixture; without either, starts fail UNAVAILABLE. The
@@ -444,6 +445,8 @@ func main() {
 	settingsWindowService := newSettingsWindowService(wailsApp)
 	popupWindowService := newPopupWindowService(wailsApp)
 	sessionWindowService := newSessionWindowService(wailsApp)
+	sessionWindowService.closeSession = terminalSvc.Close
+	terminalSvc.sessionWindows = sessionWindowService
 	wailsApp.RegisterService(application.NewService(settingsWindowService))
 	wailsApp.RegisterService(application.NewService(popupWindowService))
 	wailsApp.RegisterService(application.NewService(sessionWindowService))
@@ -464,6 +467,7 @@ func main() {
 	tray.SetIcon(appIcon)
 	tray.SetTooltip("LemonSSH")
 	trayPanelWindowService := newTrayPanelWindowService(wailsApp)
+	trayPanelWindowService.positionWindow = tray.PositionWindow
 	trayService := newTrayService(wailsApp, tray, TrayActions{
 		ShowMain: func() {
 			if win, ok := wailsApp.Window.GetByName("main"); ok {
@@ -478,6 +482,12 @@ func main() {
 			_, _ = trayPanelWindowService.Open()
 		},
 	})
+	if runtime.GOOS == "windows" {
+		tray.OnClick(trayService.actions.ShowMain)
+		tray.OnRightClick(func() { _, _ = trayPanelWindowService.Toggle() })
+	} else {
+		tray.OnClick(func() { _, _ = trayPanelWindowService.Toggle() })
+	}
 	trayService.setForwards(forwardService)
 	trayPanelWindowService.setPanelShown(trayService.pushPanelSnapshot)
 	trayPanelWindowService.setPanelHideRequest(trayService.notifyPanelCloseRequest)

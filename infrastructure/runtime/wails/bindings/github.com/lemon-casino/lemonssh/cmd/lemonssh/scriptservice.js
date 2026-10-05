@@ -4,7 +4,7 @@
 
 /**
  * ScriptService is the Wails facade for terminal script recording and
- * recorded-script replay. Dialog answers stay on the existing host event.
+ * JavaScript execution. Dialog answers stay on the existing host event.
  * @module
  */
 
@@ -77,6 +77,15 @@ export function ReleaseSession(sessionID) {
  */
 export function ResolveDialog(requestID, value, cancelled) {
     return $Call.ByID(3207690706, requestID, value, cancelled);
+}
+
+/**
+ * @param {string} requestID
+ * @param {script$0.ScreenSnapshot} snapshot
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function ResolveScreenSnapshot(requestID, snapshot) {
+    return $Call.ByID(3298553682, requestID, snapshot);
 }
 
 /**

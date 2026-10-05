@@ -6,5 +6,7 @@ export {
     AppendResult,
     Run,
     RunLog,
+    ScreenSnapshot,
+    SessionSnapshot,
     Step
 } from "./models.js";

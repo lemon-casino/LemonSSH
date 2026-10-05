@@ -3,7 +3,7 @@
   "description": "LemonSSH is a modern SSH manager and terminal app with host grouping, SFTP, keychain, port forwarding, and a rich UI.",
   "homepage": "https://github.com/lemon-casino/LemonSSH",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.3",
   "type": "module",
   "workspaces": [
     "packages/*",

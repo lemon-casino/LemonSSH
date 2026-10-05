@@ -24,7 +24,7 @@ import (
 
 const serverVersion = "0.1.0"
 
-type relay struct{}
+type relay struct{ chatSessionID string }
 
 // host returns a connected client, dialing lazily and re-dialing after a
 // lost connection.
@@ -50,7 +50,11 @@ func main() {
 
 	sort.Slice(tools, func(i, j int) bool { return tools[i].ToolName < tools[j].ToolName })
 	server := mcp.NewServer(&mcp.Implementation{Name: "lemonssh", Version: serverVersion}, nil)
-	r := &relay{}
+	chat := os.Getenv("LEMONSSH_CHAT_SESSION_ID")
+	if external != "" {
+		chat = ""
+	}
+	r := &relay{chatSessionID: chat}
 	for _, tool := range tools {
 		def := tool
 		server.AddTool(&mcp.Tool{
@@ -89,7 +93,11 @@ func relayCall(ctx context.Context, r *relay, discoveryPath string, tool *capabi
 				return errorResult("Tool arguments must be a JSON object"), nil
 			}
 		}
-		params["chatSessionId"] = "__external_mcp__"
+		chat := r.chatSessionID
+		if chat == "" {
+			chat = "__external_mcp__"
+		}
+		params["chatSessionId"] = chat
 		callCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		method := *tool.RPCMethod

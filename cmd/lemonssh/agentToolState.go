@@ -206,6 +206,12 @@ func (h *AgentHost) requireScopedSession(chat, id string) error {
 // dispatch is shared by Wails, the provider driver, CLI and MCP. Callers may
 // supply tool arguments, never a permission mode or a replacement chat scope.
 func (h *AgentHost) dispatch(ctx context.Context, method string, input map[string]any, chat string, principal *rpc.Principal) (any, error) {
+	if principal != nil && principal.ChatSessionID != "" {
+		if chat != "" && chat != principal.ChatSessionID {
+			return nil, &rpc.ScopeError{Code: rpc.CodeScopeDenied, Message: "tool call belongs to a different chat"}
+		}
+		chat = principal.ChatSessionID
+	}
 	params := make(map[string]any, len(input)+1)
 	for key, value := range input {
 		params[key] = value

@@ -20,7 +20,7 @@ func trayPanelWindowOptions() application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
 		Name:        trayPanelWindowName,
 		Title:       "LemonSSH",
-		Width:       380,
+		Width:       360,
 		Height:      520,
 		MinWidth:    300,
 		MinHeight:   360,
@@ -41,11 +41,12 @@ func trayPanelWindowOptions() application.WebviewWindowOptions {
 // window is hidden, identical to the settings window), hide-on-close and the
 // show/hide hooks TrayService uses to mirror menu data onto the panel.
 type TrayPanelWindowService struct {
-	mu          sync.Mutex
-	app         *application.App
-	created     bool
-	painted     bool
-	pendingShow bool
+	mu             sync.Mutex
+	app            *application.App
+	created        bool
+	painted        bool
+	pendingShow    bool
+	positionWindow func(application.Window, int) error
 	// onPanelShown fires whenever the panel window becomes visible;
 	// TrayService re-pushes the menu-data snapshot so a freshly mounted
 	// panel never waits for the next data change.
@@ -103,6 +104,12 @@ func (s *TrayPanelWindowService) ensureCreated() {
 		event.Cancel()
 		win.Hide()
 	})
+	win.RegisterHook(events.Common.WindowLostFocus, func(*application.WindowEvent) {
+		if onPanelHideRequest != nil {
+			onPanelHideRequest()
+		}
+		win.Hide()
+	})
 	s.created = true
 	s.painted = false
 	s.pendingShow = false
@@ -134,8 +141,7 @@ func (s *TrayPanelWindowService) Open() (bool, error) {
 		return true, nil
 	}
 	if s.painted {
-		win.Show()
-		win.Focus()
+		showTrayPanel(win, s.positionWindow)
 	} else {
 		s.pendingShow = true
 	}
@@ -154,17 +160,40 @@ func (s *TrayPanelWindowService) PaintReady() (bool, error) {
 	if s.pendingShow {
 		s.pendingShow = false
 		if win, ok := s.app.Window.GetByName(trayPanelWindowName); ok {
-			win.Show()
-			win.Focus()
+			showTrayPanel(win, s.positionWindow)
 		}
 	}
 	return true, nil
+}
+
+func showTrayPanel(win application.Window, position func(application.Window, int) error) {
+	if position != nil {
+		_ = position(win, 6)
+	}
+	win.Show()
+	win.Focus()
+}
+
+func (s *TrayPanelWindowService) Toggle() (bool, error) {
+	s.mu.Lock()
+	visible := s.pendingShow
+	if s.app != nil {
+		if win, ok := s.app.Window.GetByName(trayPanelWindowName); ok {
+			visible = visible || win.IsVisible()
+		}
+	}
+	s.mu.Unlock()
+	if visible {
+		return s.Hide()
+	}
+	return s.Open()
 }
 
 // Hide hides the panel window; the loaded page is kept for the next open.
 func (s *TrayPanelWindowService) Hide() (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.pendingShow = false
 	if s.app == nil {
 		return false, nil
 	}

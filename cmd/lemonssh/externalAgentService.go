@@ -91,6 +91,7 @@ type externalAgentRun struct {
 	requestID     string
 	chatSessionID string
 	emittedText   bool
+	protocolError string
 	stderr        strings.Builder
 	mu            sync.Mutex
 	// Codex App Server protocol mode (zero in exec mode). The client and
@@ -103,6 +104,7 @@ type externalAgentRun struct {
 	appServerAgentDeltaSeen bool
 	appServerFinished       bool // guards the single terminal stream event
 	cleanupAttachments      func()
+	codebuddy               *codebuddyRunState
 }
 
 type ExternalAgentService struct {
@@ -111,6 +113,7 @@ type ExternalAgentService struct {
 	emit          func(string, any)
 	discoveryPath string
 	tempRoot      string
+	host          *AgentHost
 
 	// Codex App Server shared runtime (see codexAppServerService.go).
 	appServerMu    sync.Mutex
@@ -283,12 +286,18 @@ func externalAgentArgs(backend, prompt, model, permissionMode, existingSessionID
 		}
 		args = append(args, prompt)
 	case "grok":
-		args = []string{"agent", "--streaming-json"}
-		args = appendModel(args, backend, model)
-		if existingSessionID != "" {
-			args = append(args, "--resume", existingSessionID)
+		args = []string{"--no-auto-update", "--output-format", "streaming-json", "-p", prompt}
+		if model != "" {
+			args = append(args, "-m", model)
 		}
-		args = append(args, prompt)
+		if existingSessionID != "" {
+			args = append(args, "-r", existingSessionID)
+		}
+		if permissionMode == "observer" {
+			args = append(args, "--permission-mode", "plan")
+		} else {
+			args = append(args, "--always-approve")
+		}
 	case "copilot":
 		args = []string{"-p", prompt}
 	}
@@ -458,9 +467,11 @@ func (s *ExternalAgentService) buildPrompt(request ExternalAgentStreamRequest, a
 	if len(attachmentPaths) > 0 {
 		sections = append(sections, "[Attached local files]\n- "+strings.Join(attachmentPaths, "\n- "))
 	}
-	if request.ToolIntegrationMode == "skills" || request.ToolIntegrationMode == "mcp" {
-		toolName := resolveExternalAgentToolPath()
-		sections = append(sections, fmt.Sprintf("[LemonSSH native tools]\nUse %q when terminal, SFTP, vault, attachment, or port-forward access is needed. The host enforces Observer/Confirm/Auto permissions. The discovery environment is already configured.", toolName))
+	if externalToolMode(request.ToolIntegrationMode) == "skills" {
+		toolName := shellQuote(resolveExternalAgentToolPath())
+		sections = append(sections, fmt.Sprintf("[LemonSSH Skills tool access]\nInvoke %s with --chat-session %s on every call. Run %s capabilities to learn the available terminal, SFTP, vault, attachment and port-forward commands. Quote remote command arguments; do not chain local shell commands. Observer/Confirm/Auto permissions and terminal scope are enforced by the host.", toolName, shellQuote(request.ChatSessionID), toolName))
+	} else {
+		sections = append(sections, "[LemonSSH MCP tool access]\nUse the injected lemonssh MCP server for terminal, SFTP, vault, attachment and port-forward operations. Its tools are scoped to this chat. Do not substitute local shell commands. Observer/Confirm/Auto permissions are enforced by the host.")
 	}
 	sections = append(sections, request.Prompt)
 	return strings.Join(sections, "\n\n")
@@ -478,7 +489,12 @@ func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) Extern
 	if executable == "" {
 		return ExternalAgentResult{Error: fmt.Sprintf("%s executable was not found; choose its installation directory or executable in Agent settings", backend)}
 	}
-	attachmentPaths, cleanupAttachments := s.stageImages(request)
+	cleanupTools, err := s.prepareToolContext(&request)
+	if err != nil {
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	attachmentPaths, cleanupImages := s.stageImages(request)
+	cleanupAttachments := func() { cleanupImages(); cleanupTools() }
 	prompt := s.buildPrompt(request, attachmentPaths)
 	// Codex App Server mode: ride the JSON-RPC protocol channel instead of a
 	// one-shot `codex exec`. Unavailable protocol (missing CLI, failed
@@ -490,6 +506,16 @@ func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) Extern
 		}
 	}
 	args := externalAgentArgs(backend, prompt, request.Model, request.PermissionMode, request.ExistingSessionID)
+	if backend == "codebuddy" {
+		args = codebuddyArgs(request)
+	}
+	args, toolEnv, restoreWorkspace, err := s.configureAgentTools(request, backend, args, strings.TrimSpace(request.CWD))
+	if err != nil {
+		cleanupAttachments()
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	cleanupTurn := cleanupAttachments
+	cleanupAttachments = func() { restoreWorkspace(); cleanupTurn() }
 	ctx, cancel := context.WithCancel(context.Background())
 	command := streamingCommand(ctx, executable, args)
 	cwd := strings.TrimSpace(request.CWD)
@@ -498,16 +524,7 @@ func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) Extern
 			command.Dir = cwd
 		}
 	}
-	env := map[string]string{}
-	for key, value := range request.AgentEnv {
-		env[key] = value
-	}
-	if s.discoveryPath != "" {
-		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["LEMONSSH_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath
-		env["NETCATTY_TOOL_CLI_DISCOVERY_FILE"] = s.discoveryPath // legacy fallback for pre-rename child tools
-	}
-	command.Env = sanitizeExternalEnv(env)
+	command.Env = sanitizeExternalEnv(toolEnv)
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		cancel()
@@ -521,6 +538,15 @@ func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) Extern
 		return ExternalAgentResult{Error: err.Error()}
 	}
 	run := &externalAgentRun{cancel: cancel, command: command, requestID: request.RequestID, chatSessionID: request.ChatSessionID}
+	if backend == "codebuddy" {
+		stdin, err := command.StdinPipe()
+		if err != nil {
+			cancel()
+			cleanupAttachments()
+			return ExternalAgentResult{Error: err.Error()}
+		}
+		run.codebuddy = newCodebuddyRun(stdin, request, prompt)
+	}
 	s.mu.Lock()
 	if previous := s.active[request.RequestID]; previous != nil {
 		// Same requestID re-streamed (possibly across exec/protocol modes);
@@ -543,11 +569,21 @@ func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) Extern
 	}
 	s.emitEvent(request.RequestID, map[string]any{"type": "status", "message": fmt.Sprintf("%s agent started", backend)})
 	go s.consumeAgentRun(request.RequestID, backend, executable, run, stdout, stderr, cleanupAttachments)
+	if run.codebuddy != nil {
+		if err := s.initializeCodebuddy(run); err != nil {
+			s.closeCodebuddy(run)
+			cancel()
+			return ExternalAgentResult{Error: err.Error()}
+		}
+	}
 	return ExternalAgentResult{OK: true}
 }
 
 func (s *ExternalAgentService) consumeAgentRun(requestID, backend, executable string, run *externalAgentRun, stdout, stderr io.Reader, cleanup func()) {
 	defer cleanup()
+	if run.cancel != nil {
+		defer run.cancel()
+	}
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -581,15 +617,21 @@ func (s *ExternalAgentService) consumeAgentRun(requestID, backend, executable st
 	}()
 	wg.Wait()
 	waitErr := run.command.Wait()
+	s.closeCodebuddy(run)
 	run.mu.Lock()
 	emittedText := run.emittedText
 	stderrText := strings.TrimSpace(run.stderr.String())
+	protocolError := run.protocolError
 	run.mu.Unlock()
 	s.mu.Lock()
 	if s.active[requestID] == run {
 		delete(s.active, requestID)
 	}
 	s.mu.Unlock()
+	if protocolError != "" {
+		s.emitPayload("ai:sdk-agent:error", requestID, map[string]any{"error": protocolError})
+		return
+	}
 	if waitErr != nil {
 		message := stderrText
 		if message == "" {
@@ -712,6 +754,9 @@ func (s *ExternalAgentService) handleAgentOutputLine(requestID, backend, executa
 			s.emitEvent(requestID, map[string]any{"type": "usage", "inputTokens": input, "outputTokens": output, "totalTokens": input + output})
 		}
 	}
+	if backend == "codebuddy" && s.handleCodebuddyControl(run, event) {
+		return
+	}
 	if strings.Contains(eventType, "tool") && (strings.Contains(eventType, "use") || strings.Contains(eventType, "call") || strings.Contains(eventType, "start")) {
 		name := firstString(event, []string{"tool_name"}, []string{"toolName"}, []string{"name"}, []string{"item", "name"})
 		id := firstString(event, []string{"tool_call_id"}, []string{"toolCallId"}, []string{"id"}, []string{"item", "id"})
@@ -795,7 +840,10 @@ func (s *ExternalAgentService) Cancel(requestID, chatSessionID string) ExternalA
 			s.finishCodexAppServerRun(run, "")
 			continue
 		}
-		run.cancel()
+		s.closeCodebuddy(run)
+		if run.cancel != nil {
+			run.cancel()
+		}
 		if run.command != nil && run.command.Process != nil {
 			_ = run.command.Process.Kill()
 		}

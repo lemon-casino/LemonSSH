@@ -8,6 +8,7 @@ interface NativeExternalAgentBindings {
   ListModels(sdkBackend: string, cwd: string, providerId: string, chatSessionId: string, agentEnv: Record<string, string>, agentCommand: string, codexRuntime: string): Promise<{ ok: boolean; models?: Array<Record<string, unknown>>; currentModelId?: string; warning?: string; error?: string }>;
   CodexAppServerStatus(agentCommand: string, agentEnv: Record<string, string>): Promise<{ ok: boolean; error?: string }>;
   AccountInfo(agentEnv: Record<string, string>, agentCommand: string): Promise<Record<string, unknown>>;
+  RespondCodebuddyElicitation?(elicitationId: string, action: string, content: Record<string, unknown>): Promise<{ ok: boolean; error?: string }>;
   // Codex App Server interaction bridge (cmd/lemonssh/codexAppServerService.go).
   // Optional so stale generated bindings degrade instead of crashing.
   RespondCodexAppServerInteraction?(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string }>;
@@ -65,6 +66,10 @@ export function createExternalAgentBridge(
     aiSdkAgentAccountInfo: async (agentEnv, agentCommand) => {
       const result = await bindings.AccountInfo(agentEnv ?? {}, agentCommand ?? '');
       return result as Awaited<ReturnType<NonNullable<LemonSSHBridge['aiSdkAgentAccountInfo']>>>;
+    },
+    aiSdkAgentElicitationResponse: async (elicitationId, action, content) => {
+      if (!bindings.RespondCodebuddyElicitation) return { ok: false, error: 'CodeBuddy elicitation binding is unavailable' };
+      return bindings.RespondCodebuddyElicitation(elicitationId, action, content ?? {});
     },
     onAiSdkAgentEvent: (requestId, callback) => subscribe('ai:sdk-agent:event', requestId, payload => {
       const event = payload.event;

@@ -177,6 +177,20 @@ export class Run {
              */
             this["activityLabel"] = undefined;
         }
+        if (!("stepIndex" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["stepIndex"] = 0;
+        }
+        if (!("elapsedMs" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["elapsedMs"] = 0;
+        }
 
         Object.assign(this, $$source);
     }
@@ -228,6 +242,122 @@ export class RunLog {
     static createFrom($$source = {}) {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new RunLog(/** @type {Partial<RunLog>} */($$parsedSource));
+    }
+}
+
+export class ScreenSnapshot {
+    /**
+     * Creates a new ScreenSnapshot instance.
+     * @param {Partial<ScreenSnapshot>} [$$source = {}] - The source object to create the ScreenSnapshot.
+     */
+    constructor($$source = {}) {
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+        if (!("currentRow" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["currentRow"] = 0;
+        }
+        if (!("lines" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["lines"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ScreenSnapshot instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {ScreenSnapshot}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("lines" in $$parsedSource) {
+            $$parsedSource["lines"] = $$createField3_0($$parsedSource["lines"]);
+        }
+        return new ScreenSnapshot(/** @type {Partial<ScreenSnapshot>} */($$parsedSource));
+    }
+}
+
+export class SessionSnapshot {
+    /**
+     * Creates a new SessionSnapshot instance.
+     * @param {Partial<SessionSnapshot>} [$$source = {}] - The source object to create the SessionSnapshot.
+     */
+    constructor($$source = {}) {
+        if (!("connected" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["connected"] = false;
+        }
+        if (!("name" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["name"] = "";
+        }
+        if (!("hostname" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["hostname"] = "";
+        }
+        if (!("username" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["username"] = "";
+        }
+        if (!("rows" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["rows"] = 0;
+        }
+        if (!("cols" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["cols"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SessionSnapshot instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {SessionSnapshot}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SessionSnapshot(/** @type {Partial<SessionSnapshot>} */($$parsedSource));
     }
 }
 
@@ -288,3 +418,4 @@ const $$createType0 = Step.createFrom;
 const $$createType1 = $Create.Array($$createType0);
 const $$createType2 = RunLog.createFrom;
 const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = $Create.Array($Create.Any);

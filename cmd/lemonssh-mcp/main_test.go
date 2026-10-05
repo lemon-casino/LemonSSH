@@ -33,6 +33,14 @@ func TestRelayUsesPublicMethodAndReportsHostErrorsWithoutPanic(t *testing.T) {
 		"public/vault/notes/create": func(context.Context, *rpc.Principal, json.RawMessage) (any, error) {
 			return map[string]any{"ok": false, "error": "vault rejected input"}, nil
 		},
+		"test/managed": func(_ context.Context, _ *rpc.Principal, raw json.RawMessage) (any, error) {
+			var params map[string]any
+			_ = json.Unmarshal(raw, &params)
+			if params["chatSessionId"] != "managed-chat" {
+				return nil, fmt.Errorf("managed chat scope lost")
+			}
+			return map[string]any{"ok": true}, nil
+		},
 	}, rpc.ServerOptions{})
 	defer host.Close()
 	go func() {
@@ -50,6 +58,13 @@ func TestRelayUsesPublicMethodAndReportsHostErrorsWithoutPanic(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "discovery.json")
 	if err := rpc.WriteDiscovery(path, rpc.Discovery{Port: listener.Addr().(*net.TCPAddr).Port, Token: token}); err != nil {
 		t.Fatal(err)
+	}
+	method := "test/managed"
+	managed := capability.ToolSurface{RPCMethod: &method}
+	request := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{"chatSessionId":"forged"}`)}}
+	result, err := relayCall(context.Background(), &relay{chatSessionID: "managed-chat"}, path, &managed, request)
+	if err != nil || result.IsError {
+		t.Fatalf("managed MCP scope: %+v %v", result, err)
 	}
 	for _, id := range []string{"sftp.write", "vault.note.create"} {
 		var spec capability.ToolSurface

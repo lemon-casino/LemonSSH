@@ -543,12 +543,15 @@ export interface WailsBindingDeps {
       code?: string;
     }>;
     ResolveDialog?: (requestId: string, value: string, cancelled: boolean) => Promise<boolean>;
+    ResolveScreenSnapshot?: (requestId: string, snapshot: { rows: number; cols: number; currentRow: number; lines: string[] }) => Promise<boolean>;
     Run?: (request: {
       runId?: string;
       scriptId?: string;
       scriptLabel?: string;
       sessionId: string;
       content: string;
+      permissionMode?: 'observer' | 'confirm' | 'auto';
+      sessionMeta?: { connected?: boolean; name?: string; hostname?: string; username?: string };
     }) => Promise<{ ok?: boolean; error?: string; runId?: string; runIds?: string[] }>;
     Stop?: (runID: string) => Promise<{ ok?: boolean }>;
     Pause?: (runID: string) => Promise<{ ok?: boolean }>;
@@ -1924,6 +1927,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     content: string;
     sessionId?: string;
     sessionIds?: string[];
+    permissionMode?: 'observer' | 'confirm' | 'auto';
+    sessionMeta?: { connected?: boolean; name?: string; hostname?: string; username?: string };
   }) => {
     if (!bindings.script?.Run) missingBridgeMethod("scriptRun");
     const sessionId = params.sessionId || params.sessionIds?.[0];
@@ -1934,6 +1939,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       scriptLabel: params.scriptLabel,
       sessionId: nativeSessionId(sessionId),
       content: params.content,
+      permissionMode: params.permissionMode,
+      sessionMeta: params.sessionMeta,
     });
     if (result?.error) throw new Error(result.error);
     const runId = result?.runId || "";
@@ -1971,6 +1978,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     message: string;
     defaultValue?: string;
     sensitive?: boolean;
+    pattern?: string;
+    timeoutMs?: number;
     form?: unknown;
   }) => void>();
   const scriptRunsUpdatedListeners = new Set<(payload: { runs: unknown[] }) => void>();
@@ -1982,7 +1991,10 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     scriptEventsSubscribed = true;
     eventsOn("lemonssh:script:runs-updated", (event) => {
       const payload = ((event as { data?: unknown })?.data ?? event) as { runs?: unknown[] };
-      const runs = Array.isArray(payload?.runs) ? payload.runs : [];
+      const runs = (Array.isArray(payload?.runs) ? payload.runs : []).map(run => {
+        const entry = run as { sessionId?: string };
+        return { ...entry, sessionId: entry.sessionId ? uiSessionId(entry.sessionId) : entry.sessionId };
+      });
       for (const listener of scriptRunsUpdatedListeners) listener({ runs });
     });
     eventsOn("lemonssh:script:dialog-request", (event) => {
@@ -1992,6 +2004,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         message?: string;
         defaultValue?: string;
         sensitive?: boolean;
+        pattern?: string;
+        timeoutMs?: number;
         form?: unknown;
       };
       if (!payload?.requestId) return;
@@ -2001,6 +2015,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
         message: payload.message ?? "",
         defaultValue: payload.defaultValue,
         sensitive: payload.sensitive,
+        pattern: payload.pattern,
+        timeoutMs: payload.timeoutMs,
         form: payload.form,
       };
       for (const listener of scriptDialogRequestListeners) listener(request);
@@ -2091,6 +2107,16 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
     onScriptRunsUpdated,
     onScriptDialogRequest,
     scriptDialogResponse,
+    onScriptScreenSnapshotRequest: callback => (bindings.events?.On ?? Events.On)("lemonssh:script:screen-snapshot-request", event => {
+      const payload = ((event as { data?: unknown })?.data ?? event) as { requestId?: string; sessionId?: string };
+      if (!payload.requestId || !payload.sessionId) return;
+      const id = uiSessionId(payload.sessionId);
+      if (!sessionAliases.has(id) && !planes.has(payload.sessionId)) return;
+      callback({ requestId: payload.requestId, sessionId: id });
+    }),
+    scriptScreenSnapshotResponse: async (requestId, snapshot) => ({
+      ok: await bindings.script?.ResolveScreenSnapshot?.(requestId, snapshot) ?? false,
+    }),
     credentialsAvailable,
     credentialsEncrypt,
     credentialsDecrypt,
@@ -3152,6 +3178,8 @@ export function createWailsRuntimeClient(bindings: WailsBindingDeps = defaultBin
       onScriptRunsUpdated,
       onScriptDialogRequest,
       scriptDialogResponse,
+      onScriptScreenSnapshotRequest: implementedBridge.onScriptScreenSnapshotRequest,
+      scriptScreenSnapshotResponse: implementedBridge.scriptScreenSnapshotResponse,
     }),
     terminal: portWith("terminal", {
       getDefaultShell,

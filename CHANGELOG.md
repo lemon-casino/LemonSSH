@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+## [0.0.3] - 2026-10-06
+
+### 功能
+- 补齐 Electron 到 Wails 迁移后的 CodeBuddy elicitation 交互链路、Skills/MCP 工具模式差异和聊天会话隔离
+- 恢复 JavaScript 自动化脚本运行时，支持控制流、异步调用、屏幕快照、权限模式和取消
+- 对齐复制会话窗口的终端生命周期和托盘面板定位行为
+- 删除未接线的重复插件生命周期管理器，并同步 Wails 绑定与迁移行为文档
+
+### 验证
+- 前端完整测试：7,457 通过，41 跳过
+- Go 全量测试、竞态测试和插件契约检查通过
+- Windows Wails 发行包、便携 ZIP 和桌面脚本冒烟验证通过
+- NSIS 因构建机未安装 `makensis` 诚实跳过；macOS/Linux 安装器需在对应宿主验证
+
 ## [Unreleased] - 2026-09-24
 
 ### 功能

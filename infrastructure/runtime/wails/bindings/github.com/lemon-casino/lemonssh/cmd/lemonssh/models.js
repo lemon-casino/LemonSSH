@@ -5028,6 +5028,20 @@ export class ScriptRunRequest {
              */
             this["content"] = "";
         }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {string | undefined}
+             */
+            this["permissionMode"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {script$0.SessionSnapshot | null | undefined}
+             */
+            this["sessionMeta"] = undefined;
+        }
 
         Object.assign(this, $$source);
     }
@@ -5038,7 +5052,11 @@ export class ScriptRunRequest {
      * @returns {ScriptRunRequest}
      */
     static createFrom($$source = {}) {
+        const $$createField6_0 = $$createType20;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("sessionMeta" in $$parsedSource) {
+            $$parsedSource["sessionMeta"] = $$createField6_0($$parsedSource["sessionMeta"]);
+        }
         return new ScriptRunRequest(/** @type {Partial<ScriptRunRequest>} */($$parsedSource));
     }
 }
@@ -5095,7 +5113,7 @@ export class ScriptRunResult {
      */
     static createFrom($$source = {}) {
         const $$createField3_0 = $$createType14;
-        const $$createField4_0 = $$createType20;
+        const $$createField4_0 = $$createType22;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("runIds" in $$parsedSource) {
             $$parsedSource["runIds"] = $$createField3_0($$parsedSource["runIds"]);
@@ -5695,7 +5713,7 @@ export class ToolOutputReadPayload {
      * @returns {ToolOutputReadPayload}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType21;
+        const $$createField7_0 = $$createType23;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("matchOffsets" in $$parsedSource) {
             $$parsedSource["matchOffsets"] = $$createField7_0($$parsedSource["matchOffsets"]);
@@ -5902,7 +5920,7 @@ export class ToolOutputRestoredRecord {
      * @returns {ToolOutputRestoredRecord}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType22;
+        const $$createField1_0 = $$createType24;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("record" in $$parsedSource) {
             $$parsedSource["record"] = $$createField1_0($$parsedSource["record"]);
@@ -6349,9 +6367,9 @@ export class TrayMenuData {
      * @returns {TrayMenuData}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType24;
-        const $$createField1_0 = $$createType26;
-        const $$createField2_0 = $$createType28;
+        const $$createField0_0 = $$createType26;
+        const $$createField1_0 = $$createType28;
+        const $$createField2_0 = $$createType30;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("sessions" in $$parsedSource) {
             $$parsedSource["sessions"] = $$createField0_0($$parsedSource["sessions"]);
@@ -6703,7 +6721,7 @@ export class UserSkillsStatusResult {
      * @returns {UserSkillsStatusResult}
      */
     static createFrom($$source = {}) {
-        const $$createField4_0 = $$createType30;
+        const $$createField4_0 = $$createType32;
         const $$createField5_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("skills" in $$parsedSource) {
@@ -6837,7 +6855,7 @@ export class VaultBackupCreateResult {
      * @returns {VaultBackupCreateResult}
      */
     static createFrom($$source = {}) {
-        const $$createField1_0 = $$createType32;
+        const $$createField1_0 = $$createType34;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField1_0($$parsedSource["backup"]);
@@ -6869,7 +6887,7 @@ export class VaultBackupListResult {
      * @returns {VaultBackupListResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType33;
+        const $$createField0_0 = $$createType35;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backups" in $$parsedSource) {
             $$parsedSource["backups"] = $$createField0_0($$parsedSource["backups"]);
@@ -7034,7 +7052,7 @@ export class VaultBackupReadResult {
      * @returns {VaultBackupReadResult}
      */
     static createFrom($$source = {}) {
-        const $$createField0_0 = $$createType31;
+        const $$createField0_0 = $$createType33;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("backup" in $$parsedSource) {
             $$parsedSource["backup"] = $$createField0_0($$parsedSource["backup"]);
@@ -7115,7 +7133,7 @@ export class VaultBackupSummary {
      * @returns {VaultBackupSummary}
      */
     static createFrom($$source = {}) {
-        const $$createField7_0 = $$createType34;
+        const $$createField7_0 = $$createType36;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("preview" in $$parsedSource) {
             $$parsedSource["preview"] = $$createField7_0($$parsedSource["preview"]);
@@ -7374,19 +7392,21 @@ const $$createType15 = ProviderDiagnostic.createFrom;
 const $$createType16 = $Create.Array($$createType15);
 const $$createType17 = script$0.Step.createFrom;
 const $$createType18 = $Create.Array($$createType17);
-const $$createType19 = script$0.Run.createFrom;
+const $$createType19 = script$0.SessionSnapshot.createFrom;
 const $$createType20 = $Create.Nullable($$createType19);
-const $$createType21 = $Create.Array($Create.Any);
-const $$createType22 = ToolOutputRecord.createFrom;
-const $$createType23 = TraySessionState.createFrom;
-const $$createType24 = $Create.Array($$createType23);
-const $$createType25 = TrayHostState.createFrom;
+const $$createType21 = script$0.Run.createFrom;
+const $$createType22 = $Create.Nullable($$createType21);
+const $$createType23 = $Create.Array($Create.Any);
+const $$createType24 = ToolOutputRecord.createFrom;
+const $$createType25 = TraySessionState.createFrom;
 const $$createType26 = $Create.Array($$createType25);
-const $$createType27 = TrayPortForwardRuleState.createFrom;
+const $$createType27 = TrayHostState.createFrom;
 const $$createType28 = $Create.Array($$createType27);
-const $$createType29 = UserSkillStatusItem.createFrom;
+const $$createType29 = TrayPortForwardRuleState.createFrom;
 const $$createType30 = $Create.Array($$createType29);
-const $$createType31 = VaultBackupSummary.createFrom;
-const $$createType32 = $Create.Nullable($$createType31);
-const $$createType33 = $Create.Array($$createType31);
-const $$createType34 = VaultBackupPreview.createFrom;
+const $$createType31 = UserSkillStatusItem.createFrom;
+const $$createType32 = $Create.Array($$createType31);
+const $$createType33 = VaultBackupSummary.createFrom;
+const $$createType34 = $Create.Nullable($$createType33);
+const $$createType35 = $Create.Array($$createType33);
+const $$createType36 = VaultBackupPreview.createFrom;
