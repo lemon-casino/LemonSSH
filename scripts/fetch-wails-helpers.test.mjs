@@ -5,7 +5,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 import {
   checkDigest, downloadPinned, githubDownloadArgs, loadLock, packageHelpers,
-  preserveFile, readSafeFile, runtimeManifest, selectAssets, sha256,
+  preserveFile, readSafeFile, releaseUrl, runtimeManifest, selectAssets, sha256,
   validateLock, verifyArchiveFiles, verifyBuildProvenance, verifyInstalled,
   verifySidecar, DEFAULT_CACHE, DEFAULT_RESOURCES,
 } from "./fetch-wails-helpers.mjs";
@@ -82,6 +82,27 @@ test("committed lock covers both helpers for five native targets and rejects uns
   }
   assert.throws(() => selectAssets(lock, "windows", "arm64"), /no locked/);
   assert.throws(() => selectAssets(lock, "darwin", "universal"), /no locked/);
+});
+
+test("locked helper URLs retain their published upstream identities", async () => {
+  const lock = await loadLock();
+  assert.equal(releaseUrl(lock.releases.mosh, "SHA256SUMS"),
+    "https://github.com/binaricat/MoshCatty/releases/download/moshcatty-0.1.8/SHA256SUMS");
+  assert.equal(releaseUrl(lock.releases.et, "BUILD-PROVENANCE.json"),
+    "https://github.com/binaricat/Netcatty-et-bin/releases/download/et-bin-6.2.10-1/BUILD-PROVENANCE.json");
+  assert.equal(lock.releases.mosh.licenses[0].url,
+    "https://raw.githubusercontent.com/binaricat/MoshCatty/554b9d305e7ac4b11de740d764bbc3e05f816d7b/LICENSE");
+  assert.equal(lock.releases.et.build.run,
+    "https://github.com/binaricat/Netcatty/actions/runs/26945446872");
+});
+
+test("committed runtime sidecars exactly match the supply lock without cached binaries", async () => {
+  const lock = await loadLock();
+  for (const asset of lock.assets) {
+    const binary = asset.files.find(file => file.executable);
+    const pin = JSON.parse(await readFile(path.join(DEFAULT_RESOURCES, asset.kind, asset.directory, `${binary.path}.manifest.json`)));
+    verifySidecar(pin, lock, asset);
+  }
 });
 
 test("lock requires source/build/archive/binary provenance and safe names", async () => {
@@ -196,11 +217,8 @@ test("legacy build provenance proofs keyed by netcatty still verify", async () =
   const lock = await loadLock();
   const asset = lock.assets.find((entry) => entry.kind === "et");
   const release = structuredClone(lock.releases.et);
-  // Simulate a pre-rename proof: the historical binary-repo name, the legacy
-  // "netcatty" provenance key and a run URL pointing at the old repo slug.
-  // These strings are the historical proof bytes (binaricat org) that
-  // LEGACY_UPSTREAM_NAMES maps onto the renamed lock; do not rebrand them.
-  // The third-party source repository is unchanged by the rename.
+  // The pinned proof keeps the repository and workflow names used by the
+  // upstream publisher, independently of the application brand.
   const legacyRepository = "binaricat/Netcatty-et-bin";
   const legacyRun = "https://github.com/binaricat/Netcatty/actions/runs/26945446872";
   const proof = {
@@ -220,6 +238,29 @@ test("legacy build provenance proofs keyed by netcatty still verify", async () =
   assert.throws(() => verifyBuildProvenance(badBytes, release, asset), /provenance does not match/);
 });
 
+test("build provenance rejects rebranded repositories and workflow identities", async () => {
+  const lock = await loadLock();
+  const asset = lock.assets.find(entry => entry.kind === "et");
+  const release = structuredClone(lock.releases.et);
+  const proof = {
+    release: { repository: release.repository, tag: release.tag },
+    upstream: { repository: release.source.repository, ref: release.source.tag, commit: release.source.commit },
+    netcatty: { checkoutCommit: release.build.commit, workflowRun: release.build.run },
+    artifacts: [{ name: asset.archive, sha256: asset.sha256 }],
+  };
+  for (const change of [
+    value => { value.release.repository = "lemon-casino/LemonSSH-et-bin"; },
+    value => { value.netcatty.workflowRun = "https://github.com/lemon-casino/LemonSSH/actions/runs/26945446872"; },
+    value => { value.release.tag = "different-release"; },
+  ]) {
+    const altered = structuredClone(proof);
+    change(altered);
+    const bytes = Buffer.from(JSON.stringify(altered));
+    release.buildProvenance.sha256 = sha256(bytes);
+    assert.throws(() => verifyBuildProvenance(bytes, release, asset), /provenance does not match/);
+  }
+});
+
 test("fetch checks pinned bytes before publishing cache and refuses corrupt cache", async (t) => {
   const dir = await scratch(t), data = Buffer.from("asset"), digest = sha256(data);
   t.mock.method(globalThis, "fetch", async () => new Response(data));
@@ -233,10 +274,53 @@ test("fetch checks pinned bytes before publishing cache and refuses corrupt cach
 });
 
 test("gh transport preserves exact release tag, asset name and source commit", () => {
-  assert.deepEqual(githubDownloadArgs("https://github.com/lemon-casino/MoshLemonSSH/releases/download/moshlemonssh-0.1.8/SHA256SUMS"),
-    ["release", "download", "moshlemonssh-0.1.8", "--repo", "lemon-casino/MoshLemonSSH", "--pattern", "SHA256SUMS", "--output", "-"]);
-  assert.throws(() => githubDownloadArgs("https://github.com/lemon-casino/MoshLemonSSH/releases/latest"), /pinned GitHub URL/);
+  assert.deepEqual(githubDownloadArgs("https://github.com/binaricat/MoshCatty/releases/download/moshcatty-0.1.8/SHA256SUMS"),
+    ["release", "download", "moshcatty-0.1.8", "--repo", "binaricat/MoshCatty", "--pattern", "SHA256SUMS", "--output", "-"]);
+  assert.throws(() => githubDownloadArgs("https://github.com/binaricat/MoshCatty/releases/latest"), /pinned GitHub URL/);
   assert.throws(() => githubDownloadArgs("https://raw.githubusercontent.com/owner/repo/main/LICENSE"), /pinned GitHub URL/);
+});
+
+test("download retries a truncated successful response before caching", async (t) => {
+  const dir = await scratch(t), data = Buffer.from("complete archive");
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    requests++;
+    if (requests === 1) {
+      return new Response(new ReadableStream({
+        start(controller) { controller.error(new DOMException("body timed out", "TimeoutError")); },
+      }));
+    }
+    return new Response(data);
+  });
+  const result = await downloadPinned("https://example.test/archive", sha256(data), dir);
+  assert.equal(requests, 2);
+  assert.deepEqual(await readFile(result.file), data);
+});
+
+test("download retries transport failures after a redirect", async (t) => {
+  const dir = await scratch(t), data = Buffer.from("archive");
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    requests++;
+    if (requests === 1) return new Response(null, { status: 302, headers: { location: "https://cdn.example.test/archive" } });
+    if (requests === 2) throw new TypeError("connection reset");
+    return new Response(data);
+  });
+  const result = await downloadPinned("https://example.test/archive", sha256(data), dir);
+  assert.equal(requests, 3);
+  assert.deepEqual(result.data, data);
+});
+
+test("download does not retry missing releases or mismatched content", async (t) => {
+  const dir = await scratch(t), digest = sha256(Buffer.from("expected"));
+  for (const response of [() => new Response(null, { status: 404 }), () => new Response("different")]) {
+    let requests = 0;
+    const mock = t.mock.method(globalThis, "fetch", async () => { requests++; return response(); });
+    await assert.rejects(downloadPinned("https://example.test/missing", digest, dir), /HTTP 404|SHA256 mismatch/);
+    assert.equal(requests, 1);
+    await assert.rejects(lstat(path.join(dir, `${digest}.asset`)), /ENOENT/);
+    mock.mock.restore();
+  }
 });
 
 test("download refuses HTTPS downgrade redirects and malformed digests", async (t) => {

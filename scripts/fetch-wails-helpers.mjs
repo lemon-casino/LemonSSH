@@ -184,31 +184,45 @@ export async function downloadPinned(url, digest, cacheDir = DEFAULT_CACHE) {
     return { data, file: cached };
   }
   if (transport !== "fetch") throw new Error(`unknown WAILS_HELPER_DOWNLOAD: ${transport}`);
-  let response;
   // Retry only transport failures / transient upstream responses. Digest and
   // provenance failures are terminal and never fall back to another source.
   for (let attempt = 0; attempt < 3; attempt++) {
+    let retryable = true;
+    let data;
     try {
       let location = url;
       const signal = AbortSignal.timeout(60000);
       for (let redirects = 0; ; redirects++) {
-        if (!location.startsWith("https://")) throw new Error("helper redirects require HTTPS");
-        if (redirects > 5) throw new Error("too many helper redirects");
-        response = await fetch(location, { signal, redirect: "manual" });
-        if (response.status < 300 || response.status >= 400) break;
-        const next = response.headers.get("location");
-        await response.body?.cancel();
-        if (!next) throw new Error("helper redirect missing location");
-        location = new URL(next, location).href;
+        if (!location.startsWith("https://") || redirects > 5) {
+          retryable = false;
+          throw new Error(!location.startsWith("https://") ? "helper redirects require HTTPS" : "too many helper redirects");
+        }
+        const response = await fetch(location, { signal, redirect: "manual" });
+        if (response.status >= 300 && response.status < 400) {
+          const next = response.headers.get("location");
+          await response.body?.cancel();
+          if (!next) {
+            retryable = false;
+            throw new Error("helper redirect missing location");
+          }
+          location = new URL(next, location).href;
+          continue;
+        }
+        if (!response.ok) {
+          retryable = response.status >= 500 || response.status === 429;
+          await response.body?.cancel();
+          throw new Error(`HTTP ${response.status}: ${url}`);
+        }
+        data = Buffer.from(await response.arrayBuffer());
+        break;
       }
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
-      const data = Buffer.from(await response.arrayBuffer());
-      checkDigest(data, digest, url);
-      await preserveFile(cached, data);
-      return { data, file: cached };
     } catch (error) {
-      if (attempt === 2 || (response && response.status < 500 && response.status !== 429)) throw error;
+      if (attempt === 2 || !retryable) throw new Error(`helper download failed for ${url}: ${error.message}`, { cause: error });
+      continue;
     }
+    checkDigest(data, digest, url);
+    await preserveFile(cached, data);
+    return { data, file: cached };
   }
 }
 
@@ -273,26 +287,6 @@ export async function verifyInstalled(lock, asset, resourcesDir = DEFAULT_RESOUR
   return pin;
 }
 
-// Proofs produced before the LemonSSH rename embed the historical upstream
-// repository/tag identifiers; normalize them so pinned pre-rename proofs keep
-// verifying against the renamed lock. The left-hand values must stay
-// byte-identical to what the pinned proof files literally contain (binaricat
-// org, old repo names) — they describe history, they are not brand strings.
-// Order matters: the -et-bin entry must be
-// rewritten before the bare repository name.
-const LEGACY_UPSTREAM_NAMES = [
-  ["binaricat/MoshCatty", "lemon-casino/MoshLemonSSH"],
-  ["binaricat/Netcatty-et-bin", "lemon-casino/LemonSSH-et-bin"],
-  ["binaricat/Netcatty", "lemon-casino/LemonSSH"],
-  ["moshcatty-", "moshlemonssh-"],
-];
-
-function normalizeUpstreamValue(value) {
-  let out = String(value);
-  for (const [legacy, current] of LEGACY_UPSTREAM_NAMES) out = out.split(legacy).join(current);
-  return out;
-}
-
 export function verifyBuildProvenance(data, release, asset) {
   checkDigest(data, release.buildProvenance.sha256, "build provenance");
   const provenance = JSON.parse(data);
@@ -300,13 +294,15 @@ export function verifyBuildProvenance(data, release, asset) {
   // key; new proofs carry "lemonssh". Accept either so pinned historical
   // releases keep verifying.
   const brand = provenance.lemonssh ?? provenance.netcatty;
-  if (normalizeUpstreamValue(provenance.release.repository) !== release.repository
-    || normalizeUpstreamValue(provenance.release.tag) !== release.tag
-    || normalizeUpstreamValue(provenance.upstream.repository) !== release.source.repository
-    || normalizeUpstreamValue(provenance.upstream.ref) !== release.source.tag
+  // Repository and tag identities describe immutable upstream artifacts, not
+  // the application's brand. They must match the pinned proof literally.
+  if (provenance.release.repository !== release.repository
+    || provenance.release.tag !== release.tag
+    || provenance.upstream.repository !== release.source.repository
+    || provenance.upstream.ref !== release.source.tag
     || provenance.upstream.commit !== release.source.commit
     || brand?.checkoutCommit !== release.build.commit
-    || normalizeUpstreamValue(brand?.workflowRun) !== release.build.run
+    || brand?.workflowRun !== release.build.run
     || !provenance.artifacts.some((entry) => entry.name === asset.archive && entry.sha256 === asset.sha256)) {
     throw new Error("upstream build provenance does not match lock");
   }

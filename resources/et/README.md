@@ -13,7 +13,7 @@ node scripts/fetch-wails-helpers.mjs --all
 node scripts/fetch-wails-helpers.mjs --all --verify-only
 ```
 
-The current ET pin is built from EternalTerminal `et-v6.2.10`. Windows packages include `et.exe` and any files explicitly listed in the lock. macOS uses a universal binary with x86_64 and arm64 slices. License files are fetched from commit-pinned URLs and packaged under `licenses/et/`.
+The current ET pin is published in [binaricat/Netcatty-et-bin](https://github.com/binaricat/Netcatty-et-bin/releases/tag/et-bin-6.2.10-1) and built from EternalTerminal `et-v6.2.10`. Its historical release and build identities must match the pinned proof, independently of the LemonSSH brand. Windows packages include `et.exe` and any files explicitly listed in the lock. macOS uses a universal binary with x86_64 and arm64 slices. License files are fetched from commit-pinned URLs and packaged under `licenses/et/`.
 
 The build workflow in `.github/workflows/build-et-binaries.yml` can reproduce and publish reviewed helper archives. Packaging consumes only the committed lock, never a mutable latest release.
 

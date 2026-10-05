@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 //
-// Resolve the MoshLemonSSH mosh-client binary release used by packaging / dev.
+// Resolve the MoshCatty mosh-client binary release used by packaging / dev.
 //
 // Priority:
 //   1. MOSH_BIN_RELEASE from workflow input / repository variable.
 //   2. Latest non-draft, non-prerelease GitHub Release whose tag is
 //      moshlemonssh-* (or legacy moshcatty-*) in MOSH_BIN_OWNER/MOSH_BIN_REPO
-//      (default lemon-casino/MoshLemonSSH).
+//      (default binaricat/MoshCatty).
 //
 // In GitHub Actions, the resolved tag is written to $GITHUB_ENV.
 
@@ -84,11 +84,10 @@ function validateReleaseTag(tag) {
 }
 
 function parseRepository(env) {
-  // Canonical default is always lemon-casino/MoshLemonSSH. Do not derive owner from
-  // GITHUB_REPOSITORY — fork packaging would otherwise look for
-  // <fork-owner>/MoshLemonSSH and fail. Override only via MOSH_BIN_OWNER/REPO.
-  const owner = env.MOSH_BIN_OWNER || "lemon-casino";
-  const repo = env.MOSH_BIN_REPO || "MoshLemonSSH";
+  // Upstream release identities are independent of LemonSSH's repository name.
+  // Forks can override the source explicitly with MOSH_BIN_OWNER/REPO.
+  const owner = env.MOSH_BIN_OWNER || "binaricat";
+  const repo = env.MOSH_BIN_REPO || "MoshCatty";
   return { owner, repo };
 }
 
@@ -216,9 +215,10 @@ async function main(env = process.env) {
   const releases = await loadReleases(env);
   const release = pickLatestMoshBinRelease(releases);
   if (!release) {
+    const { owner, repo } = parseRepository(env);
     throw new Error(
-      `could not find a non-draft ${MIN_TAG}+ release in lemon-casino/MoshLemonSSH. `
-        + `Publish a MoshLemonSSH GitHub Release (e.g. ${MIN_TAG}) before packaging.`,
+      `could not find a non-draft ${MIN_TAG}+ release in ${owner}/${repo}. `
+        + "Check MOSH_BIN_OWNER/MOSH_BIN_REPO or supply an existing MOSH_BIN_RELEASE.",
     );
   }
 

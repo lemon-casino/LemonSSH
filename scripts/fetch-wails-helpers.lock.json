@@ -3,29 +3,29 @@
   "provenancePolicy": "Archive SHA256 values cross-checked against GitHub release asset digests and pinned upstream SHA256SUMS. Binary digests derived only after that verification. Build provenance is publisher-declared, not an attestation or a reproducible-build claim.",
   "releases": {
     "mosh": {
-      "repository": "lemon-casino/MoshLemonSSH",
-      "tag": "moshlemonssh-0.1.8",
+      "repository": "binaricat/MoshCatty",
+      "tag": "moshcatty-0.1.8",
       "source": {
-        "repository": "lemon-casino/MoshLemonSSH",
-        "tag": "moshlemonssh-0.1.8",
+        "repository": "binaricat/MoshCatty",
+        "tag": "moshcatty-0.1.8",
         "commit": "554b9d305e7ac4b11de740d764bbc3e05f816d7b"
       },
       "build": {
-        "repository": "lemon-casino/MoshLemonSSH",
+        "repository": "binaricat/MoshCatty",
         "commit": "554b9d305e7ac4b11de740d764bbc3e05f816d7b",
         "workflow": ".github/workflows/release.yml",
-        "run": "https://github.com/lemon-casino/MoshLemonSSH/actions/runs/29559896639"
+        "run": "https://github.com/binaricat/MoshCatty/actions/runs/29559896639"
       },
       "checksums": {
         "assetId": 480053009,
         "sha256": "34eb27712d1102417a1642bf315b7d7f31ff24c0acd9939a19d1ba53a4d076fd"
       },
       "licenses": [
-        {"path": "MoshLemonSSH.txt", "url": "https://raw.githubusercontent.com/lemon-casino/MoshLemonSSH/554b9d305e7ac4b11de740d764bbc3e05f816d7b/LICENSE", "sha256": "6f0c3757f5f9ee475aa36cff8a10e40328ccd6fa93a5208c1bc3b9789f6bb3e8"}
+        {"path": "MoshLemonSSH.txt", "url": "https://raw.githubusercontent.com/binaricat/MoshCatty/554b9d305e7ac4b11de740d764bbc3e05f816d7b/LICENSE", "sha256": "6f0c3757f5f9ee475aa36cff8a10e40328ccd6fa93a5208c1bc3b9789f6bb3e8"}
       ]
     },
     "et": {
-      "repository": "lemon-casino/LemonSSH-et-bin",
+      "repository": "binaricat/Netcatty-et-bin",
       "tag": "et-bin-6.2.10-1",
       "source": {
         "repository": "MisterTea/EternalTerminal",
@@ -33,10 +33,10 @@
         "commit": "f9a584ac06b2f1730b5bdf0a27150f28478368fb"
       },
       "build": {
-        "repository": "lemon-casino/LemonSSH",
+        "repository": "binaricat/Netcatty",
         "commit": "c39793d592db59da68a1b4d6eaaf001620ad9464",
         "workflow": ".github/workflows/build-et-binaries.yml",
-        "run": "https://github.com/lemon-casino/LemonSSH/actions/runs/26945446872"
+        "run": "https://github.com/binaricat/Netcatty/actions/runs/26945446872"
       },
       "checksums": {
         "assetId": 438206477,
