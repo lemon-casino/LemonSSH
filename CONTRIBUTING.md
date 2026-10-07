@@ -1,0 +1,116 @@
+# Contributing to LemonSSH
+
+Thank you for your interest in contributing to LemonSSH — an AI-powered SSH client, SFTP browser, and terminal manager built with Go, Wails v3, React, and xterm.js.
+
+Please read this guide before submitting issues or pull requests.
+
+## Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you agree to uphold this standard.
+
+## Ways to Contribute
+
+- Report bugs via [GitHub Issues](https://github.com/lemon-casino/LemonSSH/issues)
+- Suggest features or improvements
+- Fix bugs or implement features listed in Issues
+- Improve documentation
+
+## Reporting Issues
+
+Issues that do not follow the required format are closed automatically by the
+issue-format bot.
+
+- **Title prefix (required):** start with `[Bug]`, `[Feature]`, or `[Other]`,
+  then a short summary of at least 4 characters.
+  Example: `[Bug] SFTP upload fails on Windows`
+- **Template (required):** open from
+  [New Issue](https://github.com/lemon-casino/LemonSSH/issues/new/choose) and pick
+  **Bug Report** or **Feature Request**. Fill every required field. Blank
+  issues are disabled (`blank_issues_enabled: false`).
+- **Templates live in**
+  [`.github/ISSUE_TEMPLATE/`](https://github.com/lemon-casino/LemonSSH/tree/main/.github/ISSUE_TEMPLATE).
+- Questions and open-ended discussion belong in
+  [GitHub Discussions](https://github.com/lemon-casino/LemonSSH/discussions), not Issues.
+
+If you open an issue via the API or `gh`, you must still use a valid title
+prefix and a body that matches the Bug Report or Feature Request template
+structure (required headings such as "Steps to reproduce" or
+"Problem / pain point").
+
+## Development Setup
+
+**Prerequisites:** Node.js 22+, npm, and Go 1.25+. Install the native WebKit/GTK prerequisites documented by Wails when developing on Linux.
+
+```bash
+# Clone the repository
+git clone https://github.com/lemon-casino/LemonSSH.git
+cd LemonSSH
+
+# Install dependencies
+npm ci
+
+# Start in development mode (Vite frontend + Go/Wails application)
+npm run dev
+```
+
+## Build & Package
+
+```bash
+npm run build          # Build the frontend
+npm run wails:build    # Build the native Wails application
+npm run package:wails # Create the current-platform Wails artifact
+npm run package:installers # Optionally create installers when platform tools are present
+```
+
+## Linting and Tests
+
+```bash
+npm run lint           # Run ESLint
+npm test               # Run the frontend and tooling test suite
+go test ./internal/... ./cmd/... # Run Go service tests
+```
+
+## Pull Request Process
+
+1. Fork the repository.
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Make your changes, following the existing project style.
+4. Commit with a clear message:
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+5. Push the branch and open a Pull Request against `main`. Use the checklist in
+   [`.github/PULL_REQUEST_TEMPLATE.md`](https://github.com/lemon-casino/LemonSSH/blob/main/.github/PULL_REQUEST_TEMPLATE.md).
+6. Run `npm run lint` and `npm test` before requesting review.
+7. If you changed the capability catalog, run `npm run generate:capability-tools`
+   and commit any generated updates.
+8. Ensure all CI checks pass before requesting review.
+
+## Commit Message Convention
+
+We recommend following [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` — new feature
+- `fix:` — bug fix
+- `docs:` — documentation only
+- `refactor:` — code change without feature or fix
+- `chore:` — build process or tooling changes
+
+## Architecture & Coding Guidelines
+
+LemonSSH is organized around three layers:
+
+- Domain logic in `domain/`
+- Application state in `application/state/`
+- UI components in `components/`
+
+Keep side effects in application or infrastructure code, avoid direct
+`localStorage` or network calls from components, and update relevant
+documentation when behavior changes.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the [GPL-3.0 License](./LICENSE).

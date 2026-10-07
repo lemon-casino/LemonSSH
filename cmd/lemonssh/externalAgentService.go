@@ -1,0 +1,926 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+)
+
+type ExternalAgentHistoryMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ExternalAgentImage struct {
+	Base64Data string `json:"base64Data"`
+	MediaType  string `json:"mediaType"`
+	Filename   string `json:"filename,omitempty"`
+	FilePath   string `json:"filePath,omitempty"`
+}
+
+type ExternalAgentTarget struct {
+	SessionID  string `json:"sessionId"`
+	Hostname   string `json:"hostname"`
+	Label      string `json:"label"`
+	OS         string `json:"os,omitempty"`
+	Username   string `json:"username,omitempty"`
+	Protocol   string `json:"protocol,omitempty"`
+	ShellType  string `json:"shellType,omitempty"`
+	DeviceType string `json:"deviceType,omitempty"`
+	Connected  bool   `json:"connected"`
+	Source     string `json:"source"`
+}
+
+type ExternalAgentStreamRequest struct {
+	RequestID           string                        `json:"requestId"`
+	ChatSessionID       string                        `json:"chatSessionId"`
+	SDKBackend          string                        `json:"sdkBackend"`
+	Prompt              string                        `json:"prompt"`
+	CWD                 string                        `json:"cwd,omitempty"`
+	ProviderID          string                        `json:"providerId,omitempty"`
+	Model               string                        `json:"model,omitempty"`
+	ExistingSessionID   string                        `json:"existingSessionId,omitempty"`
+	HistoryMessages     []ExternalAgentHistoryMessage `json:"historyMessages,omitempty"`
+	Images              []ExternalAgentImage          `json:"images,omitempty"`
+	ToolIntegrationMode string                        `json:"toolIntegrationMode,omitempty"`
+	DefaultTarget       *ExternalAgentTarget          `json:"defaultTargetSession,omitempty"`
+	UserSkillsContext   string                        `json:"userSkillsContext,omitempty"`
+	AgentEnv            map[string]string             `json:"agentEnv,omitempty"`
+	AgentCommand        string                        `json:"agentCommand,omitempty"`
+	CodexRuntime        string                        `json:"codexRuntime,omitempty"`
+	PermissionMode      string                        `json:"permissionMode,omitempty"`
+	CodebuddyOptions    map[string]any                `json:"codebuddyOptions,omitempty"`
+}
+
+type ExternalAgentResult struct {
+	OK    bool   `json:"ok"`
+	Error string `json:"error,omitempty"`
+}
+
+type ExternalAgentSteerResult struct {
+	Status   string `json:"status"`
+	Message  string `json:"message,omitempty"`
+	TurnKind string `json:"turnKind,omitempty"`
+}
+
+type ExternalAgentModelsResult struct {
+	OK             bool             `json:"ok"`
+	Models         []map[string]any `json:"models,omitempty"`
+	CurrentModelID string           `json:"currentModelId,omitempty"`
+	Warning        string           `json:"warning,omitempty"`
+	Error          string           `json:"error,omitempty"`
+}
+
+type externalAgentRun struct {
+	cancel        context.CancelFunc
+	command       *exec.Cmd
+	requestID     string
+	chatSessionID string
+	emittedText   bool
+	protocolError string
+	stderr        strings.Builder
+	mu            sync.Mutex
+	// Codex App Server protocol mode (zero in exec mode). The client and
+	// thread/turn ids live across the JSON-RPC channel; cancel/steer route
+	// through turn/interrupt and turn/steer instead of process signals.
+	appServer               bool
+	client                  *codexAppServerClient
+	threadID                string
+	turnID                  string
+	appServerAgentDeltaSeen bool
+	appServerFinished       bool // guards the single terminal stream event
+	cleanupAttachments      func()
+	codebuddy               *codebuddyRunState
+}
+
+type ExternalAgentService struct {
+	mu            sync.Mutex
+	active        map[string]*externalAgentRun
+	emit          func(string, any)
+	discoveryPath string
+	tempRoot      string
+	host          *AgentHost
+
+	// Codex App Server shared runtime (see codexAppServerService.go).
+	appServerMu    sync.Mutex
+	appServerState codexAppServerState
+	// transportFactory overrides the app-server process launcher in tests.
+	transportFactory func(executable string, args []string, env []string, dir string) (codexAppServerTransport, error)
+	// now is swappable for tests.
+	now func() time.Time
+}
+
+func newExternalAgentService(discoveryPath, tempRoot string) *ExternalAgentService {
+	return &ExternalAgentService{
+		active: map[string]*externalAgentRun{},
+		appServerState: codexAppServerState{
+			runs:    map[string]*externalAgentRun{},
+			pending: map[string]*codexAppServerInteraction{},
+		},
+		discoveryPath: discoveryPath,
+		tempRoot:      tempRoot,
+		now:           time.Now,
+	}
+}
+
+func (s *ExternalAgentService) setEventEmitter(emit func(string, any)) { s.emit = emit }
+
+func (s *ExternalAgentService) emitPayload(name, requestID string, payload map[string]any) {
+	if s.emit == nil {
+		return
+	}
+	event := map[string]any{"requestId": requestID}
+	for key, value := range payload {
+		event[key] = value
+	}
+	s.emit(name, event)
+}
+
+func (s *ExternalAgentService) emitEvent(requestID string, event map[string]any) {
+	s.emitPayload("ai:sdk-agent:event", requestID, map[string]any{"event": event})
+}
+
+func normalizeExternalBackend(value string) (string, bool) {
+	backend := strings.ToLower(strings.TrimSpace(value))
+	switch backend {
+	case "codex", "claude", "copilot", "cursor", "codebuddy", "opencode", "grok":
+		return backend, true
+	default:
+		return "", false
+	}
+}
+
+func (s *ExternalAgentService) resolveExecutable(backend, configured string) string {
+	configured = strings.TrimSpace(configured)
+	if configured != "" {
+		if info, err := os.Stat(configured); err == nil && info.IsDir() {
+			return findExecutableInDirectory(configured, managedAgentExecutables[backend])
+		}
+		if info, err := os.Stat(configured); err == nil && !info.IsDir() {
+			return configured
+		}
+		if found, err := exec.LookPath(configured); err == nil {
+			return found
+		}
+	}
+	return findAgentExecutable(managedAgentExecutables[backend], "")
+}
+
+func appendModel(args []string, backend, model string) []string {
+	if strings.TrimSpace(model) == "" {
+		return args
+	}
+	switch backend {
+	case "codex", "claude", "cursor", "codebuddy", "opencode", "grok":
+		return append(args, "--model", model)
+	default:
+		return args
+	}
+}
+
+func decodeExternalSessionID(value, backend string) string {
+	const prefix = "lemonssh-sdk-session:"
+	// Pre-rename session records carry the netcatty-sdk-session: prefix; both
+	// decode to the same payload so old sessions keep resuming.
+	const legacyPrefix = "netcatty-sdk-session:"
+	trimmed := strings.TrimSpace(value)
+	var matched string
+	switch {
+	case strings.HasPrefix(trimmed, prefix):
+		matched = prefix
+	case strings.HasPrefix(trimmed, legacyPrefix):
+		matched = legacyPrefix
+	default:
+		return trimmed
+	}
+	decoded, err := url.PathUnescape(strings.TrimPrefix(trimmed, matched))
+	if err != nil {
+		return ""
+	}
+	var payload struct {
+		Version int    `json:"v"`
+		ID      string `json:"id"`
+		Backend string `json:"backend"`
+	}
+	if json.Unmarshal([]byte(decoded), &payload) != nil || payload.Version != 1 || payload.Backend != backend {
+		return ""
+	}
+	return payload.ID
+}
+
+func externalAgentArgs(backend, prompt, model, permissionMode, existingSessionID string) []string {
+	existingSessionID = decodeExternalSessionID(existingSessionID, backend)
+	var args []string
+	switch backend {
+	case "codex":
+		// Parent exec flags must precede the resume subcommand. Placing
+		// --sandbox after resume is rejected by current Codex CLIs.
+		args = []string{"exec", "--json", "--skip-git-repo-check"}
+		switch permissionMode {
+		case "auto":
+			args = append(args, "--dangerously-bypass-approvals-and-sandbox")
+		default:
+			// The one-shot CLI cannot surface native approval requests. Keep
+			// Observer and Confirm fail-closed; LemonSSH tools still provide
+			// their own Confirm approval bridge.
+			args = append(args, "--sandbox", "read-only")
+		}
+		args = appendModel(args, backend, model)
+		if existingSessionID != "" {
+			args = append(args, "resume", existingSessionID)
+		}
+		args = append(args, prompt)
+	case "claude":
+		args = []string{"--print", "--verbose", "--output-format", "stream-json", "--include-partial-messages"}
+		if permissionMode == "observer" {
+			args = append(args, "--permission-mode", "plan")
+		}
+		if permissionMode == "auto" {
+			args = append(args, "--dangerously-skip-permissions")
+		}
+		args = appendModel(args, backend, model)
+		if existingSessionID != "" {
+			args = append(args, "--resume", existingSessionID)
+		}
+		args = append(args, prompt)
+	case "cursor":
+		args = []string{"-p", "--output-format", "stream-json"}
+		if permissionMode == "auto" {
+			args = append(args, "--mode", "agent", "--force")
+		} else {
+			// Cursor's headless agent mode can write without a LemonSSH
+			// approval callback, so Confirm remains in ask mode as well.
+			args = append(args, "--mode", "ask")
+		}
+		args = appendModel(args, backend, model)
+		if existingSessionID != "" {
+			args = append(args, "--resume", existingSessionID)
+		}
+		args = append(args, prompt)
+	case "codebuddy":
+		args = []string{"--print", "--verbose", "--output-format", "stream-json"}
+		args = appendModel(args, backend, model)
+		if existingSessionID != "" {
+			args = append(args, "--resume", existingSessionID)
+		}
+		args = append(args, prompt)
+	case "opencode":
+		args = []string{"run", "--format", "json"}
+		args = appendModel(args, backend, model)
+		if existingSessionID != "" {
+			args = append(args, "--session", existingSessionID)
+		}
+		args = append(args, prompt)
+	case "grok":
+		args = []string{"--no-auto-update", "--output-format", "streaming-json", "-p", prompt}
+		if model != "" {
+			args = append(args, "-m", model)
+		}
+		if existingSessionID != "" {
+			args = append(args, "-r", existingSessionID)
+		}
+		if permissionMode == "observer" {
+			args = append(args, "--permission-mode", "plan")
+		} else {
+			args = append(args, "--always-approve")
+		}
+	case "copilot":
+		args = []string{"-p", prompt}
+	}
+	return args
+}
+
+func quoteWindowsCmdArg(value string) string {
+	if value == "" {
+		return `""`
+	}
+	return `"` + strings.ReplaceAll(value, `"`, `\"`) + `"`
+}
+
+func streamingCommand(ctx context.Context, executable string, args []string) *exec.Cmd {
+	lower := strings.ToLower(executable)
+	if runtime.GOOS == "windows" && (strings.HasSuffix(lower, ".cmd") || strings.HasSuffix(lower, ".bat")) {
+		pieces := []string{"call", quoteWindowsCmdArg(executable)}
+		for _, arg := range args {
+			pieces = append(pieces, quoteWindowsCmdArg(arg))
+		}
+		return exec.CommandContext(ctx, "cmd.exe", "/D", "/S", "/C", strings.Join(pieces, " "))
+	}
+	return exec.CommandContext(ctx, executable, args...)
+}
+
+func sanitizeExternalEnv(input map[string]string) []string {
+	envMap := map[string]string{}
+	for _, item := range os.Environ() {
+		if key, _, ok := strings.Cut(item, "="); ok {
+			envMap[strings.ToUpper(key)] = item
+		}
+	}
+	blocked := map[string]bool{"NODE_OPTIONS": true, "ELECTRON_RUN_AS_NODE": true, "LD_PRELOAD": true, "DYLD_INSERT_LIBRARIES": true}
+	for key, value := range input {
+		upper := strings.ToUpper(strings.TrimSpace(key))
+		if upper == "" || blocked[upper] || strings.ContainsAny(key, "=\x00") || strings.ContainsRune(value, '\x00') {
+			continue
+		}
+		envMap[upper] = key + "=" + value
+	}
+	result := make([]string, 0, len(envMap))
+	for _, entry := range envMap {
+		result = append(result, entry)
+	}
+	return result
+}
+
+const (
+	maxExternalAgentImages     = 8
+	maxExternalAgentImageBytes = 20 << 20
+)
+
+func externalAttachmentDirectory(tempRoot, requestID string) string {
+	sum := sha256.Sum256([]byte(requestID))
+	return filepath.Join(tempRoot, "agent-attachments", fmt.Sprintf("%x", sum[:]))
+}
+
+// safeExternalAttachmentName flattens an untrusted attachment filename to a
+// single path element that is safe on every platform. Both slash kinds are
+// separators: a Windows-style `..\name.png` must not smuggle its dot segments
+// through filepath.Base on Linux, where `\` is a legal filename byte. NUL
+// bytes are rejected and dot-only segments ("." / "..") never survive, so the
+// staged name is always a flat name inside the managed attachment directory.
+// An empty result means the filename carried no usable name.
+func safeExternalAttachmentName(filename string) string {
+	if strings.ContainsRune(filename, '\x00') {
+		return ""
+	}
+	normalized := strings.ReplaceAll(filename, "\\", "/")
+	name := path.Base(normalized)
+	if name == "" || name == "." || name == ".." || name == "/" {
+		return ""
+	}
+	return name
+}
+
+func (s *ExternalAgentService) stageImages(request ExternalAgentStreamRequest) ([]string, func()) {
+	if len(request.Images) == 0 {
+		return nil, func() {}
+	}
+	root := externalAttachmentDirectory(s.tempRoot, request.RequestID)
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return nil, func() {}
+	}
+	paths := []string{}
+	for index, image := range request.Images {
+		if index >= maxExternalAgentImages {
+			break
+		}
+		if image.FilePath != "" {
+			if info, err := os.Stat(image.FilePath); err == nil && info.Mode().IsRegular() {
+				paths = append(paths, image.FilePath)
+			}
+			continue
+		}
+		if base64.StdEncoding.DecodedLen(len(image.Base64Data)) > maxExternalAgentImageBytes {
+			continue
+		}
+		data, err := base64.StdEncoding.DecodeString(image.Base64Data)
+		if err != nil || len(data) > maxExternalAgentImageBytes {
+			continue
+		}
+		name := safeExternalAttachmentName(image.Filename)
+		if name == "" {
+			name = "attachment.bin"
+		}
+		name = fmt.Sprintf("%03d-%s", index+1, name)
+		path := filepath.Join(root, name)
+		if err := os.WriteFile(path, data, 0o600); err == nil {
+			paths = append(paths, path)
+		}
+	}
+	return paths, func() { _ = os.RemoveAll(root) }
+}
+
+func resolveExternalAgentToolPathFrom(executable, cwd string) string {
+	name := "LemonSSH-tool"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	candidates := []string{}
+	if executable != "" {
+		directory := filepath.Dir(executable)
+		candidates = append(candidates, filepath.Join(directory, name), filepath.Join(directory, "bin", name))
+	}
+	if cwd != "" {
+		candidates = append(candidates, filepath.Join(cwd, "bin", name), filepath.Join(cwd, "dist", "wails", name))
+	}
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
+			return candidate
+		}
+	}
+	return name
+}
+
+func resolveExternalAgentToolPath() string {
+	executable, _ := os.Executable()
+	cwd, _ := os.Getwd()
+	return resolveExternalAgentToolPathFrom(executable, cwd)
+}
+
+func (s *ExternalAgentService) buildPrompt(request ExternalAgentStreamRequest, attachmentPaths []string) string {
+	sections := []string{}
+	if request.ExistingSessionID == "" && len(request.HistoryMessages) > 0 {
+		lines := []string{"[Conversation context replay. Continue the same conversation and answer the latest request.]"}
+		for _, message := range request.HistoryMessages {
+			role := strings.ToUpper(strings.TrimSpace(message.Role))
+			if role != "USER" && role != "ASSISTANT" {
+				continue
+			}
+			if text := strings.TrimSpace(message.Content); text != "" {
+				lines = append(lines, role+": "+text)
+			}
+		}
+		if len(lines) > 1 {
+			sections = append(sections, strings.Join(lines, "\n"))
+		}
+	}
+	if request.DefaultTarget != nil {
+		target, _ := json.Marshal(request.DefaultTarget)
+		sections = append(sections, "[LemonSSH target terminal context]\n"+string(target))
+	}
+	if request.UserSkillsContext != "" {
+		sections = append(sections, request.UserSkillsContext)
+	}
+	if len(attachmentPaths) > 0 {
+		sections = append(sections, "[Attached local files]\n- "+strings.Join(attachmentPaths, "\n- "))
+	}
+	if externalToolMode(request.ToolIntegrationMode) == "skills" {
+		toolName := shellQuote(resolveExternalAgentToolPath())
+		sections = append(sections, fmt.Sprintf("[LemonSSH Skills tool access]\nInvoke %s with --chat-session %s on every call. Run %s capabilities to learn the available terminal, SFTP, vault, attachment and port-forward commands. Quote remote command arguments; do not chain local shell commands. Observer/Confirm/Auto permissions and terminal scope are enforced by the host.", toolName, shellQuote(request.ChatSessionID), toolName))
+	} else {
+		sections = append(sections, "[LemonSSH MCP tool access]\nUse the injected lemonssh MCP server for terminal, SFTP, vault, attachment and port-forward operations. Its tools are scoped to this chat. Do not substitute local shell commands. Observer/Confirm/Auto permissions are enforced by the host.")
+	}
+	sections = append(sections, request.Prompt)
+	return strings.Join(sections, "\n\n")
+}
+
+func (s *ExternalAgentService) Stream(request ExternalAgentStreamRequest) ExternalAgentResult {
+	if strings.TrimSpace(request.RequestID) == "" || strings.TrimSpace(request.ChatSessionID) == "" {
+		return ExternalAgentResult{Error: "requestId and chatSessionId are required"}
+	}
+	backend, ok := normalizeExternalBackend(request.SDKBackend)
+	if !ok {
+		return ExternalAgentResult{Error: "unsupported external agent backend"}
+	}
+	executable := s.resolveExecutable(backend, request.AgentCommand)
+	if executable == "" {
+		return ExternalAgentResult{Error: fmt.Sprintf("%s executable was not found; choose its installation directory or executable in Agent settings", backend)}
+	}
+	cleanupTools, err := s.prepareToolContext(&request)
+	if err != nil {
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	attachmentPaths, cleanupImages := s.stageImages(request)
+	cleanupAttachments := func() { cleanupImages(); cleanupTools() }
+	prompt := s.buildPrompt(request, attachmentPaths)
+	// Codex App Server mode: ride the JSON-RPC protocol channel instead of a
+	// one-shot `codex exec`. Unavailable protocol (missing CLI, failed
+	// handshake) degrades to exec mode with a status notice already emitted
+	// on the stream — never a silent fallback.
+	if backend == "codex" && strings.EqualFold(strings.TrimSpace(request.CodexRuntime), "app-server") {
+		if result, handled := s.streamViaCodexAppServer(request, executable, prompt, attachmentPaths, cleanupAttachments); handled {
+			return result
+		}
+	}
+	args := externalAgentArgs(backend, prompt, request.Model, request.PermissionMode, request.ExistingSessionID)
+	if backend == "codebuddy" {
+		args = codebuddyArgs(request)
+	}
+	args, toolEnv, restoreWorkspace, err := s.configureAgentTools(request, backend, args, strings.TrimSpace(request.CWD))
+	if err != nil {
+		cleanupAttachments()
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	cleanupTurn := cleanupAttachments
+	cleanupAttachments = func() { restoreWorkspace(); cleanupTurn() }
+	ctx, cancel := context.WithCancel(context.Background())
+	command := streamingCommand(ctx, executable, args)
+	cwd := strings.TrimSpace(request.CWD)
+	if cwd != "" {
+		if info, err := os.Stat(cwd); err == nil && info.IsDir() {
+			command.Dir = cwd
+		}
+	}
+	command.Env = sanitizeExternalEnv(toolEnv)
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		cancel()
+		cleanupAttachments()
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	stderr, err := command.StderrPipe()
+	if err != nil {
+		cancel()
+		cleanupAttachments()
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	run := &externalAgentRun{cancel: cancel, command: command, requestID: request.RequestID, chatSessionID: request.ChatSessionID}
+	if backend == "codebuddy" {
+		stdin, err := command.StdinPipe()
+		if err != nil {
+			cancel()
+			cleanupAttachments()
+			return ExternalAgentResult{Error: err.Error()}
+		}
+		run.codebuddy = newCodebuddyRun(stdin, request, prompt)
+	}
+	s.mu.Lock()
+	if previous := s.active[request.RequestID]; previous != nil {
+		// Same requestID re-streamed (possibly across exec/protocol modes);
+		// stopRun handles both without assuming a non-nil cancel.
+		s.mu.Unlock()
+		s.stopRun(previous)
+		s.mu.Lock()
+	}
+	s.active[request.RequestID] = run
+	s.mu.Unlock()
+	if err := command.Start(); err != nil {
+		s.mu.Lock()
+		if s.active[request.RequestID] == run {
+			delete(s.active, request.RequestID)
+		}
+		s.mu.Unlock()
+		cancel()
+		cleanupAttachments()
+		return ExternalAgentResult{Error: err.Error()}
+	}
+	s.emitEvent(request.RequestID, map[string]any{"type": "status", "message": fmt.Sprintf("%s agent started", backend)})
+	go s.consumeAgentRun(request.RequestID, backend, executable, run, stdout, stderr, cleanupAttachments)
+	if run.codebuddy != nil {
+		if err := s.initializeCodebuddy(run); err != nil {
+			s.closeCodebuddy(run)
+			cancel()
+			return ExternalAgentResult{Error: err.Error()}
+		}
+	}
+	return ExternalAgentResult{OK: true}
+}
+
+func (s *ExternalAgentService) consumeAgentRun(requestID, backend, executable string, run *externalAgentRun, stdout, stderr io.Reader, cleanup func()) {
+	defer cleanup()
+	if run.cancel != nil {
+		defer run.cancel()
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stdout)
+		scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
+		for scanner.Scan() {
+			s.handleAgentOutputLine(requestID, backend, executable, run, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			run.mu.Lock()
+			run.stderr.WriteString(err.Error())
+			run.mu.Unlock()
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stderr)
+		scanner.Buffer(make([]byte, 16*1024), 1024*1024)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" {
+				continue
+			}
+			run.mu.Lock()
+			if run.stderr.Len() < 64*1024 {
+				run.stderr.WriteString(line + "\n")
+			}
+			run.mu.Unlock()
+		}
+	}()
+	wg.Wait()
+	waitErr := run.command.Wait()
+	s.closeCodebuddy(run)
+	run.mu.Lock()
+	emittedText := run.emittedText
+	stderrText := strings.TrimSpace(run.stderr.String())
+	protocolError := run.protocolError
+	run.mu.Unlock()
+	s.mu.Lock()
+	if s.active[requestID] == run {
+		delete(s.active, requestID)
+	}
+	s.mu.Unlock()
+	if protocolError != "" {
+		s.emitPayload("ai:sdk-agent:error", requestID, map[string]any{"error": protocolError})
+		return
+	}
+	if waitErr != nil {
+		message := stderrText
+		if message == "" {
+			message = waitErr.Error()
+		}
+		if emittedText {
+			s.emitEvent(requestID, map[string]any{"type": "warning", "message": "Agent exited after returning partial output: " + message})
+			s.emitPayload("ai:sdk-agent:done", requestID, nil)
+			return
+		}
+		s.emitPayload("ai:sdk-agent:error", requestID, map[string]any{"error": message})
+		return
+	}
+	if stderrText != "" {
+		s.emitEvent(requestID, map[string]any{"type": "warning", "message": stderrText})
+	}
+	s.emitPayload("ai:sdk-agent:done", requestID, nil)
+}
+
+func stringAt(value any, path ...string) string {
+	current := value
+	for _, key := range path {
+		object, ok := current.(map[string]any)
+		if !ok {
+			return ""
+		}
+		current = object[key]
+	}
+	text, _ := current.(string)
+	return text
+}
+
+func numberAt(value any, path ...string) float64 {
+	current := value
+	for _, key := range path {
+		object, ok := current.(map[string]any)
+		if !ok {
+			return 0
+		}
+		current = object[key]
+	}
+	switch number := current.(type) {
+	case float64:
+		return number
+	case json.Number:
+		result, _ := number.Float64()
+		return result
+	case string:
+		result, _ := strconv.ParseFloat(number, 64)
+		return result
+	}
+	return 0
+}
+
+func firstString(value map[string]any, paths ...[]string) string {
+	for _, path := range paths {
+		if result := stringAt(value, path...); result != "" {
+			return result
+		}
+	}
+	return ""
+}
+
+func (s *ExternalAgentService) emitText(requestID string, run *externalAgentRun, text string) {
+	if text == "" {
+		return
+	}
+	run.mu.Lock()
+	run.emittedText = true
+	run.mu.Unlock()
+	s.emitEvent(requestID, map[string]any{"type": "text-delta", "textDelta": text})
+}
+
+func textFromContent(value any) string {
+	switch content := value.(type) {
+	case string:
+		return content
+	case []any:
+		parts := []string{}
+		for _, item := range content {
+			if object, ok := item.(map[string]any); ok {
+				if text := firstString(object, []string{"text"}, []string{"content"}); text != "" {
+					parts = append(parts, text)
+				}
+			}
+		}
+		return strings.Join(parts, "")
+	case map[string]any:
+		return firstString(content, []string{"text"}, []string{"content"})
+	}
+	return ""
+}
+
+func (s *ExternalAgentService) handleAgentOutputLine(requestID, backend, executable string, run *externalAgentRun, line string) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return
+	}
+	var event map[string]any
+	decoder := json.NewDecoder(strings.NewReader(trimmed))
+	decoder.UseNumber()
+	if decoder.Decode(&event) != nil {
+		s.emitText(requestID, run, line+"\n")
+		return
+	}
+	eventType := strings.ToLower(firstString(event, []string{"type"}, []string{"event"}, []string{"kind"}))
+	if sessionID := firstString(event, []string{"session_id"}, []string{"sessionId"}, []string{"thread_id"}, []string{"threadId"}, []string{"data", "session_id"}); sessionID != "" {
+		s.emitEvent(requestID, map[string]any{"type": "session-id", "sessionId": sessionID, "sdkBackend": backend, "binPath": executable, "runtime": "cli"})
+	}
+	if strings.Contains(eventType, "usage") || event["usage"] != nil {
+		input := numberAt(event, "usage", "input_tokens")
+		if input == 0 {
+			input = numberAt(event, "input_tokens")
+		}
+		output := numberAt(event, "usage", "output_tokens")
+		if output == 0 {
+			output = numberAt(event, "output_tokens")
+		}
+		if input > 0 || output > 0 {
+			s.emitEvent(requestID, map[string]any{"type": "usage", "inputTokens": input, "outputTokens": output, "totalTokens": input + output})
+		}
+	}
+	if backend == "codebuddy" && s.handleCodebuddyControl(run, event) {
+		return
+	}
+	if strings.Contains(eventType, "tool") && (strings.Contains(eventType, "use") || strings.Contains(eventType, "call") || strings.Contains(eventType, "start")) {
+		name := firstString(event, []string{"tool_name"}, []string{"toolName"}, []string{"name"}, []string{"item", "name"})
+		id := firstString(event, []string{"tool_call_id"}, []string{"toolCallId"}, []string{"id"}, []string{"item", "id"})
+		input := event["input"]
+		if input == nil {
+			input = event["arguments"]
+		}
+		if input == nil {
+			input = event["item"]
+		}
+		s.emitEvent(requestID, map[string]any{"type": "tool-call", "toolName": name, "toolCallId": id, "input": input})
+		return
+	}
+	if strings.Contains(eventType, "tool") && (strings.Contains(eventType, "result") || strings.Contains(eventType, "end") || strings.Contains(eventType, "completed")) {
+		id := firstString(event, []string{"tool_call_id"}, []string{"toolCallId"}, []string{"id"}, []string{"item", "id"})
+		output := event["output"]
+		if output == nil {
+			output = event["result"]
+		}
+		if output == nil {
+			output = event["item"]
+		}
+		s.emitEvent(requestID, map[string]any{"type": "tool-result", "toolCallId": id, "output": output})
+		return
+	}
+	if strings.Contains(eventType, "reasoning") || strings.Contains(eventType, "thinking") {
+		text := firstString(event, []string{"delta"}, []string{"text"}, []string{"content"}, []string{"data", "text"})
+		if text != "" {
+			s.emitEvent(requestID, map[string]any{"type": "reasoning-delta", "delta": text})
+		}
+		return
+	}
+	text := firstString(event,
+		[]string{"textDelta"}, []string{"delta"}, []string{"text"}, []string{"content"}, []string{"result"}, []string{"data", "text"}, []string{"item", "text"}, []string{"item", "content"},
+		[]string{"event", "delta", "text"}, []string{"event", "text"}, []string{"message", "text"},
+	)
+	if text == "" {
+		if message, ok := event["message"].(map[string]any); ok {
+			text = textFromContent(message["content"])
+		}
+	}
+	if item, ok := event["item"].(map[string]any); ok {
+		itemType := strings.ToLower(stringAt(item, "type"))
+		if text == "" && (itemType == "agent_message" || itemType == "assistant_message") {
+			text = firstString(item, []string{"text"}, []string{"content"})
+		}
+	}
+	if text != "" {
+		s.emitText(requestID, run, text)
+		return
+	}
+	if eventType == "error" || strings.Contains(eventType, "failed") {
+		message := firstString(event, []string{"error", "message"}, []string{"message"}, []string{"error"})
+		if message != "" {
+			run.mu.Lock()
+			run.stderr.WriteString(message + "\n")
+			run.mu.Unlock()
+		}
+	}
+}
+
+func (s *ExternalAgentService) Cancel(requestID, chatSessionID string) ExternalAgentResult {
+	s.mu.Lock()
+	var runs []*externalAgentRun
+	for id, run := range s.active {
+		if (requestID != "" && id == requestID) || (requestID == "" && chatSessionID != "" && run.chatSessionID == chatSessionID) {
+			runs = append(runs, run)
+		}
+	}
+	s.mu.Unlock()
+	for _, run := range runs {
+		if run.appServer {
+			// The protocol process is shared; interrupt the turn instead of
+			// killing the child, then finalize the stream.
+			run.mu.Lock()
+			threadID, turnID, client := run.threadID, run.turnID, run.client
+			run.mu.Unlock()
+			if client != nil && !client.IsExited() && threadID != "" && turnID != "" {
+				_, _ = client.Call("turn/interrupt", map[string]any{"threadId": threadID, "turnId": turnID}, codexAppServerRequestTimeout)
+			}
+			s.finishCodexAppServerRun(run, "")
+			continue
+		}
+		s.closeCodebuddy(run)
+		if run.cancel != nil {
+			run.cancel()
+		}
+		if run.command != nil && run.command.Process != nil {
+			_ = run.command.Process.Kill()
+		}
+	}
+	return ExternalAgentResult{OK: true}
+}
+
+func (s *ExternalAgentService) Cleanup(chatSessionID string) ExternalAgentResult {
+	return s.Cancel("", chatSessionID)
+}
+
+func (s *ExternalAgentService) Steer(requestID, chatSessionID, prompt string, images []ExternalAgentImage, clientUserMessageID string) ExternalAgentSteerResult {
+	if result, handled := s.steerViaCodexAppServer(requestID, chatSessionID, prompt, images); handled {
+		return result
+	}
+	s.mu.Lock()
+	run := s.active[requestID]
+	s.mu.Unlock()
+	if run == nil || run.chatSessionID != chatSessionID {
+		return ExternalAgentSteerResult{Status: "inactive"}
+	}
+	return ExternalAgentSteerResult{Status: "unsupported", Message: "This CLI accepts the next instruction as a new turn; the current output continues streaming."}
+}
+
+func (s *ExternalAgentService) ListModels(sdkBackend, cwd, providerID, chatSessionID string, agentEnv map[string]string, agentCommand, codexRuntime string) ExternalAgentModelsResult {
+	backend, ok := normalizeExternalBackend(sdkBackend)
+	if !ok {
+		return ExternalAgentModelsResult{Error: "unsupported external agent backend"}
+	}
+	// Only app-server mode rides the protocol for the catalog; sdk mode keeps
+	// the preset fallback and never spawns a protocol subprocess as a side
+	// effect of a model-picker refresh.
+	if backend == "codex" && strings.EqualFold(strings.TrimSpace(codexRuntime), "app-server") {
+		if executable := s.resolveExecutable("codex", agentCommand); executable != "" {
+			models, defaultModel, _, err := s.listModelsViaCodexAppServer(executable, agentEnv)
+			if err == nil && len(models) > 0 {
+				return ExternalAgentModelsResult{OK: true, Models: models, CurrentModelID: defaultModel}
+			}
+			reason := "model list unavailable"
+			if err != nil {
+				reason = err.Error()
+			}
+			return ExternalAgentModelsResult{OK: true, Models: []map[string]any{}, Warning: fmt.Sprintf("Codex App Server model list failed (%s); LemonSSH presets remain available.", reason)}
+		}
+	}
+	return ExternalAgentModelsResult{OK: true, Models: []map[string]any{}, Warning: "The CLI does not expose a stable model catalog; LemonSSH presets remain available."}
+}
+
+func (s *ExternalAgentService) CodexAppServerStatus(agentCommand string, agentEnv map[string]string) ExternalAgentResult {
+	path := s.resolveExecutable("codex", agentCommand)
+	if path == "" {
+		return ExternalAgentResult{Error: "codex executable was not found"}
+	}
+	// Real probe: the status is OK only when the JSON-RPC handshake
+	// (initialize + initialized) succeeded against the app-server protocol.
+	if err := s.probeCodexAppServer(path, agentEnv); err != nil {
+		message := fmt.Sprintf("codex app-server handshake failed: %s", err.Error())
+		if launchErr := s.codexAppServerLaunchError(); launchErr != "" && launchErr != err.Error() {
+			message = fmt.Sprintf("codex app-server handshake failed: %s (last error: %s)", err.Error(), launchErr)
+		}
+		return ExternalAgentResult{OK: false, Error: message}
+	}
+	return ExternalAgentResult{OK: true}
+}
+
+func (s *ExternalAgentService) AccountInfo(agentEnv map[string]string, agentCommand string) map[string]any {
+	path := s.resolveExecutable("codex", agentCommand)
+	if path == "" {
+		return map[string]any{"ok": false, "error": "codex executable was not found"}
+	}
+	output, err := runAgentCLI(path, "login", "status")
+	return map[string]any{"ok": err == nil, "account": map[string]any{"output": strings.TrimSpace(output)}, "error": errorString(err)}
+}
+
+func errorString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}

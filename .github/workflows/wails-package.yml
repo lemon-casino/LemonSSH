@@ -1,0 +1,142 @@
+name: wails-package
+
+# Builds the Wails application from the current source tree. Code signing is
+# optional distribution metadata and is not a release gate.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  workflow_dispatch:
+
+concurrency:
+  group: wails-package-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  package:
+    name: Wails package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux WebKit
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test helper supply and packaging
+        run: node --test scripts/package-wails.test.mjs scripts/fetch-wails-helpers.test.mjs
+
+      - name: Fetch locked Mosh and ET helpers
+        run: node scripts/fetch-wails-helpers.mjs
+
+      - name: Verify macOS universal helper slices
+        if: runner.os == 'macOS'
+        run: |
+          lipo resources/mosh/darwin-universal/mosh-client -verify_arch x86_64 arm64
+          lipo resources/et/darwin-universal/et -verify_arch x86_64 arm64
+
+      - name: Verify installed helpers against lock
+        run: node scripts/fetch-wails-helpers.mjs --verify-only
+
+      - name: Test real host helper packaging
+        env:
+          WAILS_HELPER_TEST_HOST: '1'
+        run: node --test --test-name-pattern="real " scripts/fetch-wails-helpers.test.mjs
+
+      - name: Package Wails application
+        run: node scripts/package-wails.mjs
+
+      - name: Inspect packaged binary
+        shell: bash
+        run: |
+          ls -l dist/wails
+          artifact=$(ls dist/wails/LemonSSH-* | head -1)
+          test -s "$artifact"
+          file "$artifact"
+          case "${{ runner.os }}" in
+            macOS) lipo -info "$artifact" || true ;;
+            Linux) readelf -h "$artifact" | sed -n '1,16p' ;;
+          esac
+
+      - name: Upload Wails artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: lemonssh-${{ matrix.os }}
+          path: dist/wails/**
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: lemonssh-windows-latest
+          path: release/lemonssh-windows-latest
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: lemonssh-macos-latest
+          path: release/lemonssh-macos-latest
+
+      - name: Download Ubuntu artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: lemonssh-ubuntu-latest
+          path: release/lemonssh-ubuntu-latest
+
+      - name: Zip platform folders
+        run: |
+          cd release
+          zip -r lemonssh-windows-latest.zip lemonssh-windows-latest
+          zip -r lemonssh-macos-latest.zip lemonssh-macos-latest
+          zip -r lemonssh-ubuntu-latest.zip lemonssh-ubuntu-latest
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/lemonssh-windows-latest.zip
+            release/lemonssh-macos-latest.zip
+            release/lemonssh-ubuntu-latest.zip
+          body: |
+            LemonSSH Wails builds generated from this tag.
+            Platform code signing may be added by downstream distributors.

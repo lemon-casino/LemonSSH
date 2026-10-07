@@ -1,0 +1,279 @@
+// Pure mapping helpers for the Wails adapter (Slice C). No imports of the
+// generated bindings or the Wails runtime: everything here is trivially
+// unit-testable in plain Node.
+
+import type { RemoteFile } from "../../../domain/models/workspace";
+
+/** Subprotocol namespace announced by the Go data plane server. */
+export const TERMINAL_DATA_SUBPROTOCOL = "lemonssh-terminal-v1";
+
+/** Minimal structural view of the generated sftp.Entry binding model. */
+export interface WailsSftpEntry {
+  name: string;
+  isDir: boolean;
+  size: number;
+  mode: string;
+  modTime: string;
+  symlink?: boolean;
+}
+
+/** Minimal structural view of the generated sftp.FileInfo binding model. */
+export interface WailsSftpFileInfo {
+  path: string;
+  isDir: boolean;
+  size: number;
+  mode: string;
+  modTime: string;
+}
+
+/** Minimal structural view of the generated dataplane.RouteBootstrap model. */
+export interface WailsRouteBootstrap {
+  SessionID: string;
+  Generation: number;
+  DataToken: string;
+  UrgentToken: string;
+  WindowBytes: number;
+}
+
+/**
+ * Builds the loopback WebSocket URL for one terminal route channel. The Go
+ * listener binds 127.0.0.1 only and requires the exact Host, so listenAddr
+ * must be the value reported by the server (host:port), never a rewritten one.
+ */
+export function buildTerminalSocketUrl(
+  listenAddr: string,
+  sessionID: string,
+  generation: number,
+  channel: "data" | "urgent",
+): string {
+  if (!listenAddr) throw new Error("terminal data plane address is not available yet");
+  if (!sessionID) throw new Error("terminal session id is required");
+  return `ws://${listenAddr}/v1/${channel}/${encodeURIComponent(sessionID)}?generation=${generation}`;
+}
+
+/**
+ * Browser WebSocket subprotocol array carrying the one-use route token.
+ * Browsers join array members with ", " which matches the server's
+ * two-name Sec-WebSocket-Protocol expectation.
+ */
+export function terminalSocketSubprotocols(token: string): string[] {
+  return [TERMINAL_DATA_SUBPROTOCOL, `route.${token}`];
+}
+
+/** Go os.FileMode string ("drwxr-xr-x") to the 9-char permission triplet. */
+export function modeToPermissions(mode: string): string | undefined {
+  if (mode.length < 9) return undefined;
+  return mode.slice(-9);
+}
+
+/** Maps a Go SFTP listing entry to the renderer's RemoteFile contract. */
+export function entryToRemoteFile(entry: WailsSftpEntry): RemoteFile {
+  const type: RemoteFile["type"] = entry.symlink
+    ? "symlink"
+    : entry.isDir
+      ? "directory"
+      : "file";
+  return {
+    name: entry.name,
+    type,
+    size: String(entry.size),
+    lastModified: entry.modTime,
+    permissions: modeToPermissions(entry.mode),
+    // Resolved symlinks report the target type; unresolved ones read null.
+    linkTarget: entry.symlink ? (entry.isDir ? "directory" : "file") : null,
+  };
+}
+
+/** Maps a Go SFTP stat payload to the Electron-compatible stat contract. */
+export function statToSftpStatResult(stat: WailsSftpFileInfo): {
+  name: string;
+  type: "file" | "directory" | "symlink";
+  size: number;
+  lastModified: number;
+  permissions?: string;
+} {
+  const segments = stat.path.split("/");
+  return {
+    name: segments[segments.length - 1] || stat.path,
+    type: stat.isDir ? "directory" : "file",
+    size: stat.size,
+    lastModified: Date.parse(stat.modTime) || 0,
+    permissions: modeToPermissions(stat.mode),
+  };
+}
+
+/**
+ * Encodes raw stdin bytes to base64: Go []byte parameters travel as base64
+ * strings through the Wails JSON binding layer. Chunked so large pastes do
+ * not blow the call stack via String.fromCharCode(...spread).
+ */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  if (typeof btoa === "function") return btoa(binary);
+  // Node test runtime fallback.
+  return Buffer.from(binary, "binary").toString("base64");
+}
+
+/** Arguments the Go TerminalService.Connect binding accepts today. */
+export interface WailsSSHConnectArgs {
+  hostname: string;
+  port: number;
+  username: string;
+  password: string;
+  privateKey: string;
+  passphrase: string;
+  certificate: string;
+  proxyUrl: string;
+  /** OpenSSH ProxyCommand line; %h/%p are substituted by the Go dialer. */
+  proxyCommand: string;
+  enableMfa: boolean;
+  useAgent: boolean;
+  /** Exposes the local SSH agent to the remote host (ForwardAgent yes). */
+  agentForwarding: boolean;
+  identityFilePaths: string[];
+  cols: number;
+  rows: number;
+  term: string;
+  verifyHostKeys: boolean;
+  keepaliveInterval: number;
+  keepaliveCountMax: number;
+  forwardX11: boolean;
+  x11Display: string;
+  /** Renderer session alias echoed back on interactive prompts. */
+  sessionId: string;
+  /** Boot generation echoed back so prompts can reject stale boots. */
+  bootEpoch: number;
+  /** Syncs the process-global ssh-debug.log toggle at dial time. */
+  sshDebugLogs?: boolean;
+  jumpHosts: WailsSSHConnectArgs[];
+}
+
+export interface WailsProxyConfig {
+  type?: string;
+  host?: string;
+  port?: number;
+  command?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface WailsSSHConnectOptions {
+  hostname: string;
+  username: string;
+  port?: number;
+  password?: string;
+  cols?: number;
+  rows?: number;
+  privateKey?: string;
+  certificate?: string;
+  passphrase?: string;
+  requiresMfa?: boolean;
+  term?: string;
+  env?: Record<string, string>;
+  /** Exposes the local SSH agent to the remote host (ForwardAgent yes). */
+  agentForwarding?: boolean;
+  verifyHostKeys?: boolean;
+  /** Seconds, already resolved against host overrides by the caller. */
+  keepaliveInterval?: number;
+  keepaliveCountMax?: number;
+  x11Forwarding?: boolean;
+  forwardX11?: boolean;
+  x11Display?: string;
+  jumpHosts?: WailsSSHConnectOptions[];
+  proxy?: WailsProxyConfig;
+  useSshAgent?: boolean;
+  identityFilePaths?: string[];
+  /** Renderer session alias correlated onto passphrase/host-key prompts. */
+  sessionId?: string;
+  /** Boot generation for the same correlation (terminal boots only). */
+  bootEpoch?: number;
+  /** Syncs the process-global ssh-debug.log toggle at dial time. */
+  sshDebugLogEnabled?: boolean;
+}
+
+/** Builds a socks5:// or http:// URL. Returns "" for command proxies. */
+export function formatProxyUrl(proxy?: WailsProxyConfig): string {
+  if (!proxy) return "";
+  if (proxy.command || (proxy.type && proxy.type !== "socks5" && proxy.type !== "http")) {
+    return "";
+  }
+  if (!proxy.host || !proxy.port) {
+    return "";
+  }
+  const auth = proxy.username
+    ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password ?? "")}@`
+    : "";
+  return `${proxy.type ?? "socks5"}://${auth}${proxy.host}:${proxy.port}`;
+}
+
+/** Extracts the OpenSSH ProxyCommand line, or "" for host/port proxies. */
+export function formatProxyCommand(proxy?: WailsProxyConfig): string {
+  const command = typeof proxy?.command === "string" ? proxy.command.trim() : "";
+  return command;
+}
+
+/**
+ * Resolves the Wails window name of the calling renderer from its route hash
+ * (and query string). The settings window is a fixed name; peer session
+ * windows (#/session-window) carry their Wails window name in the URL query
+ * (SessionWindowService names each window after its identity); every other
+ * route is the main window. (Terminal popups are excluded by the caller: they
+ * keep the hide-self contract and must not reach RequestClose.) Feeds
+ * WindowLifecycleService.RequestClose so the main window's title-bar X runs
+ * the Go-side quit guard, session windows close themselves, and other windows
+ * keep their own close contract.
+ */
+export function callerWindowName(hash: string, search: string = ''): string {
+  if (hash.startsWith('#/settings')) {
+    return 'settings';
+  }
+  if (hash.startsWith('#/session-window')) {
+    // A session window whose identity is missing from the URL must never run
+    // the main window's quit guard, but there is no better name to close by —
+    // fall through to main and let RequestClose behave as before.
+    return new URLSearchParams(search).get('sessionWindowId') ?? 'main';
+  }
+  return 'main';
+}
+
+/**
+ * Normalizes the Electron LemonSSHSSHOptions to the Go Connect binding.
+ * Host/port proxies become proxyUrl; command proxies ride ProxyCommand
+ * semantics on the Go dialer.
+ */
+export function pickSSHConnectArgs(options: WailsSSHConnectOptions): WailsSSHConnectArgs {
+  const proxyCommand = formatProxyCommand(options.proxy);
+  return {
+    hostname: options.hostname,
+    username: options.username,
+    port: options.port ?? 22,
+    password: options.password ?? "",
+    privateKey: options.privateKey ?? "",
+    passphrase: options.passphrase ?? "",
+    certificate: options.certificate ?? "",
+    proxyUrl: proxyCommand ? "" : formatProxyUrl(options.proxy),
+    proxyCommand,
+    enableMfa: Boolean(options.requiresMfa),
+    useAgent: Boolean(options.useSshAgent),
+    agentForwarding: options.agentForwarding === true,
+    identityFilePaths: options.identityFilePaths ?? [],
+    cols: options.cols ?? 80,
+    rows: options.rows ?? 24,
+    term: options.term || options.env?.TERM || "xterm-256color",
+    verifyHostKeys: options.verifyHostKeys !== false,
+    keepaliveInterval: options.keepaliveInterval ?? 30,
+    keepaliveCountMax: options.keepaliveCountMax ?? 3,
+    forwardX11: options.x11Forwarding ?? options.forwardX11 ?? false,
+    x11Display: options.x11Display ?? "",
+    // Interactive prompts (passphrase, host-key confirmation) echo these back
+    // so the renderer can route them to the session that started the dial.
+    sessionId: options.sessionId ?? "",
+    bootEpoch: typeof options.bootEpoch === "number" && Number.isFinite(options.bootEpoch) ? options.bootEpoch : 0,
+    sshDebugLogs: options.sshDebugLogEnabled === true,
+    jumpHosts: (options.jumpHosts ?? []).map((hop) => pickSSHConnectArgs(hop)),
+  };
+}

@@ -1,0 +1,134 @@
+{
+  "name": "et",
+  "path": "et",
+  "os": "linux",
+  "arch": "arm64",
+  "sha256": "408fe4831b80a0ed89a7cbdcabffccb874c7d1d95b3b16ead09717255e035ea4",
+  "provenance": {
+    "repository": "binaricat/Netcatty-et-bin",
+    "tag": "et-bin-6.2.10-1",
+    "source": {
+      "repository": "MisterTea/EternalTerminal",
+      "tag": "et-v6.2.10",
+      "commit": "f9a584ac06b2f1730b5bdf0a27150f28478368fb"
+    },
+    "build": {
+      "repository": "binaricat/Netcatty",
+      "commit": "c39793d592db59da68a1b4d6eaaf001620ad9464",
+      "workflow": ".github/workflows/build-et-binaries.yml",
+      "run": "https://github.com/binaricat/Netcatty/actions/runs/26945446872"
+    },
+    "archive": {
+      "url": "https://github.com/binaricat/Netcatty-et-bin/releases/download/et-bin-6.2.10-1/et-linux-arm64.tar.gz",
+      "assetId": 438206480,
+      "sha256": "c0f0fbe18bdd95c409bba11180a98f36876aa03f063ef1fa27048d86471b58ea"
+    },
+    "checksums": {
+      "assetId": 438206477,
+      "sha256": "9bc6a2cb44abe6c3059c7a973164ae1d7ae52e9eb62a48bd6bc6a8e20c309ae6"
+    },
+    "buildProvenance": {
+      "assetId": 438207740,
+      "sha256": "f759adbe7989dd3a0b646961c903c77d5b536230f71b887db61fe40b78989471"
+    }
+  },
+  "files": [
+    {
+      "path": "et",
+      "sha256": "408fe4831b80a0ed89a7cbdcabffccb874c7d1d95b3b16ead09717255e035ea4",
+      "executable": true
+    }
+  ],
+  "licenses": [
+    {
+      "path": "EternalTerminal.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/LICENSE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "PlatformFolders.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/PlatformFolders/LICENSE",
+      "sha256": "517d09a83f375b0e956c8f5fc49e835711d51edef1cb4f093c5738263ceeb03d"
+    },
+    {
+      "path": "ThreadPool.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/ThreadPool/COPYING",
+      "sha256": "8afbc5160151ecc1fc27dce6cb03e4af8fb1033d59848107ce7561161242b0c7"
+    },
+    {
+      "path": "UniversalStacktrace.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/UniversalStacktrace/LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "base64.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/base64/LICENSE",
+      "sha256": "b35547217a579d34e54e54f05b2c6aff8013d048b257b4036ac2a97510edea6d"
+    },
+    {
+      "path": "easyloggingpp.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/easyloggingpp/LICENSE",
+      "sha256": "9fda5ba90ccd243bf237e5989ba0182a1aace8cfdc7e2a78ce3b0835529ad1c8"
+    },
+    {
+      "path": "sole.txt",
+      "url": "https://raw.githubusercontent.com/MisterTea/EternalTerminal/f9a584ac06b2f1730b5bdf0a27150f28478368fb/external_imported/sole/LICENSE",
+      "sha256": "059245b249db46d46b25a159431c3f5d88c445dfc75cc3254c969362510ae9bd"
+    },
+    {
+      "path": "protobuf.txt",
+      "url": "https://raw.githubusercontent.com/protocolbuffers/protobuf/b407e8416e3893036aee5af9a12bd9b6a0e2b2e6/LICENSE",
+      "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+    },
+    {
+      "path": "utf8-range.txt",
+      "url": "https://raw.githubusercontent.com/protocolbuffers/protobuf/b407e8416e3893036aee5af9a12bd9b6a0e2b2e6/third_party/utf8_range/LICENSE",
+      "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074"
+    },
+    {
+      "path": "openssl.txt",
+      "url": "https://raw.githubusercontent.com/openssl/openssl/aea7aaf2abb04789f5868cbabec406ea43aa84bf/LICENSE.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+    },
+    {
+      "path": "libsodium.txt",
+      "url": "https://raw.githubusercontent.com/jedisct1/libsodium/9511c982fb1d046470a8b42aa36556cdb7da15de/LICENSE",
+      "sha256": "43964d976a6db3fb986af689d05f8ca0e9971878bccae709750dac8fdc4a99cf"
+    },
+    {
+      "path": "abseil.txt",
+      "url": "https://raw.githubusercontent.com/abseil/abseil-cpp/d9e4955c65cd4367dd6bf46f4ccb8cd3d100540b/LICENSE",
+      "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747"
+    },
+    {
+      "path": "zlib.txt",
+      "url": "https://raw.githubusercontent.com/madler/zlib/51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf/LICENSE",
+      "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243"
+    },
+    {
+      "path": "cpp-httplib.txt",
+      "url": "https://raw.githubusercontent.com/yhirose/cpp-httplib/ecfd84c1712b1bfe92107e37843f97ecec537da9/LICENSE",
+      "sha256": "4b45cbe16d7b71b89ae6127e26e0d90a029198ca5e958ad8e3d0b8bbed364d8b"
+    },
+    {
+      "path": "cxxopts.txt",
+      "url": "https://raw.githubusercontent.com/jarro2783/cxxopts/44380e5a44706ab7347f400698c703eb2a196202/LICENSE",
+      "sha256": "aa324fbe633a96546bebca975fbbab65caa175894bd00cfa13d7335e7363400c"
+    },
+    {
+      "path": "nlohmann-json.txt",
+      "url": "https://raw.githubusercontent.com/nlohmann/json/55f93686c01528224f448c19128836e7df245f72/LICENSE.MIT",
+      "sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603"
+    },
+    {
+      "path": "simpleini.txt",
+      "url": "https://raw.githubusercontent.com/brofield/simpleini/09c21bda1dc1b578fa55f4a005d79b0afd481296/LICENCE.txt",
+      "sha256": "688d88b599dc17c5da39615570f9bb4245e24e699834868a9b2024fe526297bd"
+    },
+    {
+      "path": "brotli.txt",
+      "url": "https://raw.githubusercontent.com/google/brotli/ed738e842d2fbdf2d6459e39267a633c4a9b2f5d/LICENSE",
+      "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+    }
+  ]
+}

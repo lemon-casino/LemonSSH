@@ -1,0 +1,26 @@
+# Canonical working-tree line endings: LF everywhere. Source-grep tests assert
+# on `\n`-based regexes and index content is LF, so a CRLF checkout (Windows
+# core.autocrlf) breaks the suite. Pin LF at the attributes level so checkouts
+# are identical on every platform.
+* text=auto eol=lf
+
+# Byte-exact migration fixtures must stay LF on every platform
+testdata/migration/** text eol=lf
+
+# Binary assets — never normalize
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.syso binary
+*.wasm binary
+*.node binary
+*.zip binary
+*.gz binary

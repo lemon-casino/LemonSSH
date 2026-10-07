@@ -1,0 +1,81 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: lint-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fish xvfb libgtk-3-dev libwebkit2gtk-4.1-dev libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Verify generated capability specs
+        run: |
+          npm run generate:capability-tools
+          git diff --exit-code infrastructure/ai/harness/generated
+
+      - name: Verify plugin contract codegen
+        # The Go host test binary links golang.design/x/hotkey, whose Linux
+        # init() panics without an X11 display; xvfb provides one.
+        run: xvfb-run -a npm run check:plugin-contract
+
+      - name: Verify base contracts
+        run: npm run check:contracts
+
+      - name: Verify profile store
+        run: npm run check:profile-store
+
+      - name: Verify credential providers
+        run: npm run check:credentials
+
+      - name: Test Go services
+        # Same X11-at-init constraint as above (cmd/lemonssh links the hotkey
+        # library); xvfb keeps the suite runnable headless.
+        run: xvfb-run -a go test ./internal/... ./cmd/...
+
+      - name: Test frontend
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Wails application
+        run: |
+          node scripts/wails-prepare-frontend.mjs
+          go build -o /tmp/lemonssh-ci ./cmd/lemonssh

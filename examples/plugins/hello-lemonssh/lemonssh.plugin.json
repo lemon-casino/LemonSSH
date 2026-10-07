@@ -1,0 +1,73 @@
+{
+  "apiVersion": 2,
+  "name": "hello-lemonssh",
+  "version": "0.4.0",
+  "displayName": "Hello LemonSSH",
+  "description": "Minimal declarative plugin example for the LemonSSH WASM host.",
+  "entrypoint": {
+    "wasm": "hello.wasm",
+    "sha256": "51d68663337704116de85476495b852190273566cb36c829da3384a3fb594466",
+    "memoryMB": 16
+  },
+  "permissions": [
+    {
+      "kind": "runtime",
+      "resource": "log",
+      "mode": "write"
+    },
+    {
+      "kind": "runtime",
+      "resource": "settings",
+      "mode": "read"
+    },
+    {
+      "kind": "provider",
+      "resource": "terminal.theme",
+      "mode": "read"
+    }
+  ],
+  "contributions": [
+    {
+      "type": "command",
+      "id": "hello.ping"
+    }
+  ],
+  "ui": {
+    "settings": [
+      {
+        "id": "com.lemonssh.hello.greeting",
+        "type": "text",
+        "label": "Greeting",
+        "description": "Greeting text stored by the host and rendered on the plugin settings page.",
+        "default": "Hello from LemonSSH"
+      }
+    ],
+    "views": [
+      {
+        "id": "greeting-card",
+        "type": "card",
+        "title": "Greeting",
+        "location": "settings",
+        "bindings": [
+          "com.lemonssh.hello.greeting"
+        ]
+      }
+    ],
+    "menus": [
+      {
+        "id": "palette-ping",
+        "command": "hello.ping",
+        "location": "commandPalette",
+        "title": "Hello LemonSSH: Ping",
+        "group": "demo",
+        "order": 1
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "hello.ping",
+        "key": "ctrl+alt+h"
+      }
+    ]
+  }
+}
